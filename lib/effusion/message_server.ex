@@ -30,16 +30,18 @@ defmodule Effusion.MessageServer do
   end
 
   defp serve(socket) do
-    {:ok, data} = :gen_tcp.recv(socket, 0)
-
-    <<19, "BitTorrent protocol",
-    _reserved :: size(64),
-    info_hash :: size(160),
-    peer_id :: size(160)>> = data
-
-    Logger.info ("Handshake from peer_id #{inspect(peer_id)} for info_hash #{inspect(info_hash)}")
-
-    :gen_tcp.send(socket, handshake())
-    :gen_tcp.shutdown(socket, :read_write)
+    with {:ok, data} <- :gen_tcp.recv(socket, 0),
+         <<19,
+         "BitTorrent protocol",
+         _reserved :: size(64),
+         info_hash :: size(160),
+         peer_id :: size(160)>> <- data
+    do
+      Logger.info ("Handshake from peer_id #{inspect(peer_id)} for info_hash #{inspect(info_hash)}")
+      :gen_tcp.send(socket, handshake())
+      :gen_tcp.shutdown(socket, :read_write)
+    else
+      _err -> :gen_tcp.shutdown(socket, :read_write)
+    end
   end
 end
