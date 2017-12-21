@@ -6,7 +6,7 @@ defmodule Effusion.Application do
   def start(_type, _args) do
     children = [
       {Task.Supervisor, name: Effusion.TaskSupervisor},
-      Supervisor.child_spec({Task, fn -> Effusion.MessageServer.accept(4040) end}, restart: :permanent)
+      Supervisor.child_spec({Task, fn -> Effusion.MessageServer.listen(4040) end}, restart: :permanent)
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]

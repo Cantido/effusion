@@ -11,7 +11,7 @@ defmodule Effusion.MessageServer do
     name_size <> name <> reserved <> info_hash <> peer_id
   end
 
-  def accept(port) do
+  def listen(port) do
     socket_opts =
       [:binary,
        packet: 0, # This should be changed to 4 after we accept a handshake
