@@ -37,8 +37,8 @@ defmodule Effusion.MessageServerTest do
     name_size <> name <> reserved <> info_hash <> peer_id
   end
 
-  defp send_and_recv(socket, command) do
-    :ok = :gen_tcp.send(socket, command)
+  defp send_and_recv(socket, text) do
+    :ok = :gen_tcp.send(socket, text)
     {:ok, data} = :gen_tcp.recv(socket, 0, 1000)
     data
   end
