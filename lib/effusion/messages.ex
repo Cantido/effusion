@@ -1,8 +1,16 @@
 defmodule Effusion.Messages.Handshake do
+  @moduledoc """
+  Encode and decode peer handshake messages.
+  """
+
   @protocol_name <<"BitTorrent protocol" :: utf8>>
   @protocol_name_size <<19 :: integer-size(8)>>
   @reserved_bytes <<0, 0, 0, 0, 0, 0, 0, 0>>
 
+  @doc """
+  Extracts the peer id, info hash, and reserved bytes from
+  a handshake packet binary.
+  """
   def decode(handshake) do
     case handshake do
       <<@protocol_name_size,
@@ -14,6 +22,9 @@ defmodule Effusion.Messages.Handshake do
     end
   end
 
+  @doc """
+  Builds a handshake packet binary for the info hash and peer id.
+  """
   def encode(info_hash, peer_id)  do
     <<@protocol_name_size,
     @protocol_name,

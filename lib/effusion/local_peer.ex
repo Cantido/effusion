@@ -1,4 +1,13 @@
 defmodule Effusion.LocalPeer do
+  @doc """
+  Returns the local peer's peer ID. Currently stubbed-out to all zeroes.
+
+  ## Example
+
+      iex> Effusion.LocalPeer.peer_id()
+      <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
+
+  """
   @spec peer_id() :: binary()
   def peer_id do
     <<0 :: integer-size(160)>>

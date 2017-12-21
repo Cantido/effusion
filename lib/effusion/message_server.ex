@@ -1,6 +1,13 @@
 require Logger
 
 defmodule Effusion.MessageServer do
+  @moduledoc """
+  Listen for TCP connections from peers and dispatch them.
+  """
+
+  @doc """
+  Listen on the given port for TCP connections.
+  """
   def listen(port) do
     socket_opts =
       [:binary,
