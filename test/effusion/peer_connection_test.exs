@@ -26,6 +26,19 @@ defmodule Effusion.PeerConnectionTest do
     {:error, :closed} = :gen_tcp.recv(socket, 0, 1000)
   end
 
+  test "closes connection when info hash isn't recognized", %{socket: socket} do
+    bad_name_size = <<19>>
+    name = "BitTorrent protocol"
+    reserved = <<0 :: size(64)>>
+    info_hash = <<1 :: size(160)>>
+    peer_id = <<0 :: size(160)>>
+
+    bad_handshake = bad_name_size <> name <> reserved <> info_hash <> peer_id
+
+    :ok = :gen_tcp.send(socket, bad_handshake)
+    {:error, :closed} = :gen_tcp.recv(socket, 0, 1000)
+  end
+
   defp handshake do
     name_size = <<19>>
     name = "BitTorrent protocol"
