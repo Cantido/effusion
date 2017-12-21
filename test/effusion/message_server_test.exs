@@ -22,7 +22,6 @@ defmodule Effusion.MessageServerTest do
 
     bad_handshake = bad_name_size <> name <> reserved <> info_hash <> peer_id
 
-
     :ok = :gen_tcp.send(socket, bad_handshake)
     {:error, :closed} = :gen_tcp.recv(socket, 0, 1000)
   end
