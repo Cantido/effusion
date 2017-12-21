@@ -1,4 +1,8 @@
 defmodule Effusion.LocalPeer do
+  @moduledoc """
+  The peer that is acting on behalf of this software's user.
+  """
+
   @doc """
   Returns the local peer's peer ID. Currently stubbed-out to all zeroes.
 
