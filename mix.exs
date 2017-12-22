@@ -10,7 +10,8 @@ defmodule Effusion.Mixfile do
       description: "A BitTorrent library.",
       package: package(),
       deps: deps(),
-      source_url: "https://github.com/Cantido/effusion"
+      source_url: "https://github.com/Cantido/effusion",
+      dialyzer: [ flags: ["-Wunmatched_returns", :error_handling, :race_conditions, :underspecs]]
     ]
   end
 
@@ -24,7 +25,8 @@ defmodule Effusion.Mixfile do
   defp deps do
     [
       {:ex_bencode, "~> 1.0.0"},
-      {:ex_doc, "~> 0.16", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.16", only: :dev, runtime: false},
+      {:dialyxir, "~> 0.5", only: [:dev], runtime: false}
     ]
   end
 

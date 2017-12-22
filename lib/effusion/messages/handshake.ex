@@ -11,6 +11,7 @@ defmodule Effusion.Messages.Handshake do
   Extracts the peer id, info hash, and reserved bytes from
   a handshake packet binary.
   """
+  @spec decode(<<_::544>>) :: {:ok, <<_::160>>, <<_::160>>, <<_::64>>} | :error
   def decode(handshake) do
     case handshake do
       <<@protocol_name_size,

@@ -1,3 +1,5 @@
+alias Effusion.InfoHash
+
 defmodule Effusion.LocalPeer do
   @moduledoc """
   The peer that is acting on behalf of this software's user.
@@ -12,7 +14,7 @@ defmodule Effusion.LocalPeer do
       <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
 
   """
-  @spec peer_id() :: binary()
+  @spec peer_id() :: InfoHash.t
   def peer_id do
     <<0 :: integer-size(160)>>
   end

@@ -22,9 +22,9 @@ defmodule Effusion.PeerConnection do
          {:ok, peer_id, info_hash, _reserved} <- Handshake.decode(data),
          :ok = Torrents.lookup(info_hash)
     do
-      Logger.info ("Handshake from peer_id #{inspect(peer_id)} for info_hash #{inspect(info_hash)}")
+      :ok = Logger.info ("Handshake from peer_id #{inspect(peer_id)} for info_hash #{inspect(info_hash)}")
       response = Handshake.encode(info_hash, LocalPeer.peer_id())
-      :gen_tcp.send(socket, response)
+      :ok = :gen_tcp.send(socket, response)
       {:ok, peer_id, info_hash}
     end
   end

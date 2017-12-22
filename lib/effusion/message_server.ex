@@ -8,6 +8,7 @@ defmodule Effusion.MessageServer do
   @doc """
   Listen on the given port for TCP connections.
   """
+  @spec listen(:inet.port_number()) :: no_return()
   def listen(port) do
     socket_opts =
       [:binary,
@@ -15,7 +16,7 @@ defmodule Effusion.MessageServer do
        active: false,
        reuseaddr: true]
     {:ok, socket} = :gen_tcp.listen(port, socket_opts)
-    Logger.info "Accepting connections on port #{port}"
+    :ok = Logger.info "Accepting connections on port #{port}"
     loop_acceptor(socket)
   end
 
