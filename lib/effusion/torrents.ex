@@ -15,11 +15,15 @@ defmodule Effusion.Torrents do
       iex> Effusion.Torrents.lookup(<<1 :: 160>>)
       :not_found
 
+      iex> Effusion.Torrents.lookup(<<1 :: 170>>)
+      :bad_info_hash
+
   """
   def lookup(info_hash) do
     case info_hash do
       <<0 :: size(160)>> -> :ok
-      _ -> :not_found
+      <<_ :: size(160)>> -> :not_found
+      _ -> :bad_info_hash
     end
   end
 end
