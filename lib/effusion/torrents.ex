@@ -9,8 +9,11 @@ defmodule Effusion.Torrents do
 
   ## Examples
 
-      iex> Effusion.Torrents.lookup(<<0 :: size(160)>>)
+      iex> Effusion.Torrents.lookup(<<0 :: 160>>)
       :ok
+
+      iex> Effusion.Torrents.lookup(<<1 :: 160>>)
+      :not_found
 
   """
   def lookup(info_hash) do
