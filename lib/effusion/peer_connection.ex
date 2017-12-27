@@ -12,7 +12,7 @@ defmodule Effusion.PeerConnection do
   On any error, or when the handshake is completed, the socket is shut down.
   """
   def serve(socket) do
-    {:ok, _peer_id, _info_hash} = handle_handshake(socket)
+    :ok = handle_handshake(socket)
     :ok = handle_messages(socket)
     :gen_tcp.shutdown(socket, :read_write)
   end
@@ -25,7 +25,7 @@ defmodule Effusion.PeerConnection do
       :ok = Logger.info ("Handshake from peer_id #{inspect(peer_id)} for info_hash #{inspect(info_hash)}")
       response = Handshake.encode(info_hash, LocalPeer.peer_id())
       :ok = :gen_tcp.send(socket, response)
-      {:ok, peer_id, info_hash}
+      :ok
     end
   end
 
