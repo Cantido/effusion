@@ -21,4 +21,10 @@ defmodule Effusion.Messages.HandshakeTest do
 
     assert Handshake.decode(handshake) == {:ok, @peer_id, @info_hash, @reserved_bytes}
   end
+
+  test "false to decode a handshake" do
+    handshake = <<22>> <> "BitTorrent protocol v2" <> @reserved_bytes <> @info_hash <> @peer_id
+
+    assert Handshake.decode(handshake) == {:error, :malformed_handshake}
+  end
 end

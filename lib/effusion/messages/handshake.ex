@@ -7,11 +7,16 @@ defmodule Effusion.Messages.Handshake do
   @protocol_name_size <<19 :: integer-size(8)>>
   @reserved_bytes <<0, 0, 0, 0, 0, 0, 0, 0>>
 
+  @typedoc """
+  Reasons that decoding a handshake may fail.
+  """
+  @type decode_failure_reason :: :malformed_handshake
+
   @doc """
   Extracts the peer id, info hash, and reserved bytes from
   a handshake packet binary.
   """
-  @spec decode(<<_::544>>) :: {:ok, <<_::160>>, <<_::160>>, <<_::64>>} | :error
+  @spec decode(<<_::544>>) :: {:ok, <<_::160>>, <<_::160>>, <<_::64>>} | {:error, decode_failure_reason}
   def decode(handshake) do
     case handshake do
       <<@protocol_name_size,
@@ -19,7 +24,7 @@ defmodule Effusion.Messages.Handshake do
       reserved :: bytes-size(8),
       info_hash :: bytes-size(20),
       peer_id :: bytes-size(20)>> -> {:ok, peer_id, info_hash, reserved}
-      _ -> :error
+      _ -> {:error, :malformed_handshake}
     end
   end
 
