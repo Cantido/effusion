@@ -1,3 +1,5 @@
+alias Effusion.{PeerId, InfoHash}
+
 defmodule Effusion.Messages.Handshake do
   @moduledoc """
   Encode and decode peer handshake messages.
@@ -8,6 +10,16 @@ defmodule Effusion.Messages.Handshake do
   @reserved_bytes <<0, 0, 0, 0, 0, 0, 0, 0>>
 
   @typedoc """
+  A binary encoded handshake message.
+  """
+  @type handshake_binary :: <<_::544>>
+
+  @typedoc """
+  The reserved portion of a handshake. Ignored by Effusion.
+  """
+  @type reserved_bytes :: <<_::64>>
+
+  @typedoc """
   Reasons that decoding a handshake may fail.
   """
   @type decode_failure_reason :: :malformed_handshake
@@ -16,7 +28,7 @@ defmodule Effusion.Messages.Handshake do
   Extracts the peer id, info hash, and reserved bytes from
   a handshake packet binary.
   """
-  @spec decode(<<_::544>>) :: {:ok, <<_::160>>, <<_::160>>, <<_::64>>} | {:error, decode_failure_reason}
+  @spec decode(handshake_binary) :: {:ok, PeerId.t, InfoHash.t, reserved_bytes} | {:error, decode_failure_reason}
   def decode(handshake) do
     case handshake do
       <<@protocol_name_size,
@@ -31,6 +43,7 @@ defmodule Effusion.Messages.Handshake do
   @doc """
   Builds a handshake packet binary for the info hash and peer id.
   """
+  @spec encode(InfoHash.t, PeerId.t) :: handshake_binary
   def encode(info_hash, peer_id)  do
     <<@protocol_name_size,
     @protocol_name,
