@@ -1,4 +1,4 @@
-alias Effusion.InfoHash
+alias Effusion.PeerId
 
 defmodule Effusion.LocalPeer do
   @moduledoc """
@@ -14,7 +14,7 @@ defmodule Effusion.LocalPeer do
       <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
 
   """
-  @spec peer_id() :: InfoHash.t
+  @spec peer_id() :: PeerId.t
   def peer_id do
     <<0 :: integer-size(160)>>
   end
