@@ -1,6 +1,6 @@
 require Logger
 alias Effusion.Messages.Handshake
-alias Effusion.{LocalPeer, Torrents}
+alias Effusion.LocalPeer
 
 defmodule Effusion.PeerConnection do
   @moduledoc """
@@ -13,7 +13,6 @@ defmodule Effusion.PeerConnection do
   @type handshake_failure_reason ::
       :remote_same_as_local
     | :closed
-    | Torrents.lookup_failure_reason
     | Handshake.decode_failure_reason
     | :inet.posix()
 
