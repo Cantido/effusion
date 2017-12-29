@@ -8,6 +8,7 @@ defmodule Effusion.Application do
       Effusion.PeerSupervisor,
       {Task.Supervisor, name: Effusion.TaskSupervisor},
       {Registry, keys: :unique, name: Effusion.PeerRegistry},
+      {Registry, keys: :unique, name: Effusion.TorrentRegistry},
       Supervisor.child_spec({Task, fn -> Effusion.MessageServer.listen(4040) end}, restart: :permanent)
     ]
 

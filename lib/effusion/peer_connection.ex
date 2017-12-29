@@ -33,7 +33,7 @@ defmodule Effusion.PeerConnection do
   defp handle_handshake(socket) do
     with {:ok, data} <- :gen_tcp.recv(socket, 0),
          {:ok, peer_id, info_hash, _reserved} <- Handshake.decode(data),
-         :ok = Torrents.lookup(info_hash),
+         [{_pid, :ok}] = Registry.lookup(Effusion.TorrentRegistry, info_hash),
          :ok = check_peer_id(LocalPeer.peer_id(), peer_id)
     do
       :ok = Logger.info ("Handshake from peer_id #{Base.encode16(peer_id)} for info_hash #{Base.encode16(info_hash)}")

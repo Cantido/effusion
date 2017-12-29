@@ -13,14 +13,18 @@ defmodule Effusion.PeerConnectionTest do
   setup do
     opts = [:binary, packet: 0, active: false]
     {:ok, socket} = :gen_tcp.connect('localhost', 4040, opts)
+    Registry.register(Effusion.TorrentRegistry, @good_info_hash, :ok)
     %{socket: socket}
   end
 
   test "responds with handshake", %{socket: socket} do
     request = Handshake.encode(@good_info_hash, @remote_peer_id)
-    response = Handshake.encode(@good_info_hash, @local_peer_id)
 
-    assert send_and_recv(socket, request) == response
+    actual_response = send_and_recv(socket, request)
+    {:ok, actual_peer_id, actual_info_hash, _reserved} = Handshake.decode(actual_response)
+
+    assert actual_peer_id == @local_peer_id
+    assert actual_info_hash == @good_info_hash
   end
 
   test "closes connection when protocol name is wrong", %{socket: socket} do
