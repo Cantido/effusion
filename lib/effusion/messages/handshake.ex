@@ -43,8 +43,8 @@ defmodule Effusion.Messages.Handshake do
   @doc """
   Builds a handshake packet binary for the info hash and peer id.
   """
-  @spec encode(InfoHash.t, PeerId.t) :: handshake_binary
-  def encode(info_hash, peer_id)  do
+  @spec encode(PeerId.t, InfoHash.t) :: handshake_binary
+  def encode(peer_id, info_hash)  do
     <<@protocol_name_size,
     @protocol_name,
     @reserved_bytes,

@@ -37,7 +37,7 @@ defmodule Effusion.PeerConnection do
          :ok = check_peer_id(LocalPeer.peer_id(), peer_id)
     do
       :ok = Logger.info ("Handshake from peer_id #{Base.encode16(peer_id)} for info_hash #{Base.encode16(info_hash)}")
-      response = Handshake.encode( LocalPeer.peer_id(), info_hash)
+      response = Handshake.encode(LocalPeer.peer_id(), info_hash)
       :ok = :gen_tcp.send(socket, response)
       :ok
     else
