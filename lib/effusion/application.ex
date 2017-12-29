@@ -5,6 +5,7 @@ defmodule Effusion.Application do
 
   def start(_type, _args) do
     children = [
+      Effusion.PeerSupervisor,
       {Task.Supervisor, name: Effusion.TaskSupervisor},
       {Registry, keys: :unique, name: Effusion.PeerRegistry},
       Supervisor.child_spec({Task, fn -> Effusion.MessageServer.listen(4040) end}, restart: :permanent)
