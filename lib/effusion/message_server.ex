@@ -5,17 +5,18 @@ defmodule Effusion.MessageServer do
   Listen for TCP connections from peers and dispatch them.
   """
 
+  @socket_opts [:binary,
+                packet: 0, # This should be changed to 4 after we accept a handshake
+                packet_size: 68,
+                active: false,
+                reuseaddr: true]
+
   @doc """
   Listen on the given port for TCP connections.
   """
   @spec listen(:inet.port_number()) :: no_return()
   def listen(port) do
-    socket_opts =
-      [:binary,
-       packet: 0, # This should be changed to 4 after we accept a handshake
-       active: false,
-       reuseaddr: true]
-    {:ok, socket} = :gen_tcp.listen(port, socket_opts)
+    {:ok, socket} = :gen_tcp.listen(port, @socket_opts)
     :ok = Logger.info "Accepting connections on port #{port}"
     loop_acceptor(socket)
   end
