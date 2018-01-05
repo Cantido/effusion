@@ -8,7 +8,7 @@ defmodule Effusion.PWP.Server do
   @socket_opts [:binary,
                 packet: 0, # This should be changed to 4 after we accept a handshake
                 packet_size: 68,
-                active: false,
+                active: true,
                 reuseaddr: true]
 
   @doc """

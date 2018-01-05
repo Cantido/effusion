@@ -6,10 +6,12 @@ defmodule Effusion.PWP.PeerConnectionSupervisor do
   end
 
   def start_child(client) do
-    Task.Supervisor.start_child(Effusion.TaskSupervisor, fn -> Effusion.PWP.PeerConnection.serve(client) end)
+    Supervisor.start_child(__MODULE__, [client])
   end
 
   def init(:ok) do
-    Supervisor.init([Task], strategy: :simple_one_for_one)
+    Supervisor.init(
+    [Effusion.PWP.PeerConnection],
+    strategy: :simple_one_for_one)
   end
 end

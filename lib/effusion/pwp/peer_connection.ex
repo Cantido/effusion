@@ -3,27 +3,21 @@ alias Effusion.PWP.Messages.Handshake
 alias Effusion.LocalPeer
 
 defmodule Effusion.PWP.PeerConnection do
+  use GenServer, restart: :temporary
   @moduledoc """
   Maintain a TCP connection with a peer.
   """
 
-  @typedoc """
-    Reasons that a handshake would fail.
-  """
-  @type handshake_failure_reason ::
-      :remote_same_as_local
-    | :closed
-    | Handshake.decode_failure_reason
-    | :inet.posix()
+  ## API
 
-  @doc """
-  Wait for a handshake on the given socket, and respond when you get one.
-  On any error, or when the handshake is completed, the socket is shut down.
-  """
-  @spec serve(:gen_tcp.socket()) :: :ok | {:error, handshake_failure_reason}
-  def serve(socket) do
-    {:ok, data} = :gen_tcp.recv(socket, 68)
-    {:noreply} = handle_info({:tcp, socket, data}, {})
+  def start_link(_, socket) do
+    GenServer.start_link(__MODULE__, socket)
+  end
+
+  ## Callbacks
+
+  def init(socket) do
+    {:ok, socket}
   end
 
   def handle_info({:tcp, socket, <<data::bytes-size(68)>>}, state) do
