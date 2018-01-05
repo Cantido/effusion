@@ -23,7 +23,7 @@ defmodule Effusion.MessageServer do
 
   defp loop_acceptor(socket) do
     {:ok, client} = :gen_tcp.accept(socket)
-    {:ok, pid} = Task.Supervisor.start_child(Effusion.TaskSupervisor, fn -> Effusion.PeerConnection.serve(client) end)
+    {:ok, pid} = Effusion.PeerConnectionSupervisor.start_child(client)
     :ok = :gen_tcp.controlling_process(client, pid)
     loop_acceptor(socket)
   end

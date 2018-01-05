@@ -6,6 +6,7 @@ defmodule Effusion.Application do
   def start(_type, _args) do
     children = [
       Effusion.PeerSupervisor,
+      Effusion.PeerConnectionSupervisor,
       {Task.Supervisor, name: Effusion.TaskSupervisor},
       {Registry, keys: :unique, name: Effusion.PeerRegistry},
       {Registry, keys: :unique, name: Effusion.TorrentRegistry},
