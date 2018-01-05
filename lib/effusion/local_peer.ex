@@ -18,4 +18,8 @@ defmodule Effusion.LocalPeer do
   def peer_id do
     <<0 :: integer-size(160)>>
   end
+
+  def matches_id?(id) do
+    peer_id() == id
+  end
 end
