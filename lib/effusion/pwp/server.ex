@@ -1,6 +1,6 @@
 require Logger
 
-defmodule Effusion.PWP.MessageServer do
+defmodule Effusion.PWP.Server do
   @moduledoc """
   Listen for TCP connections from peers and dispatch them.
   """
