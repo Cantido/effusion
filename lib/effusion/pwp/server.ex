@@ -5,11 +5,7 @@ defmodule Effusion.PWP.Server do
   Listen for TCP connections from peers and dispatch them.
   """
 
-  @socket_opts [:binary,
-                packet: 0, # This should be changed to 4 after we accept a handshake
-                packet_size: 68,
-                active: true,
-                reuseaddr: true]
+  @socket_opts [:binary, reuseaddr: true]
 
   @doc """
   Listen on the given port for TCP connections.

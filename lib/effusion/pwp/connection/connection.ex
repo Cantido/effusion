@@ -16,7 +16,16 @@ defmodule Effusion.PWP.Connection do
 
   ## Callbacks
 
+  @pre_handshake_socket_options [packet: 0,
+                                 packet_size: 68,
+                                 active: true]
+
+  @post_handshake_socket_options [packet: 4,
+                                  packet_size: 0,
+                                  active: true]
+
   def init(socket) do
+    :inet.setopts(socket, @pre_handshake_socket_options)
     {:ok, socket}
   end
 
