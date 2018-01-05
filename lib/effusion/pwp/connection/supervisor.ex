@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.PeerConnectionSupervisor do
+defmodule Effusion.PWP.Connection.Supervisor do
   use Supervisor
 
   def start_link(_opts) do
@@ -11,7 +11,7 @@ defmodule Effusion.PWP.PeerConnectionSupervisor do
 
   def init(:ok) do
     Supervisor.init(
-    [Effusion.PWP.PeerConnection],
+    [Effusion.PWP.Connection],
     strategy: :simple_one_for_one)
   end
 end

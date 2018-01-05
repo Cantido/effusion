@@ -2,7 +2,7 @@ require Logger
 alias Effusion.PWP.Messages.Handshake
 alias Effusion.LocalPeer
 
-defmodule Effusion.PWP.PeerConnection do
+defmodule Effusion.PWP.Connection do
   use GenServer, restart: :temporary
   @moduledoc """
   Maintain a TCP connection with a peer.
