@@ -1,8 +1,8 @@
 require Logger
-alias Effusion.Messages.Handshake
+alias Effusion.PWP.Messages.Handshake
 alias Effusion.LocalPeer
 
-defmodule Effusion.PeerConnection do
+defmodule Effusion.PWP.PeerConnection do
   @moduledoc """
   Maintain a TCP connection with a peer.
   """

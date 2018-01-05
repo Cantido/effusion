@@ -1,8 +1,8 @@
-alias Effusion.Messages.Handshake
+alias Effusion.PWP.Messages.Handshake
 
-defmodule Effusion.PeerConnectionTest do
+defmodule Effusion.PWP.PeerConnectionTest do
   use ExUnit.Case
-  doctest Effusion.PeerConnection
+  doctest Effusion.PWP.PeerConnection
   @moduletag :capture_log
 
   @local_peer_id <<0 :: size(160)>>

@@ -1,4 +1,4 @@
-defmodule Effusion.PeerConnectionSupervisor do
+defmodule Effusion.PWP.PeerConnectionSupervisor do
   use Supervisor
 
   def start_link(_opts) do
@@ -6,7 +6,7 @@ defmodule Effusion.PeerConnectionSupervisor do
   end
 
   def start_child(client) do
-    Task.Supervisor.start_child(Effusion.TaskSupervisor, fn -> Effusion.PeerConnection.serve(client) end)
+    Task.Supervisor.start_child(Effusion.TaskSupervisor, fn -> Effusion.PWP.PeerConnection.serve(client) end)
   end
 
   def init(:ok) do

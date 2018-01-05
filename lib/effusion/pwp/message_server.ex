@@ -1,6 +1,6 @@
 require Logger
 
-defmodule Effusion.MessageServer do
+defmodule Effusion.PWP.MessageServer do
   @moduledoc """
   Listen for TCP connections from peers and dispatch them.
   """
@@ -23,7 +23,7 @@ defmodule Effusion.MessageServer do
 
   defp loop_acceptor(socket) do
     {:ok, client} = :gen_tcp.accept(socket)
-    {:ok, pid} = Effusion.PeerConnectionSupervisor.start_child(client)
+    {:ok, pid} = Effusion.PWP.PeerConnectionSupervisor.start_child(client)
     :ok = :gen_tcp.controlling_process(client, pid)
     loop_acceptor(socket)
   end

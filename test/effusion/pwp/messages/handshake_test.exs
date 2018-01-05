@@ -1,8 +1,8 @@
-alias Effusion.Messages.Handshake
+alias Effusion.PWP.Messages.Handshake
 
-defmodule Effusion.Messages.HandshakeTest do
+defmodule Effusion.PWP.Messages.HandshakeTest do
   use ExUnit.Case
-  doctest Effusion.Messages.Handshake
+  doctest Effusion.PWP.Messages.Handshake
 
   @reserved_bytes <<0, 1, 2, 3, 4, 5, 6, 7>>
 

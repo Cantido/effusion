@@ -1,4 +1,4 @@
-defmodule Effusion.Messages do
+defmodule Effusion.PWP.Messages do
   @moduledoc """
     Encode and decode Peer Wire Protocol (PWP) messages.
   """
@@ -13,40 +13,40 @@ defmodule Effusion.Messages do
 
   ## Examples
 
-      iex> Effusion.Messages.decode(<<0>>)
+      iex> Effusion.PWP.Messages.decode(<<0>>)
       {:ok, :choke}
 
-      iex> Effusion.Messages.decode(<<1>>)
+      iex> Effusion.PWP.Messages.decode(<<1>>)
       {:ok, :unchoke}
 
-      iex> Effusion.Messages.decode(<<2>>)
+      iex> Effusion.PWP.Messages.decode(<<2>>)
       {:ok, :interested}
 
-      iex> Effusion.Messages.decode(<<3>>)
+      iex> Effusion.PWP.Messages.decode(<<3>>)
       {:ok, :uninterested}
 
-      iex> Effusion.Messages.decode(<<4, 4201 :: 32>>)
+      iex> Effusion.PWP.Messages.decode(<<4, 4201 :: 32>>)
       {:ok, :have, 4201}
 
-      iex> Effusion.Messages.decode(<<5, 0b11110001>>)
+      iex> Effusion.PWP.Messages.decode(<<5, 0b11110001>>)
       {:ok, :bitfield, <<241>>}
 
-      iex> Effusion.Messages.decode(<<6, 4201 :: 32, 69 :: 32, 12 :: 32>>)
+      iex> Effusion.PWP.Messages.decode(<<6, 4201 :: 32, 69 :: 32, 12 :: 32>>)
       {:ok, :request, %{index: 4201, offset: 69, size: 12}}
 
-      iex> Effusion.Messages.decode(<<7, 4201 :: 32, 69 :: 32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0>>)
+      iex> Effusion.PWP.Messages.decode(<<7, 4201 :: 32, 69 :: 32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0>>)
       {:ok, :piece, %{index: 4201, offset: 69, data: <<1, 2, 3, 4, 5, 6, 7, 8, 9, 0>>}}
 
-      iex> Effusion.Messages.decode(<<8, 4201 :: 32, 69 :: 32, 12 :: 32>>)
+      iex> Effusion.PWP.Messages.decode(<<8, 4201 :: 32, 69 :: 32, 12 :: 32>>)
       {:ok, :cancel, %{index: 4201, offset: 69, size: 12}}
 
-      iex> Effusion.Messages.decode(<<42>>)
+      iex> Effusion.PWP.Messages.decode(<<42>>)
       {:error, :bad_message_id}
 
-      iex> Effusion.Messages.decode(<<42, "with payload">>)
+      iex> Effusion.PWP.Messages.decode(<<42, "with payload">>)
       {:error, :bad_message_id}
 
-      iex> Effusion.Messages.decode(<<0, "this shouldn't be here">>)
+      iex> Effusion.PWP.Messages.decode(<<0, "this shouldn't be here">>)
       {:error, :no_payload_allowed}
   """
   def decode(b)
