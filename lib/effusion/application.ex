@@ -6,11 +6,9 @@ defmodule Effusion.Application do
   def start(_type, _args) do
     children = [
       Effusion.PeerSupervisor,
-      Effusion.PWP.PeerConnectionSupervisor,
-      {Task.Supervisor, name: Effusion.TaskSupervisor},
+      Effusion.PWP.Supervisor,
       {Registry, keys: :unique, name: Effusion.PeerRegistry},
-      {Registry, keys: :unique, name: Effusion.TorrentRegistry},
-      Supervisor.child_spec({Task, fn -> Effusion.PWP.Server.listen(4040) end}, restart: :permanent)
+      {Registry, keys: :unique, name: Effusion.TorrentRegistry}
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]
