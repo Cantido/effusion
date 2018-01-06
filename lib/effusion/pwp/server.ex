@@ -5,6 +5,10 @@ defmodule Effusion.PWP.Server do
   Listen for TCP connections from peers and dispatch them.
   """
 
+  def child_spec(_) do
+    Supervisor.child_spec({Task, fn -> Effusion.PWP.Server.listen(4040) end}, restart: :permanent)
+  end
+
   @socket_opts [:binary, reuseaddr: true]
 
   @doc """

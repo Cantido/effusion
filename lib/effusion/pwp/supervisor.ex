@@ -8,8 +8,7 @@ defmodule Effusion.PWP.Supervisor do
   def init(:ok) do
     children = [
       Effusion.PWP.Connection.Supervisor,
-      {Task.Supervisor, name: Effusion.TaskSupervisor},
-      Supervisor.child_spec({Task, fn -> Effusion.PWP.Server.listen(4040) end}, restart: :permanent)
+      Effusion.PWP.Server
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
