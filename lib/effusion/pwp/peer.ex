@@ -44,56 +44,65 @@ defmodule Effusion.PWP.Peer do
     end
   end
 
-  def handle_msg({:choke}, state) do
+  def choke(state) do
     {:ok, %{state | choked: true}}
   end
 
-  def handle_msg({:unchoke}, state) do
+  def unchoke(state) do
     {:ok, %{state | choked: false}}
   end
 
-  def handle_msg({:interested}, state) do
+  def interested(state) do
     {:ok, %{state | interested: true}}
   end
 
-  def handle_msg({:uninterested}, state) do
+  def uninterested(state) do
     {:ok, %{state | interested: false}}
   end
 
-  def handle_msg({:have, idx}, state) do
-    # TODO: A peer receiving this message MUST send an interested message to
-    # the sender if indeed it lacks the piece announced.
-    # TODO: A peer receiving this message MAY send a request for that piece.
-    {:ok, %{state | have: Effusion.IntSet.put(state.have, idx) }}
-    end
-
-  def handle_msg({:bitfield, bitfield}, state) do
-
-    # A peer MUST send this message immediately after the handshake operation,
-    # and MAY choose not to send it if it has no pieces at all.
-
-    # This message MUST not be sent at any other time during the communication.
-
-    {:ok, %{state | have: Effusion.IntSet.new(bitfield) }}
+  def have(i, state) do
+    {:ok, %{state | have: Effusion.IntSet.put(state.have, i) }}
   end
 
-  def handle_msg({:request, block}, state) do
+  def bitfield(b, state) do
+    # BUG: The BitTorrent spec states that the high bit of the first byte
+    # corresponds to index 0, so this binary needs to be reversed
+    # in order to be used with IntSet
+    have_pcs = Effusion.IntSet.new(b)
+    {:ok, %{state | have: Effusion.IntSet.union(state.have, have_pcs) }}
+  end
 
-    # TODO The recipient MUST only send piece messages to a sender that has
-    # already requested it, and only in accordance to the rules
-    # about the choke and interested states.
-
+  def request(block, state) do
     next_requested = MapSet.put(state.requested, block)
     {:ok, %{state | requested: next_requested}}
   end
 
-  def handle_msg({:piece, block}, state) do
+  def piece(block, state) do
     next_blocks = MapSet.put(state.blocks, block)
     {:ok, %{state | blocks: next_blocks}}
   end
 
-  def handle_msg({:cancel, block}, state) do
+  def cancel(block, state) do
     next_requested = MapSet.delete(state.requested, block)
     {:ok, %{state | requested: next_requested}}
+  end
+
+  def handle_msg({msg_type}, state) do
+    case msg_type do
+      :choke -> choke(state)
+      :unchoke -> unchoke(state)
+      :interested -> interested(state)
+      :uninterested -> uninterested(state)
+    end
+  end
+
+  def handle_msg({msg_type, payload}, state) do
+    case msg_type do
+      :have -> have(payload, state)
+      :bitfield -> bitfield(payload, state)
+      :request -> request(payload, state)
+      :piece -> piece(payload, state)
+      :cancel -> cancel(payload, state)
+    end
   end
 end
