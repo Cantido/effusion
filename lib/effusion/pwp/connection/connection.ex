@@ -43,6 +43,10 @@ defmodule Effusion.PWP.Connection do
     end
   end
 
+  def handle_info({:tcp_closed, _socket}, state) do
+    {:stop, :normal, state}
+  end
+
   @spec check_peer_id(Effusion.PeerId.t) :: :ok | {:error, :remote_same_as_local}
   defp check_peer_id(remote_peer_id) do
     if LocalPeer.matches_id?(remote_peer_id) do
