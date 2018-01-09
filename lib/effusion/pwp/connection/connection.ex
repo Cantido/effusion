@@ -1,6 +1,6 @@
 require Logger
 alias Effusion.PWP.Messages.Handshake
-alias Effusion.LocalPeer
+alias Effusion.PWP.Peer
 
 defmodule Effusion.PWP.Connection do
   use GenServer, restart: :temporary
@@ -26,18 +26,16 @@ defmodule Effusion.PWP.Connection do
 
   def init(socket) do
     :inet.setopts(socket, @pre_handshake_socket_options)
-    {:ok, socket}
+    {:ok, %{socket: socket, peer_state: %{}}}
   end
 
   def handle_info({:tcp, socket, <<data::bytes-size(68)>>}, state) do
-    with {:ok, peer_id, info_hash, _reserved} <- Handshake.decode(data),
-         [{_pid, :ok}] = Registry.lookup(Effusion.TorrentRegistry, info_hash),
-         :ok = check_peer_id(peer_id)
+    with {:ok, peer_id, info_hash, reserved} <- Handshake.decode(data),
+         {:ok, {local_peer_id, local_hash, _local_reserved}, peer_state} <- Peer.handle_handshake({peer_id, info_hash, reserved}, state.peer_state)
     do
-      :ok = Logger.info ("Handshake from peer_id #{Base.encode16(peer_id)} for info_hash #{Base.encode16(info_hash)}")
-      response = Handshake.encode(LocalPeer.peer_id(), info_hash)
+      response = Handshake.encode(local_peer_id, local_hash)
       :ok = :gen_tcp.send(socket, response)
-      {:noreply}
+      {:noreply, %{state | peer_state: peer_state}}
     else
       err -> {:stop, err, state}
     end
@@ -45,14 +43,5 @@ defmodule Effusion.PWP.Connection do
 
   def handle_info({:tcp_closed, _socket}, state) do
     {:stop, :normal, state}
-  end
-
-  @spec check_peer_id(Effusion.PeerId.t) :: :ok | {:error, :remote_same_as_local}
-  defp check_peer_id(remote_peer_id) do
-    if LocalPeer.matches_id?(remote_peer_id) do
-      {:error, :remote_same_as_local}
-    else
-      :ok
-    end
   end
 end
