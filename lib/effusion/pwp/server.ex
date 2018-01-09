@@ -22,9 +22,13 @@ defmodule Effusion.PWP.Server do
   end
 
   defp loop_acceptor(socket) do
-    {:ok, client} = :gen_tcp.accept(socket)
-    {:ok, pid} = Effusion.PWP.Connection.Supervisor.start_child(client)
-    :ok = :gen_tcp.controlling_process(client, pid)
-    loop_acceptor(socket)
+    with {:ok, client} <- :gen_tcp.accept(socket),
+         {:ok, pid} <- Effusion.PWP.Connection.Supervisor.start_child(client),
+         :ok <- :gen_tcp.controlling_process(client, pid)
+    do
+      loop_acceptor(socket)
+    else
+      err -> err
+    end
   end
 end
