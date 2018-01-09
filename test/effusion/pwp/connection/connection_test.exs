@@ -62,4 +62,14 @@ defmodule Effusion.PWP.ConnectionTest do
     {:ok, data} = :gen_tcp.recv(socket, 0, 1000)
     data
   end
+
+  def do_handshake(socket) do
+    request = Handshake.encode(@remote_peer_id, @good_info_hash)
+
+    actual_response = send_and_recv(socket, request)
+    {:ok, actual_peer_id, actual_info_hash, _reserved} = Handshake.decode(actual_response)
+    ^actual_peer_id = @local_peer_id
+    ^actual_info_hash = @good_info_hash
+    :ok
+  end
 end
