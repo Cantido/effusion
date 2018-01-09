@@ -41,13 +41,15 @@ defmodule Effusion.PWP.ConnectionTest do
     {:error, :closed} = :gen_tcp.recv(socket, 0, 1000)
   end
 
+  test "closes connection when peer ID matches our own", %{socket: socket} do
+    bad_request = Handshake.encode(@local_peer_id, @good_info_hash)
 
-    test "closes connection when peer ID matches our own", %{socket: socket} do
-      bad_request = Handshake.encode(@local_peer_id, @good_info_hash)
+    :ok = :gen_tcp.send(socket, bad_request)
+    {:error, :closed} = :gen_tcp.recv(socket, 0, 1000)
+  end
 
-      :ok = :gen_tcp.send(socket, bad_request)
-      {:error, :closed} = :gen_tcp.recv(socket, 0, 1000)
-    end
+  test "" do
+  end
 
   defp bad_handshake(peer_id, info_hash) do
     bad_name_size = <<22>> ## should be 19!
