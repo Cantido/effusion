@@ -24,7 +24,7 @@ defmodule Effusion.Mixfile do
 
   defp deps do
     [
-      {:ex_bencode, "~> 1.0.0"},
+      {:ex_bencode, "~> 1.1.0"},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false}
     ]
