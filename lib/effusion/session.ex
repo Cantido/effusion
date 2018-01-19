@@ -1,6 +1,7 @@
 defmodule Effusion.Session do
   alias Effusion.Metainfo
   alias Effusion.LocalPeer
+  alias Effusion.PWP.Messages
   alias Effusion.PWP.Messages.Handshake
 
   def start(meta_bin) when is_binary(meta_bin) do
@@ -38,6 +39,16 @@ defmodule Effusion.Session do
     {:ok, handshake } = :gen_tcp.recv(socket, 68, 5000)
 
     IO.puts "I got a handshake!!"
+
+    :inet.setopts(socket, [packet: 4])
+
+    {:ok, data} = :gen_tcp.recv(socket, 0)
+
+    IO.puts "Received package: #{inspect(data)}"
+
+    {:ok, message} = Messages.decode(IO.iodata_to_binary(data))
+
+    IO.puts "I got a message: #{inspect(message)}"
   end
 
   def select_peer(peers, peer_id) do
