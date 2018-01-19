@@ -40,6 +40,15 @@ defmodule Effusion.Session do
 
     IO.puts "I got a handshake!! #{inspect(handshake)}"
 
+    message_loop(socket)
+  end
+
+  def message_loop(socket) do
+    next_message(socket)
+    message_loop(socket)
+  end
+
+  def next_message(socket) do
     :inet.setopts(socket, [packet: 4])
 
     {:ok, data} = :gen_tcp.recv(socket, 0)
