@@ -5,7 +5,7 @@ defmodule Effusion.PWP.PeerTest do
   doctest Effusion.PWP.Peer
   @moduletag :capture_log
 
-  @local_peer_id <<0 :: size(160)>>
+  @local_peer_id "Effusion Experiment!"
   @remote_peer_id <<19 :: size(160)>>
   @info_hash <<4 :: size(160)>>
 

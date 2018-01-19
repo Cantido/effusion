@@ -6,17 +6,17 @@ defmodule Effusion.LocalPeer do
   """
 
   @doc """
-  Returns the local peer's peer ID. Currently stubbed-out to all zeroes.
+  Returns the local peer's peer ID. Currently stubbed-out to a constant.
 
   ## Example
 
       iex> Effusion.LocalPeer.peer_id()
-      <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
+      "Effusion Experiment!"
 
   """
   @spec peer_id() :: PeerId.t
   def peer_id do
-    <<0 :: integer-size(160)>>
+    "Effusion Experiment!"
   end
 
   def matches_id?(id) do
