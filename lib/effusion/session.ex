@@ -21,7 +21,11 @@ defmodule Effusion.Session do
 
     peer = select_peer(res["peers"], LocalPeer.peer_id())
 
-    opts = [packet: 0, packet_size: 68, active: false]
+    connect(peer, meta)
+  end
+
+  def connect(peer, meta) do
+    opts = [packet: 0, active: false]
 
     {:ok, peer_ip} = :inet.parse_address to_charlist(peer["ip"])
     peer_port = peer["port"]
