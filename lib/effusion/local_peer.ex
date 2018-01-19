@@ -22,4 +22,8 @@ defmodule Effusion.LocalPeer do
   def matches_id?(id) do
     peer_id() == id
   end
+
+  def ip_address() do
+    {127, 0, 0, 1}
+  end
 end
