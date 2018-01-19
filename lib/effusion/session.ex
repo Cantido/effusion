@@ -36,9 +36,9 @@ defmodule Effusion.Session do
 
     {:ok, socket} = :gen_tcp.connect(peer_ip, peer_port, opts)
     :ok = :gen_tcp.send(socket, Handshake.encode(LocalPeer.peer_id(), meta.info_hash))
-    {:ok, handshake } = :gen_tcp.recv(socket, 68, 5000)
+    {:ok, handshake} = :gen_tcp.recv(socket, 68, 5000)
 
-    IO.puts "I got a handshake!!"
+    IO.puts "I got a handshake!! #{inspect(handshake)}"
 
     :inet.setopts(socket, [packet: 4])
 
