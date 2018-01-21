@@ -8,22 +8,19 @@ defmodule Effusion.Session do
 
   @thp_client Application.get_env(:effusion, :thp_client)
 
+  ## API
+
+  def start_link([metabin, peer_id, ip, port]) when is_binary(metabin) do
+    GenServer.start_link(__MODULE__, [metabin, peer_id, ip, port])
+  end
+
   def start_linuxmint do
     {:ok, meta} = File.read "test/linuxmint-18.3-cinnamon-64bit.iso.torrent"
     start(meta)
   end
 
-  def init(meta_bin, peer_id, ip, port) do
-    {:ok, meta} = Metainfo.decode(meta_bin)
-    {
-      :ok,
-      %{
-        meta: meta,
-        ip: ip,
-        port: port,
-        peer_id: peer_id
-      }
-    }
+  def announce(pid) do
+    GenServer.call(pid, :announce)
   end
 
   def start(meta_bin) when is_binary(meta_bin) do
@@ -43,10 +40,6 @@ defmodule Effusion.Session do
     )
 
     :ok
-
-    # peer = select_peer(res["peers"], peer_id)
-
-    # connect(peer, meta)
   end
 
   def connect(peer, meta) do
@@ -70,5 +63,35 @@ defmodule Effusion.Session do
   def select_peer(peers, peer_id) do
     IO.puts "Peers to choose from: #{inspect(peers, pretty: true)}"
     peers |> Enum.find(fn(p) -> p["peer_id"] != peer_id end)
+  end
+
+  ## Callbacks
+
+  def init([meta_bin, peer_id, ip, port]) do
+    {:ok, meta} = Metainfo.decode(meta_bin)
+
+    state = %{
+      meta: meta,
+      ip: ip,
+      port: port,
+      peer_id: peer_id
+    }
+
+    {:ok, state}
+  end
+
+  def handle_call(:announce, _from, state) do
+    {:ok, res} = @thp_client.announce(
+      state.meta.announce,
+      state.ip,
+      state.port,
+      state.peer_id,
+      state.meta.info_hash,
+      0,
+      0,
+      state.meta.info.length
+    )
+
+    {:reply, :ok, state}
   end
 end

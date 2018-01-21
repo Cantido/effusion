@@ -1,41 +1,45 @@
 defmodule Effusion.SessionTest do
   use ExUnit.Case
   doctest Effusion.Session
-  alias Effusion.Metainfo
+  alias Effusion.Session
   import Mox
 
   setup :verify_on_exit!
 
-  test "initializes correctly" do
+  @peer_id "EffusionSessionTest!"
+  @ip {10, 0, 0, 5}
+  @port 8999
+  @info_hash TestHelper.mint_info_hash()
+  @left 1899528192
+
+  setup context do
     {:ok, metabin} = File.read "test/linuxmint-18.3-cinnamon-64bit.iso.torrent"
-    peer_id = "Effusion Experiment!"
-    ip = {127, 0, 0, 1}
-    port = 4040
-
-    {:ok, state} = Effusion.Session.init(metabin, peer_id, ip, port)
-
-    {:ok, meta} = Metainfo.decode(metabin)
-
-    assert state.meta == meta
-    assert state.ip == ip
-    assert state.port == port
-    assert state.peer_id == peer_id
+    {:ok, server} = start_supervised {Effusion.Session, [metabin, @peer_id , @ip, @port]}
+    {:ok, Map.put(context, :server, server)}
   end
 
-  defp stub_tracker(_a, _b, _c, _d, _e, _f, _g, _h) do
-      {
-        :ok,
-        %{
-          interval: 9_000,
-          peers: [%{ip: "192.168.1.1", port: 7001}]
-        }
+  defp stub_tracker(url, ip, port, peer_id, info_hash, up, down, left) do
+    assert url == "https://torrents.linuxmint.com/announce.php"
+    assert ip == @ip
+    assert port == @port
+    assert peer_id == @peer_id
+    assert info_hash == @info_hash
+    assert up == 0
+    assert down == 0
+    assert left == @left
+    {
+      :ok,
+      %{
+        interval: 9_000,
+        peers: [%{ip: "192.168.1.1", port: 7001}]
       }
-    end
+    }
+  end
 
-  test "calls tracker" do
+  test "calls tracker", %{server: server} do
+    allow(Effusion.THP.Mock, self(), server)
     Effusion.THP.Mock |> expect(:announce, &stub_tracker/8)
 
-    {:ok, metabin} = File.read "test/linuxmint-18.3-cinnamon-64bit.iso.torrent"
-    Effusion.Session.start metabin
+    Session.announce(server)
   end
 end
