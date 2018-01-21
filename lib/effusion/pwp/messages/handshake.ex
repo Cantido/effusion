@@ -1,5 +1,3 @@
-alias Effusion.{PeerId, InfoHash}
-
 defmodule Effusion.PWP.Messages.Handshake do
   @moduledoc """
   Encode and decode peer handshake messages.
