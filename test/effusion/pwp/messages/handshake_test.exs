@@ -19,7 +19,7 @@ defmodule Effusion.PWP.Messages.HandshakeTest do
   test "decodes a handshake" do
     handshake = <<19>> <> "BitTorrent protocol" <> @reserved_bytes <> @info_hash <> @peer_id
 
-    assert Handshake.decode(handshake) == {:ok, @peer_id, @info_hash, @reserved_bytes}
+    assert Handshake.decode(handshake) == {:ok, {@peer_id, @info_hash, @reserved_bytes}}
   end
 
   test "false to decode a handshake" do

@@ -26,6 +26,7 @@ defmodule Effusion.Mixfile do
     [
       {:ex_bencode, "~> 2.0"},
       {:httpotion, "~> 3.0.2"},
+      {:mox, "~> 0.3", only: :test},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false}
     ]
