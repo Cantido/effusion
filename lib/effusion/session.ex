@@ -14,32 +14,8 @@ defmodule Effusion.Session do
     GenServer.start_link(__MODULE__, [metabin, peer_id, ip, port])
   end
 
-  def start_linuxmint do
-    {:ok, meta} = File.read "test/linuxmint-18.3-cinnamon-64bit.iso.torrent"
-    start(meta)
-  end
-
   def announce(pid) do
     GenServer.call(pid, :announce)
-  end
-
-  def start(meta_bin) when is_binary(meta_bin) do
-    peer_id = "Effusion Experiment!"
-
-    {:ok, meta} = Metainfo.decode(meta_bin)
-
-    {:ok, res} = @thp_client.announce(
-      meta.announce,
-      {127, 0, 0, 1},
-      4040,
-      peer_id,
-      meta.info_hash,
-      0,
-      0,
-      1899528192
-    )
-
-    :ok
   end
 
   def connect(peer, meta) do
