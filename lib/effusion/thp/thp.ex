@@ -1,22 +1,28 @@
 defmodule Effusion.THP do
   @type peer :: %{
-    ip: any(),
-    port: any()
+    ip: :inet.hostname() | :inet.ip_address(),
+    port: :inet.port_number(),
+    peer_id: Effusion.peer_id()
+  }
+
+  @type compact_peer :: %{
+    ip: :inet.ip4_address(),
+    port: :inet.port_number()
   }
 
   @type tracker_response :: %{
     interval: pos_integer(),
-    peers: [peer]
+    peers: [peer] | [compact_peer]
   }
 
   @callback announce(
-    tracker_url :: any(),
-    peer_host :: any(),
-    peer_port :: any(),
-    peer_id :: any(),
-    info_hash :: any(),
-    uploaded :: any(),
-    downloaded :: any(),
-    left :: any()
+    tracker_url :: String.t() | :unicode.unicode_binary(),
+    peer_host :: :inet.hostname() | :inet.ip_address(),
+    peer_port :: :inet.port_number(),
+    peer_id :: Effusion.peer_id(),
+    info_hash :: Effusion.info_hash(),
+    uploaded :: non_neg_integer(),
+    downloaded :: non_neg_integer(),
+    left :: non_neg_integer()
   ) :: {:ok, tracker_response()} | {:error, any()}
 end
