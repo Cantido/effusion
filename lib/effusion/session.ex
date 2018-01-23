@@ -1,10 +1,6 @@
 defmodule Effusion.Session do
   use GenServer
-
   alias Effusion.Metainfo
-  alias Effusion.LocalPeer
-  alias Effusion.PWP.Messages
-  alias Effusion.PWP.Messages.Handshake
 
   @thp_client Application.get_env(:effusion, :thp_client)
 
