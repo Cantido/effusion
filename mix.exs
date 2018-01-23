@@ -6,6 +6,7 @@ defmodule Effusion.Mixfile do
       app: :effusion,
       version: "0.1.0",
       elixir: "~> 1.5",
+      elixirc_paths: elixirc_paths(Mix.env),
       start_permanent: Mix.env == :prod,
       description: "A BitTorrent library.",
       package: package(),
@@ -14,6 +15,9 @@ defmodule Effusion.Mixfile do
       dialyzer: [ flags: ["-Wunmatched_returns", :error_handling, :race_conditions, :underspecs]]
     ]
   end
+
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
+  defp elixirc_paths(_),     do: ["lib"]
 
   def application do
     [

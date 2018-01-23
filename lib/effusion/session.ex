@@ -22,24 +22,6 @@ defmodule Effusion.Session do
     GenServer.call(pid, :select_peer)
   end
 
-  def connect(peer, meta) do
-    {:ok, peer_ip} = :inet.parse_address to_charlist(peer["ip"])
-    peer_port = peer["port"]
-
-    ## Handshake
-
-    {:ok, socket} = :gen_tcp.connect(peer_ip, peer_port, [packet: 0, active: false])
-    :ok = :gen_tcp.send(socket, Handshake.encode("Effusion Experiment!", meta.info_hash))
-    {:ok, handshake} = :gen_tcp.recv(socket, 68, 5000)
-    {:ok, hs} = Effusion.PWP.Messages.Handshake.decode(IO.iodata_to_binary(handshake))
-
-    ## Start processing messages
-
-    :ok = :inet.setopts(socket, [packet: 4])
-    {:ok, data} = :gen_tcp.recv(socket, 0)
-    {:ok, message} = Messages.decode(IO.iodata_to_binary(data))
-  end
-
   def select_peer(peers, peer_id) do
     IO.puts "Peers to choose from: #{inspect(peers, pretty: true)}"
     peers |> Enum.find(fn(p) -> p["peer_id"] != peer_id end)
@@ -81,6 +63,6 @@ defmodule Effusion.Session do
     peer = state.peers
         |> Enum.find(fn(p) -> p["peer_id"] != state.peer_id end)
 
-    {:reply, peer, state}
+    {:reply, {:ok, peer}, state}
   end
 end

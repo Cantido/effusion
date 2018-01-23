@@ -8,14 +8,21 @@ defmodule Effusion do
   @type info_hash :: hash()
   @type peer_id :: hash()
 
-  @peer_client Application.get_env(:effusion, :peer_client)
+  @peer_client Application.get_env(:effusion, :pwp_client)
 
   def add_torrent(file, peer_id, ip, port) when is_binary(file) do
+    {:ok, meta} = Effusion.Metainfo.decode(file)
     session_opts = [ file, peer_id, ip, port ]
     {:ok, session} = Session.start_link(session_opts)
     :ok = Session.announce(session)
-    Session.announce(session)
 
-    {:ok, session}
+    {:ok, peer} = Session.select_peer(session)
+
+    conn = @peer_client.connect(peer.ip, peer.port, peer_id, meta.info_hash)
+
+    case conn do
+      {:ok, _pid} -> {:ok, session}
+      _ -> :error
+    end
   end
 end

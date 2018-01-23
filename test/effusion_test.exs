@@ -30,13 +30,22 @@ defmodule EffusionTest do
       :ok,
       %{
         interval: 9_000,
-        peers: [%{ip: "192.168.1.1", port: 7001}]
+        peers: [%{ip: {192, 168, 1, 1}, port: 7001}]
       }
     }
   end
 
+  defp stub_peer(host, port, peer_id, info_hash) do
+    assert host == {192, 168, 1, 1}
+    assert port == 7001
+    assert peer_id == @peer_id
+    assert info_hash == @info_hash
+    {:ok, {}}
+  end
+
   test "adding a torrent announces to a tracker and connects to a peer", %{metabin: metabin} do
     Effusion.THP.Mock |> expect(:announce, &stub_tracker/8)
+    Effusion.PWP.Mock |> expect(:connect, &stub_peer/4)
     {:ok, _session} = Effusion.add_torrent(metabin, @peer_id, @ip, @port)
   end
 end

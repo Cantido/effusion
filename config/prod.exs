@@ -1,4 +1,5 @@
 use Mix.Config
 
 config :effusion,
-  thp_client: Effusion.THP.HTTP
+  thp_client: Effusion.THP.HTTP,
+  pwp_client: Effusion.PWP.TCP

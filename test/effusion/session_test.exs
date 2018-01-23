@@ -41,7 +41,7 @@ defmodule Effusion.SessionTest do
     Effusion.THP.Mock |> expect(:announce, &stub_tracker/8)
 
     :ok = Session.announce(server)
-    peer = Session.select_peer(server)
+    {:ok, peer} = Session.select_peer(server)
 
     assert peer == %{ip: "192.168.1.1", port: 7001}
   end
