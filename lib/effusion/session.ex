@@ -18,6 +18,10 @@ defmodule Effusion.Session do
     GenServer.call(pid, :announce)
   end
 
+  def select_peer(pid) do
+    GenServer.call(pid, :select_peer)
+  end
+
   def connect(peer, meta) do
     {:ok, peer_ip} = :inet.parse_address to_charlist(peer["ip"])
     peer_port = peer["port"]
@@ -31,7 +35,7 @@ defmodule Effusion.Session do
 
     ## Start processing messages
 
-    :inet.setopts(socket, [packet: 4])
+    :ok = :inet.setopts(socket, [packet: 4])
     {:ok, data} = :gen_tcp.recv(socket, 0)
     {:ok, message} = Messages.decode(IO.iodata_to_binary(data))
   end
@@ -68,6 +72,15 @@ defmodule Effusion.Session do
       state.meta.info.length
     )
 
-    {:reply, :ok, state}
+    state1 = Map.put(state, :peers, res.peers)
+
+    {:reply, :ok, state1}
+  end
+
+  def handle_call(:select_peer, _from, state) do
+    peer = state.peers
+        |> Enum.find(fn(p) -> p["peer_id"] != state.peer_id end)
+
+    {:reply, peer, state}
   end
 end

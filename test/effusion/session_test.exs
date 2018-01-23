@@ -15,7 +15,7 @@ defmodule Effusion.SessionTest do
   setup context do
     {:ok, metabin} = File.read "test/linuxmint-18.3-cinnamon-64bit.iso.torrent"
     {:ok, server} = start_supervised {Effusion.Session, [metabin, @peer_id , @ip, @port]}
-    {:ok, Map.put(context, :server, server)}
+    {:ok, Map.merge(context, %{server: server, metabin: metabin})}
   end
 
   defp stub_tracker(url, ip, port, peer_id, info_hash, up, down, left) do
@@ -36,10 +36,13 @@ defmodule Effusion.SessionTest do
     }
   end
 
-  test "calls tracker", %{server: server} do
+  test "calls tracker and selects peers", %{server: server} do
     allow(Effusion.THP.Mock, self(), server)
     Effusion.THP.Mock |> expect(:announce, &stub_tracker/8)
 
-    Session.announce(server)
+    :ok = Session.announce(server)
+    peer = Session.select_peer(server)
+
+    assert peer == %{ip: "192.168.1.1", port: 7001}
   end
 end
