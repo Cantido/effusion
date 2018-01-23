@@ -17,12 +17,9 @@ defmodule Effusion do
     :ok = Session.announce(session)
 
     {:ok, peer} = Session.select_peer(session)
+    {:ok, pid} = @peer_client.connect(peer.ip, peer.port, peer_id, meta.info_hash)
+    {:ok, :unchoke} = @peer_client.recv(pid)
 
-    conn = @peer_client.connect(peer.ip, peer.port, peer_id, meta.info_hash)
-
-    case conn do
-      {:ok, _pid} -> {:ok, session}
-      _ -> :error
-    end
+    {:ok, session}
   end
 end

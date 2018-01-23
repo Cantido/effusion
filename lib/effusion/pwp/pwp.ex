@@ -5,4 +5,8 @@ defmodule Effusion.PWP do
     peer_id :: Effusion.peer_id(),
     info_hash :: Effusion.info_hash()
   ) :: {:ok, pid()} | :error
+
+  @callback recv(pid) :: {:ok, message} | :error
+
+  @type message :: atom
 end
