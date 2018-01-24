@@ -35,22 +35,20 @@ defmodule EffusionTest do
     }
   end
 
-  defp stub_peer(host, port, peer_id, info_hash) do
+  defp stub_tcp(host, port, []) do
     assert host == {192, 168, 1, 1}
     assert port == 7001
-    assert peer_id == @peer_id
-    assert info_hash == @info_hash
     {:ok, {}}
   end
 
-  defp stub_recv(_socket) do
+  defp stub_recv(_socket, 0) do
     {:ok, :unchoke}
   end
 
   test "adding a torrent announces to a tracker and connects to a peer", %{metabin: metabin} do
     Effusion.THP.Mock |> expect(:announce, &stub_tracker/8)
-    Effusion.PWP.Mock |> expect(:connect, &stub_peer/4)
-    Effusion.PWP.Mock |> expect(:recv, &stub_recv/1)
+    Effusion.Transport.Mock |> expect(:connect, &stub_tcp/3)
+    Effusion.Transport.Mock |> expect(:recv, &stub_recv/2)
     {:ok, _session} = Effusion.add_torrent(metabin, @peer_id, @ip, @port)
   end
 end
