@@ -10,10 +10,6 @@ defmodule Effusion.Session do
     GenServer.start_link(__MODULE__, [metabin, peer_id, ip, port])
   end
 
-  def add_download(meta, peer_id, ip, port) do
-
-  end
-
   def announce(pid) do
     GenServer.call(pid, :announce)
   end
@@ -39,10 +35,30 @@ defmodule Effusion.Session do
       peer_id: peer_id
     }
 
-    {:ok, state}
+    {:ok, state, 0}
   end
 
   def handle_call(:announce, _from, state) do
+    state1 = do_announce(state)
+
+    {:reply, :ok, state1}
+  end
+
+  def handle_call(:select_peer, _from, state) do
+    peer = do_select_peer(state)
+
+    {:reply, {:ok, peer}, state}
+  end
+
+  def handle_info(:timeout, state) do
+    state1 = do_announce(state)
+    peer = do_select_peer(state1)
+
+    {:ok, _socket} = Effusion.PWP.Peer.connect({peer.ip, peer.port}, state1.peer_id, state1.meta.info_hash)
+    {:noreply, state1}
+  end
+
+  defp do_announce(state) do
     {:ok, res} = @thp_client.announce(
       state.meta.announce,
       state.ip,
@@ -54,15 +70,11 @@ defmodule Effusion.Session do
       state.meta.info.length
     )
 
-    state1 = Map.put(state, :peers, res.peers)
-
-    {:reply, :ok, state1}
+    Map.put(state, :peers, res.peers)
   end
 
-  def handle_call(:select_peer, _from, state) do
-    peer = state.peers
-        |> Enum.find(fn(p) -> p["peer_id"] != state.peer_id end)
-
-    {:reply, {:ok, peer}, state}
+  defp do_select_peer(state) do
+    state.peers
+       |> Enum.find(fn(p) -> p["peer_id"] != state.peer_id end)
   end
 end
