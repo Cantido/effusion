@@ -1,5 +1,6 @@
 defmodule Effusion.PWP.Peer do
-  use GenServer
+  use GenServer, restart: :temporary
+  alias Effusion.PWP.Messages.Handshake
 
   @transport Application.get_env(:effusion, :peer_transport)
 
@@ -30,8 +31,22 @@ defmodule Effusion.PWP.Peer do
   end
 
   def handle_info(:timeout, state) do
-    {:ok, socket} = @transport.connect(state.host, state.port, [])
+    {:ok, socket} = connect(state)
+
+    state1 = Map.put(state, :socket, socket)
+
+    {:ok, hs} = handshake(state1)
     {:ok, :unchoke} = @transport.recv(socket, 0)
-    {:noreply, Map.put(state, :socket, socket)}
+    {:noreply, state1}
+  end
+
+  defp connect(state) do
+    @transport.connect(state.host, state.port, [])
+  end
+
+  defp handshake(state) do
+    :ok = @transport.send(state.socket, Handshake.encode(state.peer_id, state.info_hash))
+    {:ok, handshake} = @transport.recv(state.socket, 68)
+    Effusion.PWP.Messages.Handshake.decode(IO.iodata_to_binary(handshake))
   end
 end

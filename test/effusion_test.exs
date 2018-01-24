@@ -41,13 +41,23 @@ defmodule EffusionTest do
     {:ok, {}}
   end
 
+  defp stub_send(_socket, _bin) do
+    :ok
+  end
+
   defp stub_recv(_socket, 0) do
     {:ok, :unchoke}
+  end
+
+  defp stub_recv(_socket, 68) do
+    {:ok, Effusion.PWP.Messages.Handshake.encode("Remote Peer 76543210", @info_hash)}
   end
 
   test "adding a torrent announces to a tracker and connects to a peer", %{metabin: metabin} do
     Effusion.THP.Mock |> expect(:announce, &stub_tracker/8)
     Effusion.Transport.Mock |> expect(:connect, &stub_tcp/3)
+    Effusion.Transport.Mock |> expect(:send, &stub_send/2)
+    Effusion.Transport.Mock |> expect(:recv, &stub_recv/2)
     Effusion.Transport.Mock |> expect(:recv, &stub_recv/2)
     {:ok, _session} = Effusion.add_torrent(metabin, @peer_id, @ip, @port)
 
