@@ -15,7 +15,7 @@ defmodule Effusion do
     :ok = Session.announce(session)
 
     {:ok, peer} = Session.select_peer(session)
-    {:ok, _socket} = Effusion.PWP.ConnectionSupervisor.start_child([peer.ip, peer.port, peer_id, meta.info_hash])
+    {:ok, _socket} = Effusion.PWP.Peer.connect({peer.ip, peer.port}, peer_id, meta.info_hash)
     {:ok, session}
   end
 end

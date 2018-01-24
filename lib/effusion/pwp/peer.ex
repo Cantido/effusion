@@ -3,9 +3,18 @@ defmodule Effusion.PWP.Peer do
 
   @transport Application.get_env(:effusion, :peer_transport)
 
+  ## API
+
+  def connect({host, port}, peer_id, info_hash) do
+    args = [host, port, peer_id, info_hash]
+    Effusion.PWP.ConnectionSupervisor.start_child(args)
+  end
+
   def start_link([host, port, peer_id, info_hash]) do
     GenServer.start_link(__MODULE__, [host, port, peer_id, info_hash])
   end
+
+  ## Callbacks
 
   def init([host, port, peer_id, info_hash]) do
     {
