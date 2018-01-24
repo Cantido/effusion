@@ -26,7 +26,7 @@ defmodule Effusion.SessionTest do
       :ok,
       %{
         interval: 9_000,
-        peers: [%{ip: "192.168.1.1", port: 7001}]
+        peers: [%{ip: {192, 168, 1, 1}, port: 7001, peer_id: "another peer 1234567"}]
       }
     }
   end

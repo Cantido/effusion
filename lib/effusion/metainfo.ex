@@ -7,8 +7,8 @@ defmodule Effusion.Metainfo do
 
     result = decoded
       |> Map.put(:info_hash, info_hash)
-      |> rename_keys(key_tokens())
-      |> Map.update!(:info, &rename_keys(&1, info_tokens()))
+      |> Effusion.Map.rename_keys(key_tokens())
+      |> Map.update!(:info, &Effusion.Map.rename_keys(&1, info_tokens()))
 
     {:ok, result}
   end
@@ -29,9 +29,5 @@ defmodule Effusion.Metainfo do
       "name" => :name,
       "piece length" => :piece_length
     }
-  end
-
-  defp rename_keys(map, names) do
-    for {key, val} <- map, into: %{}, do: {Map.get(names, key, key), val}
   end
 end

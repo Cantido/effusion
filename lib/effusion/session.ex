@@ -54,6 +54,6 @@ defmodule Effusion.Session do
 
   defp do_select_peer(state) do
     state.peers
-       |> Enum.find(fn(p) -> p["peer_id"] != state.peer_id end)
+       |> Enum.find(fn(p) -> p.peer_id != state.peer_id end)
   end
 end
