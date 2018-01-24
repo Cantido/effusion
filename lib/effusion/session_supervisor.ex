@@ -10,6 +10,6 @@ defmodule Effusion.SessionSupervisor do
   end
 
   def add_child(args) do
-    DynamicSupervisor.start_child(__MODULE__ Session, args)
+    DynamicSupervisor.start_child(__MODULE__, {Effusion.Session, args})
   end
 end
