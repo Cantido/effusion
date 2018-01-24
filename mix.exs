@@ -29,6 +29,7 @@ defmodule Effusion.Mixfile do
   defp deps do
     [
       {:ex_bencode, "~> 2.0"},
+      {:connection, "~> 1.0"},
       {:httpotion, "~> 3.0.2"},
       {:mox, "~> 0.3", only: :test},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},

@@ -15,9 +15,8 @@ defmodule Effusion do
     :ok = Session.announce(session)
 
     {:ok, peer} = Session.select_peer(session)
-    {:ok, socket} = Effusion.PWP.Peer.connect(peer.ip, peer.port, peer_id, meta.info_hash)
-    {:ok, :unchoke} = Effusion.PWP.Peer.recv(socket)
-
+    {:ok, socket} = Effusion.PWP.Peer.start_link([peer.ip, peer.port, peer_id, meta.info_hash])
+    :ok = Effusion.PWP.Peer.await(socket)
     {:ok, session}
   end
 end
