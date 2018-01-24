@@ -9,7 +9,7 @@ defmodule Effusion.SessionSupervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  def add_child(args) do
+  def start_child(args) do
     DynamicSupervisor.start_child(__MODULE__, {Effusion.Session, args})
   end
 end
