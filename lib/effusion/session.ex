@@ -10,6 +10,10 @@ defmodule Effusion.Session do
     GenServer.start_link(__MODULE__, [metabin, peer_id, ip, port])
   end
 
+  def add_download(meta, peer_id, ip, port) do
+
+  end
+
   def announce(pid) do
     GenServer.call(pid, :announce)
   end
