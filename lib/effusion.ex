@@ -9,7 +9,6 @@ defmodule Effusion do
   @type peer_id :: hash()
 
   def add_torrent(file, peer_id, ip, port) when is_binary(file) do
-    session_opts = [ file, peer_id, ip, port ]
-    Session.start_link(session_opts)
+    Session.start([file, peer_id, {ip, port}])
   end
 end
