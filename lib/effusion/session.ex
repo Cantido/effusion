@@ -14,19 +14,6 @@ defmodule Effusion.Session do
     GenServer.start_link(__MODULE__, [metabin, peer_id, local_peer])
   end
 
-  def announce(pid) do
-    GenServer.call(pid, :announce)
-  end
-
-  def select_peer(pid) do
-    GenServer.call(pid, :select_peer)
-  end
-
-  def select_peer(peers, peer_id) do
-    IO.puts "Peers to choose from: #{inspect(peers, pretty: true)}"
-    peers |> Enum.find(fn(p) -> p["peer_id"] != peer_id end)
-  end
-
   ## Callbacks
 
   def init([meta_bin, peer_id, local_peer]) do
@@ -39,18 +26,6 @@ defmodule Effusion.Session do
     }
 
     {:ok, state, 0}
-  end
-
-  def handle_call(:announce, _from, state) do
-    state1 = do_announce(state)
-
-    {:reply, :ok, state1}
-  end
-
-  def handle_call(:select_peer, _from, state) do
-    peer = do_select_peer(state)
-
-    {:reply, {:ok, peer}, state}
   end
 
   def handle_info(:timeout, state) do
