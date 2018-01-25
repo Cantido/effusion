@@ -55,10 +55,11 @@ defmodule EffusionTest do
 
   test "adding a torrent announces to a tracker and connects to a peer", %{metabin: metabin} do
     Effusion.THP.Mock |> expect(:announce, &stub_tracker/8)
-    Effusion.Transport.Mock |> expect(:connect, &stub_tcp/3)
-    Effusion.Transport.Mock |> expect(:send, &stub_send/2)
-    Effusion.Transport.Mock |> expect(:recv, &stub_recv/2)
-    Effusion.Transport.Mock |> expect(:recv, &stub_recv/2)
+    Effusion.Transport.Mock
+    |> expect(:connect, &stub_tcp/3)
+    |> expect(:send, &stub_send/2)
+    |> expect(:recv, &stub_recv/2)
+    |> expect(:recv, &stub_recv/2)
     {:ok, _session} = Effusion.add_torrent(metabin, @peer_id, @ip, @port)
 
     # this pauses the process just enough to let the genserver process messages

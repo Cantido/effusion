@@ -1,5 +1,6 @@
 defmodule Effusion.Session do
   use GenServer
+  require Logger
   alias Effusion.Metainfo
 
   @thp_client Application.get_env(:effusion, :thp_client)
@@ -38,6 +39,8 @@ defmodule Effusion.Session do
 
   defp do_announce(state) do
     {local_host, local_port} = state.local_peer
+
+    Logger.info("Announcing torrent #{Base.encode16 state.meta.info_hash, case: :lower} to #{inspect(state.meta.announce)} that I'm listening at #{inspect(state.local_peer)}")
     {:ok, res} = @thp_client.announce(
       state.meta.announce,
       local_host,
@@ -48,6 +51,7 @@ defmodule Effusion.Session do
       0,
       state.meta.info.length
     )
+    Logger.info("Announce finished, got #{length(res.peers)} peers.")
 
     Map.put(state, :peers, res.peers)
   end
