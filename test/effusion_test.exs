@@ -63,6 +63,6 @@ defmodule EffusionTest do
     {:ok, _session} = Effusion.add_torrent(metabin, @peer_id, @ip, @port)
 
     # this pauses the process just enough to let the genserver process messages
-    :timer.sleep(1)
+    :timer.sleep(200)
   end
 end
