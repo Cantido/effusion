@@ -91,4 +91,58 @@ defmodule Effusion.PWP.Messages do
   def decode(<<_, _rest :: binary>>) do
     {:error, :invalid}
   end
+
+  @doc """
+  Encode a peer wire protocol message into a binary.
+
+  ## Examples
+
+      iex> Effusion.PWP.Messages.encode(:notamessage)
+      {:error, {:unknown_message, :notamessage}}
+
+      iex> Effusion.PWP.Messages.encode(:keepalive)
+      {:ok, <<>>}
+
+      iex> Effusion.PWP.Messages.encode(:choke)
+      {:ok, <<0>>}
+
+      iex> Effusion.PWP.Messages.encode(:unchoke)
+      {:ok, <<1>>}
+
+      iex> Effusion.PWP.Messages.encode(:interested)
+      {:ok, <<2>>}
+
+      iex> Effusion.PWP.Messages.encode(:uninterested)
+      {:ok, <<3>>}
+
+      iex> Effusion.PWP.Messages.encode({:have, 690042})
+      {:ok, <<4, 690042 :: 32>>}
+
+      iex> Effusion.PWP.Messages.encode({:bitfield, Effusion.IntSet.new()})
+      {:ok, <<5, 0>>}
+
+      iex> Effusion.PWP.Messages.encode({:request, 420, 69, 666})
+      {:ok, <<6, 0, 0, 1, 164, 0, 0, 0, 69, 0, 0, 2, 154>>}
+
+      iex> Effusion.PWP.Messages.encode({:piece, 420, 69, <<1, 2, 3, 4, 5>>})
+      {:ok, <<7, 0, 0, 1, 164, 0, 0, 0, 69, 1, 2, 3, 4, 5>>}
+
+      iex> Effusion.PWP.Messages.encode({:cancel, 420, 69, 666})
+      {:ok, <<8, 0, 0, 1, 164, 0, 0, 0, 69, 0, 0, 2, 154>>}
+
+  """
+  def encode(m)
+
+  def encode(:keepalive), do: {:ok, <<>>}
+  def encode(:choke), do: {:ok, <<0>>}
+  def encode(:unchoke), do: {:ok, <<1>>}
+  def encode(:interested), do: {:ok, <<2>>}
+  def encode(:uninterested), do: {:ok, <<3>>}
+  def encode({:have, index}) when index < 4294967296 and index >= 0, do: {:ok, <<4, index :: 32>>}
+  def encode({:bitfield, val}), do: {:ok, <<5>> <> :binary.encode_unsigned(val)}
+  def encode({:request, i, o, s}), do: {:ok, <<6, i :: 32, o :: 32, s :: 32>>}
+  def encode({:piece, i, o, b}), do: {:ok, <<7, i :: 32, o :: 32>> <> b}
+  def encode({:cancel, i, o, s}), do: {:ok, <<8, i :: 32, o :: 32, s :: 32>>}
+
+  def encode(m), do: {:error, {:unknown_message, m}}
 end
