@@ -13,6 +13,9 @@ defmodule Effusion.PWP.Messages do
 
   ## Examples
 
+      iex> Effusion.PWP.Messages.decode(<<>>)
+      {:ok, :keepalive}
+
       iex> Effusion.PWP.Messages.decode(<<0>>)
       {:ok, :choke}
 
@@ -51,6 +54,7 @@ defmodule Effusion.PWP.Messages do
   """
   def decode(b)
 
+  def decode(<<>>), do: {:ok, :keepalive}
   def decode(<<0>>), do: {:ok, :choke}
   def decode(<<1>>), do: {:ok, :unchoke}
   def decode(<<2>>), do: {:ok, :interested}
