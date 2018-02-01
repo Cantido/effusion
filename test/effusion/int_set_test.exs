@@ -54,4 +54,10 @@ defmodule Effusion.IntSetTest do
 
     assert Enum.member?(set, 7)
   end
+
+  test "inspectable" do
+    set = IntSet.new([1, 2, 3])
+
+    assert inspect(set) == "#IntSet<[1, 2, 3]>"
+  end
 end

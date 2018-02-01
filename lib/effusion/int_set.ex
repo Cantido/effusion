@@ -139,6 +139,15 @@ defmodule Effusion.IntSet do
     %IntSet{s: <<s :: bitstring, 0 :: size(needed_bits), 1 :: 1>>}
   end
 
+  defimpl Inspect do
+    import Inspect.Algebra
+
+    def inspect(s, opts) do
+      int_list = Enum.into(s, []) |> Enum.sort()
+      concat(["#IntSet<", to_doc(int_list, opts), ">"])
+    end
+  end
+
   defimpl Collectable do
     def into(original) do
       collector_fun = fn
