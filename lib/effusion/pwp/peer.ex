@@ -1,9 +1,10 @@
 defmodule Effusion.PWP.Peer do
   use GenServer, restart: :temporary
   alias Effusion.PWP.Messages.Handshake
+  alias Effusion.PWP.Messages
   require Logger
 
-  @transport Application.get_env(:effusion, :peer_transport)
+  # @transport Application.get_env(:effusion, :peer_transport)
 
   ## API
 
@@ -32,49 +33,32 @@ defmodule Effusion.PWP.Peer do
   end
 
   def handle_info(:timeout, state) do
-    state
-     |> connect()
-     |> handshake()
-     |> recv_msg()
+    {:ok, socket} = :gen_tcp.connect(state.host, state.port, [active: false])
+
+    :ok = :gen_tcp.send(socket, Handshake.encode(state.peer_id, state.info_hash))
+    {:ok, handshake} = :gen_tcp.recv(socket, 68)
+    {:ok, _} = Effusion.PWP.Messages.Handshake.decode(IO.iodata_to_binary(handshake))
+
+    :inet.setopts(socket, active: true, packet: 4)
+
+    # {:ok, request} = Messages.encode({:request, 973, 0, 32768})
+    # Logger.info("about to send this message: #{inspect(request)}")
+
+    # :ok = :gen_tcp.send(socket, request)
+    # get_message(socket)
+
+    {:noreply, state}
   end
 
-  defp connect(state) do
-    Logger.info("Starting peer connection to #{inspect(state.host)}:#{state.port} for torrent #{Base.encode16(state.info_hash, case: :lower)}")
-
-    case @transport.connect(state.host, state.port, []) do
-      {:ok, socket} -> {:noreply, Map.put(state, :socket, socket)}
-      {:error, err} ->
-        Logger.info("Could not connect to #{inspect(state.host)}:#{state.port}. Reason: #{inspect(err)}. Abandoning peer.")
-        {:stop, :normal, state}
-    end
+  def handle_info({:tcp, socket, data}, state) do
+    data1 = IO.iodata_to_binary(data)
+    {:ok, msg1} = Messages.decode(data1)
+    Logger.info "Got message #{inspect(msg1)}"
+    {:noreply, state}
   end
 
-  defp handshake({:noreply, state}) do
-    with :ok <- @transport.send(state.socket, Handshake.encode(state.peer_id, state.info_hash)),
-         {:ok, handshake} <- @transport.recv(state.socket, 68),
-         {:ok, _} <- Effusion.PWP.Messages.Handshake.decode(IO.iodata_to_binary(handshake))
-    do
-      {:noreply, state}
-    else
-      {:error, :malformed_handshake} ->
-        Logger.info("Peer at #{inspect(state.host)}:#{state.port} failed to handshake. Abandonding peer.")
-        {:stop, :normal, state}
-      {:error, err} ->
-        Logger.info("Handshake with peer at #{inspect(state.host)}:#{state.port} failed to handshake. Reason: #{inspect(err)} Abandonding peer.")
-        {:stop, :normal, state}
-    end
+  def handle_info({:tcp_closed, socket}, state) do
+    Logger.info("TCP closed connection to #{inspect(state.host)}:#{state.port}")
+    {:stop, :normal, state}
   end
-
-  defp handshake(err), do: err
-
-  defp recv_msg({:noreply, state}) do
-    case @transport.recv(state.socket, 0) do
-      {:ok, _} -> {:noreply, state}
-      {:error, err} ->
-        Logger.info("Receiving message from #{inspect(state.host)}:#{state.port} failed. Reason: #{inspect(err)}. Abandonding peer.")
-        {:stop, :normal, state}
-    end
-  end
-
-  defp recv_msg(err), do: err
 end

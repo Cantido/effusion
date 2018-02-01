@@ -10,51 +10,51 @@ defmodule Effusion.IntSet do
   ## Examples
 
       iex> Effusion.IntSet.new
-      0
+      <<>>
 
   """
   def new do
-    0
+    <<>>
   end
 
   @doc """
-  Create an int set from a bitfield
+  Create an int set from a bitfield. Binary strings are interpreted as
+  little-endian, which means that the most-sigificant bit corresponds
+  to the integer 0.
 
   ## Examples
 
-      iex> Effusion.IntSet.new(<<64, 0>>)
-      16384
+      iex> set = Effusion.IntSet.new(<<1 :: 1>>)
+      iex> Effusion.IntSet.member?(set, 0)
+      true
 
-      iex> Effusion.IntSet.new(<<1>>)
-      1
+      iex> set = Effusion.IntSet.new(<<0b1000_1000>>)
+      iex> Effusion.IntSet.member?(set, 0)
+      true
+      iex> Effusion.IntSet.member?(set, 1)
+      false
+      iex> Effusion.IntSet.member?(set, 4)
+      true
 
-      iex> Effusion.IntSet.new(<<0>>)
-      0
+      iex> set = Effusion.IntSet.new(<<0 :: 1>>)
+      iex> Effusion.IntSet.member?(set, 0)
+      false
+
+  You can also provide a list of integers.
+
+      iex> set = Effusion.IntSet.new([0])
+      iex> Effusion.IntSet.member?(set, 0)
+      true
 
   """
-  def new(bitfield) when is_binary(bitfield) do
-    i = bit_size(bitfield)
-    <<a :: size(i)>> = bitfield
-    a
+  def new(bitfield)
+
+  def new(bitfield) when is_bitstring(bitfield) do
+    bitfield
   end
 
-  @doc """
-  Create an int set containing a list of integers
-
-  ## Examples
-
-      iex> Effusion.IntSet.new([0])
-      1
-
-      iex> Effusion.IntSet.new([1])
-      2
-
-      iex> Effusion.IntSet.new([0, 1])
-      3
-
-  """
   def new(list) when is_list(list) do
-    Enum.reduce(list, 0, &(put(&2, &1)))
+    Enum.reduce(list, new, &(put(&2, &1)))
   end
 
   @doc """
@@ -62,15 +62,16 @@ defmodule Effusion.IntSet do
 
   ## Examples
 
-      iex> Effusion.IntSet.singleton(0)
-      1
+      iex> set = Effusion.IntSet.singleton(0)
+      iex> Effusion.IntSet.member?(set, 0)
+      true
 
-
-      iex> Effusion.IntSet.singleton(8)
-      256
+      iex> set = Effusion.IntSet.singleton(8)
+      iex> Effusion.IntSet.member?(set, 8)
+      true
   """
   def singleton(member) when member >= 0 do
-    1 <<< member
+    new([member])
   end
 
   @doc """
@@ -78,45 +79,59 @@ defmodule Effusion.IntSet do
 
   ## Examples
 
-      iex> Effusion.IntSet.union(8, 128)
-      136
+      iex> Effusion.IntSet.union(<<0 :: 1>>, <<0 :: 1>>)
+      <<0 :: 1>>
+
+      iex> Effusion.IntSet.union(<<0b0000_0000>>, <<0b0000_0000>>)
+      <<0b0000_0000>>
 
   """
-  def union(x, y) when x >= 0 and y >= 0 do
-    x ||| y
+  def union(x, y)
+
+  def union(<<a :: 1, arest :: bitstring>>, <<b :: 1, brest :: bitstring>>) do
+    <<(a ||| b) :: 1, union(arest, brest) :: bitstring>>
   end
+
+  def union(a, <<>>), do: a
+  def union(<<>>, b), do: b
+  def union(<<>>, <<>>), do: <<>>
 
   @doc """
   Test if the given int set contains a value
 
   ## Examples
 
-      iex> Effusion.IntSet.member?(128, 7)
+      iex> Effusion.IntSet.member?(<<0b0000_0001>>, 7)
       true
 
-      iex> Effusion.IntSet.member?(128, 6)
+      iex> Effusion.IntSet.member?(<<0b0000_0101>>, 5)
+      true
+
+      iex> Effusion.IntSet.member?(<<0b0000_0001>>, 6)
       false
 
   """
-  def member?(s, x) when s >= 0 and x >= 0 do
-    i = (1 <<< x)
-    (i &&& s) != 0
-  end
+  def member?(s, x)
+
+  def member?(<<>>, x), do: false
+  def member?(<<0 :: 1, _rst :: bitstring>>, 0), do: false
+  def member?(<<1 :: 1, _rst :: bitstring>>, 0), do: true
+  def member?(<<_ :: 1, rest :: bitstring>>, x), do: member?(rest, x - 1)
 
   @doc """
   Add a value to the int set
 
   ## Examples
 
-      iex> Effusion.IntSet.put(0, 7)
-      128
+      iex> Effusion.IntSet.put(<<>>, 7)
+      <<0b0000_0001>>
 
-      iex> Effusion.IntSet.put(128, 3)
-      136
+      iex> Effusion.IntSet.put(<<0b0000_0001>>, 3)
+      <<0b0001_0001>>
 
   """
-  def put(s, x) when s >= 0 and x >= 0 do
-    i = (1 <<< x)
-    i ||| s
+  def put(s, x) do
+    nil
   end
+
 end

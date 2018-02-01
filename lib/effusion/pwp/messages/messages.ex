@@ -29,19 +29,19 @@ defmodule Effusion.PWP.Messages do
       {:ok, :uninterested}
 
       iex> Effusion.PWP.Messages.decode(<<4, 4201 :: 32>>)
-      {:ok, :have, 4201}
+      {:ok, {:have, 4201}}
 
       iex> Effusion.PWP.Messages.decode(<<5, 0b11110001>>)
-      {:ok, :bitfield, <<241>>}
+      {:ok, {:bitfield, <<241>>}}
 
       iex> Effusion.PWP.Messages.decode(<<6, 4201 :: 32, 69 :: 32, 12 :: 32>>)
-      {:ok, :request, %{index: 4201, offset: 69, size: 12}}
+      {:ok, {:request, %{index: 4201, offset: 69, size: 12}}}
 
       iex> Effusion.PWP.Messages.decode(<<7, 4201 :: 32, 69 :: 32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0>>)
-      {:ok, :piece, %{index: 4201, offset: 69, data: <<1, 2, 3, 4, 5, 6, 7, 8, 9, 0>>}}
+      {:ok, {:piece, %{index: 4201, offset: 69, data: <<1, 2, 3, 4, 5, 6, 7, 8, 9, 0>>}}}
 
       iex> Effusion.PWP.Messages.decode(<<8, 4201 :: 32, 69 :: 32, 12 :: 32>>)
-      {:ok, :cancel, %{index: 4201, offset: 69, size: 12}}
+      {:ok, {:cancel, %{index: 4201, offset: 69, size: 12}}}
 
       iex> Effusion.PWP.Messages.decode(<<42>>)
       {:error, :bad_message_id}
@@ -61,23 +61,23 @@ defmodule Effusion.PWP.Messages do
   def decode(<<3>>), do: {:ok, :uninterested}
 
   def decode(<<4, index :: 32>>) do
-    {:ok, :have, index}
+    {:ok, {:have, index}}
   end
 
   def decode(<<5, rest :: binary>>) do
-    {:ok, :bitfield, rest}
+    {:ok, {:bitfield, rest}}
   end
 
   def decode(<<6, index :: 32, offset :: 32, size :: 32>>) do
-    {:ok, :request, %{index: index, offset: offset, size: size}}
+    {:ok, {:request, %{index: index, offset: offset, size: size}}}
   end
 
   def decode(<<7, index :: 32, offset :: 32, data :: binary>>) do
-    {:ok, :piece, %{index: index, offset: offset, data: data}}
+    {:ok, {:piece, %{index: index, offset: offset, data: data}}}
   end
 
   def decode(<<8, index :: 32, offset :: 32, size :: 32>>) do
-    {:ok, :cancel, %{index: index, offset: offset, size: size}}
+    {:ok, {:cancel, %{index: index, offset: offset, size: size}}}
   end
 
   def decode(<<id, rest :: binary>>) when id in 0..3 and bit_size(rest) > 0 do
@@ -118,7 +118,7 @@ defmodule Effusion.PWP.Messages do
       iex> Effusion.PWP.Messages.encode({:have, 690042})
       {:ok, <<4, 690042 :: 32>>}
 
-      iex> Effusion.PWP.Messages.encode({:bitfield, Effusion.IntSet.new()})
+      iex> Effusion.PWP.Messages.encode({:bitfield, <<0b0000_0000>>})
       {:ok, <<5, 0>>}
 
       iex> Effusion.PWP.Messages.encode({:request, 420, 69, 666})
@@ -139,7 +139,7 @@ defmodule Effusion.PWP.Messages do
   def encode(:interested), do: {:ok, <<2>>}
   def encode(:uninterested), do: {:ok, <<3>>}
   def encode({:have, index}) when index < 4294967296 and index >= 0, do: {:ok, <<4, index :: 32>>}
-  def encode({:bitfield, val}), do: {:ok, <<5>> <> :binary.encode_unsigned(val)}
+  def encode({:bitfield, val}), do: {:ok, <<5>> <> val}
   def encode({:request, i, o, s}), do: {:ok, <<6, i :: 32, o :: 32, s :: 32>>}
   def encode({:piece, i, o, b}), do: {:ok, <<7, i :: 32, o :: 32>> <> b}
   def encode({:cancel, i, o, s}), do: {:ok, <<8, i :: 32, o :: 32, s :: 32>>}

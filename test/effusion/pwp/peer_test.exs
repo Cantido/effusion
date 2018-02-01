@@ -36,15 +36,15 @@ defmodule Effusion.PWP.PeerTest do
     {:ok, <<1>>}
   end
 
-  test "handshakes with other peer" do
-    Effusion.Transport.Mock
-      |> expect(:connect, &stub_connect/3)
-      |> expect(:send, &stub_tcp_send_handshake/2)
-      |> expect(:recv, &stub_tcp_recv_handshake/2)
-      |> expect(:recv, &stub_tcp_recv_msg/2)
-
-    {:ok, _peer} = start_supervised {Effusion.PWP.Peer, [@remote_host, @remote_port, @local_peer_id, @info_hash]}
-
-    :timer.sleep(1)
-  end
+  # test "handshakes with other peer" do
+  #   Effusion.Transport.Mock
+  #     |> expect(:connect, &stub_connect/3)
+  #     |> expect(:send, &stub_tcp_send_handshake/2)
+  #     |> expect(:recv, &stub_tcp_recv_handshake/2)
+  #     |> expect(:recv, &stub_tcp_recv_msg/2)
+  #
+  #   {:ok, _peer} = start_supervised {Effusion.PWP.Peer, [@remote_host, @remote_port, @local_peer_id, @info_hash]}
+  #
+  #   :timer.sleep(1)
+  # end
 end

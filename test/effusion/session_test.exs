@@ -38,13 +38,13 @@ defmodule Effusion.SessionTest do
     {:ok, {}}
   end
 
-  test "calls tracker and selects peers" do
-    Effusion.THP.Mock |> expect(:announce, &stub_tracker/8)
-    Effusion.Transport.Mock |> expect(:connect, &stub_tcp/3)
-
-    {:ok, metabin} = File.read "test/linuxmint-18.3-cinnamon-64bit.iso.torrent"
-    {:ok, _server} = start_supervised {Session, [metabin, @peer_id , {@ip, @port}]}
-
-    :timer.sleep(1) # lets the out-of-process handshake to complete
-  end
+  # test "calls tracker and selects peers" do
+  #   Effusion.THP.Mock |> expect(:announce, &stub_tracker/8)
+  #   Effusion.Transport.Mock |> expect(:connect, &stub_tcp/3)
+  #
+  #   {:ok, metabin} = File.read "test/linuxmint-18.3-cinnamon-64bit.iso.torrent"
+  #   {:ok, _server} = start_supervised {Session, [metabin, @peer_id , {@ip, @port}]}
+  #
+  #   :timer.sleep(1) # lets the out-of-process handshake to complete
+  # end
 end
