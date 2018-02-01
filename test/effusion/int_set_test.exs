@@ -6,9 +6,9 @@ defmodule Effusion.IntSetTest do
   test "is collectable" do
     collected = Enum.into([1, 2, 3], IntSet.new())
 
-    assert IntSet.member?(collected, 1)
-    assert IntSet.member?(collected, 2)
-    assert IntSet.member?(collected, 3)
+    assert Enum.member?(collected, 1)
+    assert Enum.member?(collected, 2)
+    assert Enum.member?(collected, 3)
   end
 
   test "is countable as enumerable" do
@@ -31,27 +31,27 @@ defmodule Effusion.IntSetTest do
   test "member? returns false if IntSet is too small to contain x" do
     set = IntSet.new(<<0b0000_0000>>)
 
-    refute IntSet.member?(set, 8)
+    refute Enum.member?(set, 8)
   end
 
   test "put can insert values smaller than the max" do
     set = IntSet.new(<<0b0000_0001>>)
        |> IntSet.put(4)
 
-    assert IntSet.member?(set, 4)
+    assert Enum.member?(set, 4)
   end
 
   test "put can insert a value one larger than the max" do
     set = IntSet.new(<<0 :: 1>>)
        |> IntSet.put(1)
 
-    assert IntSet.member?(set, 1)
+    assert Enum.member?(set, 1)
   end
 
   test "put can expand the bitstring" do
     set = IntSet.new()
        |> IntSet.put(7)
 
-    assert IntSet.member?(set, 7)
+    assert Enum.member?(set, 7)
   end
 end

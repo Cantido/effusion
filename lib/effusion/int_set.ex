@@ -33,25 +33,25 @@ defmodule Effusion.IntSet do
   ## Examples
 
       iex> set = Effusion.IntSet.new(<<1 :: 1>>)
-      iex> Effusion.IntSet.member?(set, 0)
+      iex> Enum.member?(set, 0)
       true
 
       iex> set = Effusion.IntSet.new(<<0b1000_1000>>)
-      iex> Effusion.IntSet.member?(set, 0)
+      iex> Enum.member?(set, 0)
       true
-      iex> Effusion.IntSet.member?(set, 1)
+      iex> Enum.member?(set, 1)
       false
-      iex> Effusion.IntSet.member?(set, 4)
+      iex> Enum.member?(set, 4)
       true
 
       iex> set = Effusion.IntSet.new(<<0 :: 1>>)
-      iex> Effusion.IntSet.member?(set, 0)
+      iex> Enum.member?(set, 0)
       false
 
   You can also provide a list of integers.
 
       iex> set = Effusion.IntSet.new([0])
-      iex> Effusion.IntSet.member?(set, 0)
+      iex> Enum.member?(set, 0)
       true
 
   """
@@ -71,11 +71,11 @@ defmodule Effusion.IntSet do
   ## Examples
 
       iex> set = Effusion.IntSet.singleton(0)
-      iex> Effusion.IntSet.member?(set, 0)
+      iex> Enum.member?(set, 0)
       true
 
       iex> set = Effusion.IntSet.singleton(8)
-      iex> Effusion.IntSet.member?(set, 8)
+      iex> Enum.member?(set, 8)
       true
   """
   def singleton(member) when is_index(member) do
@@ -90,9 +90,9 @@ defmodule Effusion.IntSet do
       iex> a = Effusion.IntSet.new([7])
       iex> b = Effusion.IntSet.new([4])
       iex> u = Effusion.IntSet.union(a, b)
-      iex> Effusion.IntSet.member?(u, 7)
+      iex> Enum.member?(u, 7)
       true
-      iex> Effusion.IntSet.member?(u, 4)
+      iex> Enum.member?(u, 4)
       true
 
   """
@@ -116,9 +116,9 @@ defmodule Effusion.IntSet do
   # ## Examples
 
       iex> set = Effusion.IntSet.new([7])
-      iex> Effusion.IntSet.member?(set, 7)
+      iex> Enum.member?(set, 7)
       true
-      iex> Effusion.IntSet.member?(set, 6)
+      iex> Enum.member?(set, 6)
       false
 
   """
@@ -143,7 +143,7 @@ defmodule Effusion.IntSet do
 
       iex> set = Effusion.IntSet.new()
       iex> set = Effusion.IntSet.put(set, 0)
-      iex> Effusion.IntSet.member?(set, 0)
+      iex> Enum.member?(set, 0)
       true
 
   """
