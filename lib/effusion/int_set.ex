@@ -62,7 +62,7 @@ defmodule Effusion.IntSet do
   end
 
   def new(list) when is_list(list) do
-    Enum.reduce(list, new(), &(put(&2, &1)))
+    Enum.into(list, IntSet.new())
   end
 
   @doc """
@@ -160,8 +160,7 @@ defmodule Effusion.IntSet do
       when is_integer(i)
        and i >= 0
 
-
-    def member?(%IntSet{}, x) when x < 0, do: {:ok, false}
+    def member?(%IntSet{}, x) when is_integer(x) and x < 0, do: {:ok, false}
     def member?(%IntSet{s: s}, x) when is_index(x) and bit_size(s) <= x, do: {:ok, false}
     def member?(%IntSet{s: <<0 :: 1, _rst :: bitstring>>}, 0), do: {:ok, false}
     def member?(%IntSet{s: <<1 :: 1, _rst :: bitstring>>}, 0), do: {:ok, true}
