@@ -2,7 +2,14 @@ defmodule Effusion.IntSet do
   use Bitwise
   @moduledoc """
   Efficiently store and index a set of non-negative integers.
+
+  Binary strings are interpreted as little-endian, which means that the most-sigificant bit
+  corresponds to the integer 0.
   """
+
+  defguard is_index(i)
+    when is_integer(i)
+     and i >= 0
 
   @doc """
   Create an empty int set.
@@ -18,9 +25,7 @@ defmodule Effusion.IntSet do
   end
 
   @doc """
-  Create an int set from a bitfield. Binary strings are interpreted as
-  little-endian, which means that the most-sigificant bit corresponds
-  to the integer 0.
+  Create an int set from a bitfield.
 
   ## Examples
 
@@ -54,7 +59,7 @@ defmodule Effusion.IntSet do
   end
 
   def new(list) when is_list(list) do
-    Enum.reduce(list, new, &(put(&2, &1)))
+    Enum.reduce(list, new(), &(put(&2, &1)))
   end
 
   @doc """
@@ -70,7 +75,7 @@ defmodule Effusion.IntSet do
       iex> Effusion.IntSet.member?(set, 8)
       true
   """
-  def singleton(member) when member >= 0 do
+  def singleton(member) when is_index(member) do
     new([member])
   end
 
@@ -92,8 +97,8 @@ defmodule Effusion.IntSet do
     <<(a ||| b) :: 1, union(arest, brest) :: bitstring>>
   end
 
-  def union(a, <<>>), do: a
-  def union(<<>>, b), do: b
+  def union(a, <<>>) when is_bitstring(a), do: a
+  def union(<<>>, b) when is_bitstring(b), do: b
   def union(<<>>, <<>>), do: <<>>
 
   @doc """
@@ -113,25 +118,53 @@ defmodule Effusion.IntSet do
   """
   def member?(s, x)
 
-  def member?(<<>>, x), do: false
+  def member?(s, x) when is_index(x) and is_bitstring(s) and bit_size(s) <= x, do: false
   def member?(<<0 :: 1, _rst :: bitstring>>, 0), do: false
   def member?(<<1 :: 1, _rst :: bitstring>>, 0), do: true
-  def member?(<<_ :: 1, rest :: bitstring>>, x), do: member?(rest, x - 1)
+
+  def member?(s, x)
+  when is_index(x)
+   and is_bitstring(s)
+   and bit_size(s) > x
+  do
+    <<pre :: size(x), i :: 1, post :: bitstring>> = s
+    i == 1
+  end
 
   @doc """
   Add a value to the int set
 
   ## Examples
 
-      iex> Effusion.IntSet.put(<<>>, 7)
-      <<0b0000_0001>>
+      iex> Effusion.IntSet.put(<<>>, 0)
+      <<1 :: 1>>
 
-      iex> Effusion.IntSet.put(<<0b0000_0001>>, 3)
-      <<0b0001_0001>>
+      iex> Effusion.IntSet.put(<<0b0000_0001>>, 0)
+      <<0b1000_0001>>
+
+      iex> Effusion.IntSet.put(<<0b0000_0001>>, 4)
+      <<0b0000_1001>>
+
+      iex> Effusion.IntSet.put(<<1 :: 1>>, 7)
+      <<0b1000_0001>>
 
   """
-  def put(s, x) do
-    nil
+  def put(s, x)
+
+  def put(<<>>, x) when is_index(x) do
+    <<0 :: size(x), 1 :: 1>>
+  end
+
+  def put(s, x) when is_index(x) and is_bitstring(s) and bit_size(s) >= x do
+    <<pre :: size(x), _ :: 1, post :: bitstring>> = s
+    <<pre :: size(x), 1 :: 1, post :: bitstring>>
+  end
+
+  def put(s, x) when is_index(x) and is_bitstring(s) and bit_size(s) < x do
+    pre_size = bit_size(s)
+    needed_bits = x - pre_size
+
+    <<s :: bitstring, 0 :: size(needed_bits), 1 :: 1>>
   end
 
 end
