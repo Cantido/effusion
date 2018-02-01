@@ -111,32 +111,6 @@ defmodule Effusion.IntSet do
   def union(%IntSet{s: <<>>}, %IntSet{s: <<>>}), do: %IntSet{}
 
   @doc """
-  Test if the given int set contains a value
-
-  # ## Examples
-
-      iex> set = Effusion.IntSet.new([7])
-      iex> Enum.member?(set, 7)
-      true
-      iex> Enum.member?(set, 6)
-      false
-
-  """
-  def member?(s, x)
-
-  def member?(%IntSet{s: s}, x) when is_index(x) and bit_size(s) <= x, do: false
-  def member?(%IntSet{s: <<0 :: 1, _rst :: bitstring>>}, 0), do: false
-  def member?(%IntSet{s: <<1 :: 1, _rst :: bitstring>>}, 0), do: true
-
-  def member?(%IntSet{s: s}, x)
-  when is_index(x)
-   and bit_size(s) > x
-  do
-    <<_ :: size(x), i :: 1, _ :: bitstring>> = s
-    i == 1
-  end
-
-  @doc """
   Add a value to the int set
 
   ## Examples
@@ -182,9 +156,25 @@ defmodule Effusion.IntSet do
       {:error, __MODULE__}
     end
 
-    def member?(s, e) do
-      {:error, __MODULE__}
+    defguard is_index(i)
+      when is_integer(i)
+       and i >= 0
+
+
+    def member?(%IntSet{}, x) when x < 0, do: {:ok, false}
+    def member?(%IntSet{s: s}, x) when is_index(x) and bit_size(s) <= x, do: {:ok, false}
+    def member?(%IntSet{s: <<0 :: 1, _rst :: bitstring>>}, 0), do: {:ok, false}
+    def member?(%IntSet{s: <<1 :: 1, _rst :: bitstring>>}, 0), do: {:ok, true}
+
+    def member?(%IntSet{s: s}, x)
+    when is_index(x)
+     and bit_size(s) > x
+    do
+      <<_ :: size(x), i :: 1, _ :: bitstring>> = s
+      {:ok, i == 1}
     end
+
+    def member?(%IntSet{}, x), do: {:error, __MODULE__}
 
     def slice(s) do
       {:error, __MODULE__}
