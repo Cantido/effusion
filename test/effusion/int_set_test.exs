@@ -3,6 +3,14 @@ defmodule Effusion.IntSetTest do
   alias Effusion.IntSet
   doctest Effusion.IntSet
 
+  test "is collectable" do
+    collected = Enum.into([1, 2, 3], IntSet.new())
+
+    assert IntSet.member?(collected, 1)
+    assert IntSet.member?(collected, 2)
+    assert IntSet.member?(collected, 3)
+  end
+
   test "member? returns false if IntSet is too small to contain x" do
     set = IntSet.new(<<0b0000_0000>>)
 

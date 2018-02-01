@@ -165,4 +165,15 @@ defmodule Effusion.IntSet do
     %IntSet{s: <<s :: bitstring, 0 :: size(needed_bits), 1 :: 1>>}
   end
 
+  defimpl Collectable do
+    def into(original) do
+      collector_fun = fn
+        set, {:cont, elem} -> IntSet.put(set, elem)
+        set, :done -> set
+        _set, :halt -> :ok
+      end
+
+      {original, collector_fun}
+    end
+  end
 end
