@@ -1,11 +1,14 @@
 defmodule Effusion.IntSet do
   use Bitwise
+  alias Effusion.IntSet
   @moduledoc """
   Efficiently store and index a set of non-negative integers.
 
   Binary strings are interpreted as little-endian, which means that the most-sigificant bit
   corresponds to the integer 0.
   """
+
+  defstruct s: <<>>
 
   defguard is_index(i)
     when is_integer(i)
@@ -17,11 +20,11 @@ defmodule Effusion.IntSet do
   ## Examples
 
       iex> Effusion.IntSet.new
-      <<>>
+      %Effusion.IntSet{s: <<>>}
 
   """
   def new do
-    <<>>
+    %IntSet{}
   end
 
   @doc """
@@ -55,7 +58,7 @@ defmodule Effusion.IntSet do
   def new(bitfield)
 
   def new(bitfield) when is_bitstring(bitfield) do
-    bitfield
+    %IntSet{s: bitfield}
   end
 
   def new(list) when is_list(list) do
@@ -84,50 +87,52 @@ defmodule Effusion.IntSet do
 
   ## Examples
 
-      iex> Effusion.IntSet.union(<<0 :: 1>>, <<0 :: 1>>)
-      <<0 :: 1>>
-
-      iex> Effusion.IntSet.union(<<0b0000_0000>>, <<0b0000_0000>>)
-      <<0b0000_0000>>
+      iex> a = Effusion.IntSet.new([7])
+      iex> b = Effusion.IntSet.new([4])
+      iex> u = Effusion.IntSet.union(a, b)
+      iex> Effusion.IntSet.member?(u, 7)
+      true
+      iex> Effusion.IntSet.member?(u, 4)
+      true
 
   """
   def union(x, y)
 
-  def union(<<a :: 1, arest :: bitstring>>, <<b :: 1, brest :: bitstring>>) do
-    <<(a ||| b) :: 1, union(arest, brest) :: bitstring>>
+  def union(
+    %IntSet{s: <<a :: 1, arest :: bitstring>>},
+    %IntSet{s: <<b :: 1, brest :: bitstring>>}
+  ) do
+    %IntSet{s: tail_bin} = union new(arest), new(brest)
+    %IntSet{s: <<(a ||| b) :: 1, tail_bin :: bitstring>>}
   end
 
-  def union(a, <<>>) when is_bitstring(a), do: a
-  def union(<<>>, b) when is_bitstring(b), do: b
-  def union(<<>>, <<>>), do: <<>>
+  def union(%IntSet{} = a, %IntSet{s: <<>>}), do: a
+  def union(%IntSet{s: <<>>}, %IntSet{} = b), do: b
+  def union(%IntSet{s: <<>>}, %IntSet{s: <<>>}), do: %IntSet{}
 
   @doc """
   Test if the given int set contains a value
 
-  ## Examples
+  # ## Examples
 
-      iex> Effusion.IntSet.member?(<<0b0000_0001>>, 7)
+      iex> set = Effusion.IntSet.new([7])
+      iex> Effusion.IntSet.member?(set, 7)
       true
-
-      iex> Effusion.IntSet.member?(<<0b0000_0101>>, 5)
-      true
-
-      iex> Effusion.IntSet.member?(<<0b0000_0001>>, 6)
+      iex> Effusion.IntSet.member?(set, 6)
       false
 
   """
   def member?(s, x)
 
-  def member?(s, x) when is_index(x) and is_bitstring(s) and bit_size(s) <= x, do: false
-  def member?(<<0 :: 1, _rst :: bitstring>>, 0), do: false
-  def member?(<<1 :: 1, _rst :: bitstring>>, 0), do: true
+  def member?(%IntSet{s: s}, x) when is_index(x) and bit_size(s) <= x, do: false
+  def member?(%IntSet{s: <<0 :: 1, _rst :: bitstring>>}, 0), do: false
+  def member?(%IntSet{s: <<1 :: 1, _rst :: bitstring>>}, 0), do: true
 
-  def member?(s, x)
+  def member?(%IntSet{s: s}, x)
   when is_index(x)
-   and is_bitstring(s)
    and bit_size(s) > x
   do
-    <<pre :: size(x), i :: 1, post :: bitstring>> = s
+    <<_ :: size(x), i :: 1, _ :: bitstring>> = s
     i == 1
   end
 
@@ -136,35 +141,28 @@ defmodule Effusion.IntSet do
 
   ## Examples
 
-      iex> Effusion.IntSet.put(<<>>, 0)
-      <<1 :: 1>>
-
-      iex> Effusion.IntSet.put(<<0b0000_0001>>, 0)
-      <<0b1000_0001>>
-
-      iex> Effusion.IntSet.put(<<0b0000_0001>>, 4)
-      <<0b0000_1001>>
-
-      iex> Effusion.IntSet.put(<<1 :: 1>>, 7)
-      <<0b1000_0001>>
+      iex> set = Effusion.IntSet.new()
+      iex> set = Effusion.IntSet.put(set, 0)
+      iex> Effusion.IntSet.member?(set, 0)
+      true
 
   """
   def put(s, x)
 
-  def put(<<>>, x) when is_index(x) do
-    <<0 :: size(x), 1 :: 1>>
+  def put(%IntSet{s: <<>>}, x) when is_index(x) do
+    %IntSet{s: <<0 :: size(x), 1 :: 1>>}
   end
 
-  def put(s, x) when is_index(x) and is_bitstring(s) and bit_size(s) >= x do
+  def put(%IntSet{s: s}, x) when is_index(x) and is_bitstring(s) and bit_size(s) >= x do
     <<pre :: size(x), _ :: 1, post :: bitstring>> = s
-    <<pre :: size(x), 1 :: 1, post :: bitstring>>
+    %IntSet{s: <<pre :: size(x), 1 :: 1, post :: bitstring>>}
   end
 
-  def put(s, x) when is_index(x) and is_bitstring(s) and bit_size(s) < x do
+  def put(%IntSet{s: s}, x) when is_index(x) and is_bitstring(s) and bit_size(s) < x do
     pre_size = bit_size(s)
     needed_bits = x - pre_size
 
-    <<s :: bitstring, 0 :: size(needed_bits), 1 :: 1>>
+    %IntSet{s: <<s :: bitstring, 0 :: size(needed_bits), 1 :: 1>>}
   end
 
 end
