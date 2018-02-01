@@ -11,6 +11,23 @@ defmodule Effusion.IntSetTest do
     assert IntSet.member?(collected, 3)
   end
 
+  test "is countable as enumerable" do
+    assert 0 = IntSet.new() |> Enum.count()
+    assert 1 = IntSet.new([1]) |> Enum.count()
+  end
+
+  test "can check members enumerable" do
+    assert IntSet.new([1]) |> Enum.member?(1)
+    refute IntSet.new() |> Enum.member?(1)
+  end
+
+  test "can map a function as an enumerable" do
+    incremented = IntSet.new([1, 2, 3]) |> Enum.map(&(&1 + 1))
+    assert 2 in incremented
+    assert 3 in incremented
+    assert 4 in incremented
+  end
+
   test "member? returns false if IntSet is too small to contain x" do
     set = IntSet.new(<<0b0000_0000>>)
 

@@ -176,4 +176,44 @@ defmodule Effusion.IntSet do
       {original, collector_fun}
     end
   end
+
+  defimpl Enumerable do
+    def count(s) do
+      {:error, __MODULE__}
+    end
+
+    def member?(s, e) do
+      {:error, __MODULE__}
+    end
+
+    def slice(s) do
+      {:error, __MODULE__}
+    end
+
+    def reduce(_, {:halt, acc}, _fun) do
+      {:halted, acc}
+    end
+
+    def reduce(set, {:suspend, acc}, fun) do
+      {:suspended, acc, &reduce(set, &1, fun)}
+    end
+
+    def reduce(%IntSet{s: <<>>}, {:cont, acc}, _fun) do
+      {:done, acc}
+    end
+
+    def reduce(%IntSet{s: s}, {:cont, acc}, fun) do
+      last_i = bit_size(s) - 1
+      before_last_size = last_i
+      <<h :: bitstring-size(before_last_size), last_flag :: 1>> = s
+
+      rest = IntSet.new(h)
+
+      if last_flag == 1 do
+        reduce(rest, fun.(last_i, acc), fun)
+      else
+        reduce(rest, {:cont, acc}, fun)
+      end
+    end
+  end
 end
