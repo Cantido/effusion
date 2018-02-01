@@ -153,12 +153,12 @@ defmodule Effusion.IntSet do
     %IntSet{s: <<0 :: size(x), 1 :: 1>>}
   end
 
-  def put(%IntSet{s: s}, x) when is_index(x) and is_bitstring(s) and bit_size(s) >= x do
+  def put(%IntSet{s: s}, x) when is_index(x) and is_bitstring(s) and bit_size(s) > x do
     <<pre :: size(x), _ :: 1, post :: bitstring>> = s
     %IntSet{s: <<pre :: size(x), 1 :: 1, post :: bitstring>>}
   end
 
-  def put(%IntSet{s: s}, x) when is_index(x) and is_bitstring(s) and bit_size(s) < x do
+  def put(%IntSet{s: s}, x) when is_index(x) and is_bitstring(s) and bit_size(s) <= x do
     pre_size = bit_size(s)
     needed_bits = x - pre_size
 
