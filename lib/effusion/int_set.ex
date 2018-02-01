@@ -14,6 +14,11 @@ defmodule Effusion.IntSet do
     when is_integer(i)
      and i >= 0
 
+  defguard can_contain(s, i)
+    when is_index(i)
+     and is_bitstring(s)
+     and bit_size(s) > i
+
   @doc """
   Create an empty int set.
 
@@ -123,20 +128,32 @@ defmodule Effusion.IntSet do
   """
   def put(s, x)
 
-  def put(%IntSet{s: <<>>}, x) when is_index(x) do
-    %IntSet{s: <<0 :: size(x), 1 :: 1>>}
+  def put(%IntSet{s: s} = set, x) when is_index(x) and is_bitstring(s) do
+    set_bit(set, x, 1)
   end
 
-  def put(%IntSet{s: s}, x) when is_index(x) and is_bitstring(s) and bit_size(s) > x do
-    <<pre :: size(x), _ :: 1, post :: bitstring>> = s
-    %IntSet{s: <<pre :: size(x), 1 :: 1, post :: bitstring>>}
+  def delete(%IntSet{s: s} = set, x) when is_index(x) and is_bitstring(s) and not can_contain(s, x) do
+    set
   end
 
-  def put(%IntSet{s: s}, x) when is_index(x) and is_bitstring(s) and bit_size(s) <= x do
-    pre_size = bit_size(s)
-    needed_bits = x - pre_size
+  def delete(%IntSet{s: s} = set, x) when can_contain(s, x) do
+    set_bit(set, x, 0)
+  end
 
-    %IntSet{s: <<s :: bitstring, 0 :: size(needed_bits), 1 :: 1>>}
+  defp set_bit(%IntSet{s: s} = set, i, x) when x in 0..1 do
+    %IntSet{s: s} = ensure_capacity_for(set, i)
+    <<pre :: size(i), _ :: 1, post :: bitstring>> = s
+    %IntSet{s: <<pre :: size(i), x :: 1, post :: bitstring>>}
+  end
+
+  defp ensure_capacity_for(%IntSet{s: s} = set, x) when can_contain(s, x) do
+    set
+  end
+
+  defp ensure_capacity_for(%IntSet{s: s} = set, x) when is_index(x) and bit_size(s) <= x do
+    total_bits_needed = x + 1
+    bits_to_add = total_bits_needed - bit_size(s)
+    %IntSet{s: <<s :: bitstring, 0 :: size(bits_to_add)>>}
   end
 
   defimpl Inspect do

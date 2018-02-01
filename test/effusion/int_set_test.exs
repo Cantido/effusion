@@ -55,6 +55,32 @@ defmodule Effusion.IntSetTest do
     assert Enum.member?(set, 7)
   end
 
+  test "can delete members not in a set" do
+    set = IntSet.new() |> IntSet.delete(0)
+
+    refute Enum.member?(set, 0)
+  end
+
+  test "can delete members in a set" do
+    set = IntSet.new([4]) |> IntSet.delete(4)
+
+    refute Enum.member?(set, 4)
+  end
+
+  test "retains other members after deleting, one bit inside max" do
+    set = IntSet.new([4, 5]) |> IntSet.delete(4)
+
+    refute Enum.member?(set, 4)
+    assert Enum.member?(set, 5)
+  end
+
+  test "retains other members after deleting, delete max" do
+    set = IntSet.new([4, 5]) |> IntSet.delete(5)
+
+    assert Enum.member?(set, 4)
+    refute Enum.member?(set, 5)
+  end
+
   test "inspectable" do
     set = IntSet.new([1, 2, 3])
 
