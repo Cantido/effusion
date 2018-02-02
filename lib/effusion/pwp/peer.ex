@@ -46,17 +46,11 @@ defmodule Effusion.PWP.Peer do
     {:noreply, state}
   end
 
-  defp send_msg(msg, %{socket: socket}) do
-    {:ok, request} = Messages.encode(msg)
-    Logger.info("Sending message: #{inspect(msg)}")
-    :gen_tcp.send(socket, request)
-  end
 
-  def handle_info({:tcp, socket, data}, state) do
+  def handle_info({:tcp, _socket, data}, state) do
     data1 = IO.iodata_to_binary(data)
     {:ok, msg1} = Messages.decode(data1)
     Logger.info "Got message #{inspect(msg1)}"
-
 
     state = case msg1 do
       {:bitfield, _} ->
@@ -71,19 +65,84 @@ defmodule Effusion.PWP.Peer do
           |> request_block()
       {:piece, block} ->
         state
-          |> Map.update(:blocks, MapSet.new, &MapSet.put(&1, block))
+          |> Map.update(:blocks, MapSet.new([block]), &MapSet.put(&1, block))
+          |> verify_pieces()
           |> request_block()
     end
 
     {:noreply, state}
   end
 
+
+  # block size: 16384
+  # piece size: 1048576, which means 64 pieces of size 16384
+  # first piece hash: 167, 53, 69, 58, 13, 103, 134, 251, 174, 104, 105, 210, 94, 112, 197, 52, 205, 246, 155, 130
+
+  def handle_info({:tcp_closed, _socket}, state) do
+    Logger.info("TCP closed connection to #{inspect(state.host)}:#{state.port}")
+    {:stop, :normal, state}
+  end
+
+  defp send_msg(msg, %{socket: socket}) do
+    {:ok, request} = Messages.encode(msg)
+    Logger.info("Sending message: #{inspect(msg)}")
+    :gen_tcp.send(socket, request)
+  end
+
+  defp verify_pieces(state) do
+    first_piece_blocks = state.blocks |> Enum.filter(&match?(%{index: 0}, &1))
+    block_count = Enum.count(first_piece_blocks)
+    Logger.info("We have #{block_count} blocks")
+    if (block_count == 64) do
+      bin = into_binary(first_piece_blocks)
+      hash = :crypto.hash(:sha, bin)
+      ^hash = <<167, 53, 69, 58, 13, 103, 134, 251, 174, 104, 105, 210, 94, 112, 197, 52, 205, 246, 155, 130>>
+      Logger.info("We successfully verified a piece!!!")
+    end
+    state
+  end
+
+  defp into_binary(blocks) when is_list(blocks) do
+    Enum.reduce(blocks, <<>>, &into_binary/2)
+  end
+
+  defp into_binary(%{index: i, offset: o, data: d}, bin)
+       when byte_size(bin) < ((i * 16384) + o + byte_size(d)) do
+    size_before_block = i * 16384 + o
+    bytes_remaining = size_before_block - byte_size(bin)
+    bits_remaining = bytes_remaining * 8
+
+    if bytes_remaining > 0 do
+      <<bin::binary, 0::size(bits_remaining), d::binary>>
+    else
+      <<bin::binary, d::binary>>
+    end
+  end
+
+  defp into_binary(%{index: i, offset: o, data: d}, bin)
+       when byte_size(bin) >= ((i * 16384) + o + byte_size(d)) do
+    size_before_block = i * 16384 + o
+    block_size = byte_size(d)
+    <<
+      before_block::bytes-size(size_before_block),
+      _::bytes-size(block_size),
+      after_block :: binary
+    >> = bin
+    <<before_block::binary, d::binary, after_block::binary>>
+  end
+
   defp request_block(state) do
     {i, o, s} = Map.get(state, :next_block, {0, 0, 16384})
-    next_block = increment_block({i, o, s}, 1048576)
-    state = Map.put(state, :next_block, next_block)
-    :ok = send_msg({:request, i, o, s}, state)
-    state
+    if i == 0 do
+      :ok = send_msg({:request, i, o, s}, state)
+# 1032192
+      next_block = increment_block({i, o, s}, 1048576)
+      state = Map.put(state, :next_block, next_block)
+      state
+    else
+      Logger.info("We are done getting blocks, next piece is #{inspect({i, o, s})}")
+      state
+    end
   end
 
   defp increment_block({index, offset, size}, piece_size) do
@@ -93,14 +152,5 @@ defmodule Effusion.PWP.Peer do
     else
       {index, offset + size, size}
     end
-  end
-
-  # block size: 16384
-  # piece size: 1048576, which means 64 pieces of size 16384
-  # first piece hash: 167, 53, 69, 58, 13, 103, 134, 251, 174, 104, 105, 210, 94, 112, 197, 52, 205, 246, 155, 130
-
-  def handle_info({:tcp_closed, socket}, state) do
-    Logger.info("TCP closed connection to #{inspect(state.host)}:#{state.port}")
-    {:stop, :normal, state}
   end
 end
