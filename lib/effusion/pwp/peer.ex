@@ -33,17 +33,19 @@ defmodule Effusion.PWP.Peer do
   end
 
   def handle_info(:timeout, state) do
-    {:ok, socket} = :gen_tcp.connect(state.host, state.port, [active: false])
-    state = Map.put(state, :socket, socket)
-
-    :ok = :gen_tcp.send(socket, Handshake.encode(state.peer_id, state.info_hash))
-    {:ok, handshake} = :gen_tcp.recv(socket, 68)
-    {:ok, _} = Effusion.PWP.Messages.Handshake.decode(IO.iodata_to_binary(handshake))
-
-    :inet.setopts(socket, active: true, packet: 4)
-
-
-    {:noreply, state}
+    Logger.info("in timeout block")
+    with {:ok, socket} <- :gen_tcp.connect(state.host, state.port, [active: false], 1_000),
+         state <- Map.put(state, :socket, socket),
+         :ok <- Logger.info("opened connection"),
+         :ok <- :gen_tcp.send(socket, Handshake.encode(state.peer_id, state.info_hash)),
+         {:ok, handshake} <- :gen_tcp.recv(socket, 68),
+         {:ok, _} <- Effusion.PWP.Messages.Handshake.decode(IO.iodata_to_binary(handshake)),
+         :ok <- :inet.setopts(socket, active: true, packet: 4)
+    do
+      {:noreply, state}
+    else
+      _ -> {:stop, :failed_handshake, state}
+    end
   end
 
 
@@ -82,6 +84,12 @@ defmodule Effusion.PWP.Peer do
     Logger.info("TCP closed connection to #{inspect(state.host)}:#{state.port}")
     {:stop, :normal, state}
   end
+
+  def terminate(:normal, %{socket: socket}) do
+    :gen_tcp.close(socket)
+  end
+
+  def terminate(_, _), do: :ok
 
   defp send_msg(msg, %{socket: socket}) do
     {:ok, request} = Messages.encode(msg)
@@ -135,7 +143,7 @@ defmodule Effusion.PWP.Peer do
     {i, o, s} = Map.get(state, :next_block, {0, 0, 16384})
     if i == 0 do
       :ok = send_msg({:request, i, o, s}, state)
-# 1032192
+
       next_block = increment_block({i, o, s}, 1048576)
       state = Map.put(state, :next_block, next_block)
       state
