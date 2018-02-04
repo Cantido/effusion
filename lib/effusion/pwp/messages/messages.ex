@@ -3,6 +3,12 @@ defmodule Effusion.PWP.Messages do
     Encode and decode Peer Wire Protocol (PWP) messages.
   """
 
+  defguard is_uint32(i) when i in 0..4294967295
+  defguard is_all_uint32(a, b) when is_uint32(a) and is_uint32(b)
+  defguard is_all_uint32(a, b, c) when is_uint32(a) and is_uint32(b) and is_uint32(c)
+  defguard is_under_max_bitfield_size(s) when is_uint32(byte_size(s) + 1)
+  defguard is_under_max_block_size(s) when is_uint32(byte_size(s) + 9)
+
   @doc """
   Decodes a binary into a peer wire protocol message.
 
@@ -138,11 +144,11 @@ defmodule Effusion.PWP.Messages do
   def encode(:unchoke), do: {:ok, <<1>>}
   def encode(:interested), do: {:ok, <<2>>}
   def encode(:uninterested), do: {:ok, <<3>>}
-  def encode({:have, index}) when index < 4294967296 and index >= 0, do: {:ok, <<4, index :: 32>>}
-  def encode({:bitfield, val}) when is_binary(val), do: {:ok, <<5>> <> val}
-  def encode({:request, i, o, s}), do: {:ok, <<6, i :: 32, o :: 32, s :: 32>>}
-  def encode({:piece, i, o, b}), do: {:ok, <<7, i :: 32, o :: 32>> <> b}
-  def encode({:cancel, i, o, s}), do: {:ok, <<8, i :: 32, o :: 32, s :: 32>>}
+  def encode({:have, index}) when is_uint32(index), do: {:ok, <<4, index :: 32>>}
+  def encode({:bitfield, val}) when is_binary(val) and is_under_max_bitfield_size(val), do: {:ok, <<5>> <> val}
+  def encode({:request, i, o, s}) when is_all_uint32(i, o, s), do: {:ok, <<6, i :: 32, o :: 32, s :: 32>>}
+  def encode({:piece, i, o, b}) when is_all_uint32(i, o) and is_binary(b) and is_under_max_block_size(b), do: {:ok, <<7, i :: 32, o :: 32>> <> b}
+  def encode({:cancel, i, o, s}) when is_all_uint32(i, o, s), do: {:ok, <<8, i :: 32, o :: 32, s :: 32>>}
 
   def encode(m), do: {:error, {:unknown_message, m}}
 end
