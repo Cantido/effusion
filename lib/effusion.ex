@@ -1,6 +1,7 @@
 alias Effusion.Session
 
 defmodule Effusion do
+  alias Effusion.Metainfo
   @moduledoc """
   A BitTorrent library.
   """
@@ -8,7 +9,11 @@ defmodule Effusion do
   @type info_hash :: hash()
   @type peer_id :: hash()
 
-  def add_torrent(file, peer_id, ip, port) when is_binary(file) do
-    Session.start([file, peer_id, {ip, port}])
+  def start_download(filename) when is_binary(filename) do
+    local_server_address = Application.get_env(:effusion, :server_address)
+
+    {:ok, metabin} = File.read filename
+    {:ok, meta} = Metainfo.decode(metabin)
+    Session.start(meta, local_server_address)
   end
 end
