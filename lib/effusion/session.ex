@@ -11,15 +11,13 @@ defmodule Effusion.Session do
     Effusion.SessionSupervisor.start_child(opts)
   end
 
-  def start_link([metabin, peer_id, local_peer]) when is_binary(metabin) do
-    GenServer.start_link(__MODULE__, [metabin, peer_id, local_peer])
+  def start_link([meta, peer_id, local_peer]) do
+    GenServer.start_link(__MODULE__, [meta, peer_id, local_peer])
   end
 
   ## Callbacks
 
-  def init([meta_bin, peer_id, local_peer]) do
-    {:ok, meta} = Metainfo.decode(meta_bin)
-
+  def init([meta, peer_id, local_peer]) do
     state = %{
       meta: meta,
       local_peer: local_peer,
