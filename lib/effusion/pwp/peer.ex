@@ -50,29 +50,31 @@ defmodule Effusion.PWP.Peer do
 
 
   def handle_info({:tcp, _socket, data}, state) do
-    data1 = IO.iodata_to_binary(data)
-    {:ok, msg1} = Messages.decode(data1)
-    Logger.info "Got message #{inspect(msg1)}"
-
-    state = case msg1 do
-      {:bitfield, _} ->
-        :ok = send_msg(:interested, state)
-        :ok = send_msg(:unchoke, state)
-        state
-          |> Map.put(:am_choking, false)
-          |> Map.put(:am_interested, true)
-      :unchoke ->
-        state
-          |> Map.put(:peer_choking, false)
-          |> request_block()
-      {:piece, block} ->
-        state
-          |> Map.update(:blocks, MapSet.new([block]), &MapSet.put(&1, block))
-          |> verify_pieces()
-          |> request_block()
+    with data1 <- IO.iodata_to_binary(data),
+         {:ok, msg1} <- Messages.decode(data1),
+         :ok <- Logger.info "Got message #{inspect(msg1)}"
+    do
+      state = case msg1 do
+        {:bitfield, _} ->
+          :ok = send_msg(:interested, state)
+          :ok = send_msg(:unchoke, state)
+          state
+            |> Map.put(:am_choking, false)
+            |> Map.put(:am_interested, true)
+        :unchoke ->
+          state
+            |> Map.put(:peer_choking, false)
+            |> request_block()
+        {:piece, block} ->
+          state
+            |> Map.update(:blocks, MapSet.new([block]), &MapSet.put(&1, block))
+            |> verify_pieces()
+            |> request_block()
+      end
+      {:noreply, state}
+    else
+      {:error, reason} -> {:stop, reason, state}
     end
-
-    {:noreply, state}
   end
 
 
@@ -81,11 +83,10 @@ defmodule Effusion.PWP.Peer do
   # first piece hash: 167, 53, 69, 58, 13, 103, 134, 251, 174, 104, 105, 210, 94, 112, 197, 52, 205, 246, 155, 130
 
   def handle_info({:tcp_closed, _socket}, state) do
-    Logger.info("TCP closed connection to #{inspect(state.host)}:#{state.port}")
     {:stop, :normal, state}
   end
 
-  def terminate(:normal, %{socket: socket}) do
+  def terminate(_, %{socket: socket}) do
     :gen_tcp.close(socket)
   end
 

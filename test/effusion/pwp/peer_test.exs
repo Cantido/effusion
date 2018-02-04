@@ -1,9 +1,13 @@
 defmodule Effusion.PWP.PeerTest do
   use ExUnit.Case
   alias Effusion.PWP.Messages.Handshake
+  alias Effusion.PWP.Messages
   alias Effusion.PWP.Peer
 
   doctest Effusion.PWP.Peer
+
+  # XXX: In this test, we are acting as the "remote" peer.
+  # So, technically, we are "remote", and we are sending stuff to "local".
 
   @remote_host {127, 0, 0, 1}
   @port 5679
@@ -11,8 +15,8 @@ defmodule Effusion.PWP.PeerTest do
   @local_peer_id "Effusion Experiment!"
   @remote_peer_id "Other peer 123456789"
   @info_hash TestHelper.mint_info_hash()
+  @meta TestHelper.mint_meta()
 
-  @local_handshake Handshake.encode(@local_peer_id, @info_hash)
   @remote_handshake Handshake.encode(@remote_peer_id, @info_hash)
 
   setup do
@@ -26,21 +30,113 @@ defmodule Effusion.PWP.PeerTest do
   end
 
   test "Peer performs handshake", %{lsock: lsock} do
-    # XXX: In this test, we are acting as the "remote" peer.
-    # So, technically, we are "remote", and we are sending stuff to "local".
-
-      with {:ok, _pid} <- Peer.connect(@remote_address, @local_peer_id, @info_hash),
-           {:ok, sock} <- :gen_tcp.accept(lsock, 5_000),
-           {:ok, handshake_packet} <- :gen_tcp.recv(sock, 68),
-           :ok <- :gen_tcp.send(sock, @remote_handshake),
-           :ok <- :gen_tcp.close(sock)
-      do
-        handshake =
-          handshake_packet
-          |> IO.iodata_to_binary()
-          |> Handshake.decode()
-        assert {:ok, {@local_peer_id, @info_hash, _}} = handshake
-      end
+    with {:ok, _pid} <- Peer.connect(@remote_address, @local_peer_id, @info_hash),
+         {:ok, sock} <- :gen_tcp.accept(lsock, 5_000),
+         {:ok, handshake_packet} <- :gen_tcp.recv(sock, 68),
+         :ok <- :gen_tcp.send(sock, @remote_handshake),
+         :ok <- :gen_tcp.close(sock)
+    do
+      handshake =
+        handshake_packet
+        |> IO.iodata_to_binary()
+        |> Handshake.decode()
+      assert {:ok, {@local_peer_id, @info_hash, _}} = handshake
+    else
+      err -> flunk(inspect(err))
+    end
   end
 
+  test "Peer expresses interest & unchokes after we send a bitfield", %{lsock: lsock} do
+    with {:ok, sock} <- connect(lsock),
+         {:ok, bitmsg} <- bitfield_msg([0]),
+         :ok <- :gen_tcp.send(sock, bitmsg),
+         msg1 <- recv_message(sock),
+         msg2 <- recv_message(sock),
+         :ok <- :gen_tcp.close(sock)
+    do
+      assert {:ok, :interested} = msg1
+      assert {:ok, :unchoke} = msg2
+    else
+      err -> flunk(inspect(err))
+    end
+  end
+
+  test "Peer requests blocks when we unchoke them", %{lsock: lsock} do
+    with {:ok, sock} <- connect(lsock),
+         {:ok, bitmsg} <- bitfield_msg([0]),
+         :ok <- :gen_tcp.send(sock, bitmsg),
+         _msg1 <- recv_message(sock),
+         _msg2 <- recv_message(sock),
+         :ok <- send_message(sock, :unchoke),
+         request_msg <- recv_message(sock),
+         :ok <- :gen_tcp.close(sock)
+    do
+      assert {:ok, {:request, _}} = request_msg
+    else
+      err -> flunk(inspect(err))
+    end
+  end
+
+  test "Peer accepts blocks and requests another", %{lsock: lsock} do
+    with {:ok, sock} <- connect(lsock),
+         {:ok, bitmsg} <- bitfield_msg([0]),
+         :ok <- :gen_tcp.send(sock, bitmsg),
+         _interested <- recv_message(sock),
+         _unchoke <- recv_message(sock),
+         :ok <- send_message(sock, :unchoke),
+         _request <- recv_message(sock),
+         :ok <- send_message(sock, {:piece, 0, 0, <<1, 2, 3, 4, 5>>}),
+         next_request <- recv_message(sock),
+         :ok <- :gen_tcp.close(sock)
+    do
+      assert {:ok, {:request, _}} = next_request
+    else
+      err -> flunk(inspect(err))
+    end
+  end
+
+  defp send_message(sock, msg) do
+    case Messages.encode(msg) do
+      {:ok, msg_bin} -> :gen_tcp.send(sock, msg_bin)
+    end
+  end
+
+  defp recv_message(sock) do
+    case :gen_tcp.recv(sock, 0, 1_000) do
+      {:ok, packet} -> iodata_to_message(packet)
+    end
+  end
+
+  defp bitfield_msg(pieces) when is_list(pieces) do
+    bitfield = pieces
+    |> IntSet.new()
+    |> IntSet.bitstring()
+    |> right_pad(@meta.info.piece_length)
+    Messages.encode({:bitfield, bitfield})
+  end
+
+  defp connect(lsock) do
+    {:ok, _pid} = Peer.connect(@remote_address, @local_peer_id, @info_hash)
+    {:ok, sock} = :gen_tcp.accept(lsock, 1_000)
+    {:ok, _handshake} = :gen_tcp.recv(sock, 68)
+    :ok = :gen_tcp.send(sock, @remote_handshake)
+    :ok = :inet.setopts(sock, packet: 4)
+    {:ok, sock}
+  end
+
+  defp iodata_to_message(iodata) do
+    iodata
+    |> IO.iodata_to_binary()
+    |> Messages.decode()
+  end
+
+  defp right_pad(bin, size_bytes) when is_bitstring(bin) and is_integer(size_bytes) and size_bytes > 0 do
+    target_bit_size = size_bytes * 8
+    pad_size = target_bit_size - bit_size(bin)
+    if pad_size > 0 do
+      <<bin::bitstring, 0::size(pad_size)>>
+    else
+      bin
+    end
+  end
 end
