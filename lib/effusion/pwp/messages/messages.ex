@@ -139,7 +139,7 @@ defmodule Effusion.PWP.Messages do
   def encode(:interested), do: {:ok, <<2>>}
   def encode(:uninterested), do: {:ok, <<3>>}
   def encode({:have, index}) when index < 4294967296 and index >= 0, do: {:ok, <<4, index :: 32>>}
-  def encode({:bitfield, val}), do: {:ok, <<5>> <> val}
+  def encode({:bitfield, val}) when is_binary(val), do: {:ok, <<5>> <> val}
   def encode({:request, i, o, s}), do: {:ok, <<6, i :: 32, o :: 32, s :: 32>>}
   def encode({:piece, i, o, b}), do: {:ok, <<7, i :: 32, o :: 32>> <> b}
   def encode({:cancel, i, o, s}), do: {:ok, <<8, i :: 32, o :: 32, s :: 32>>}
