@@ -1,9 +1,9 @@
 defmodule Effusion.Session do
   use GenServer
   require Logger
-  alias Effusion.Metainfo
 
   @thp_client Application.get_env(:effusion, :thp_client)
+  @local_peer_id "Effusion Experiment!"
 
   ## API
 
@@ -11,17 +11,17 @@ defmodule Effusion.Session do
     Effusion.SessionSupervisor.start_child(opts)
   end
 
-  def start_link([meta, peer_id, local_peer]) do
-    GenServer.start_link(__MODULE__, [meta, peer_id, local_peer])
+  def start_link([meta, local_peer]) do
+    GenServer.start_link(__MODULE__, [meta, local_peer])
   end
 
   ## Callbacks
 
-  def init([meta, peer_id, local_peer]) do
+  def init([meta, local_peer]) do
     state = %{
       meta: meta,
       local_peer: local_peer,
-      peer_id: peer_id
+      peer_id: @local_peer_id
     }
 
     {:ok, state, 0}
