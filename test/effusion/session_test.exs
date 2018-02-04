@@ -55,7 +55,7 @@ defmodule Effusion.SessionTest do
     Effusion.THP.Mock
     |> expect(:announce, &stub_tracker/8)
 
-    with {:ok, _pid} <- Session.start([@meta, @local_peer]),
+    with {:ok, _pid} <- Session.start(@meta, @local_peer),
          {:ok, sock} <- :gen_tcp.accept(lsock, 5_000),
          {:ok, handshake_packet} <- :gen_tcp.recv(sock, 68),
          :ok <- :gen_tcp.send(sock, @remote_handshake),

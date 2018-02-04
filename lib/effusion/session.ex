@@ -7,8 +7,8 @@ defmodule Effusion.Session do
 
   ## API
 
-  def start(opts) do
-    Effusion.SessionSupervisor.start_child(opts)
+  def start(meta, {_host, _port} = local_server) when is_map(meta) do
+    Effusion.SessionSupervisor.start_child([meta, local_server])
   end
 
   def start_link([meta, local_peer]) do
