@@ -36,17 +36,65 @@ defmodule Effusion.Session do
     {:ok, state, 0}
   end
 
-  def handle_call({:block, %{index: i, data: d}}, _from, state) when is_binary(d) do
-    with expected_hash <- state.meta.info.pieces |> Enum.at(i),
-         ^expected_hash <- :crypto.hash(:sha, d),
-         :ok <- IO.binwrite(state.file, d),
-         _ = Logger.info("We successfully verified a piece!!!")
-    do
+  def handle_call({:block, block}, _from, state) do
+    state1 = Map.update(state, :blocks, [block], &([block | &1]))
+
+    case get_ready_pieces(state1) do
+      [] -> {:reply, :ok, state1}
+      [piece] ->
+        write_piece(piece, state1)
+    end
+  end
+
+  defp get_ready_pieces(state) do
+    info = state.meta.info
+    piece_length = info.piece_length
+
+    last_piece_index = div(info.length, info.piece_length)
+    last_piece_length = rem(info.length, info.piece_length)
+
+    state.blocks
+    |> Enum.chunk_by(fn b -> b.index end)
+    |> Enum.filter(fn(b) ->
+        i = hd(b).index
+        blen = block_length(b)
+        if i == last_piece_index do
+          blen == last_piece_length
+        else
+          blen == piece_length
+        end
+      end)
+    |> Enum.map(&blocks_to_piece/1)
+  end
+
+  defp blocks_to_piece(blocks) when is_list(blocks) do
+    blocks
+    |> Enum.sort_by(&(&1[:offset]))
+    |> Enum.reduce(fn(b, acc) ->
+         %{
+           index: b.index,
+           data: acc.data <> b.data
+         }
+       end)
+  end
+
+  defp block_length(blocks) when is_list(blocks) do
+    blocks
+    |> Enum.map(fn b -> byte_size(b.data) end)
+    |> Enum.sum()
+  end
+
+  defp write_piece(%{index: i, data: d} = piece, state) when is_binary(d) do
+    expected_hash = state.meta.info.pieces |> Enum.at(i)
+    actual_hash = :crypto.hash(:sha, d)
+    if expected_hash == actual_hash do
+      :ok = IO.binwrite(state.file, d)
+      _ = Logger.info("We successfully verified a piece!!!")
+      state = Map.update!(state, :blocks, &Enum.reject(&1, fn p -> p.index == i end))
       {:reply, :ok, state}
     else
-      err ->
-        _ = Logger.warn("Error while verifying piece: #{inspect(err)}")
-        {:reply, :ok, state}
+      _ = Logger.warn("Error while verifying piece #{inspect(piece)}, expected hash #{Base.encode16(expected_hash, case: :lower)} but got #{Base.encode16(actual_hash, case: :lower)}")
+      {:reply, :ok, state}
     end
   end
 

@@ -95,4 +95,25 @@ defmodule Effusion.SessionTest do
 
     {:ok, {"", "Hello world!\n"}} = StringIO.close(file)
   end
+
+
+  test "keeps track of blocks, writes them out when we have a full piece" do
+    Effusion.THP.Mock
+    |> stub(:announce, &stub_announce/8)
+
+    tiny_meta = TestHelper.tiny_meta()
+
+    {:ok, file} = StringIO.open("")
+
+    {:ok, pid} = start_supervised {Session, [tiny_meta, @local_peer, file]}
+
+    Session.block(pid, %{index: 0, offset: 0, data: "t"})
+    {"", ""} = StringIO.contents(file)
+
+    Session.block(pid, %{index: 0, offset: 1, data: "i"})
+    {"", ""} = StringIO.contents(file)
+
+    Session.block(pid, %{index: 0, offset: 2, data: "n"})
+    {:ok, {"", "tin"}} = StringIO.close(file)
+  end
 end
