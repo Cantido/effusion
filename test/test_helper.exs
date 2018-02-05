@@ -28,4 +28,24 @@ defmodule TestHelper do
     {:ok, meta} = Effusion.Metainfo.decode(metabin)
     meta
   end
+
+  def tiny_meta do
+    %{
+      announce: "http://localhost:6969/announce",
+      created_by: "Transmission/2.84 (14307)",
+      creation_date: 1517785476,
+      encoding: "UTF-8",
+      info: %{
+        :length => 5,
+        :name => "tiny.txt",
+        :piece_length => 3,
+        :pieces => [
+          <<242, 105, 25, 118, 134, 197, 108, 67, 163, 82, 84, 216, 119, 167, 25, 148, 192, 181, 112, 48>>,
+          <<144, 99, 169, 240, 224, 50, 182, 35, 148, 3, 183, 25, 203, 187, 165, 106, 196, 228, 228, 95>>
+      ],
+        "private" => 0
+      },
+      info_hash: <<95, 189, 143, 1, 37, 56, 146, 40, 140, 78, 2, 250, 208, 144, 217, 10, 49, 7, 64, 28>>
+    }
+  end
 end
