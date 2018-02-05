@@ -32,7 +32,7 @@ defmodule TestHelper do
   def tiny_meta do
     %{
       announce: "http://localhost:6969/announce",
-      created_by: "Transmission/2.84 (14307)",
+      created_by: "Lovingly hand-crafted, by Rosa <3",
       creation_date: 1517785476,
       encoding: "UTF-8",
       info: %{
