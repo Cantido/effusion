@@ -31,4 +31,23 @@ defmodule TestHelper do
       167, 162, 132, 90, 83, 25>>
   }
   end
+
+  def hello_meta do
+    %{
+       announce: "http://localhost:6969/announce",
+       created_by: "Transmission/2.84 (14307)",
+       creation_date: 1517785476,
+       encoding: "UTF-8",
+       info: %{
+         :length => 13,
+         :name => "hello.txt",
+         :piece_length => 32768,
+         "pieces" => <<71, 160, 19, 230, 96, 212, 8, 97, 157, 137, 75, 32, 128, 107,
+           29, 80, 134, 170, 176, 59>>,
+         "private" => 0
+       },
+       info_hash: <<232, 31, 81, 18, 62, 247, 219, 231, 189, 30, 166, 92, 134, 3,
+         243, 82, 13, 42, 188, 121>>
+     }
+  end
 end
