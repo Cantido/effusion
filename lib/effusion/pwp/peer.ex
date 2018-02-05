@@ -33,7 +33,7 @@ defmodule Effusion.PWP.Peer do
   end
 
   def handle_info(:timeout, state) do
-    Logger.info("in timeout block")
+    _ = Logger.info("in timeout block")
     with {:ok, socket} <- :gen_tcp.connect(state.host, state.port, [active: false], 1_000),
          state <- Map.put(state, :socket, socket),
          :ok <- Logger.info("opened connection"),
@@ -94,7 +94,7 @@ defmodule Effusion.PWP.Peer do
 
   defp send_msg(msg, %{socket: socket}) do
     {:ok, request} = Messages.encode(msg)
-    Logger.info("Sending message: #{inspect(msg)}")
+    _ = Logger.info("Sending message: #{inspect(msg)}")
     :gen_tcp.send(socket, request)
   end
 
@@ -149,7 +149,7 @@ defmodule Effusion.PWP.Peer do
       state = Map.put(state, :next_block, next_block)
       state
     else
-      Logger.info("We are done getting blocks, next piece is #{inspect({i, o, s})}")
+      _ = Logger.info("We are done getting blocks, next piece is #{inspect({i, o, s})}")
       state
     end
   end

@@ -37,13 +37,17 @@ defmodule Effusion.Session do
   end
 
   def handle_call({:block, %{index: i, data: d}}, _from, state) when is_binary(d) do
-    expected_hash = state.meta.info.pieces |> Enum.at(i)
-    case :crypto.hash(:sha, d) do
-      ^expected_hash ->
-        :ok = IO.binwrite state.file, d
-        Logger.info("We successfully verified a piece!!!")
+    with expected_hash <- state.meta.info.pieces |> Enum.at(i),
+         ^expected_hash <- :crypto.hash(:sha, d),
+         :ok <- IO.binwrite(state.file, d),
+         _ = Logger.info("We successfully verified a piece!!!")
+    do
+      {:reply, :ok, state}
+    else
+      err ->
+        _ = Logger.warn("Error while verifying piece: #{inspect(err)}")
+        {:reply, :ok, state}
     end
-    {:reply, :ok, state}
   end
 
   def handle_info(:timeout, state) do
@@ -60,7 +64,8 @@ defmodule Effusion.Session do
   defp do_announce(state) do
     {local_host, local_port} = state.local_peer
 
-    Logger.info("Announcing torrent #{Base.encode16 state.meta.info_hash, case: :lower} to #{inspect(state.meta.announce)} that I'm listening at #{inspect(state.local_peer)}")
+    _ = Logger.info("Announcing torrent #{Base.encode16 state.meta.info_hash, case: :lower} to #{inspect(state.meta.announce)} that I'm listening at #{inspect(state.local_peer)}")
+
     {:ok, res} = @thp_client.announce(
       state.meta.announce,
       local_host,
@@ -71,8 +76,8 @@ defmodule Effusion.Session do
       0,
       state.meta.info.length
     )
-    Logger.info("Announce finished, got #{length(res.peers)} peers.")
 
+    _ = Logger.info("Announce finished, got #{length(res.peers)} peers.")
     Map.put(state, :peers, res.peers)
   end
 
