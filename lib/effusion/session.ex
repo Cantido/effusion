@@ -7,18 +7,27 @@ defmodule Effusion.Session do
 
   ## API
 
-  def start(meta, {_host, _port} = local_server) when is_map(meta) do
-    Effusion.SessionSupervisor.start_child([meta, local_server])
+  def start(meta, {_host, _port} = local_server, file \\ nil) when is_map(meta) do
+    Effusion.SessionSupervisor.start_child([meta, local_server, file])
   end
 
   def start_link([meta, local_peer]) do
-    GenServer.start_link(__MODULE__, [meta, local_peer])
+    start_link([meta, local_peer, nil])
+  end
+
+  def start_link([meta, local_peer, file]) do
+    GenServer.start_link(__MODULE__, [meta, local_peer, file])
+  end
+
+  def block(pid, block) do
+    GenServer.call(pid, {:block, block})
   end
 
   ## Callbacks
 
-  def init([meta, local_peer]) do
+  def init([meta, local_peer, file]) do
     state = %{
+      file: file,
       meta: meta,
       local_peer: local_peer,
       peer_id: @local_peer_id
@@ -27,12 +36,25 @@ defmodule Effusion.Session do
     {:ok, state, 0}
   end
 
+  def handle_call({:block, %{index: i, data: d}}, _from, state) when is_binary(d) do
+    expected_hash = state.meta.info.pieces |> Enum.at(i)
+    case :crypto.hash(:sha, d) do
+      ^expected_hash ->
+        :ok = IO.binwrite state.file, d
+        Logger.info("We successfully verified a piece!!!")
+    end
+    {:reply, :ok, state}
+  end
+
   def handle_info(:timeout, state) do
     state1 = do_announce(state)
-    peer = do_select_peer(state1)
-
-    {:ok, _socket} = Effusion.PWP.Peer.connect({peer.ip, peer.port}, state1.peer_id, state1.meta.info_hash)
-    {:noreply, state1}
+    case do_select_peer(state1) do
+      nil ->
+        {:noreply, state1}
+      peer ->
+        {:ok, _socket} = Effusion.PWP.Peer.connect({peer.ip, peer.port}, state1.peer_id, state1.meta.info_hash)
+        {:noreply, state1}
+    end
   end
 
   defp do_announce(state) do
@@ -52,6 +74,10 @@ defmodule Effusion.Session do
     Logger.info("Announce finished, got #{length(res.peers)} peers.")
 
     Map.put(state, :peers, res.peers)
+  end
+
+  defp do_select_peer(%{peers: []}) do
+    nil
   end
 
   defp do_select_peer(state) do
