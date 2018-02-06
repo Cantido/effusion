@@ -45,69 +45,58 @@ defmodule Effusion.PWP.PeerTest do
   end
 
   test "Peer performs handshake", %{lsock: lsock, session: session} do
-    with {:ok, _pid} <- Peer.connect(@remote_address, @local_peer_id, @info_hash, session),
-         {:ok, sock} <- :gen_tcp.accept(lsock, 5_000),
-         {:ok, handshake_packet} <- :gen_tcp.recv(sock, 68),
-         :ok <- :gen_tcp.send(sock, @remote_handshake),
-         :ok <- :gen_tcp.close(sock)
-    do
-      handshake =
-        handshake_packet
-        |> IO.iodata_to_binary()
-        |> Handshake.decode()
-      assert {:ok, {@local_peer_id, @info_hash, _}} = handshake
-    else
-      err -> flunk(inspect(err))
-    end
+    {:ok, _pid} = Peer.connect(@remote_address, @local_peer_id, @info_hash, session)
+    {:ok, sock} = :gen_tcp.accept(lsock, 5_000)
+    {:ok, handshake_packet} = :gen_tcp.recv(sock, 68)
+    :ok = :gen_tcp.send(sock, @remote_handshake)
+    :ok = :gen_tcp.close(sock)
+
+    handshake =
+      handshake_packet
+      |> IO.iodata_to_binary()
+      |> Handshake.decode()
+
+    assert {:ok, {@local_peer_id, @info_hash, _}} = handshake
   end
 
   test "Peer expresses interest & unchokes after we send a bitfield", %{lsock: lsock, session: session} do
-    with {:ok, sock} <- connect(lsock, session),
-         {:ok, bitmsg} <- bitfield_msg([0]),
-         :ok <- :gen_tcp.send(sock, bitmsg),
-         msg1 <- recv_message(sock),
-         msg2 <- recv_message(sock),
-         :ok <- :gen_tcp.close(sock)
-    do
-      assert {:ok, :interested} = msg1
-      assert {:ok, :unchoke} = msg2
-    else
-      err -> flunk(inspect(err))
-    end
+    {:ok, sock} = connect(lsock, session)
+    {:ok, bitmsg} = bitfield_msg([0])
+    :ok = :gen_tcp.send(sock, bitmsg)
+    msg1 = recv_message(sock)
+    msg2 = recv_message(sock)
+    :ok = :gen_tcp.close(sock)
+
+    assert {:ok, :interested} = msg1
+    assert {:ok, :unchoke} = msg2
   end
 
   test "Peer requests blocks when we unchoke them", %{lsock: lsock, session: session} do
-    with {:ok, sock} <- connect(lsock, session),
-         {:ok, bitmsg} <- bitfield_msg([0]),
-         :ok <- :gen_tcp.send(sock, bitmsg),
-         _msg1 <- recv_message(sock),
-         _msg2 <- recv_message(sock),
-         :ok <- send_message(sock, :unchoke),
-         request_msg <- recv_message(sock),
-         :ok <- :gen_tcp.close(sock)
-    do
-      assert {:ok, {:request, _}} = request_msg
-    else
-      err -> flunk(inspect(err))
-    end
+    {:ok, sock} = connect(lsock, session)
+    {:ok, bitmsg} = bitfield_msg([0])
+    :ok = :gen_tcp.send(sock, bitmsg)
+    _msg1 = recv_message(sock)
+    _msg2 = recv_message(sock)
+    :ok = send_message(sock, :unchoke)
+    request_msg = recv_message(sock)
+    :ok = :gen_tcp.close(sock)
+
+    assert {:ok, {:request, _}} = request_msg
   end
 
   test "Peer accepts blocks and requests another", %{lsock: lsock, session: session} do
-    with {:ok, sock} <- connect(lsock, session),
-         {:ok, bitmsg} <- bitfield_msg([0]),
-         :ok <- :gen_tcp.send(sock, bitmsg),
-         _interested <- recv_message(sock),
-         _unchoke <- recv_message(sock),
-         :ok <- send_message(sock, :unchoke),
-         _request <- recv_message(sock),
-         :ok <- send_message(sock, {:piece, 0, 0, <<1, 2, 3, 4, 5>>}),
-         next_request <- recv_message(sock),
-         :ok <- :gen_tcp.close(sock)
-    do
-      assert {:ok, {:request, _}} = next_request
-    else
-      err -> flunk(inspect(err))
-    end
+    {:ok, sock} = connect(lsock, session)
+    {:ok, bitmsg} = bitfield_msg([0])
+    :ok = :gen_tcp.send(sock, bitmsg)
+    _interested = recv_message(sock)
+    _unchoke = recv_message(sock)
+    :ok = send_message(sock, :unchoke)
+    _request = recv_message(sock)
+    :ok = send_message(sock, {:piece, 0, 0, <<1, 2, 3, 4, 5>>})
+    next_request = recv_message(sock)
+    :ok = :gen_tcp.close(sock)
+
+    assert {:ok, {:request, _}} = next_request
   end
 
   defp send_message(sock, msg) do
@@ -157,19 +146,16 @@ defmodule Effusion.PWP.PeerTest do
   end
 
   test "Peer hands blocks to parent session", %{lsock: lsock, session: session} do
-    with {:ok, sock} <- connect(lsock, session),
-         {:ok, bitmsg} <- bitfield_msg([0]),
-         :ok <- :gen_tcp.send(sock, bitmsg),
-         _interested <- recv_message(sock),
-         _unchoke <- recv_message(sock),
-         :ok <- send_message(sock, :unchoke),
-         _request <- recv_message(sock),
-         :ok <- send_message(sock, {:piece, 0, 0, "t"}),
-         :ok <- :gen_tcp.close(sock)
-    do
-      assert_receive {:block, %{index: 0, offset: 0, data: "t"}}
-    else
-      err -> flunk(inspect(err))
-    end
+    {:ok, sock} = connect(lsock, session)
+    {:ok, bitmsg} = bitfield_msg([0])
+    :ok = :gen_tcp.send(sock, bitmsg)
+    _interested = recv_message(sock)
+    _unchoke = recv_message(sock)
+    :ok = send_message(sock, :unchoke)
+    _request = recv_message(sock)
+    :ok = send_message(sock, {:piece, 0, 0, "t"})
+    :ok = :gen_tcp.close(sock)
+
+    assert_receive {:block, %{index: 0, offset: 0, data: "t"}}
   end
 end

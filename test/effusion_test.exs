@@ -56,19 +56,17 @@ defmodule EffusionTest do
     Effusion.THP.Mock
     |> expect(:announce, &stub_tracker/8)
 
-    with {:ok, _pid} <- Effusion.start_download("test/linuxmint-18.3-cinnamon-64bit.iso.torrent"),
-         {:ok, sock} <- :gen_tcp.accept(lsock, 5_000),
-         {:ok, handshake_packet} <- :gen_tcp.recv(sock, 68),
-         :ok <- :gen_tcp.send(sock, @remote_handshake),
-         :ok <- :gen_tcp.close(sock)
-    do
-      handshake =
-        handshake_packet
-        |> IO.iodata_to_binary()
-        |> Handshake.decode()
-      assert {:ok, {@local_peer_id, @info_hash, _}} = handshake
-    else
-      err -> flunk(inspect(err))
-    end
+    {:ok, _pid} = Effusion.start_download("test/linuxmint-18.3-cinnamon-64bit.iso.torrent")
+    {:ok, sock} = :gen_tcp.accept(lsock, 5_000)
+    {:ok, handshake_packet} = :gen_tcp.recv(sock, 68)
+    :ok = :gen_tcp.send(sock, @remote_handshake)
+    :ok = :gen_tcp.close(sock)
+
+    handshake =
+      handshake_packet
+      |> IO.iodata_to_binary()
+      |> Handshake.decode()
+
+    assert {:ok, {@local_peer_id, @info_hash, _}} = handshake
   end
 end
