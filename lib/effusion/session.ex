@@ -110,7 +110,7 @@ defmodule Effusion.Session do
       nil ->
         {:noreply, state1}
       peer ->
-        {:ok, _socket} = Effusion.PWP.Peer.connect({peer.ip, peer.port}, state1.peer_id, state1.meta.info_hash)
+        {:ok, _socket} = Effusion.PWP.Peer.connect({peer.ip, peer.port}, state1.peer_id, state1.meta.info_hash, self())
         {:noreply, state1}
     end
   end

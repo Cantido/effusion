@@ -14,10 +14,25 @@ defmodule Effusion.PWP.PeerTest do
   @remote_address {@remote_host, @port}
   @local_peer_id "Effusion Experiment!"
   @remote_peer_id "Other peer 123456789"
-  @info_hash TestHelper.mint_info_hash()
-  @meta TestHelper.mint_meta()
+  @meta TestHelper.tiny_meta()
+  @info_hash @meta.info_hash
 
   @remote_handshake Handshake.encode(@remote_peer_id, @info_hash)
+
+  defmodule TestSession do
+    use GenServer
+    def start_link(parent), do: GenServer.start_link(TestSession, parent)
+    def init(parent), do: {:ok, parent}
+    def handle_call({:block, block}, _from, parent) do
+      send parent, {:block, block}
+      {:reply, :ok, parent}
+    end
+  end
+
+  setup do
+    {:ok, pid} = start_supervised {TestSession, self()}
+    %{session: pid}
+  end
 
   setup do
     {:ok, lsock} = :gen_tcp.listen(@port, active: false, reuseaddr: true, send_timeout: 5_000)
@@ -29,8 +44,8 @@ defmodule Effusion.PWP.PeerTest do
     %{lsock: lsock}
   end
 
-  test "Peer performs handshake", %{lsock: lsock} do
-    with {:ok, _pid} <- Peer.connect(@remote_address, @local_peer_id, @info_hash),
+  test "Peer performs handshake", %{lsock: lsock, session: session} do
+    with {:ok, _pid} <- Peer.connect(@remote_address, @local_peer_id, @info_hash, session),
          {:ok, sock} <- :gen_tcp.accept(lsock, 5_000),
          {:ok, handshake_packet} <- :gen_tcp.recv(sock, 68),
          :ok <- :gen_tcp.send(sock, @remote_handshake),
@@ -46,8 +61,8 @@ defmodule Effusion.PWP.PeerTest do
     end
   end
 
-  test "Peer expresses interest & unchokes after we send a bitfield", %{lsock: lsock} do
-    with {:ok, sock} <- connect(lsock),
+  test "Peer expresses interest & unchokes after we send a bitfield", %{lsock: lsock, session: session} do
+    with {:ok, sock} <- connect(lsock, session),
          {:ok, bitmsg} <- bitfield_msg([0]),
          :ok <- :gen_tcp.send(sock, bitmsg),
          msg1 <- recv_message(sock),
@@ -61,8 +76,8 @@ defmodule Effusion.PWP.PeerTest do
     end
   end
 
-  test "Peer requests blocks when we unchoke them", %{lsock: lsock} do
-    with {:ok, sock} <- connect(lsock),
+  test "Peer requests blocks when we unchoke them", %{lsock: lsock, session: session} do
+    with {:ok, sock} <- connect(lsock, session),
          {:ok, bitmsg} <- bitfield_msg([0]),
          :ok <- :gen_tcp.send(sock, bitmsg),
          _msg1 <- recv_message(sock),
@@ -77,8 +92,8 @@ defmodule Effusion.PWP.PeerTest do
     end
   end
 
-  test "Peer accepts blocks and requests another", %{lsock: lsock} do
-    with {:ok, sock} <- connect(lsock),
+  test "Peer accepts blocks and requests another", %{lsock: lsock, session: session} do
+    with {:ok, sock} <- connect(lsock, session),
          {:ok, bitmsg} <- bitfield_msg([0]),
          :ok <- :gen_tcp.send(sock, bitmsg),
          _interested <- recv_message(sock),
@@ -115,8 +130,9 @@ defmodule Effusion.PWP.PeerTest do
     Messages.encode({:bitfield, bitfield})
   end
 
-  defp connect(lsock) do
-    {:ok, _pid} = Peer.connect(@remote_address, @local_peer_id, @info_hash)
+
+  defp connect(lsock, session) do
+    {:ok, _pid} = Peer.connect(@remote_address, @local_peer_id, @info_hash, session)
     {:ok, sock} = :gen_tcp.accept(lsock, 1_000)
     {:ok, _handshake} = :gen_tcp.recv(sock, 68)
     :ok = :gen_tcp.send(sock, @remote_handshake)
@@ -137,6 +153,23 @@ defmodule Effusion.PWP.PeerTest do
       <<bin::bitstring, 0::size(pad_size)>>
     else
       bin
+    end
+  end
+
+  test "Peer hands blocks to parent session", %{lsock: lsock, session: session} do
+    with {:ok, sock} <- connect(lsock, session),
+         {:ok, bitmsg} <- bitfield_msg([0]),
+         :ok <- :gen_tcp.send(sock, bitmsg),
+         _interested <- recv_message(sock),
+         _unchoke <- recv_message(sock),
+         :ok <- send_message(sock, :unchoke),
+         _request <- recv_message(sock),
+         :ok <- send_message(sock, {:piece, 0, 0, "t"}),
+         :ok <- :gen_tcp.close(sock)
+    do
+      assert_receive {:block, %{index: 0, offset: 0, data: "t"}}
+    else
+      err -> flunk(inspect(err))
     end
   end
 end

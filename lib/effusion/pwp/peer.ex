@@ -8,25 +8,26 @@ defmodule Effusion.PWP.Peer do
 
   ## API
 
-  def connect({host, port}, peer_id, info_hash) when is_binary(peer_id) and byte_size(peer_id) == 20 and is_binary(info_hash) and byte_size(info_hash) == 20 do
-    args = [host, port, peer_id, info_hash]
+  def connect({host, port}, peer_id, info_hash, session) when is_binary(peer_id) and byte_size(peer_id) == 20 and is_binary(info_hash) and byte_size(info_hash) == 20 do
+    args = [host, port, peer_id, info_hash, session]
     Effusion.PWP.ConnectionSupervisor.start_child(args)
   end
 
-  def start_link([host, port, peer_id, info_hash]) do
-    GenServer.start_link(__MODULE__, [host, port, peer_id, info_hash])
+  def start_link([host, port, peer_id, info_hash, session]) do
+    GenServer.start_link(__MODULE__, [host, port, peer_id, info_hash, session])
   end
 
   ## Callbacks
 
-  def init([host, port, peer_id, info_hash]) do
+  def init([host, port, peer_id, info_hash, session]) do
     {
       :ok,
       %{
         host: host,
         port: port,
         peer_id: peer_id,
-        info_hash: info_hash
+        info_hash: info_hash,
+        session: session
       },
       0
     }
@@ -66,9 +67,10 @@ defmodule Effusion.PWP.Peer do
             |> Map.put(:peer_choking, false)
             |> request_block()
         {:piece, block} ->
+          parent = state.session
+          Effusion.Session.block(parent, block)
           state
             |> Map.update(:blocks, MapSet.new([block]), &MapSet.put(&1, block))
-            |> verify_pieces()
             |> request_block()
       end
       {:noreply, state}
@@ -76,11 +78,6 @@ defmodule Effusion.PWP.Peer do
       {:error, reason} -> {:stop, reason, state}
     end
   end
-
-
-  # block size: 16384
-  # piece size: 1048576, which means 64 pieces of size 16384
-  # first piece hash: 167, 53, 69, 58, 13, 103, 134, 251, 174, 104, 105, 210, 94, 112, 197, 52, 205, 246, 155, 130
 
   def handle_info({:tcp_closed, _socket}, state) do
     {:stop, :normal, state}
@@ -96,48 +93,6 @@ defmodule Effusion.PWP.Peer do
     {:ok, request} = Messages.encode(msg)
     _ = Logger.info("Sending message: #{inspect(msg)}")
     :gen_tcp.send(socket, request)
-  end
-
-  defp verify_pieces(state) do
-    first_piece_blocks = state.blocks |> Enum.filter(&match?(%{index: 0}, &1))
-    block_count = Enum.count(first_piece_blocks)
-    Logger.info("We have #{block_count} blocks")
-    if (block_count == 64) do
-      bin = into_binary(first_piece_blocks)
-      hash = :crypto.hash(:sha, bin)
-      ^hash = <<167, 53, 69, 58, 13, 103, 134, 251, 174, 104, 105, 210, 94, 112, 197, 52, 205, 246, 155, 130>>
-      Logger.info("We successfully verified a piece!!!")
-    end
-    state
-  end
-
-  defp into_binary(blocks) when is_list(blocks) do
-    Enum.reduce(blocks, <<>>, &into_binary/2)
-  end
-
-  defp into_binary(%{index: i, offset: o, data: d}, bin)
-       when byte_size(bin) < ((i * 16384) + o + byte_size(d)) do
-    size_before_block = i * 16384 + o
-    bytes_remaining = size_before_block - byte_size(bin)
-    bits_remaining = bytes_remaining * 8
-
-    if bytes_remaining > 0 do
-      <<bin::binary, 0::size(bits_remaining), d::binary>>
-    else
-      <<bin::binary, d::binary>>
-    end
-  end
-
-  defp into_binary(%{index: i, offset: o, data: d}, bin)
-       when byte_size(bin) >= ((i * 16384) + o + byte_size(d)) do
-    size_before_block = i * 16384 + o
-    block_size = byte_size(d)
-    <<
-      before_block::bytes-size(size_before_block),
-      _::bytes-size(block_size),
-      after_block :: binary
-    >> = bin
-    <<before_block::binary, d::binary, after_block::binary>>
   end
 
   defp request_block(state) do
