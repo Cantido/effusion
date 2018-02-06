@@ -2,6 +2,7 @@ defmodule Effusion.PWP.Peer do
   use GenServer, restart: :temporary
   alias Effusion.PWP.Messages.Handshake
   alias Effusion.PWP.Messages
+  alias Effusion.Session
   require Logger
 
   # @transport Application.get_env(:effusion, :peer_transport)
@@ -96,25 +97,11 @@ defmodule Effusion.PWP.Peer do
   end
 
   defp request_block(state) do
-    {i, o, s} = Map.get(state, :next_block, {0, 0, 16384})
-    if i == 0 do
-      :ok = send_msg({:request, i, o, s}, state)
-
-      next_block = increment_block({i, o, s}, 1048576)
-      state = Map.put(state, :next_block, next_block)
-      state
-    else
-      _ = Logger.info("We are done getting blocks, next piece is #{inspect({i, o, s})}")
-      state
-    end
-  end
-
-  defp increment_block({index, offset, size}, piece_size) do
-    next_offset = offset + size
-    if next_offset == piece_size do
-      {index + 1, 0, size}
-    else
-      {index, offset + size, size}
+    case Session.next_request(state.session) do
+      {i, o, s} ->
+        :ok = send_msg({:request, i, o, s}, state)
+        state
+      :done -> state
     end
   end
 end
