@@ -1,5 +1,7 @@
 defmodule Effusion.PWP.PeerTest do
   use ExUnit.Case
+  import Mox
+  alias Effusion.Session
   alias Effusion.PWP.Messages.Handshake
   alias Effusion.PWP.Messages
   alias Effusion.PWP.Peer
@@ -12,6 +14,10 @@ defmodule Effusion.PWP.PeerTest do
   @remote_host {127, 0, 0, 1}
   @port 5679
   @remote_address {@remote_host, @port}
+
+  @local_ip {10, 0, 0, 5}
+  @local_port 8999
+  @local_peer {@local_ip, @local_port}
   @local_peer_id "Effusion Experiment!"
   @remote_peer_id "Other peer 123456789"
   @meta TestHelper.tiny_meta()
@@ -19,18 +25,17 @@ defmodule Effusion.PWP.PeerTest do
 
   @remote_handshake Handshake.encode(@remote_peer_id, @info_hash)
 
-  defmodule TestSession do
-    use GenServer
-    def start_link(parent), do: GenServer.start_link(TestSession, parent)
-    def init(parent), do: {:ok, parent}
-    def handle_call({:block, block}, _from, parent) do
-      send parent, {:block, block}
-      {:reply, :ok, parent}
-    end
+  defp stub_announce(_, _, _, _, _, _, _, _) do
+    {:ok, %{interval: 9_000, peers: []}}
   end
 
+  setup :set_mox_global
+
   setup do
-    {:ok, pid} = start_supervised {TestSession, self()}
+    Effusion.THP.Mock
+    |> stub(:announce, &stub_announce/8)
+
+    {:ok, pid} = start_supervised {Session, [@meta, @local_peer]}
     %{session: pid}
   end
 
@@ -156,6 +161,17 @@ defmodule Effusion.PWP.PeerTest do
     :ok = send_message(sock, {:piece, 0, 0, "t"})
     :ok = :gen_tcp.close(sock)
 
-    assert_receive {:block, %{index: 0, offset: 0, data: "t"}}
+    # Let the peer pass the piece to the session; this is asynchronous because
+    # We are hoping that the peer is reacting to TCP messages
+    :timer.sleep(50)
+
+    %{blocks: blocks} = callback_state(session)
+
+    assert blocks == [%{index: 0, offset: 0, data: "t"}]
+  end
+
+  defp callback_state(pid) do
+    {:status, _, _, [_, _, _, _, [_, _, {:data, [{'State', state}]}]]} = :sys.get_status(pid)
+    state
   end
 end
