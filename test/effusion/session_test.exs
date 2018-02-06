@@ -52,7 +52,9 @@ defmodule Effusion.SessionTest do
   end
 
   setup do
-    {:ok, file, file_path} = Temp.open "my-file"
+    # StringIO and :ram devices don't work with the calls to
+    # pwrite that session uses, so we gotta make an actual file
+    {:ok, file, file_path} = Temp.open "Effusion.SessionTest.tmp"
 
     on_exit fn ->
       File.rm file_path
