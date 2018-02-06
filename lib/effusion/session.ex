@@ -37,6 +37,7 @@ defmodule Effusion.Session do
   end
 
   def handle_call({:block, block}, _from, state) do
+    Logger.info("handling call to add block #{inspect(block)}")
     state1 = Map.update(state, :blocks, [block], &([block | &1]))
 
     case get_ready_pieces(state1) do
@@ -85,10 +86,15 @@ defmodule Effusion.Session do
   end
 
   defp write_piece(%{index: i, data: d} = piece, state) when is_binary(d) do
+    Logger.debug("Checking and writing piece #{inspect(piece)}")
     expected_hash = state.meta.info.pieces |> Enum.at(i)
     actual_hash = :crypto.hash(:sha, d)
+
     if expected_hash == actual_hash do
-      :ok = IO.binwrite(state.file, d)
+      file = state.file
+      piece_start_byte = i * state.meta.info.piece_length
+      _ = Logger.debug("writing #{inspect(d)} to #{inspect(file)}")
+      :ok = :file.pwrite(file, {:bof, piece_start_byte}, [d])
       _ = Logger.info("We successfully verified a piece!!!")
       state = Map.update!(state, :blocks, &Enum.reject(&1, fn p -> p.index == i end))
       {:reply, :ok, state}

@@ -51,11 +51,21 @@ defmodule Effusion.SessionTest do
     %{lsock: lsock}
   end
 
-  test "Session connects to remote and handshakes", %{lsock: lsock} do
+  setup do
+    {:ok, file, file_path} = Temp.open "my-file"
+
+    on_exit fn ->
+      File.rm file_path
+    end
+
+    %{destfile: file, path: file_path}
+  end
+
+  test "Session connects to remote and handshakes", %{lsock: lsock, destfile: destfile} do
     Effusion.THP.Mock
     |> expect(:announce, &mock_announce/8)
 
-    {:ok, _pid} = start_supervised {Session, [@meta, @local_peer]}
+    {:ok, _pid} = start_supervised {Session, [@meta, @local_peer, destfile]}
     {:ok, sock} = :gen_tcp.accept(lsock, 5_000)
     {:ok, handshake_packet} = :gen_tcp.recv(sock, 68)
     :ok = :gen_tcp.send(sock, @remote_handshake)
@@ -80,40 +90,52 @@ defmodule Effusion.SessionTest do
     {:ok, _pid} = start_supervised {Session, [@meta, @local_peer]}
   end
 
-  test "writes verified pieces to file" do
+  test "writes verified pieces to file", %{destfile: file, path: path} do
     Effusion.THP.Mock
     |> stub(:announce, &stub_announce/8)
 
     hello_meta = TestHelper.hello_meta()
-
-    {:ok, file} = StringIO.open("")
 
     {:ok, pid} = start_supervised {Session, [hello_meta, @local_peer, file]}
 
     block = %{index: 0, offset: 0, data: "Hello world!\n"}
     Session.block(pid, block)
 
-    {:ok, {"", "Hello world!\n"}} = StringIO.close(file)
+    assert "Hello world!\n" == File.read!(path)
   end
 
 
-  test "keeps track of blocks, writes them out when we have a full piece" do
+  test "keeps track of blocks, writes them out when we have a full piece", %{destfile: file, path: path} do
     Effusion.THP.Mock
     |> stub(:announce, &stub_announce/8)
 
     tiny_meta = TestHelper.tiny_meta()
 
-    {:ok, file} = StringIO.open("")
-
     {:ok, pid} = start_supervised {Session, [tiny_meta, @local_peer, file]}
 
     Session.block(pid, %{index: 0, offset: 0, data: "t"})
-    {"", ""} = StringIO.contents(file)
+    assert "" == File.read!(path)
 
     Session.block(pid, %{index: 0, offset: 1, data: "i"})
-    {"", ""} = StringIO.contents(file)
+    assert "" == File.read!(path)
 
     Session.block(pid, %{index: 0, offset: 2, data: "n"})
-    {:ok, {"", "tin"}} = StringIO.close(file)
+    assert "tin" == File.read!(path)
+  end
+
+  test "writes blocks in the correct order", %{destfile: file, path: path} do
+    Effusion.THP.Mock
+    |> stub(:announce, &stub_announce/8)
+
+    tiny_meta = TestHelper.tiny_meta()
+
+    {:ok, pid} = start_supervised {Session, [tiny_meta, @local_peer, file]}
+
+    Session.block(pid, %{index: 1, offset: 0, data: "y"})
+    Session.block(pid, %{index: 1, offset: 1, data: "\n"})
+    Session.block(pid, %{index: 0, offset: 0, data: "t"})
+    Session.block(pid, %{index: 0, offset: 1, data: "i"})
+    Session.block(pid, %{index: 0, offset: 2, data: "n"})
+    "tiny\n" = File.read!(path)
   end
 end

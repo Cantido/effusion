@@ -9,4 +9,5 @@
   "int_set": {:hex, :int_set, "1.1.0", "734e4a705e26c0d9b1e982aab13fe911e41f5113aa93883ddf80a91a0470667b", [:mix], [], "hexpm"},
   "mox": {:hex, :mox, "0.3.1", "2ab1dce006387a91fbe1e727ba468d3e0691eacfd4e2fc7308d53676ec335c46", [:mix], [], "hexpm"},
   "ranch": {:hex, :ranch, "1.4.0", "10272f95da79340fa7e8774ba7930b901713d272905d0012b06ca6d994f8826b", [:rebar3], [], "hexpm"},
+  "temp": {:hex, :temp, "0.4.4", "da4524a102db9431f96b2b244777017eb077df3db344957cd1d10705feb25337", [:mix], [], "hexpm"},
 }
