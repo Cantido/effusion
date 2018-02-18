@@ -80,6 +80,10 @@ defmodule Effusion.Session do
     end
   end
 
+  def handle_info(_, state) do
+    {:noreply, state}
+  end
+
   defp do_announce(state) do
     {local_host, local_port} = state.local_peer
 

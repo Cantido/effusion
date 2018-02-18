@@ -81,6 +81,10 @@ defmodule Effusion.PWP.Peer do
     {:stop, :normal, state}
   end
 
+  def handle_info(_, state) do
+    {:noreply, state}
+  end
+
   def terminate(_, %{socket: socket}) do
     :gen_tcp.close(socket)
   end
