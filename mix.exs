@@ -29,10 +29,10 @@ defmodule Effusion.Mixfile do
   defp deps do
     [
       {:ex_bencode, "~> 2.0"},
+      {:int_set, "~> 1.2"},
       {:ranch, "~> 1.4"},
       {:httpotion, "~> 3.0.2"},
       {:temp, "~> 0.4", only: :test},
-      {:int_set, "~> 1.1", only: :test},
       {:mox, "~> 0.3", only: :test},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false}

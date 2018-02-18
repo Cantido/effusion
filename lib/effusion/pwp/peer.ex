@@ -98,7 +98,7 @@ defmodule Effusion.PWP.Peer do
 
   defp request_block(state) do
     case Session.next_request(state.session) do
-      {i, o, s} ->
+      %{index: i, offset: o, size: s} ->
         :ok = send_msg({:request, i, o, s}, state)
         state
       :done -> state

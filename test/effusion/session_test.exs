@@ -140,4 +140,21 @@ defmodule Effusion.SessionTest do
     Session.block(pid, %{index: 0, offset: 2, data: "n"})
     "tiny\n" = File.read!(path)
   end
+
+  test "does not request pieces it already has", %{destfile: file} do
+    Effusion.THP.Mock
+    |> stub(:announce, &stub_announce/8)
+
+    tiny_meta = TestHelper.tiny_meta()
+
+    {:ok, pid} = start_supervised {Session, [tiny_meta, @local_peer, file]}
+
+    Session.block(pid, %{index: 0, offset: 0, data: "tin"})
+    %{index: index, offset: offset, size: size} = Session.next_request(pid)
+
+    # There are only two pieces in the tiny torrent
+    assert index == 1
+    assert offset in 0..1
+    assert size == 2 - offset
+  end
 end

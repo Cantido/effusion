@@ -167,7 +167,7 @@ defmodule Effusion.PWP.PeerTest do
 
     %{blocks: blocks} = callback_state(session)
 
-    assert blocks == [%{index: 0, offset: 0, data: "t"}]
+    assert blocks == MapSet.new([%{index: 0, offset: 0, data: "t"}])
   end
 
   defp callback_state(pid) do
