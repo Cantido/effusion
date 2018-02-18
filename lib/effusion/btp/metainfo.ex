@@ -1,4 +1,4 @@
-defmodule Effusion.Metainfo do
+defmodule Effusion.BTP.Metainfo do
   def decode(bin) do
     {:ok, decoded} = ExBencode.decode(bin)
 

@@ -1,7 +1,7 @@
-defmodule Effusion.MetainfoTest do
+defmodule Effusion.BTP.MetainfoTest do
   use ExUnit.Case
-  alias Effusion.Metainfo
-  doctest Effusion.Metainfo
+  alias Effusion.BTP.Metainfo
+  doctest Effusion.BTP.Metainfo
 
   test "adds info_hash to decoded file" do
     {:ok, metainfo} = File.read "test/linuxmint-18.3-cinnamon-64bit.iso.torrent"

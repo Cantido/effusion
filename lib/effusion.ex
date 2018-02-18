@@ -1,7 +1,7 @@
 alias Effusion.Session
 
 defmodule Effusion do
-  alias Effusion.Metainfo
+  alias Effusion.BTP.Metainfo
   @moduledoc """
   A BitTorrent library.
   """

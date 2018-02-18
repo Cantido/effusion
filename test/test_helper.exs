@@ -19,13 +19,13 @@ defmodule TestHelper do
 
   def mint_meta do
     {:ok, metabin} = File.read "test/linuxmint-18.3-cinnamon-64bit.iso.torrent"
-    {:ok, meta} = Effusion.Metainfo.decode(metabin)
+    {:ok, meta} = Effusion.BTP.Metainfo.decode(metabin)
     meta
   end
 
   def hello_meta do
     {:ok, metabin} = File.read "test/hello.txt.torrent"
-    {:ok, meta} = Effusion.Metainfo.decode(metabin)
+    {:ok, meta} = Effusion.BTP.Metainfo.decode(metabin)
     meta
   end
 
