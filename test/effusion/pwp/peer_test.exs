@@ -165,13 +165,8 @@ defmodule Effusion.PWP.PeerTest do
     # We are hoping that the peer is reacting to TCP messages
     :timer.sleep(50)
 
-    %{blocks: blocks} = callback_state(session)
+    blocks = Session.blocks(session)
 
     assert blocks == MapSet.new([%{index: 0, offset: 0, data: "t"}])
-  end
-
-  defp callback_state(pid) do
-    {:status, _, _, [_, _, _, _, [_, _, {:data, [{'State', state}]}]]} = :sys.get_status(pid)
-    state
   end
 end

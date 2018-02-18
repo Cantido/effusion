@@ -1,6 +1,7 @@
 defmodule Effusion.Session do
   use GenServer
   require Logger
+  alias Effusion.BTP.Torrent
 
   @thp_client Application.get_env(:effusion, :thp_client)
   @block_size Application.get_env(:effusion, :block_size)
@@ -24,6 +25,10 @@ defmodule Effusion.Session do
     GenServer.call(pid, {:block, block})
   end
 
+  def blocks(pid) do
+    GenServer.call(pid, :get_blocks)
+  end
+
   def next_request(pid) do
     GenServer.call(pid, :next_request)
   end
@@ -37,6 +42,7 @@ defmodule Effusion.Session do
     state = %{
       file: file,
       meta: meta,
+      torrent: Torrent.new(meta.info),
       local_peer: local_peer,
       peer_id: @local_peer_id
     }
@@ -44,154 +50,23 @@ defmodule Effusion.Session do
     {:ok, state, 0}
   end
 
-  def handle_call({:block, %{index: i, offset: o, data: d}}, _from, state) do
-    block = block_data(i, o, d)
-    Logger.info("handling call to add block #{inspect(block)}")
-    state1 = Map.update(state, :blocks, MapSet.new([block]), &MapSet.put(&1, block))
+  def handle_call(:get_blocks, _from, state) do
+    {:reply, Torrent.blocks(state.torrent), state}
+  end
 
-    case get_ready_pieces(state1) do
-      [] -> {:reply, :ok, state1}
-      [piece] -> write_piece(piece, state1)
-    end
+  def handle_call({:block, block}, _from, state) do
+    {:ok, torrent1} = state.torrent
+    |> Torrent.add_block(block)
+    |> Torrent.write_to(state.file)
+
+    {:reply, :ok, %{state | torrent: torrent1}}
   end
 
   def handle_call(:next_request, _from, state) do
-    {:reply, next_block(state), state}
-  end
+    have_pieces = Torrent.finished_pieces(state.torrent)
+    next_block = Effusion.BTP.PieceSelection.next_block(state.meta.info, have_pieces, @block_size)
 
-  defp next_block(state) do
-    all_blocks = all_possible_blocks(state.meta.info)
-    have_pieces = Map.get(state, :have, IntSet.new())
-
-    all_blocks
-      |> Enum.reject(fn(b) -> Map.get(b, :index) in have_pieces end)
-      |> hd()
-  end
-
-  defp all_possible_blocks(%{length: file_size, piece_length: whole_piece_size})  do
-    file_size
-    |> file_to_pieces(whole_piece_size)
-    |> Enum.flat_map(&piece_to_blocks(&1, @block_size))
-  end
-
-  defp file_to_pieces(total_size, piece_size) when is_size(total_size) and is_size(piece_size) do
-    {whole_piece_count, last_piece_size} = divrem(total_size, piece_size)
-    whole_piece_indices = 0..(whole_piece_count - 1)
-
-    whole_pieces =
-      for i <- whole_piece_indices,
-          into: MapSet.new()
-      do
-        %{index: i, size: piece_size}
-      end
-
-    if last_piece_size == 0 do
-      whole_pieces
-    else
-      last_piece_index = whole_piece_count
-      last_piece = %{index: last_piece_index, size: last_piece_size}
-      MapSet.put(whole_pieces, last_piece)
-    end
-  end
-
-  defp piece_to_blocks(%{index: index, size: piece_size} = piece, block_size) when is_index(index) and is_size(piece_size) do
-    Logger.info "breaking piece #{inspect(piece)} into blocks of size #{block_size}"
-
-    {whole_block_count, last_block_size} = divrem(piece.size, block_size)
-    whole_block_indices = 0..(whole_block_count - 1)
-
-    Logger.info "We will have #{whole_block_count} whole blocks, with a last block of size #{last_block_size}"
-
-    whole_blocks =
-      if whole_block_count > 0 do
-        for b_i <- whole_block_indices,
-            offset = b_i * block_size,
-            into: MapSet.new()
-        do
-          block_id(piece.index, offset, block_size)
-        end
-      else
-        MapSet.new()
-      end
-    Logger.info "got whole blocks: #{inspect(whole_blocks)}"
-
-    if last_block_size == 0 do
-      whole_blocks
-    else
-      last_block_index = whole_block_count
-      last_block_offset = last_block_index * block_size
-      last_block = block_id(piece.index, last_block_offset, last_block_size)
-      MapSet.put(whole_blocks, last_block)
-    end
-  end
-
-  defp divrem(a, b) do
-    {div(a, b), rem(a, b)}
-  end
-
-  defp get_ready_pieces(state) do
-    info = state.meta.info
-    piece_length = info.piece_length
-
-    last_piece_index = div(info.length, info.piece_length)
-    last_piece_length = rem(info.length, info.piece_length)
-
-    state.blocks
-    |> Enum.chunk_by(fn b -> Map.get(b, :index) end)
-    |> Enum.filter(fn(b) ->
-        i = hd(b).index
-        blen = block_length(b)
-        if i == last_piece_index do
-          blen == last_piece_length
-        else
-          blen == piece_length
-        end
-      end)
-    |> Enum.map(&blocks_to_piece/1)
-  end
-
-  defp blocks_to_piece(blocks) when is_list(blocks) do
-    blocks
-    |> Enum.sort_by(&(&1[:offset]))
-    |> Enum.reduce(fn(b, acc) ->
-         %{
-           index: b.index,
-           data: acc.data <> b.data
-         }
-       end)
-  end
-
-  defp block_length(blocks) when is_list(blocks) do
-    blocks
-    |> Enum.map(fn b -> byte_size(b.data) end)
-    |> Enum.sum()
-  end
-
-  defp write_piece(%{index: i, data: d} = piece, state) when is_binary(d) do
-    Logger.debug("Checking and writing piece #{inspect(piece)}")
-    expected_hash = state.meta.info.pieces |> Enum.at(i)
-    actual_hash = :crypto.hash(:sha, d)
-
-    if expected_hash == actual_hash do
-      file = state.file
-      piece_start_byte = i * state.meta.info.piece_length
-      _ = Logger.debug("writing #{inspect(d)} to #{inspect(file)}")
-      :ok = :file.pwrite(file, {:bof, piece_start_byte}, [d])
-      _ = Logger.info("We successfully verified a piece!!!")
-      state = state
-        |> Map.update!(:blocks, &remove_blocks_with_index(&1, i))
-        |> Map.update(:have, IntSet.new(i), &IntSet.put(&1, i))
-      {:reply, :ok, state}
-    else
-      _ = Logger.warn("Error while verifying piece #{inspect(piece)}, expected hash #{Base.encode16(expected_hash, case: :lower)} but got #{Base.encode16(actual_hash, case: :lower)}")
-      {:reply, :ok, state}
-    end
-  end
-
-  defp remove_blocks_with_index(blocks, i) when is_index(i) do
-    blocks
-    |> Enum.reject(fn p -> p.index == i end)
-    |> MapSet.new()
+    {:reply, next_block, state}
   end
 
   def handle_info(:timeout, state) do
@@ -232,14 +107,5 @@ defmodule Effusion.Session do
   defp do_select_peer(state) do
     state.peers
        |> Enum.find(fn(p) -> p.peer_id != state.peer_id end)
-  end
-
-
-  defp block_id(i, o, s) when is_index(i) and is_index(o) and is_size(s) do
-    %{index: i, offset: o, size: s}
-  end
-
-  defp block_data(i, o, d) when is_index(i) and is_index(o) and is_binary(d) do
-    %{index: i, offset: o, data: d}
   end
 end
