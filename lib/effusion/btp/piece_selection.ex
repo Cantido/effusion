@@ -2,7 +2,7 @@ defmodule Effusion.BTP.PieceSelection do
   require Logger
 
   defguard is_index(i) when is_integer(i) and i >= 0
-  defguard is_size(x) when is_integer (x) and x > 0
+  defguard is_size(x) when is_integer(x) and x > 0
 
   def next_block(info, have_pieces, block_size) do
     all_blocks = all_possible_blocks(info.length, info.piece_length, block_size)
@@ -39,12 +39,12 @@ defmodule Effusion.BTP.PieceSelection do
   end
 
   defp piece_to_blocks(%{index: index, size: piece_size} = piece, block_size) when is_index(index) and is_size(piece_size) and is_size(block_size) do
-    Logger.info "breaking piece #{inspect(piece)} into blocks of size #{block_size}"
+    _ = Logger.info "breaking piece #{inspect(piece)} into blocks of size #{block_size}"
 
     {whole_block_count, last_block_size} = divrem(piece.size, block_size)
     whole_block_indices = 0..(whole_block_count - 1)
 
-    Logger.info "We will have #{whole_block_count} whole blocks, with a last block of size #{last_block_size}"
+    _ = Logger.info "We will have #{whole_block_count} whole blocks, with a last block of size #{last_block_size}"
 
     whole_blocks =
       if whole_block_count > 0 do
@@ -57,7 +57,7 @@ defmodule Effusion.BTP.PieceSelection do
       else
         MapSet.new()
       end
-    Logger.info "got whole blocks: #{inspect(whole_blocks)}"
+    _ = Logger.info "got whole blocks: #{inspect(whole_blocks)}"
 
     if last_block_size == 0 do
       whole_blocks
