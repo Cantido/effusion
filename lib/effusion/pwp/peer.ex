@@ -68,11 +68,8 @@ defmodule Effusion.PWP.Peer do
             |> Map.put(:peer_choking, false)
             |> request_block()
         {:piece, block} ->
-          parent = state.session
-          Effusion.Session.block(parent, block)
-          state
-            |> Map.update(:blocks, MapSet.new([block]), &MapSet.put(&1, block))
-            |> request_block()
+          Effusion.Session.block(state.session, block)
+          request_block(state)
       end
       {:noreply, state}
     else
