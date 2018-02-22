@@ -11,15 +11,17 @@ defmodule Effusion.PWP.Messages.Handshake do
   Extracts the peer id, info hash, and reserved bytes from
   a handshake packet binary.
   """
-  def decode(handshake) when is_binary(handshake) and byte_size(handshake) == 68 do
-    case handshake do
+  def decode(
       <<@protocol_name_size,
-      @protocol_name,
-      reserved :: bytes-size(8),
-      info_hash :: bytes-size(20),
-      peer_id :: bytes-size(20)>> -> {:ok, {peer_id, info_hash, reserved}}
-      _ -> {:error, :malformed_handshake}
-    end
+        @protocol_name,
+        reserved :: bytes-size(8),
+        info_hash :: bytes-size(20),
+        peer_id :: bytes-size(20)>>) do
+    {:ok, {peer_id, info_hash, reserved}}
+  end
+
+  def decode(handshake) do
+    {:error, :malformed_handshake}
   end
 
   @doc """
