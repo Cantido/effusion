@@ -33,6 +33,10 @@ defmodule Effusion.Session do
     GenServer.call(pid, :next_request)
   end
 
+  def await(pid) do
+    GenServer.call(pid, :await)
+  end
+
   ## Callbacks
 
   defguard is_index(i) when is_integer(i) and i >= 0
@@ -59,6 +63,12 @@ defmodule Effusion.Session do
     |> Torrent.add_block(block)
     |> Torrent.write_to(state.file)
 
+    if(Torrent.done?(state.torrent)) do
+      Enum.each(state.listeners, fn l ->
+        GenServer.reply(l, {:ok, state.torrent})
+      end)
+    end
+
     {:reply, :ok, %{state | torrent: torrent1}}
   end
 
@@ -67,6 +77,11 @@ defmodule Effusion.Session do
     next_block = Effusion.BTP.PieceSelection.next_block(state.meta.info, have_pieces, @block_size)
 
     {:reply, next_block, state}
+  end
+
+  def handle_call(:await, from, state) do
+    listeners = Map.get(state, :listeners, MapSet.new()) |> MapSet.put(from)
+    {:noreply, Map.put(state, :listeners, listeners)}
   end
 
   def handle_info(:timeout, state) do
@@ -110,6 +125,6 @@ defmodule Effusion.Session do
 
   defp do_select_peer(state) do
     state.peers
-       |> Enum.find(fn(p) -> p.peer_id != state.peer_id end)
+       |> Enum.find(fn(p) -> Map.get(p, :peer_id) != state.peer_id end)
   end
 end

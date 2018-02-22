@@ -9,6 +9,7 @@ defmodule Effusion.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env),
       start_permanent: Mix.env == :prod,
       description: "A BitTorrent library.",
+      escript: [main_module: Effusion.CLI], # build with `mix escript.build`
       package: package(),
       deps: deps(),
       source_url: "https://github.com/Cantido/effusion",

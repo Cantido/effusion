@@ -35,6 +35,14 @@ defmodule Effusion.BTP.Torrent do
     Map.get(torrent, :pieces, MapSet.new())
   end
 
+  def written(torrent) do
+    Map.get(torrent, :written, IntSet.new())
+  end
+
+  def done?(torrent) do
+    (pieces(torrent) |> Enum.count()) == Enum.count(torrent.info.pieces)
+  end
+
   def remove_piece(torrent, piece) do
     pieces1 = pieces(torrent) |> MapSet.delete(piece)
 

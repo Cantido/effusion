@@ -56,7 +56,7 @@ defmodule EffusionTest do
     Effusion.THP.Mock
     |> expect(:announce, &stub_tracker/8)
 
-    {:ok, _pid} = Effusion.start_download("test/linuxmint-18.3-cinnamon-64bit.iso.torrent")
+    {:ok, _pid} = Effusion.start_download("test/linuxmint-18.3-cinnamon-64bit.iso.torrent", nil)
     {:ok, sock} = :gen_tcp.accept(lsock, 5_000)
     {:ok, handshake_packet} = :gen_tcp.recv(sock, 68)
     :ok = :gen_tcp.send(sock, @remote_handshake)
