@@ -36,6 +36,12 @@ defmodule Effusion.PWP.PeerSocketTest do
     {:ok, _} = start_supervised {PeerSocket, [self(), lsock]}
 
     {:ok, sock} = :gen_tcp.connect(@host, @port, [active: false], 1_000)
+
+    handshake = Handshake.encode(@remote_peer_id, @info_hash)
+    :ok = :gen_tcp.send(sock, handshake)
+    :timer.sleep(10)
+
+    :ok = :inet.setopts(sock, packet: 4)
     {:ok, unchoke} = Messages.encode(:unchoke)
     :ok = :gen_tcp.send(sock, unchoke)
 
