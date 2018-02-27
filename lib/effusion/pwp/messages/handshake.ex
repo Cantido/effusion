@@ -20,7 +20,7 @@ defmodule Effusion.PWP.Messages.Handshake do
     {:ok, {peer_id, info_hash, reserved}}
   end
 
-  def decode(handshake) do
+  def decode(_) do
     {:error, :malformed_handshake}
   end
 
