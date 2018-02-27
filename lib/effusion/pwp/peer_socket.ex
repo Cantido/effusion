@@ -2,6 +2,12 @@ defmodule Effusion.PWP.PeerSocket do
   use GenServer
   alias Effusion.PWP.Messages
   alias Effusion.PWP.Messages.Handshake
+  @moduledoc """
+  A network socket connected to a peer.
+
+  This socket behaves as an "active" socket, meaning that it sends messages
+  to the parent process's mailbox.
+  """
 
   ## API
 

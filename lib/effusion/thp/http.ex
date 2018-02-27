@@ -1,5 +1,8 @@
 defmodule Effusion.THP.HTTP do
   @behaviour Effusion.THP
+  @moduledoc """
+  An HTTP implementation of the Tracker HTTP Protocol.
+  """
 
   def announce(
     tracker_url,

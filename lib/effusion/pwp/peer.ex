@@ -4,6 +4,13 @@ defmodule Effusion.PWP.Peer do
   alias Effusion.PWP.Messages
   alias Effusion.Session
   require Logger
+  @moduledoc """
+  A connection to a peer.
+
+  This connection sends messages back to the parent Session containing
+  completed blocks, expecting the parent Session to keep track of them.
+  It also makes the Session responsible for selecting which pieces to request.
+  """
 
   # @transport Application.get_env(:effusion, :peer_transport)
 

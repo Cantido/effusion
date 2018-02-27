@@ -1,4 +1,8 @@
 defmodule Effusion.THP do
+  @moduledoc """
+  Behavior defining the contract of the Tracker HTTP Protocol.
+  """
+
   @type peer :: %{
     ip: :inet.hostname() | :inet.ip_address(),
     port: :inet.port_number(),
