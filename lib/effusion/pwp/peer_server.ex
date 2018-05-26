@@ -1,7 +1,7 @@
 defmodule Effusion.PWP.PeerServer do
   use GenServer, restart: :temporary
   alias Effusion.PWP.Messages
-  alias Effusion.PWP.Peer
+  alias Effusion.BTP.Peer
   alias Effusion.SessionServer
   require Logger
   @moduledoc """

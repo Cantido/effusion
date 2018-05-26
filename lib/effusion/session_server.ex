@@ -1,7 +1,7 @@
 defmodule Effusion.SessionServer do
   use GenServer
   require Logger
-  alias Effusion.Session
+  alias Effusion.BTP.Session
 
   @thp_client Application.get_env(:effusion, :thp_client)
 

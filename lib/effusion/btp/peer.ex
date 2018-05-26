@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Peer do
+defmodule Effusion.BTP.Peer do
   alias Effusion.PWP.Messages.Handshake
 
   def new(host, port, peer_id, info_hash, session) do

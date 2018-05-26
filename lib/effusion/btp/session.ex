@@ -1,4 +1,4 @@
-defmodule Effusion.Session do
+defmodule Effusion.BTP.Session do
   alias Effusion.BTP.Torrent
 
   @local_peer_id "Effusion Experiment!"
