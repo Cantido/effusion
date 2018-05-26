@@ -64,7 +64,7 @@ defmodule Effusion.PWP.PeerServer do
           state1
         :unchoke ->
           state = state
-            |> Peer.recv_unchoke(state)
+            |> Peer.recv_unchoke()
             |> request_block()
         {:piece, block} ->
           Effusion.SessionServer.block(state.session, block)
