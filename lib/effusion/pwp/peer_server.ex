@@ -1,7 +1,7 @@
 defmodule Effusion.PWP.PeerServer do
   use GenServer, restart: :temporary
-  alias Effusion.PWP.Messages.Handshake
   alias Effusion.PWP.Messages
+  alias Effusion.PWP.Peer
   alias Effusion.SessionServer
   require Logger
   @moduledoc """
@@ -30,13 +30,7 @@ defmodule Effusion.PWP.PeerServer do
   def init([host, port, peer_id, info_hash, session]) do
     {
       :ok,
-      %{
-        host: host,
-        port: port,
-        peer_id: peer_id,
-        info_hash: info_hash,
-        session: session
-      },
+      Peer.new(host, port, peer_id, info_hash, session),
       0
     }
   end
@@ -46,7 +40,7 @@ defmodule Effusion.PWP.PeerServer do
     with {:ok, socket} <- :gen_tcp.connect(state.host, state.port, [active: false], 1_000),
          state <- Map.put(state, :socket, socket),
          :ok <- Logger.info("opened connection"),
-         :ok <- :gen_tcp.send(socket, Handshake.encode(state.peer_id, state.info_hash)),
+         :ok <- :gen_tcp.send(socket, Peer.handshake(state)),
          {:ok, handshake} <- :gen_tcp.recv(socket, 68),
          {:ok, _} <- Effusion.PWP.Messages.Handshake.decode(IO.iodata_to_binary(handshake)),
          :ok <- :inet.setopts(socket, active: true, packet: 4)
@@ -65,14 +59,12 @@ defmodule Effusion.PWP.PeerServer do
     do
       state = case msg1 do
         {:bitfield, _} ->
-          :ok = send_msg(:interested, state)
-          :ok = send_msg(:unchoke, state)
-          state
-            |> Map.put(:am_choking, false)
-            |> Map.put(:am_interested, true)
+          {state1, messages} = Peer.recv_bitfield(state)
+          Enum.map(messages, fn(m) -> :ok = send_msg(m, state) end)
+          state1
         :unchoke ->
-          state
-            |> Map.put(:peer_choking, false)
+          state = state
+            |> Peer.recv_unchoke(state)
             |> request_block()
         {:piece, block} ->
           Effusion.SessionServer.block(state.session, block)
