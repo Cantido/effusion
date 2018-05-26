@@ -77,7 +77,7 @@ defmodule Effusion.Session do
   end
 
   def connect_to_peer(s, peer) do
-    Effusion.PWP.Peer.connect(
+    Effusion.PWP.PeerServer.connect(
       {peer.ip, peer.port},
       s.peer_id,
       s.meta.info_hash,

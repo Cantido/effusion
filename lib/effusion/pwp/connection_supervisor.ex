@@ -10,6 +10,6 @@ defmodule Effusion.PWP.ConnectionSupervisor do
   end
 
   def start_child(args) do
-    DynamicSupervisor.start_child(__MODULE__, {Effusion.PWP.Peer, args})
+    DynamicSupervisor.start_child(__MODULE__, {Effusion.PWP.PeerServer, args})
   end
 end

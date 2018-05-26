@@ -1,12 +1,12 @@
-defmodule Effusion.PWP.PeerTest do
+defmodule Effusion.PWP.PeerServerTest do
   use ExUnit.Case
   import Mox
   alias Effusion.SessionServer
   alias Effusion.PWP.Messages.Handshake
   alias Effusion.PWP.Messages
-  alias Effusion.PWP.Peer
+  alias Effusion.PWP.PeerServer
 
-  doctest Effusion.PWP.Peer
+  doctest Effusion.PWP.PeerServer
 
   # XXX: In this test, we are acting as the "remote" peer.
   # So, technically, we are "remote", and we are sending stuff to "local".
@@ -49,8 +49,8 @@ defmodule Effusion.PWP.PeerTest do
     %{lsock: lsock}
   end
 
-  test "Peer performs handshake", %{lsock: lsock, session: session} do
-    {:ok, _pid} = Peer.connect(@remote_address, @local_peer_id, @info_hash, session)
+  test "PeerServer performs handshake", %{lsock: lsock, session: session} do
+    {:ok, _pid} = PeerServer.connect(@remote_address, @local_peer_id, @info_hash, session)
     {:ok, sock} = :gen_tcp.accept(lsock, 5_000)
     {:ok, handshake_packet} = :gen_tcp.recv(sock, 68)
     :ok = :gen_tcp.send(sock, @remote_handshake)
@@ -64,7 +64,7 @@ defmodule Effusion.PWP.PeerTest do
     assert {:ok, {@local_peer_id, @info_hash, _}} = handshake
   end
 
-  test "Peer expresses interest & unchokes after we send a bitfield", %{lsock: lsock, session: session} do
+  test "PeerServer expresses interest & unchokes after we send a bitfield", %{lsock: lsock, session: session} do
     {:ok, sock} = connect(lsock, session)
     {:ok, bitmsg} = bitfield_msg([0])
     :ok = :gen_tcp.send(sock, bitmsg)
@@ -76,7 +76,7 @@ defmodule Effusion.PWP.PeerTest do
     assert {:ok, :unchoke} = msg2
   end
 
-  test "Peer requests blocks when we unchoke them", %{lsock: lsock, session: session} do
+  test "PeerServer requests blocks when we unchoke them", %{lsock: lsock, session: session} do
     {:ok, sock} = connect(lsock, session)
     {:ok, bitmsg} = bitfield_msg([0])
     :ok = :gen_tcp.send(sock, bitmsg)
@@ -89,7 +89,7 @@ defmodule Effusion.PWP.PeerTest do
     assert {:ok, {:request, _}} = request_msg
   end
 
-  test "Peer accepts blocks and requests another", %{lsock: lsock, session: session} do
+  test "PeerServer accepts blocks and requests another", %{lsock: lsock, session: session} do
     {:ok, sock} = connect(lsock, session)
     {:ok, bitmsg} = bitfield_msg([0])
     :ok = :gen_tcp.send(sock, bitmsg)
@@ -126,7 +126,7 @@ defmodule Effusion.PWP.PeerTest do
 
 
   defp connect(lsock, session) do
-    {:ok, _pid} = Peer.connect(@remote_address, @local_peer_id, @info_hash, session)
+    {:ok, _pid} = PeerServer.connect(@remote_address, @local_peer_id, @info_hash, session)
     {:ok, sock} = :gen_tcp.accept(lsock, 1_000)
     {:ok, _handshake} = :gen_tcp.recv(sock, 68)
     :ok = :gen_tcp.send(sock, @remote_handshake)
@@ -150,7 +150,7 @@ defmodule Effusion.PWP.PeerTest do
     end
   end
 
-  test "Peer hands blocks to parent session", %{lsock: lsock, session: session} do
+  test "PeerServer hands blocks to parent session", %{lsock: lsock, session: session} do
     {:ok, sock} = connect(lsock, session)
     {:ok, bitmsg} = bitfield_msg([0])
     :ok = :gen_tcp.send(sock, bitmsg)

@@ -2,7 +2,7 @@ use Mix.Config
 
 config :effusion,
   thp_client: Effusion.THP.HTTP,
-  pwp_client: Effusion.PWP.Peer,
+  pwp_client: Effusion.PWP.PeerServer,
   peer_transport: :gen_tcp,
   server_host: {127, 0, 0, 1},
   server_port: 4001,

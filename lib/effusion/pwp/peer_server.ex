@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Peer do
+defmodule Effusion.PWP.PeerServer do
   use GenServer, restart: :temporary
   alias Effusion.PWP.Messages.Handshake
   alias Effusion.PWP.Messages
