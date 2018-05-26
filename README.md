@@ -2,6 +2,8 @@
 
 A BitTorrent library written in Elixir.
 
+[![Travis](https://img.shields.io/travis/Cantido/effusion.svg?style=for-the-badge)](https://travis-ci.org/Cantido/effusion)
+
 ## License
 
 Copyright © 2017 Rosa Richter (formerly Robert Richter)
