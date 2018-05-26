@@ -1,11 +1,9 @@
 defmodule Effusion.SessionServer do
   use GenServer
   require Logger
-  alias Effusion.BTP.Torrent
+  alias Effusion.Session
 
   @thp_client Application.get_env(:effusion, :thp_client)
-  @block_size Application.get_env(:effusion, :block_size)
-  @local_peer_id "Effusion Experiment!"
 
   ## API
 
@@ -43,88 +41,58 @@ defmodule Effusion.SessionServer do
   defguard is_size(x) when is_integer (x) and x > 0
 
   def init([meta, local_peer, file]) do
-    state = %{
-      file: file,
-      meta: meta,
-      torrent: Torrent.new(meta.info),
-      local_peer: local_peer,
-      peer_id: @local_peer_id
-    }
+    state = Session.new(meta, local_peer, file)
 
     {:ok, state, 0}
   end
 
   def handle_call(:get_blocks, _from, state) do
-    {:reply, Torrent.blocks(state.torrent), state}
+    {:reply, Session.blocks(state), state}
   end
 
   def handle_call({:block, block}, _from, state) do
-    {:ok, torrent1} = state.torrent
-    |> Torrent.add_block(block)
-    |> Torrent.write_to(state.file)
+    state = state
+    |> Session.add_block(block)
+    |> Session.write()
 
-    if(Torrent.done?(state.torrent)) do
-      Enum.each(state.listeners, fn l ->
-        GenServer.reply(l, {:ok, state.torrent})
-      end)
+    if(Session.done?(state)) do
+      Enum.each(
+        Session.listeners(state),
+        fn l -> GenServer.reply(l, {:ok, Session.torrent(state)}) end
+      )
     end
 
-    {:reply, :ok, %{state | torrent: torrent1}}
+    {:reply, :ok, state}
   end
 
   def handle_call(:next_request, _from, state) do
-    have_pieces = Torrent.finished_pieces(state.torrent)
-    next_block = Effusion.BTP.PieceSelection.next_block(state.meta.info, have_pieces, @block_size)
+    next_block = Session.next_request(state)
 
     {:reply, next_block, state}
   end
 
   def handle_call(:await, from, state) do
-    listeners = Map.get(state, :listeners, MapSet.new()) |> MapSet.put(from)
-    {:noreply, Map.put(state, :listeners, listeners)}
+    state = Session.add_listener(state, from)
+    {:noreply, state}
   end
 
   def handle_info(:timeout, state) do
-    state1 = do_announce(state)
-    case do_select_peer(state1) do
+    _ = Logger.info("Announcing torrent #{Base.encode16 state.meta.info_hash, case: :lower} to #{inspect(state.meta.announce)} that I'm listening at #{inspect(state.local_peer)}")
+
+    state1 = Session.announce(state, @thp_client)
+
+    _ = Logger.info("Announce finished, got #{Enum.count(state1.peers)} peers.")
+
+    case Session.select_peer(state1) do
       nil ->
         {:noreply, state1}
       peer ->
-        {:ok, _socket} = Effusion.PWP.Peer.connect({peer.ip, peer.port}, state1.peer_id, state1.meta.info_hash, self())
+        {:ok, _socket} = Session.connect_to_peer(state1, peer)
         {:noreply, state1}
     end
   end
 
   def handle_info(_, state) do
     {:noreply, state}
-  end
-
-  defp do_announce(state) do
-    {local_host, local_port} = state.local_peer
-
-    _ = Logger.info("Announcing torrent #{Base.encode16 state.meta.info_hash, case: :lower} to #{inspect(state.meta.announce)} that I'm listening at #{inspect(state.local_peer)}")
-
-    {:ok, res} = @thp_client.announce(
-      state.meta.announce,
-      local_host,
-      local_port,
-      state.peer_id,
-      state.meta.info_hash,
-      0,
-      0,
-      state.meta.info.length
-    )
-
-    _ = Logger.info("Announce finished, got #{length(res.peers)} peers.")
-    Map.put(state, :peers, res.peers)
-  end
-
-  defp do_select_peer(%{peers: []}) do
-    nil
-  end
-
-  defp do_select_peer(state) do
-    state.peers
-       |> Enum.find(fn(p) -> Map.get(p, :peer_id) != state.peer_id end)
   end
 end
