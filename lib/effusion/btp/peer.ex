@@ -1,10 +1,9 @@
 defmodule Effusion.BTP.Peer do
   alias Effusion.PWP.Messages.Handshake
 
-  def new(host, port, peer_id, info_hash, session) do
+  def new({_host, _port} = address, peer_id, info_hash, session) do
     %{
-      host: host,
-      port: port,
+      address: address,
       peer_id: peer_id,
       info_hash: info_hash,
       session: session,
@@ -13,6 +12,10 @@ defmodule Effusion.BTP.Peer do
       am_choking: true,
       am_interested: false
     }
+  end
+
+  def address(p) do
+    p.address
   end
 
   def handshake(p) do

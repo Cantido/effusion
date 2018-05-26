@@ -16,28 +16,29 @@ defmodule Effusion.PWP.PeerServer do
 
   ## API
 
-  def connect({host, port}, peer_id, info_hash, session) when is_binary(peer_id) and byte_size(peer_id) == 20 and is_binary(info_hash) and byte_size(info_hash) == 20 do
-    args = [host, port, peer_id, info_hash, session]
+  def connect(address, peer_id, info_hash, session) when is_binary(peer_id) and byte_size(peer_id) == 20 and is_binary(info_hash) and byte_size(info_hash) == 20 do
+    args = [address, peer_id, info_hash, session]
     Effusion.PWP.ConnectionSupervisor.start_child(args)
   end
 
-  def start_link([host, port, peer_id, info_hash, session]) do
-    GenServer.start_link(__MODULE__, [host, port, peer_id, info_hash, session])
+  def start_link([address, peer_id, info_hash, session]) do
+    GenServer.start_link(__MODULE__, [address, peer_id, info_hash, session])
   end
 
   ## Callbacks
 
-  def init([host, port, peer_id, info_hash, session]) do
+  def init([address, peer_id, info_hash, session]) do
     {
       :ok,
-      Peer.new(host, port, peer_id, info_hash, session),
+      Peer.new(address, peer_id, info_hash, session),
       0
     }
   end
 
   def handle_info(:timeout, state) do
     _ = Logger.info("in timeout block")
-    with {:ok, socket} <- :gen_tcp.connect(state.host, state.port, [active: false], 1_000),
+    with {host, port} <- Peer.address(state),
+         {:ok, socket} <- :gen_tcp.connect(host, port, [active: false], 1_000),
          state <- Map.put(state, :socket, socket),
          :ok <- Logger.info("opened connection"),
          :ok <- :gen_tcp.send(socket, Peer.handshake(state)),
