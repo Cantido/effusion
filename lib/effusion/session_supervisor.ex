@@ -1,4 +1,4 @@
-defmodule Effusion.SessionSupervisor do
+defmodule Effusion.SessionServerSupervisor do
   use DynamicSupervisor
 
   def start_link([]) do
@@ -10,6 +10,6 @@ defmodule Effusion.SessionSupervisor do
   end
 
   def start_child(args) do
-    DynamicSupervisor.start_child(__MODULE__, {Effusion.Session, args})
+    DynamicSupervisor.start_child(__MODULE__, {Effusion.SessionServer, args})
   end
 end

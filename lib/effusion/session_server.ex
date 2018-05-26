@@ -1,4 +1,4 @@
-defmodule Effusion.Session do
+defmodule Effusion.SessionServer do
   use GenServer
   require Logger
   alias Effusion.BTP.Torrent
@@ -10,7 +10,7 @@ defmodule Effusion.Session do
   ## API
 
   def start(meta, {_host, _port} = local_server, file \\ nil) when is_map(meta) do
-    Effusion.SessionSupervisor.start_child([meta, local_server, file])
+    Effusion.SessionServerSupervisor.start_child([meta, local_server, file])
   end
 
   def start_link([meta, local_peer]) do

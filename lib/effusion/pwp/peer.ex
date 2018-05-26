@@ -2,14 +2,14 @@ defmodule Effusion.PWP.Peer do
   use GenServer, restart: :temporary
   alias Effusion.PWP.Messages.Handshake
   alias Effusion.PWP.Messages
-  alias Effusion.Session
+  alias Effusion.SessionServer
   require Logger
   @moduledoc """
   A connection to a peer.
 
-  This connection sends messages back to the parent Session containing
-  completed blocks, expecting the parent Session to keep track of them.
-  It also makes the Session responsible for selecting which pieces to request.
+  This connection sends messages back to the parent SessionServer containing
+  completed blocks, expecting the parent SessionServer to keep track of them.
+  It also makes the SessionServer responsible for selecting which pieces to request.
   """
 
   # @transport Application.get_env(:effusion, :peer_transport)
@@ -75,7 +75,7 @@ defmodule Effusion.PWP.Peer do
             |> Map.put(:peer_choking, false)
             |> request_block()
         {:piece, block} ->
-          Effusion.Session.block(state.session, block)
+          Effusion.SessionServer.block(state.session, block)
           request_block(state)
       end
       {:noreply, state}
@@ -105,7 +105,7 @@ defmodule Effusion.PWP.Peer do
   end
 
   defp request_block(state) do
-    case Session.next_request(state.session) do
+    case SessionServer.next_request(state.session) do
       %{index: i, offset: o, size: s} ->
         :ok = send_msg({:request, i, o, s}, state)
         state

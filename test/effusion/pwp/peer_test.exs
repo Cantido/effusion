@@ -1,7 +1,7 @@
 defmodule Effusion.PWP.PeerTest do
   use ExUnit.Case
   import Mox
-  alias Effusion.Session
+  alias Effusion.SessionServer
   alias Effusion.PWP.Messages.Handshake
   alias Effusion.PWP.Messages
   alias Effusion.PWP.Peer
@@ -35,7 +35,7 @@ defmodule Effusion.PWP.PeerTest do
     Effusion.THP.Mock
     |> stub(:announce, &stub_announce/8)
 
-    {:ok, pid} = start_supervised {Session, [@meta, @local_peer]}
+    {:ok, pid} = start_supervised {SessionServer, [@meta, @local_peer]}
     %{session: pid}
   end
 
@@ -165,7 +165,7 @@ defmodule Effusion.PWP.PeerTest do
     # We are hoping that the peer is reacting to TCP messages
     :timer.sleep(50)
 
-    blocks = Session.blocks(session)
+    blocks = SessionServer.blocks(session)
 
     assert blocks == MapSet.new([%{index: 0, offset: 0, data: "t"}])
   end

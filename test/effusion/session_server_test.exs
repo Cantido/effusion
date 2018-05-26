@@ -1,7 +1,7 @@
-defmodule Effusion.SessionTest do
+defmodule Effusion.SessionServerTest do
   use ExUnit.Case
-  doctest Effusion.Session
-  alias Effusion.Session
+  doctest Effusion.SessionServer
+  alias Effusion.SessionServer
   alias Effusion.PWP.Messages.Handshake
   import Mox
 
@@ -54,7 +54,7 @@ defmodule Effusion.SessionTest do
   setup do
     # StringIO and :ram devices don't work with the calls to
     # pwrite that session uses, so we gotta make an actual file
-    {:ok, file, file_path} = Temp.open "Effusion.SessionTest.tmp"
+    {:ok, file, file_path} = Temp.open "Effusion.SessionServerTest.tmp"
 
     on_exit fn ->
       File.rm file_path
@@ -63,11 +63,11 @@ defmodule Effusion.SessionTest do
     %{destfile: file, path: file_path}
   end
 
-  test "Session connects to remote and handshakes", %{lsock: lsock, destfile: destfile} do
+  test "SessionServer connects to remote and handshakes", %{lsock: lsock, destfile: destfile} do
     Effusion.THP.Mock
     |> expect(:announce, &mock_announce/8)
 
-    {:ok, _pid} = start_supervised {Session, [@meta, @local_peer, destfile]}
+    {:ok, _pid} = start_supervised {SessionServer, [@meta, @local_peer, destfile]}
     {:ok, sock} = :gen_tcp.accept(lsock, 5_000)
     {:ok, handshake_packet} = :gen_tcp.recv(sock, 68)
     :ok = :gen_tcp.send(sock, @remote_handshake)
@@ -89,7 +89,7 @@ defmodule Effusion.SessionTest do
     Effusion.THP.Mock
     |> stub(:announce, &stub_announce/8)
 
-    {:ok, _pid} = start_supervised {Session, [@meta, @local_peer]}
+    {:ok, _pid} = start_supervised {SessionServer, [@meta, @local_peer]}
   end
 
   test "writes verified pieces to file", %{destfile: file, path: path} do
@@ -98,10 +98,10 @@ defmodule Effusion.SessionTest do
 
     hello_meta = TestHelper.hello_meta()
 
-    {:ok, pid} = start_supervised {Session, [hello_meta, @local_peer, file]}
+    {:ok, pid} = start_supervised {SessionServer, [hello_meta, @local_peer, file]}
 
     block = %{index: 0, offset: 0, data: "Hello world!\n"}
-    Session.block(pid, block)
+    SessionServer.block(pid, block)
 
     assert "Hello world!\n" == File.read!(path)
   end
@@ -113,15 +113,15 @@ defmodule Effusion.SessionTest do
 
     tiny_meta = TestHelper.tiny_meta()
 
-    {:ok, pid} = start_supervised {Session, [tiny_meta, @local_peer, file]}
+    {:ok, pid} = start_supervised {SessionServer, [tiny_meta, @local_peer, file]}
 
-    Session.block(pid, %{index: 0, offset: 0, data: "t"})
+    SessionServer.block(pid, %{index: 0, offset: 0, data: "t"})
     assert "" == File.read!(path)
 
-    Session.block(pid, %{index: 0, offset: 1, data: "i"})
+    SessionServer.block(pid, %{index: 0, offset: 1, data: "i"})
     assert "" == File.read!(path)
 
-    Session.block(pid, %{index: 0, offset: 2, data: "n"})
+    SessionServer.block(pid, %{index: 0, offset: 2, data: "n"})
     assert "tin" == File.read!(path)
   end
 
@@ -131,13 +131,13 @@ defmodule Effusion.SessionTest do
 
     tiny_meta = TestHelper.tiny_meta()
 
-    {:ok, pid} = start_supervised {Session, [tiny_meta, @local_peer, file]}
+    {:ok, pid} = start_supervised {SessionServer, [tiny_meta, @local_peer, file]}
 
-    Session.block(pid, %{index: 1, offset: 0, data: "y"})
-    Session.block(pid, %{index: 1, offset: 1, data: "\n"})
-    Session.block(pid, %{index: 0, offset: 0, data: "t"})
-    Session.block(pid, %{index: 0, offset: 1, data: "i"})
-    Session.block(pid, %{index: 0, offset: 2, data: "n"})
+    SessionServer.block(pid, %{index: 1, offset: 0, data: "y"})
+    SessionServer.block(pid, %{index: 1, offset: 1, data: "\n"})
+    SessionServer.block(pid, %{index: 0, offset: 0, data: "t"})
+    SessionServer.block(pid, %{index: 0, offset: 1, data: "i"})
+    SessionServer.block(pid, %{index: 0, offset: 2, data: "n"})
     "tiny\n" = File.read!(path)
   end
 
@@ -147,10 +147,10 @@ defmodule Effusion.SessionTest do
 
     tiny_meta = TestHelper.tiny_meta()
 
-    {:ok, pid} = start_supervised {Session, [tiny_meta, @local_peer, file]}
+    {:ok, pid} = start_supervised {SessionServer, [tiny_meta, @local_peer, file]}
 
-    Session.block(pid, %{index: 0, offset: 0, data: "tin"})
-    %{index: index, offset: offset, size: size} = Session.next_request(pid)
+    SessionServer.block(pid, %{index: 0, offset: 0, data: "tin"})
+    %{index: index, offset: offset, size: size} = SessionServer.next_request(pid)
 
     # There are only two pieces in the tiny torrent
     assert index == 1

@@ -1,4 +1,4 @@
-alias Effusion.Session
+alias Effusion.SessionServer
 
 defmodule Effusion do
   alias Effusion.BTP.Metainfo
@@ -14,11 +14,11 @@ defmodule Effusion do
 
     {:ok, metabin} = File.read filename
     {:ok, meta} = Metainfo.decode(metabin)
-    Session.start(meta, local_server_address, destfile)
+    SessionServer.start(meta, local_server_address, destfile)
   end
 
   def download(filename, destfile) do
     {:ok, pid} = start_download(filename, destfile)
-    Session.await(pid)
+    SessionServer.await(pid)
   end
 end

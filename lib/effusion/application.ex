@@ -5,7 +5,7 @@ defmodule Effusion.Application do
 
   def start(_type, _args) do
     children = [
-      Effusion.SessionSupervisor,
+      Effusion.SessionServerSupervisor,
       Effusion.PWP.ConnectionSupervisor
     ]
 
