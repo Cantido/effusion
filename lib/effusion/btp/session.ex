@@ -13,7 +13,8 @@ defmodule Effusion.BTP.Session do
       local_peer: local_server,
       peers: MapSet.new(),
       peer_id: @local_peer_id,
-      listeners: MapSet.new()
+      listeners: MapSet.new(),
+      requested: MapSet.new()
     }
   end
 
@@ -35,7 +36,7 @@ defmodule Effusion.BTP.Session do
   end
 
   def add_listener(s, pid) do
-    MapSet.put(s.listeners, pid)
+    Map.update!(s, :listeners, &MapSet.put(&1, pid))
   end
 
   def write(s) do
@@ -50,8 +51,9 @@ defmodule Effusion.BTP.Session do
   def next_request(s) do
     have_pieces = Torrent.finished_pieces(s.torrent)
     next_block = Effusion.BTP.PieceSelection.next_block(s.meta.info, have_pieces, @block_size)
+    s1 = Map.update!(s, :requested, &MapSet.put(&1, next_block))
 
-    next_block
+    {next_block, s1}
   end
 
   def announce(s, client) do
