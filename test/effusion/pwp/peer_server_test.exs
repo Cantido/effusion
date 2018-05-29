@@ -2,7 +2,6 @@ defmodule Effusion.PWP.PeerServerTest do
   use ExUnit.Case
   import Mox
   alias Effusion.SessionServer
-  alias Effusion.PWP.Messages.Handshake
   alias Effusion.PWP.Messages
   alias Effusion.PWP.PeerServer
 
@@ -23,7 +22,7 @@ defmodule Effusion.PWP.PeerServerTest do
   @meta TestHelper.tiny_meta()
   @info_hash @meta.info_hash
 
-  @remote_handshake Handshake.encode(@remote_peer_id, @info_hash)
+  @remote_handshake Messages.encode({:handshake, @remote_peer_id, @info_hash})
 
   defp stub_announce(_, _, _, _, _, _, _, _) do
     {:ok, %{interval: 9_000, peers: []}}
@@ -59,9 +58,9 @@ defmodule Effusion.PWP.PeerServerTest do
     handshake =
       handshake_packet
       |> IO.iodata_to_binary()
-      |> Handshake.decode()
+      |> Messages.decode()
 
-    assert {:ok, {@local_peer_id, @info_hash, _}} = handshake
+    assert {:ok, {:handshake, @local_peer_id, @info_hash, _}} = handshake
   end
 
   test "PeerServer expresses interest & unchokes after we send a bitfield", %{lsock: lsock, session: session} do

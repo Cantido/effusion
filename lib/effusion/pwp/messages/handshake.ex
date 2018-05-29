@@ -17,7 +17,7 @@ defmodule Effusion.PWP.Messages.Handshake do
         reserved :: bytes-size(8),
         info_hash :: bytes-size(20),
         peer_id :: bytes-size(20)>>) do
-    {:ok, {peer_id, info_hash, reserved}}
+    {:ok, {:handshake, peer_id, info_hash, reserved}}
   end
 
   def decode(_) do

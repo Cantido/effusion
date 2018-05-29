@@ -2,7 +2,7 @@ defmodule Effusion.SessionServerTest do
   use ExUnit.Case
   doctest Effusion.SessionServer
   alias Effusion.SessionServer
-  alias Effusion.PWP.Messages.Handshake
+  alias Effusion.PWP.Messages
   import Mox
 
   setup :verify_on_exit!
@@ -20,7 +20,7 @@ defmodule Effusion.SessionServerTest do
   @remote_host {127, 0, 0, 1}
   @remote_port 5679
   @remote_peer_id "Other peer 123456789"
-  @remote_handshake Handshake.encode(@remote_peer_id, @info_hash)
+  @remote_handshake Messages.encode({:handshake, @remote_peer_id, @info_hash})
 
 
   defp mock_announce(url, ip, port, peer_id, info_hash, up, down, left) do
@@ -76,9 +76,9 @@ defmodule Effusion.SessionServerTest do
     handshake =
       handshake_packet
       |> IO.iodata_to_binary()
-      |> Handshake.decode()
+      |> Messages.decode()
 
-    assert {:ok, {@local_peer_id, @info_hash, _}} = handshake
+    assert {:ok, {:handshake, @local_peer_id, @info_hash, _}} = handshake
   end
 
   defp stub_announce(_, _, _, _, _, _, _, _) do

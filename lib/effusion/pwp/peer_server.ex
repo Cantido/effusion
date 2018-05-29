@@ -43,12 +43,12 @@ defmodule Effusion.PWP.PeerServer do
          :ok <- Logger.info("opened connection"),
          :ok <- :gen_tcp.send(socket, Peer.handshake(state)),
          {:ok, handshake} <- :gen_tcp.recv(socket, 68),
-         {:ok, _} <- Effusion.PWP.Messages.Handshake.decode(IO.iodata_to_binary(handshake)),
+         {:ok, _} <- Messages.decode(IO.iodata_to_binary(handshake)),
          :ok <- :inet.setopts(socket, active: true, packet: 4)
     do
       {:noreply, state}
     else
-      _ -> {:stop, :failed_handshake, state}
+      err -> {:stop, :failed_handshake, err, state}
     end
   end
 

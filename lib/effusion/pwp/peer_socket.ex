@@ -1,7 +1,6 @@
 defmodule Effusion.PWP.PeerSocket do
   use GenServer
   alias Effusion.PWP.Messages
-  alias Effusion.PWP.Messages.Handshake
   @moduledoc """
   A network socket connected to a peer.
 
@@ -28,8 +27,8 @@ defmodule Effusion.PWP.PeerSocket do
   end
 
   def handle_info({:tcp, sock, packet}, %{parent_process: parent_process, handshaken: false} = state) when byte_size(packet) == 68 do
-    {:ok, hs} = Handshake.decode(packet)
-    send parent_process, {:handshake, hs}
+    {:ok, hs} = Messages.decode(packet)
+    send parent_process, hs
 
     :ok = :inet.setopts(sock, active: true, packet: 4)
     {:noreply, %{state | handshaken: true}}

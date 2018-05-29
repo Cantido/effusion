@@ -2,7 +2,6 @@ defmodule Effusion.PWP.PeerSocketTest do
   use ExUnit.Case
   alias Effusion.PWP.PeerSocket
   alias Effusion.PWP.Messages
-  alias Effusion.PWP.Messages.Handshake
   doctest Effusion.PWP.PeerSocket
 
 
@@ -26,10 +25,10 @@ defmodule Effusion.PWP.PeerSocketTest do
     {:ok, _} = start_supervised {PeerSocket, [self(), lsock]}
 
     {:ok, sock} = :gen_tcp.connect(@host, @port, [active: false], 1_000)
-    handshake = Handshake.encode(@remote_peer_id, @info_hash)
+    handshake = Messages.encode({:handshake, @remote_peer_id, @info_hash})
     :ok = :gen_tcp.send(sock, handshake)
 
-    assert_receive {:handshake, {@remote_peer_id, @info_hash, _reserved}}
+    assert_receive {:handshake, @remote_peer_id, @info_hash, _reserved}
   end
 
   test "sends PWP messages to the creating process", %{lsock: lsock} do
@@ -37,7 +36,7 @@ defmodule Effusion.PWP.PeerSocketTest do
 
     {:ok, sock} = :gen_tcp.connect(@host, @port, [active: false], 1_000)
 
-    handshake = Handshake.encode(@remote_peer_id, @info_hash)
+    handshake = Messages.encode({:handshake, @remote_peer_id, @info_hash})
     :ok = :gen_tcp.send(sock, handshake)
     :timer.sleep(10)
 

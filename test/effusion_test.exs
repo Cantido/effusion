@@ -1,7 +1,7 @@
 defmodule EffusionTest do
   use ExUnit.Case
   doctest Effusion
-  alias Effusion.PWP.Messages.Handshake
+  alias Effusion.PWP.Messages
   import Mox
 
   setup :verify_on_exit!
@@ -18,7 +18,7 @@ defmodule EffusionTest do
   @remote_host {127, 0, 0, 1}
   @remote_port 5679
   @remote_peer_id "Other peer 123456789"
-  @remote_handshake Handshake.encode(@remote_peer_id, @info_hash)
+  @remote_handshake Messages.encode({:handshake, @remote_peer_id, @info_hash})
 
   defp stub_tracker(url, ip, port, peer_id, info_hash, up, down, left) do
     assert url == "https://torrents.linuxmint.com/announce.php"
@@ -65,8 +65,8 @@ defmodule EffusionTest do
     handshake =
       handshake_packet
       |> IO.iodata_to_binary()
-      |> Handshake.decode()
+      |> Messages.decode()
 
-    assert {:ok, {@local_peer_id, @info_hash, _}} = handshake
+    assert {:ok, {:handshake, @local_peer_id, @info_hash, _}} = handshake
   end
 end

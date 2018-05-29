@@ -1,4 +1,5 @@
 defmodule Effusion.PWP.Messages do
+  alias Effusion.PWP.Messages.Handshake
   @moduledoc """
     Encode and decode Peer Wire Protocol (PWP) messages.
   """
@@ -50,10 +51,10 @@ defmodule Effusion.PWP.Messages do
       {:ok, {:cancel, %{index: 4201, offset: 69, size: 12}}}
 
       iex> Effusion.PWP.Messages.decode(<<42>>)
-      {:error, :bad_message_id}
+      {:error, :invalid}
 
       iex> Effusion.PWP.Messages.decode(<<42, "with payload">>)
-      {:error, :bad_message_id}
+      {:error, :invalid}
 
       iex> Effusion.PWP.Messages.decode(<<0, "this shouldn't be here">>)
       {:error, :no_payload_allowed}
@@ -86,12 +87,10 @@ defmodule Effusion.PWP.Messages do
     {:ok, {:cancel, %{index: index, offset: offset, size: size}}}
   end
 
+  def decode(<<19, "BitTorrent protocol", _rest::binary>> = msg), do: Handshake.decode(msg)
+
   def decode(<<id, rest :: binary>>) when id in 0..3 and bit_size(rest) > 0 do
     {:error, :no_payload_allowed}
-  end
-
-  def decode(<<id, _rest :: binary>>) when id not in 0..8 do
-    {:error, :bad_message_id}
   end
 
   def decode(<<_, _rest :: binary>>) do
@@ -149,6 +148,7 @@ defmodule Effusion.PWP.Messages do
   def encode({:request, i, o, s}) when is_all_uint32(i, o, s), do: {:ok, <<6, i :: 32, o :: 32, s :: 32>>}
   def encode({:piece, i, o, b}) when is_all_uint32(i, o) and is_binary(b) and is_under_max_block_size(b), do: {:ok, <<7, i :: 32, o :: 32>> <> b}
   def encode({:cancel, i, o, s}) when is_all_uint32(i, o, s), do: {:ok, <<8, i :: 32, o :: 32, s :: 32>>}
+  def encode({:handshake, peer_id, info_hash}), do: Handshake.encode(peer_id, info_hash)
 
   def encode(m), do: {:error, {:unknown_message, m}}
 end

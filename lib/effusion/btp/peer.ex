@@ -1,5 +1,5 @@
 defmodule Effusion.BTP.Peer do
-  alias Effusion.PWP.Messages.Handshake
+  alias Effusion.PWP.Messages
 
   def new({_host, _port} = address, peer_id, info_hash, session) do
     %{
@@ -19,7 +19,7 @@ defmodule Effusion.BTP.Peer do
   end
 
   def handshake(p) do
-    Handshake.encode(p.peer_id, p.info_hash)
+    Messages.encode({:handshake, p.peer_id, p.info_hash})
   end
 
   def is_not_choking(p) do
