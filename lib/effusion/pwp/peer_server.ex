@@ -41,9 +41,10 @@ defmodule Effusion.PWP.PeerServer do
          {:ok, socket} <- :gen_tcp.connect(host, port, [active: false], 1_000),
          state <- Map.put(state, :socket, socket),
          :ok <- Logger.info("opened connection"),
-         :ok <- :gen_tcp.send(socket, Peer.handshake(state)),
-         {:ok, handshake} <- :gen_tcp.recv(socket, 68),
-         {:ok, _} <- Messages.decode(IO.iodata_to_binary(handshake)),
+         :ok <- :gen_tcp.send(socket, Peer.get_handshake(state)),
+         {:ok, hs_bin} <- :gen_tcp.recv(socket, 68),
+         {:ok, hs = {:handshake, _, _, _}} <- Messages.decode(IO.iodata_to_binary(hs_bin)),
+         {:ok, state} <- Peer.handshake(state, hs),
          :ok <- :inet.setopts(socket, active: true, packet: 4)
     do
       {:noreply, state}

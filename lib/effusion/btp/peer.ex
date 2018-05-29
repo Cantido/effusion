@@ -5,8 +5,10 @@ defmodule Effusion.BTP.Peer do
     %{
       address: address,
       peer_id: peer_id,
+      remote_peer_id: nil,
       info_hash: info_hash,
       session: session,
+      handshaken: false,
       peer_choking: true,
       peer_interested: false,
       am_choking: true,
@@ -18,8 +20,19 @@ defmodule Effusion.BTP.Peer do
     p.address
   end
 
-  def handshake(p) do
+  def get_handshake(p) do
     Messages.encode({:handshake, p.peer_id, p.info_hash})
+  end
+
+  def handshake(p, {:handshake, remote_peer_id, info_hash, _reserved}) do
+    cond do
+      p.handshaken ->
+        {:error, :local_peer_already_handshaken}
+      p.info_hash != info_hash ->
+        {:error, :mismatched_info_hash, [expected: p.info_hash, actual: info_hash]}
+      true ->
+        {:ok, %{p | handshaken: true, remote_peer_id: remote_peer_id}}
+    end
   end
 
   def is_not_choking(p) do
