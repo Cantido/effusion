@@ -56,13 +56,11 @@ defmodule Effusion.SessionServer do
     |> Session.write()
 
     if(Session.done?(state)) do
-      Enum.each(
-        Session.listeners(state),
-        fn l -> GenServer.reply(l, {:ok, Session.torrent(state)}) end
-      )
+      {:stop, :normal, :ok, state}
+    else
+      {:reply, :ok, state}
     end
 
-    {:reply, :ok, state}
   end
 
   def handle_call(:next_request, _from, state) do
@@ -94,5 +92,21 @@ defmodule Effusion.SessionServer do
 
   def handle_info(_, state) do
     {:noreply, state}
+  end
+
+  def terminate(:normal, state) do
+    Session.write(state)
+
+    Enum.each(
+      Session.listeners(state),
+      fn l -> GenServer.reply(l, {:ok, Session.torrent(state)}) end
+    )
+  end
+
+  def terminate(reason, state) do
+    Enum.each(
+      Session.listeners(state),
+      fn l -> GenServer.reply(l, {:error, :torrent_crashed, [reason: reason]}) end
+    )
   end
 end
