@@ -64,9 +64,9 @@ defmodule Effusion.SessionServer do
   end
 
   def handle_call(:next_request, _from, state) do
-    next_block = Session.next_request(state)
+    {next_block, state1} = Session.next_request(state)
 
-    {:reply, next_block, state}
+    {:reply, next_block, state1}
   end
 
   def handle_call(:await, from, state) do

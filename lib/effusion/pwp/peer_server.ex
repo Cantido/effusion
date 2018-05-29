@@ -16,18 +16,18 @@ defmodule Effusion.PWP.PeerServer do
 
   ## API
 
-  def connect(address, peer_id, info_hash, session) when is_binary(peer_id) and byte_size(peer_id) == 20 and is_binary(info_hash) and byte_size(info_hash) == 20 do
+  def connect(address, peer_id, info_hash, session) when is_binary(peer_id) and byte_size(peer_id) == 20 and is_binary(info_hash) and byte_size(info_hash) == 20 and is_pid(session) do
     args = [address, peer_id, info_hash, session]
     Effusion.PWP.ConnectionSupervisor.start_child(args)
   end
 
-  def start_link([address, peer_id, info_hash, session]) do
+  def start_link([address, peer_id, info_hash, session]) when is_pid(session) do
     GenServer.start_link(__MODULE__, [address, peer_id, info_hash, session])
   end
 
   ## Callbacks
 
-  def init([address, peer_id, info_hash, session]) do
+  def init([address, peer_id, info_hash, session]) when is_pid(session) do
     {
       :ok,
       Peer.new(address, peer_id, info_hash, session),
@@ -49,7 +49,7 @@ defmodule Effusion.PWP.PeerServer do
     do
       {:noreply, state}
     else
-      err -> {:stop, :failed_handshake, err, state}
+      _ -> {:stop, :failed_handshake, state}
     end
   end
 
@@ -60,8 +60,8 @@ defmodule Effusion.PWP.PeerServer do
          :ok <- Logger.info "Got message #{inspect(msg1)}"
     do
       state = case msg1 do
-        {:bitfield, _} ->
-          {state1, messages} = Peer.recv_bitfield(state)
+        {:bitfield, bitfield} ->
+          {state1, messages} = Peer.recv_bitfield(state, bitfield)
           Enum.map(messages, fn(m) -> :ok = send_msg(m, state) end)
           state1
         :unchoke ->
@@ -69,8 +69,11 @@ defmodule Effusion.PWP.PeerServer do
             |> Peer.recv_unchoke()
             |> request_block()
         {:piece, block} ->
+          Logger.info "Sending block to session #{inspect(state.session)}"
           Effusion.SessionServer.block(state.session, block)
           request_block(state)
+        {:have, i} ->
+          state = Peer.recv_have(state, i)
       end
       {:noreply, state}
     else
@@ -98,11 +101,12 @@ defmodule Effusion.PWP.PeerServer do
     :gen_tcp.send(socket, request)
   end
 
-  defp request_block(state) do
-    case SessionServer.next_request(state.session) do
+  defp request_block(%{session: session} = state) when is_pid(session) do
+    Logger.info "Requesting next block from session #{inspect(session)}"
+    case SessionServer.next_request(session) do
       %{index: i, offset: o, size: s} ->
         :ok = send_msg({:request, i, o, s}, state)
-        state
+        %{state | session: session}
       :done -> state
     end
   end
