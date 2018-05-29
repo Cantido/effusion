@@ -32,7 +32,7 @@ defmodule Effusion.SessionServer do
   end
 
   def await(pid) do
-    GenServer.call(pid, :await)
+    GenServer.call(pid, :await, :infinity)
   end
 
   ## Callbacks
