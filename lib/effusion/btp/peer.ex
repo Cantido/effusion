@@ -1,7 +1,7 @@
 defmodule Effusion.BTP.Peer do
   alias Effusion.PWP.Messages
 
-  def new({_host, _port} = address, peer_id, info_hash, session) do
+  def new({_host, _port} = address, peer_id, info_hash, session) when is_pid(session) do
     %{
       address: address,
       peer_id: peer_id,
@@ -12,7 +12,8 @@ defmodule Effusion.BTP.Peer do
       peer_choking: true,
       peer_interested: false,
       am_choking: true,
-      am_interested: false
+      am_interested: false,
+      has: IntSet.new()
     }
   end
 
@@ -51,8 +52,9 @@ defmodule Effusion.BTP.Peer do
     %{p | am_interested: false}
   end
 
-  def recv_bitfield(p) do
+  def recv_bitfield(p, b) do
     p = p
+      |> Map.put(:has, IntSet.new(b))
       |> is_not_choking()
       |> is_interested()
 
@@ -61,5 +63,9 @@ defmodule Effusion.BTP.Peer do
 
   def recv_unchoke(p) do
     is_not_choked(p)
+  end
+
+  def recv_have(p, i) do
+    Map.update!(p, :has, &IntSet.put(&1, i))
   end
 end
