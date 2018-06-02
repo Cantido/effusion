@@ -17,10 +17,6 @@ defmodule Effusion.BTP.Peer do
     }
   end
 
-  def address(p) do
-    p.address
-  end
-
   def get_handshake(p) do
     Messages.encode({:handshake, p.peer_id, p.info_hash})
   end
@@ -36,33 +32,17 @@ defmodule Effusion.BTP.Peer do
     end
   end
 
-  def is_not_choking(p) do
-    %{p | am_choking: false}
-  end
-
-  def is_not_choked(p) do
-    %{p | peer_choking: false}
-  end
-
-  def is_interested(p) do
-    %{p | am_interested: true}
-  end
-
-  def is_not_interested(p) do
-    %{p | am_interested: false}
-  end
-
   def recv_bitfield(p, b) do
     p = p
       |> Map.put(:has, IntSet.new(b))
-      |> is_not_choking()
-      |> is_interested()
+      |> Map.put(:am_choking, false)
+      |> Map.put(:am_interested, true)
 
     {p, [:interested, :unchoke]}
   end
 
   def recv_unchoke(p) do
-    is_not_choked(p)
+    Map.put(p, :peer_choking, false)
   end
 
   def recv_have(p, i) do

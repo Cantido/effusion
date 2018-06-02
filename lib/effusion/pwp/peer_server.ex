@@ -37,7 +37,7 @@ defmodule Effusion.PWP.PeerServer do
 
   def handle_info(:timeout, state) do
     _ = Logger.info("in timeout block")
-    with {host, port} <- Peer.address(state),
+    with {host, port} <- state.address,
          {:ok, socket} <- :gen_tcp.connect(host, port, [active: false], 1_000),
          state <- Map.put(state, :socket, socket),
          :ok <- Logger.info("opened connection"),
