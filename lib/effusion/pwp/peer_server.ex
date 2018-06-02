@@ -1,6 +1,6 @@
 defmodule Effusion.PWP.PeerServer do
   use GenServer, restart: :temporary
-  alias Effusion.PWP.Messages
+  alias Effusion.PWP.Socket
   alias Effusion.BTP.Peer
   alias Effusion.SessionServer
   require Logger
@@ -37,15 +37,8 @@ defmodule Effusion.PWP.PeerServer do
 
   def handle_info(:timeout, state) do
     _ = Logger.info("in timeout block")
-    with {host, port} <- state.address,
-         {:ok, socket} <- :gen_tcp.connect(host, port, [active: false], 1_000),
-         state <- Map.put(state, :socket, socket),
-         :ok <- Logger.info("opened connection"),
-         :ok <- :gen_tcp.send(socket, Peer.get_handshake(state)),
-         {:ok, hs_bin} <- :gen_tcp.recv(socket, 68),
-         {:ok, hs = {:handshake, _, _, _}} <- Messages.decode(IO.iodata_to_binary(hs_bin)),
-         {:ok, state} <- Peer.handshake(state, hs),
-         :ok <- :inet.setopts(socket, active: true, packet: 4)
+    with {:ok, socket, state} <- Socket.connect(state),
+         state <- Map.put(state, :socket, socket)
     do
       {:noreply, state}
     else
@@ -53,16 +46,26 @@ defmodule Effusion.PWP.PeerServer do
     end
   end
 
-
   def handle_info({:tcp, _socket, data}, state) do
-    with data1 <- IO.iodata_to_binary(data),
-         {:ok, msg1} <- Messages.decode(data1),
+    handle_packet(data, state)
+  end
+
+  def handle_info({:tcp_closed, _socket}, state) do
+    {:stop, :normal, state}
+  end
+
+  def handle_info(_, state) do
+    {:noreply, state}
+  end
+
+  defp handle_packet(data, state) do
+    with {:ok, msg1} <- Socket.decode(data),
          :ok <- Logger.info "Got message #{inspect(msg1)}"
     do
       state = case msg1 do
         {:bitfield, bitfield} ->
           {state1, messages} = Peer.recv_bitfield(state, bitfield)
-          Enum.map(messages, fn(m) -> :ok = send_msg(m, state) end)
+          Enum.map(messages, fn(m) -> :ok = Socket.send(state.socket, m) end)
           state1
         :unchoke ->
           state = state
@@ -81,32 +84,18 @@ defmodule Effusion.PWP.PeerServer do
     end
   end
 
-  def handle_info({:tcp_closed, _socket}, state) do
-    {:stop, :normal, state}
-  end
-
-  def handle_info(_, state) do
-    {:noreply, state}
-  end
-
   def terminate(_, %{socket: socket}) do
     :gen_tcp.close(socket)
   end
 
   def terminate(_, _), do: :ok
 
-  defp send_msg(msg, %{socket: socket}) do
-    {:ok, request} = Messages.encode(msg)
-    _ = Logger.info("Sending message: #{inspect(msg)}")
-    :gen_tcp.send(socket, request)
-  end
-
   defp request_block(%{session: session} = state) when is_pid(session) do
     Logger.info "Requesting next block from session #{inspect(session)}"
     case SessionServer.next_request(session) do
       %{index: i, offset: o, size: s} ->
-        :ok = send_msg({:request, i, o, s}, state)
-        %{state | session: session}
+        :ok = Socket.send(state.socket, {:request, i, o, s})
+        state
       :done -> state
     end
   end
