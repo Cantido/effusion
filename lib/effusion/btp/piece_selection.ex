@@ -28,14 +28,14 @@ defmodule Effusion.BTP.PieceSelection do
       for i <- whole_piece_indices,
           into: MapSet.new()
       do
-        Block.new(i, 0, piece_size)
+        Block.id(i, 0, piece_size)
       end
 
     if last_piece_size == 0 do
       whole_pieces
     else
       last_piece_index = whole_piece_count
-      last_piece = Block.new(last_piece_index, 0, last_piece_size)
+      last_piece = Block.id(last_piece_index, 0, last_piece_size)
       MapSet.put(whole_pieces, last_piece)
     end
   end

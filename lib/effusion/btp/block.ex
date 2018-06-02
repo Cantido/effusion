@@ -2,12 +2,12 @@ defmodule Effusion.BTP.Block do
   defguard is_index(i) when is_integer(i) and i >= 0
   defguard is_size(x) when is_integer (x) and x > 0
 
-  def new(i, o, d) when is_index(i) and is_index(o) and is_binary(d) do
-    %{index: i, offset: o, data: d}
+  def id(i, o, s) when is_index(i) and is_index(o) and is_size(s) do
+    %{index: i, offset: o, size: s}
   end
 
-  def new(i, o, s) when is_index(i) and is_index(o) and is_size(s) do
-    %{index: i, offset: o, size: s}
+  def new(i, o, d) when is_index(i) and is_index(o) and is_binary(d) do
+    %{index: i, offset: o, data: d}
   end
 
   def sequential?(%{index: i1, offset: o1, data: d1}, %{index: i2, offset: o2}) do
@@ -61,7 +61,7 @@ defmodule Effusion.BTP.Block do
             offset = b_i * block_size,
             into: MapSet.new()
         do
-          new(piece.index, offset, block_size)
+          id(piece.index, offset, block_size)
         end
       else
         MapSet.new()
@@ -72,7 +72,7 @@ defmodule Effusion.BTP.Block do
     else
       last_block_index = whole_block_count
       last_block_offset = last_block_index * block_size
-      last_block = new(piece.index, last_block_offset, last_block_size)
+      last_block = id(piece.index, last_block_offset, last_block_size)
       MapSet.put(whole_blocks, last_block)
     end
   end
