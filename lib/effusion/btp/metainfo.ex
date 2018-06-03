@@ -1,6 +1,9 @@
 defmodule Effusion.BTP.Metainfo do
   alias Effusion.Hash
 
+  @enforce_keys [:info_hash, :announce, :created_by, :info]
+  defstruct [:info_hash, :announce, :announce_list, :comment, :created_by, :creation_date, :info]
+
   def decode(bin) do
     {:ok, decoded} = ExBencode.decode(bin)
 
@@ -12,7 +15,7 @@ defmodule Effusion.BTP.Metainfo do
       |> Effusion.Map.rename_keys(key_tokens())
       |> Map.update!(:info, &update_info/1)
 
-    {:ok, result}
+    {:ok, struct(Effusion.BTP.Metainfo, result)}
   end
 
   defp update_info(info) when is_map(info) do
@@ -54,5 +57,19 @@ defmodule Effusion.BTP.Metainfo do
       "piece length" => :piece_length,
       "pieces" => :pieces
     }
+  end
+
+  defimpl Inspect, for: Effusion.BTP.Metainfo do
+    import Inspect.Algebra
+
+    def inspect(meta, opts) do
+      concat([
+        "#Metainfo<[",
+        to_doc(meta.info.name, opts),
+        break(),
+        Hash.inspect(meta.info_hash),
+        "]>"
+      ])
+    end
   end
 end

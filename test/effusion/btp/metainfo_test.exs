@@ -24,6 +24,14 @@ defmodule Effusion.BTP.MetainfoTest do
     expected_pieces = [first_piece_hash]
 
     assert decode_result != nil
-    assert get_in(decode_result, [:info, :pieces]) == expected_pieces
+    assert decode_result.info.pieces == expected_pieces
+  end
+
+  test "inspect" do
+    {:ok, metainfo} = File.read("test/linuxmint-18.3-cinnamon-64bit.iso.torrent")
+
+    {:ok, decode_result} = Metainfo.decode(metainfo)
+
+    assert inspect(decode_result) == "#Metainfo<[\"linuxmint-18.3-cinnamon-64bit.iso\" d2e53fb603652d991991b6ad2357a7a2845a5319]>"
   end
 end
