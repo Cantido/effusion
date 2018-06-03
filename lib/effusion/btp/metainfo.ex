@@ -1,9 +1,11 @@
 defmodule Effusion.BTP.Metainfo do
+  alias Effusion.Hash
+
   def decode(bin) do
     {:ok, decoded} = ExBencode.decode(bin)
 
     {:ok, info} = ExBencode.encode(decoded["info"])
-    info_hash = :crypto.hash(:sha, info)
+    info_hash = Hash.calc(info)
 
     result = decoded
       |> Map.put(:info_hash, info_hash)
