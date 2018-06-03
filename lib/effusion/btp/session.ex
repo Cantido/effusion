@@ -83,12 +83,12 @@ defmodule Effusion.BTP.Session do
     end
   end
 
-  def select_peer(s) do
+  defp select_peer(s) do
     s.peers
        |> Enum.find(fn(p) -> Map.get(p, :peer_id) != s.peer_id end)
   end
 
-  def connect_to_peer(s, peer) do
+  defp connect_to_peer(s, peer) do
     Effusion.Application.PeerServer.connect(
       {peer.ip, peer.port},
       s.peer_id,
