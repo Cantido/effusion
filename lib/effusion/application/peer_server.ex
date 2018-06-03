@@ -33,7 +33,6 @@ defmodule Effusion.Application.PeerServer do
   end
 
   def handle_info(:timeout, state) do
-    _ = Logger.info("in timeout block")
     with {:ok, socket, state} <- Socket.connect(state),
          state <- Map.put(state, :socket, socket)
     do
