@@ -2,7 +2,6 @@ defmodule Effusion.Application.PeerServer do
   use GenServer, restart: :temporary
   alias Effusion.PWP.Socket
   alias Effusion.BTP.Peer
-  alias Effusion.Application.SessionServer
   require Logger
   @moduledoc """
   A connection to a peer.
@@ -60,22 +59,8 @@ defmodule Effusion.Application.PeerServer do
     with {:ok, msg1} <- Socket.decode(data),
          :ok <- Logger.info "Got message #{inspect(msg1)}"
     do
-      state = case msg1 do
-        {:bitfield, bitfield} ->
-          {state1, messages} = Peer.recv_bitfield(state, bitfield)
-          Enum.map(messages, fn(m) -> :ok = Socket.send(state.socket, m) end)
-          state1
-        :unchoke ->
-          state = state
-            |> Peer.recv_unchoke()
-            |> request_block()
-        {:piece, block} ->
-          Logger.info "Sending block to session #{inspect(state.session)}"
-          Effusion.Application.SessionServer.block(state.session, block)
-          request_block(state)
-        {:have, i} ->
-          state = Peer.recv_have(state, i)
-      end
+      {state, messages} = Peer.recv(state, msg1)
+      Enum.map(messages, fn(m) -> :ok = Socket.send(state.socket, m) end)
       {:noreply, state}
     else
       {:error, reason} -> {:stop, reason, state}
@@ -87,14 +72,4 @@ defmodule Effusion.Application.PeerServer do
   end
 
   def terminate(_, _), do: :ok
-
-  defp request_block(%{session: session} = state) when is_pid(session) do
-    Logger.info "Requesting next block from session #{inspect(session)}"
-    case SessionServer.next_request(session) do
-      %{index: i, offset: o, size: s} ->
-        :ok = Socket.send(state.socket, {:request, i, o, s})
-        state
-      :done -> state
-    end
-  end
 end
