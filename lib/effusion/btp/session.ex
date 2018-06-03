@@ -1,5 +1,6 @@
 defmodule Effusion.BTP.Session do
   alias Effusion.BTP.Torrent
+  alias Effusion.BTP.Peer
 
   @local_peer_id "Effusion Experiment!"
 
@@ -74,12 +75,24 @@ defmodule Effusion.BTP.Session do
     %{s | peers: res.peers}
   end
 
+  def recv(s, peer_id, msg) do
+    peer = Map.fetch!(s.connected_peers, peer_id)
+    {peer, responses} = Peer.recv(peer, msg)
+
+    session = add_connected_peer(s, peer)
+    {session, Map.new([{peer.peer_id, responses}])}
+  end
+
+  def add_connected_peer(s, peer) do
+    Map.update!(s, :connected_peers, &Map.put(&1, peer.peer_id, peer))
+  end
+
   def increment_connections(s) do
     case select_peer(s) do
       nil -> s
       peer ->
         {:ok, _socket} = connect_to_peer(s, peer)
-        Map.update!(s, :connected_peers, &Map.put(&1, peer.info_hash, peer))
+        add_connected_peer(s, peer)
     end
   end
 
