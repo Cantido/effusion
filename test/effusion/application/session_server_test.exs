@@ -1,7 +1,7 @@
-defmodule Effusion.SessionServerTest do
+defmodule Effusion.Application.SessionServerTest do
   use ExUnit.Case
-  doctest Effusion.SessionServer
-  alias Effusion.SessionServer
+  doctest Effusion.Application.SessionServer
+  alias Effusion.Application.SessionServer
   alias Effusion.PWP.Messages
   import Mox
 

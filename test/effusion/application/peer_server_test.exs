@@ -1,11 +1,11 @@
-defmodule Effusion.PWP.PeerServerTest do
+defmodule Effusion.Application.PeerServerTest do
   use ExUnit.Case
   import Mox
-  alias Effusion.SessionServer
+  alias Effusion.Application.SessionServer
   alias Effusion.PWP.Messages
-  alias Effusion.PWP.PeerServer
+  alias Effusion.Application.PeerServer
 
-  doctest Effusion.PWP.PeerServer
+  doctest Effusion.Application.PeerServer
 
   # XXX: In this test, we are acting as the "remote" peer.
   # So, technically, we are "remote", and we are sending stuff to "local".

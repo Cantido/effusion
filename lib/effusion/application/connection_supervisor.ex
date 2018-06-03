@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.ConnectionSupervisor do
+defmodule Effusion.Application.ConnectionSupervisor do
   use DynamicSupervisor
 
   def start_link([]) do
@@ -10,6 +10,6 @@ defmodule Effusion.PWP.ConnectionSupervisor do
   end
 
   def start_child(args) do
-    DynamicSupervisor.start_child(__MODULE__, {Effusion.PWP.PeerServer, args})
+    DynamicSupervisor.start_child(__MODULE__, {Effusion.Application.PeerServer, args})
   end
 end

@@ -1,4 +1,4 @@
-defmodule Effusion.SessionServer do
+defmodule Effusion.Application.SessionServer do
   use GenServer
   require Logger
   alias Effusion.BTP.Session
@@ -8,7 +8,7 @@ defmodule Effusion.SessionServer do
   ## API
 
   def start(meta, {_host, _port} = local_server, file \\ nil) when is_map(meta) do
-    Effusion.SessionServerSupervisor.start_child([meta, local_server, file])
+    Effusion.Application.SessionServerSupervisor.start_child([meta, local_server, file])
   end
 
   def start_link([meta, local_peer]) do

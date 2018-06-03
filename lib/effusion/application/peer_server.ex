@@ -1,8 +1,8 @@
-defmodule Effusion.PWP.PeerServer do
+defmodule Effusion.Application.PeerServer do
   use GenServer, restart: :temporary
   alias Effusion.PWP.Socket
   alias Effusion.BTP.Peer
-  alias Effusion.SessionServer
+  alias Effusion.Application.SessionServer
   require Logger
   @moduledoc """
   A connection to a peer.
@@ -18,7 +18,7 @@ defmodule Effusion.PWP.PeerServer do
 
   def connect(address, peer_id, info_hash, session) when is_binary(peer_id) and byte_size(peer_id) == 20 and is_binary(info_hash) and byte_size(info_hash) == 20 and is_pid(session) do
     args = [address, peer_id, info_hash, session]
-    Effusion.PWP.ConnectionSupervisor.start_child(args)
+    Effusion.Application.ConnectionSupervisor.start_child(args)
   end
 
   def start_link([address, peer_id, info_hash, session]) when is_pid(session) do
@@ -73,7 +73,7 @@ defmodule Effusion.PWP.PeerServer do
             |> request_block()
         {:piece, block} ->
           Logger.info "Sending block to session #{inspect(state.session)}"
-          Effusion.SessionServer.block(state.session, block)
+          Effusion.Application.SessionServer.block(state.session, block)
           request_block(state)
         {:have, i} ->
           state = Peer.recv_have(state, i)
