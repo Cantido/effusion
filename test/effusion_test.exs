@@ -63,6 +63,8 @@ defmodule EffusionTest do
     :ok = :gen_tcp.send(sock, hsbin)
     :ok = :gen_tcp.close(sock)
 
+    :timer.sleep(50)
+
     handshake =
       handshake_packet
       |> IO.iodata_to_binary()
