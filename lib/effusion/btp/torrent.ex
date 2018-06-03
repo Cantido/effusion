@@ -1,6 +1,7 @@
 defmodule Effusion.BTP.Torrent do
   require Logger
   alias Effusion.BTP.Block
+  alias Effusion.Hash
 
   def new(info) do
     %{info: info, blocks: MapSet.new()}
@@ -106,7 +107,7 @@ defmodule Effusion.BTP.Torrent do
 
   defp correct_hash?(piece, info) do
     expected_hash = Enum.at(info.pieces, piece.index)
-    :crypto.hash(:sha, piece.data) == expected_hash
+    Hash.matches?(expected_hash, piece.data)
   end
 
   def write_to(torrent, file) do

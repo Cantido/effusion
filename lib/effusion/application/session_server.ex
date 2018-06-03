@@ -2,6 +2,7 @@ defmodule Effusion.Application.SessionServer do
   use GenServer
   require Logger
   alias Effusion.BTP.Session
+  alias Effusion.Hash
 
   @thp_client Application.get_env(:effusion, :thp_client)
 
@@ -75,7 +76,7 @@ defmodule Effusion.Application.SessionServer do
   end
 
   def handle_info(:timeout, state) do
-    _ = Logger.info("Announcing torrent #{Base.encode16 state.meta.info_hash, case: :lower} to #{inspect(state.meta.announce)} that I'm listening at #{inspect(state.local_peer)}")
+    _ = Logger.info("Announcing torrent #{Hash.inspect state.meta.info_hash} to #{inspect(state.meta.announce)} that I'm listening at #{inspect(state.local_peer)}")
 
     state = Session.announce(state, @thp_client)
 
