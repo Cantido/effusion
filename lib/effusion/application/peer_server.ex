@@ -12,8 +12,6 @@ defmodule Effusion.Application.PeerServer do
   It also makes the SessionServer responsible for selecting which pieces to request.
   """
 
-  # @transport Application.get_env(:effusion, :peer_transport)
-
   ## API
 
   def connect(address, peer_id, info_hash, session) when is_binary(peer_id) and byte_size(peer_id) == 20 and is_binary(info_hash) and byte_size(info_hash) == 20 and is_pid(session) do
