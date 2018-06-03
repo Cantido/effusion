@@ -64,18 +64,6 @@ defmodule Effusion.Application.PeerServerTest do
     assert {:ok, {:handshake, @local_peer_id, @info_hash, _}} = handshake
   end
 
-  test "PeerServer expresses interest & unchokes after we send a bitfield", %{lsock: lsock, session: session} do
-    {:ok, sock} = connect(lsock, session)
-    {:ok, bitmsg} = bitfield_msg([0])
-    :ok = :gen_tcp.send(sock, bitmsg)
-    msg1 = recv_message(sock)
-    msg2 = recv_message(sock)
-    :ok = :gen_tcp.close(sock)
-
-    assert {:ok, :interested} = msg1
-    assert {:ok, :unchoke} = msg2
-  end
-
   test "PeerServer requests blocks when we unchoke them", %{lsock: lsock, session: session} do
     {:ok, sock} = connect(lsock, session)
     {:ok, bitmsg} = bitfield_msg([0])

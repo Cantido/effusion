@@ -68,4 +68,16 @@ defmodule Effusion.BTP.PeerTest do
       :local_peer_already_handshaken
     }
   end
+
+  test "expresses interest and unchokes after we send a bitfield" do
+    peer = new()
+
+    {peer, msgs} = Peer.recv(peer, {:bitfield, <<0>>})
+
+    assert :interested in msgs
+    assert :unchoke in msgs
+
+    assert peer.am_interested
+    refute peer.am_choking
+  end
 end
