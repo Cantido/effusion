@@ -148,7 +148,9 @@ defmodule Effusion.PWP.Messages do
   def encode({:request, i, o, s}) when is_all_uint32(i, o, s), do: {:ok, <<6, i :: 32, o :: 32, s :: 32>>}
   def encode({:piece, i, o, b}) when is_all_uint32(i, o) and is_binary(b) and is_under_max_block_size(b), do: {:ok, <<7, i :: 32, o :: 32>> <> b}
   def encode({:cancel, i, o, s}) when is_all_uint32(i, o, s), do: {:ok, <<8, i :: 32, o :: 32, s :: 32>>}
-  def encode({:handshake, peer_id, info_hash}), do: Handshake.encode(peer_id, info_hash)
+  def encode({:handshake, peer_id, info_hash}) do
+    {:ok, Handshake.encode(peer_id, info_hash)}
+  end
 
   def encode(m), do: {:error, {:unknown_message, m}}
 end

@@ -22,7 +22,7 @@ defmodule Effusion.Application.PeerServerTest do
   @meta TestHelper.tiny_meta()
   @info_hash @meta.info_hash
 
-  @remote_handshake Messages.encode({:handshake, @remote_peer_id, @info_hash})
+  @remote_handshake {:handshake, @remote_peer_id, @info_hash}
 
   defp stub_announce(_, _, _, _, _, _, _, _) do
     {:ok, %{interval: 9_000, peers: []}}
@@ -52,7 +52,8 @@ defmodule Effusion.Application.PeerServerTest do
     {:ok, _pid} = PeerServer.connect(@remote_address, @local_peer_id, @info_hash, session)
     {:ok, sock} = :gen_tcp.accept(lsock, 5_000)
     {:ok, handshake_packet} = :gen_tcp.recv(sock, 68)
-    :ok = :gen_tcp.send(sock, @remote_handshake)
+    {:ok, hsbin} = Messages.encode(@remote_handshake)
+    :ok = :gen_tcp.send(sock, hsbin)
     :ok = :gen_tcp.close(sock)
 
     handshake =
@@ -128,7 +129,8 @@ defmodule Effusion.Application.PeerServerTest do
     {:ok, _pid} = PeerServer.connect(@remote_address, @local_peer_id, @info_hash, session)
     {:ok, sock} = :gen_tcp.accept(lsock, 1_000)
     {:ok, _handshake} = :gen_tcp.recv(sock, 68)
-    :ok = :gen_tcp.send(sock, @remote_handshake)
+    {:ok, hsbin} = Messages.encode(@remote_handshake)
+    :ok = :gen_tcp.send(sock, hsbin)
     :ok = :inet.setopts(sock, packet: 4)
     {:ok, sock}
   end

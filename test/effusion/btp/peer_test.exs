@@ -1,7 +1,6 @@
 defmodule Effusion.BTP.PeerTest do
   use ExUnit.Case
   alias Effusion.BTP.Peer
-  alias Effusion.PWP.Messages
   doctest Effusion.BTP.Peer
 
   def new do
@@ -17,7 +16,7 @@ defmodule Effusion.BTP.PeerTest do
   test "getting the handshake for a peer" do
     hs = Peer.get_handshake new()
 
-    assert hs == Messages.encode {
+    assert hs == {
       :handshake,
       "Fake Peer Id ~~~~~~~",
       "Fake Info Hash ~~~~~",

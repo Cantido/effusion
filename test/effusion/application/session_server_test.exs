@@ -20,7 +20,7 @@ defmodule Effusion.Application.SessionServerTest do
   @remote_host {127, 0, 0, 1}
   @remote_port 5679
   @remote_peer_id "Other peer 123456789"
-  @remote_handshake Messages.encode({:handshake, @remote_peer_id, @info_hash})
+  @remote_handshake {:handshake, @remote_peer_id, @info_hash}
 
 
   defp mock_announce(url, ip, port, peer_id, info_hash, up, down, left) do
@@ -70,7 +70,8 @@ defmodule Effusion.Application.SessionServerTest do
     {:ok, _pid} = start_supervised {SessionServer, [@meta, @local_peer, destfile]}
     {:ok, sock} = :gen_tcp.accept(lsock, 5_000)
     {:ok, handshake_packet} = :gen_tcp.recv(sock, 68)
-    :ok = :gen_tcp.send(sock, @remote_handshake)
+    {:ok, hsbin} = Messages.encode(@remote_handshake)
+    :ok = :gen_tcp.send(sock, hsbin)
     :ok = :gen_tcp.close(sock)
 
     handshake =

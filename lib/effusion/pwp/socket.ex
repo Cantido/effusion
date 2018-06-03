@@ -6,7 +6,7 @@ defmodule Effusion.PWP.Socket do
     {host, port} = peer.address
     {:ok, socket} = :gen_tcp.connect(host, port, [active: false], 1_000)
 
-    :ok = :gen_tcp.send(socket, Peer.get_handshake(peer))
+    :ok = send_msg(socket, Peer.get_handshake(peer))
     {:ok, hs_bin} = :gen_tcp.recv(socket, 68)
     {:ok, hs = {:handshake, _, _, _}} = Messages.decode(IO.iodata_to_binary(hs_bin))
     {:ok, peer} = Peer.handshake(peer, hs)

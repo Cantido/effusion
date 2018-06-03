@@ -19,7 +19,7 @@ defmodule Effusion.BTP.Peer do
   end
 
   def get_handshake(p) do
-    Messages.encode({:handshake, p.peer_id, p.info_hash})
+    {:handshake, p.peer_id, p.info_hash}
   end
 
   def handshake(p, {:handshake, remote_peer_id, info_hash, _reserved}) do
