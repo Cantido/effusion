@@ -60,7 +60,7 @@ defmodule Effusion.Application.PeerServer do
          :ok <- Logger.info "Got message #{inspect(msg1)}"
     do
       {state, messages} = Peer.recv(state, msg1)
-      Enum.map(messages, fn(m) -> :ok = Socket.send(state.socket, m) end)
+      Enum.map(messages, fn(m) -> :ok = Socket.send_msg(state.socket, m) end)
       {:noreply, state}
     else
       {:error, reason} -> {:stop, reason, state}

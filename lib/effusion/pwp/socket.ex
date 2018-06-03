@@ -14,7 +14,7 @@ defmodule Effusion.PWP.Socket do
     {:ok, socket, peer}
   end
 
-  def send(socket, msg) do
+  def send_msg(socket, msg) do
     {:ok, request} = Messages.encode(msg)
     :gen_tcp.send(socket, request)
   end
