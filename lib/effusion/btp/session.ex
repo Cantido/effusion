@@ -12,6 +12,7 @@ defmodule Effusion.BTP.Session do
       torrent: Torrent.new(meta.info),
       local_peer: local_server,
       peers: MapSet.new(),
+      connected_peers: Map.new(),
       peer_id: @local_peer_id,
       listeners: MapSet.new(),
       requested: MapSet.new()
@@ -71,6 +72,15 @@ defmodule Effusion.BTP.Session do
     )
 
     %{s | peers: res.peers}
+  end
+
+  def increment_connections(s) do
+    case select_peer(s) do
+      nil -> s
+      peer ->
+        {:ok, _socket} = connect_to_peer(s, peer)
+        Map.update!(s, :connected_peers, &Map.put(&1, peer.info_hash, peer))
+    end
   end
 
   def select_peer(s) do

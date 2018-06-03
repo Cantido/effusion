@@ -77,17 +77,13 @@ defmodule Effusion.Application.SessionServer do
   def handle_info(:timeout, state) do
     _ = Logger.info("Announcing torrent #{Base.encode16 state.meta.info_hash, case: :lower} to #{inspect(state.meta.announce)} that I'm listening at #{inspect(state.local_peer)}")
 
-    state1 = Session.announce(state, @thp_client)
+    state = Session.announce(state, @thp_client)
 
-    _ = Logger.info("Announce finished, got #{Enum.count(state1.peers)} peers.")
+    _ = Logger.info("Announce finished, got #{Enum.count(state.peers)} peers.")
 
-    case Session.select_peer(state1) do
-      nil ->
-        {:noreply, state1}
-      peer ->
-        {:ok, _socket} = Session.connect_to_peer(state1, peer)
-        {:noreply, state1}
-    end
+    state = Session.increment_connections(state)
+
+    {:noreply, state}
   end
 
   def handle_info(_, state) do
