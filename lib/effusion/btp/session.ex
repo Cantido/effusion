@@ -20,6 +20,16 @@ defmodule Effusion.BTP.Session do
     }
   end
 
+  def handle_msg(s, peer_id, msg) do
+    peer = Map.get(s.connected_peers, peer_id)
+    case peer do
+      nil -> {s, []}
+      p ->
+        {peer, messages} = Peer.recv(p, msg)
+        {%{s | connected_peers: Map.put(s.connected_peers, peer_id, peer)}, messages}
+    end
+  end
+
   def blocks(s) do
     Torrent.blocks(s.torrent)
   end
@@ -75,7 +85,31 @@ defmodule Effusion.BTP.Session do
     %{s | peers: res.peers}
   end
 
+  defp next_request_msg(s) do
+    case next_request(s) do
+      %{index: i, offset: o, size: s} -> [{:request, i, o, s}]
+      :done -> []
+    end
+  end
+
+  def recv(s, peer_id, {:piece, b} = msg) do
+    s = add_block(s, b)
+    session_messages = next_request_msg(s)
+    {s, peer_messages} = delegate_recv(s, peer_id, msg)
+    {s, session_messages ++ peer_messages}
+  end
+
+  def recv(s, peer_id, :unchoke = msg) do
+    session_messages = next_request_msg(s)
+    {s, peer_messages} = delegate_recv(s, peer_id, msg)
+    {s, session_messages ++ peer_messages}
+  end
+
   def recv(s, peer_id, msg) do
+    delegate_recv(s, peer_id, msg)
+  end
+
+  defp delegate_recv(s, peer_id, msg) do
     peer = Map.fetch!(s.connected_peers, peer_id)
     {peer, responses} = Peer.recv(peer, msg)
 

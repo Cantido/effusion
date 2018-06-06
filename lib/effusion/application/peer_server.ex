@@ -1,5 +1,6 @@
 defmodule Effusion.Application.PeerServer do
   use GenServer, restart: :temporary
+  alias Effusion.Application.SessionServer
   alias Effusion.PWP.Socket
   alias Effusion.BTP.Peer
   require Logger
@@ -58,7 +59,7 @@ defmodule Effusion.Application.PeerServer do
     with {:ok, msg1} <- Socket.decode(data),
          :ok <- Logger.info "Got message #{inspect(msg1)}"
     do
-      {state, messages} = Peer.recv(state, msg1)
+      messages = SessionServer.handle_message(state.session, state.peer_id, msg1)
       Enum.map(messages, fn(m) -> :ok = Socket.send_msg(state.socket, m) end)
       {:noreply, state}
     else

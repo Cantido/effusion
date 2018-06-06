@@ -36,6 +36,10 @@ defmodule Effusion.Application.SessionServer do
     GenServer.call(pid, :await, :infinity)
   end
 
+  def handle_message(pid, peer_id, msg) do
+      GenServer.call(pid, {:handle_msg, peer_id, msg})
+  end
+
   ## Callbacks
 
   defguard is_index(i) when is_integer(i) and i >= 0
@@ -45,6 +49,11 @@ defmodule Effusion.Application.SessionServer do
     state = Session.new(meta, local_peer, file)
 
     {:ok, state, 0}
+  end
+
+  def handle_call({:handle_msg, peer_id, msg}, _from, state) do
+    {state, messages} = Session.handle_msg(state, peer_id, msg)
+    {:reply, messages, state}
   end
 
   def handle_call(:get_blocks, _from, state) do

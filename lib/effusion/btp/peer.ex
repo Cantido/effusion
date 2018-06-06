@@ -1,7 +1,4 @@
 defmodule Effusion.BTP.Peer do
-  alias Effusion.PWP.Messages
-  alias Effusion.Application.SessionServer
-
   def new({_host, _port} = address, peer_id, info_hash, session) when is_pid(session) do
     %{
       address: address,
@@ -42,18 +39,10 @@ defmodule Effusion.BTP.Peer do
     {p, [:interested, :unchoke]}
   end
 
-  def recv(p, {:piece, b}) do
-    SessionServer.block(p.session, b)
-    {
-      p,
-      requests(p)
-    }
-  end
-
   def recv(p, :unchoke) do
     {
       Map.put(p, :peer_choking, false),
-      requests(p)
+      []
     }
   end
 
@@ -66,12 +55,5 @@ defmodule Effusion.BTP.Peer do
 
   def recv(p, _) do
     {p, []}
-  end
-
-  defp requests(p) do
-    case SessionServer.next_request(p.session) do
-      %{index: i, offset: o, size: s} -> [{:request, i, o, s}]
-      :done -> []
-    end
   end
 end
