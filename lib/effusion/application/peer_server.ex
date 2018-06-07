@@ -14,21 +14,20 @@ defmodule Effusion.Application.PeerServer do
 
   ## API
 
-  def connect(address, peer_id, info_hash, session) when is_binary(peer_id) and byte_size(peer_id) == 20 and is_binary(info_hash) and byte_size(info_hash) == 20 and is_pid(session) do
-    args = [address, peer_id, info_hash, session]
-    Effusion.Application.ConnectionSupervisor.start_child(args)
+  def connect(peer) do
+    Effusion.Application.ConnectionSupervisor.start_child(peer)
   end
 
-  def start_link([address, peer_id, info_hash, session]) when is_pid(session) do
-    GenServer.start_link(__MODULE__, [address, peer_id, info_hash, session])
+  def start_link(peer) do
+    GenServer.start_link(__MODULE__, peer)
   end
 
   ## Callbacks
 
-  def init([address, peer_id, info_hash, session]) when is_pid(session) do
+  def init(peer) do
     {
       :ok,
-      Peer.new(address, peer_id, info_hash, session),
+      peer,
       0
     }
   end

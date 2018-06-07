@@ -137,10 +137,11 @@ defmodule Effusion.BTP.Session do
 
   defp connect_to_peer(s, peer) do
     Effusion.Application.PeerServer.connect(
-      {peer.ip, peer.port},
-      s.peer_id,
-      s.meta.info_hash,
-      self()
-    )
+      Peer.new(
+        {peer.ip, peer.port},
+        s.peer_id,
+        s.meta.info_hash,
+        self())
+      )
   end
 end
