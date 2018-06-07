@@ -2,7 +2,6 @@ defmodule Effusion.Application.PeerServer do
   use GenServer, restart: :temporary
   alias Effusion.Application.SessionServer
   alias Effusion.PWP.Socket
-  alias Effusion.BTP.Peer
   require Logger
   @moduledoc """
   A connection to a peer.
@@ -25,11 +24,7 @@ defmodule Effusion.Application.PeerServer do
   ## Callbacks
 
   def init(peer) do
-    {
-      :ok,
-      peer,
-      0
-    }
+    { :ok, peer, 0 }
   end
 
   def handle_info(:timeout, state) do
@@ -43,7 +38,10 @@ defmodule Effusion.Application.PeerServer do
   end
 
   def handle_info({:tcp, _socket, data}, state) do
-    handle_packet(data, state)
+    case SessionServer.handle_packet(state.session, state.peer_id, data, state.socket) do
+      :ok -> {:noreply, state}
+      {:error, reason} -> {:stop, reason, state}
+    end
   end
 
   def handle_info({:tcp_closed, _socket}, state) do
@@ -52,18 +50,6 @@ defmodule Effusion.Application.PeerServer do
 
   def handle_info(_, state) do
     {:noreply, state}
-  end
-
-  defp handle_packet(data, state) do
-    with {:ok, msg1} <- Socket.decode(data),
-         :ok <- Logger.info "Got message #{inspect(msg1)}"
-    do
-      messages = SessionServer.handle_message(state.session, state.peer_id, msg1)
-      Enum.map(messages, fn(m) -> :ok = Socket.send_msg(state.socket, m) end)
-      {:noreply, state}
-    else
-      {:error, reason} -> {:stop, reason, state}
-    end
   end
 
   def terminate(_, %{socket: socket}) do

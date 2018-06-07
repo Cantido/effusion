@@ -3,6 +3,7 @@ defmodule Effusion.Application.SessionServer do
   require Logger
   alias Effusion.BTP.Session
   alias Effusion.Hash
+  alias Effusion.PWP.Socket
 
   @thp_client Application.get_env(:effusion, :thp_client)
 
@@ -38,6 +39,18 @@ defmodule Effusion.Application.SessionServer do
 
   def handle_message(pid, peer_id, msg) do
       GenServer.call(pid, {:handle_msg, peer_id, msg})
+  end
+
+  def handle_packet(pid, peer_id, data, socket) do
+    with {:ok, msg1} <- Socket.decode(data),
+         :ok <- Logger.info "Got message #{inspect(msg1)}"
+    do
+      messages = handle_message(pid, peer_id, msg1)
+      Enum.map(messages, fn(m) -> :ok = Socket.send_msg(socket, m) end)
+      :ok
+    else
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   ## Callbacks
