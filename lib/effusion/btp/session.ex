@@ -86,6 +86,12 @@ defmodule Effusion.BTP.Session do
     %{s | peers: res.peers}
   end
 
+  def start(session, thp_client) do
+    session
+    |> announce(thp_client)
+    |> increment_connections()
+  end
+
   defp next_request_msg(s) do
     case next_request(s) do
       %{index: i, offset: o, size: s} -> [{:request, i, o, s}]
