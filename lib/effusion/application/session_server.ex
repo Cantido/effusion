@@ -8,7 +8,7 @@ defmodule Effusion.Application.SessionServer do
 
   ## API
 
-  def start(meta, {_host, _port} = local_server, file \\ nil) when is_map(meta) do
+  def start(meta, {_host, _port} = local_server, file) when is_map(meta) do
     Effusion.Application.SessionServerSupervisor.start_child([meta, local_server, file])
   end
 
