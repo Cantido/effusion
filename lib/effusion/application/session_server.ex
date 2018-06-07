@@ -122,8 +122,6 @@ defmodule Effusion.Application.SessionServer do
   end
 
   def terminate(:normal, state) do
-    Session.write(state)
-
     reply_to_listeners(state, {:ok, Session.torrent(state)})
   end
 
