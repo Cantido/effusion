@@ -1,4 +1,4 @@
-defmodule Effusion.Application.PeerServer do
+defmodule Effusion.Application.Connection do
   use GenServer, restart: :temporary
   alias Effusion.Application.SessionServer
   alias Effusion.PWP.Socket
@@ -6,9 +6,8 @@ defmodule Effusion.Application.PeerServer do
   @moduledoc """
   A connection to a peer.
 
-  This connection sends messages back to the parent SessionServer containing
-  completed blocks, expecting the parent SessionServer to keep track of them.
-  It also makes the SessionServer responsible for selecting which pieces to request.
+  Allows for network IO to happen in a separate process,
+  and sends PWP messages back to the parent session server.
   """
 
   ## API

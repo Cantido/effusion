@@ -137,7 +137,7 @@ defmodule Effusion.BTP.Session do
   end
 
   defp connect_to_peer(s, peer) do
-    Effusion.Application.PeerServer.connect(
+    Effusion.Application.Connection.connect(
       Peer.new(
         {peer.ip, peer.port},
         s.peer_id,
