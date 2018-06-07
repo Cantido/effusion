@@ -2,7 +2,6 @@ defmodule Effusion.Application.SessionServer do
   use GenServer
   require Logger
   alias Effusion.BTP.Session
-  alias Effusion.Hash
   alias Effusion.PWP.Socket
 
   @thp_client Application.get_env(:effusion, :thp_client)
@@ -13,24 +12,8 @@ defmodule Effusion.Application.SessionServer do
     Effusion.Application.SessionServerSupervisor.start_child([meta, local_server, file])
   end
 
-  def start_link([meta, local_peer]) do
-    start_link([meta, local_peer, nil])
-  end
-
   def start_link([meta, local_peer, file]) do
     GenServer.start_link(__MODULE__, [meta, local_peer, file])
-  end
-
-  def block(pid, block) do
-    GenServer.call(pid, {:block, block})
-  end
-
-  def blocks(pid) do
-    GenServer.call(pid, :get_blocks)
-  end
-
-  def next_request(pid) do
-    GenServer.call(pid, :next_request)
   end
 
   def await(pid) do
@@ -47,15 +30,11 @@ defmodule Effusion.Application.SessionServer do
     end
   end
 
-  def handle_message(pid, peer_id, msg) do
-      GenServer.call(pid, {:handle_msg, peer_id, msg})
-  end
-
   def handle_packet(pid, peer_id, data, socket) do
     with {:ok, msg1} <- Socket.decode(data),
          :ok <- Logger.info "Got message #{inspect(msg1)}"
     do
-      messages = handle_message(pid, peer_id, msg1)
+      messages = GenServer.call(pid, {:handle_msg, peer_id, msg1})
       Enum.map(messages, fn(m) -> :ok = Socket.send_msg(socket, m) end)
       :ok
     else
@@ -64,9 +43,6 @@ defmodule Effusion.Application.SessionServer do
   end
 
   ## Callbacks
-
-  defguard is_index(i) when is_integer(i) and i >= 0
-  defguard is_size(x) when is_integer (x) and x > 0
 
   def init([meta, local_peer, file]) do
     state = Session.new(meta, local_peer, file)
@@ -77,27 +53,6 @@ defmodule Effusion.Application.SessionServer do
   def handle_call({:handle_msg, peer_id, msg}, _from, state) do
     {state, messages} = Session.handle_msg(state, peer_id, msg)
     {:reply, messages, state}
-  end
-
-  def handle_call(:get_blocks, _from, state) do
-    {:reply, Session.blocks(state), state}
-  end
-
-  def handle_call({:block, block}, _from, state) do
-    Session.add_block(state, block)
-
-    if(Session.done?(state)) do
-      {:stop, :normal, :ok, state}
-    else
-      {:reply, :ok, state}
-    end
-
-  end
-
-  def handle_call(:next_request, _from, state) do
-    {next_block, state1} = Session.next_request(state)
-
-    {:reply, next_block, state1}
   end
 
   def handle_call(:await, from, state) do
