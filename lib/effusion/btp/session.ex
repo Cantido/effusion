@@ -1,7 +1,6 @@
 defmodule Effusion.BTP.Session do
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Peer
-  alias Effusion.PWP.Socket
 
   @local_peer_id "Effusion Experiment!"
 
