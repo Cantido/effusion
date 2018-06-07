@@ -37,6 +37,16 @@ defmodule Effusion.Application.SessionServer do
     GenServer.call(pid, :await, :infinity)
   end
 
+  def connect(_, peer) do
+    with {:ok, socket, peer} <- Socket.connect(peer),
+         peer <- Map.put(peer, :socket, socket)
+    do
+      {:ok, peer}
+    else
+      _ -> {:error, :failed_handshake}
+    end
+  end
+
   def handle_message(pid, peer_id, msg) do
       GenServer.call(pid, {:handle_msg, peer_id, msg})
   end
@@ -116,16 +126,17 @@ defmodule Effusion.Application.SessionServer do
   def terminate(:normal, state) do
     Session.write(state)
 
-    Enum.each(
-      Session.listeners(state),
-      fn l -> GenServer.reply(l, {:ok, Session.torrent(state)}) end
-    )
+    reply_to_listeners(state, {:ok, Session.torrent(state)})
   end
 
   def terminate(reason, state) do
+    reply_to_listeners(state, {:error, :torrent_crashed, [reason: reason]})
+  end
+
+  defp reply_to_listeners(state, msg) do
     Enum.each(
       Session.listeners(state),
-      fn l -> GenServer.reply(l, {:error, :torrent_crashed, [reason: reason]}) end
+      fn l -> GenServer.reply(l, msg) end
     )
   end
 end
