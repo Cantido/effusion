@@ -84,9 +84,7 @@ defmodule Effusion.Application.SessionServer do
   end
 
   def handle_call({:block, block}, _from, state) do
-    state = state
-    |> Session.add_block(block)
-    |> Session.write()
+    Session.add_block(state, block)
 
     if(Session.done?(state)) do
       {:stop, :normal, :ok, state}

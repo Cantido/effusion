@@ -45,7 +45,8 @@ defmodule Effusion.BTP.Session do
 
   def add_block(s, block) do
     torrent = Torrent.add_block(s.torrent, block)
-    %{s | torrent: torrent}
+    s = %{s | torrent: torrent}
+    write(s)
   end
 
   def add_listener(s, pid) do
