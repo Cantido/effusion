@@ -28,7 +28,9 @@ defmodule Effusion.PWP.Connection do
 
   def handle_info(:timeout, peer) do
     case Socket.connect(peer) do
-      {:ok, _socket, peer} -> {:ok, peer}
+      {:ok, socket, peer} ->
+        :inet.setopts(socket, active: true)
+        {:ok, peer}
       _ -> {:stop, :failed_handshake, peer}
     end
   end

@@ -9,7 +9,7 @@ defmodule Effusion.PWP.Socket do
          {:ok, hs_bin} <- :gen_tcp.recv(socket, 68),
          {:ok, hs = {:handshake, _, _, _}} <- Messages.decode(IO.iodata_to_binary(hs_bin)),
          {:ok, peer} <- Peer.handshake(peer, hs),
-         :ok = :inet.setopts(socket, active: true, packet: 4)
+         :ok = :inet.setopts(socket, packet: 4)
     do
       {:ok, socket, peer}
     else
