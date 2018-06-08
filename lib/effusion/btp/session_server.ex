@@ -1,4 +1,4 @@
-defmodule Effusion.Application.SessionServer do
+defmodule Effusion.BTP.SessionServer do
   use GenServer
   require Logger
   alias Effusion.BTP.Session

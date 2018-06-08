@@ -1,4 +1,4 @@
-alias Effusion.Application.SessionServer
+alias Effusion.BTP.SessionServer
 
 defmodule Effusion do
   alias Effusion.BTP.Metainfo

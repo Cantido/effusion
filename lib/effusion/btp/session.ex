@@ -146,7 +146,7 @@ defmodule Effusion.BTP.Session do
       s.peer_id,
       s.meta.info_hash,
       self())
-    Effusion.Application.Connection.connect(peer)
+    Effusion.PWP.Connection.connect(peer)
     add_connected_peer(s, peer)
   end
 end

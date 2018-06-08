@@ -1,6 +1,6 @@
-defmodule Effusion.Application.Connection do
+defmodule Effusion.PWP.Connection do
   use GenServer, restart: :temporary
-  alias Effusion.Application.SessionServer
+  alias Effusion.BTP.SessionServer
   alias Effusion.PWP.Socket
   require Logger
   @moduledoc """
