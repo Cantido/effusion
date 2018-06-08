@@ -17,6 +17,10 @@ defmodule Effusion.PWP.Socket do
     end
   end
 
+  def send_all(socket, messages) do
+    Enum.map(messages, fn(m) -> :ok = send_msg(socket, m) end)
+  end
+
   def send_msg(socket, msg) do
     {:ok, request} = Messages.encode(msg)
     :gen_tcp.send(socket, request)

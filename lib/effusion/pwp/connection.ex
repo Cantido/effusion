@@ -37,7 +37,7 @@ defmodule Effusion.PWP.Connection do
     case Socket.decode(data) do
       {:ok, msg} ->
         messages = SessionServer.handle_message(session, peer_id, msg)
-        Enum.map(messages, fn(m) -> :ok = Socket.send_msg(socket, m) end)
+        Socket.send_all(socket, messages)
         {:noreply, state}
       {:error, reason} -> {:error, reason}
       err -> err
