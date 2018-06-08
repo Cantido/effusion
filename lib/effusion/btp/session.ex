@@ -52,6 +52,10 @@ defmodule Effusion.BTP.Session do
     Map.update!(s, :listeners, &MapSet.put(&1, pid))
   end
 
+  def each_listener(s, fun) do
+    Enum.each(s.listeners, &fun.(&1))
+  end
+
   def write(s) do
     {:ok, torrent} = Torrent.write_to(s.torrent, s.file)
     %{s | torrent: torrent}

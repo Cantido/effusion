@@ -58,9 +58,6 @@ defmodule Effusion.BTP.SessionServer do
   end
 
   defp reply_to_listeners(state, msg) do
-    Enum.each(
-      Session.listeners(state),
-      fn l -> GenServer.reply(l, msg) end
-    )
+    Session.each_listener(state, fn l -> GenServer.reply(l, msg) end)
   end
 end
