@@ -128,12 +128,10 @@ defmodule Effusion.BTP.Session do
     Map.update!(s, :connected_peers, &Map.put(&1, peer.peer_id, peer))
   end
 
-  def increment_connections(s) do
+  defp increment_connections(s) do
     case select_peer(s) do
       nil -> s
-      peer ->
-        {:ok, _socket} = connect_to_peer(s, peer)
-        add_connected_peer(s, peer)
+      peer -> connect_to_peer(s, peer)
     end
   end
 
@@ -143,12 +141,12 @@ defmodule Effusion.BTP.Session do
   end
 
   defp connect_to_peer(s, peer) do
-    Effusion.Application.Connection.connect(
-      Peer.new(
-        {peer.ip, peer.port},
-        s.peer_id,
-        s.meta.info_hash,
-        self())
-      )
+    peer = Peer.new(
+      {peer.ip, peer.port},
+      s.peer_id,
+      s.meta.info_hash,
+      self())
+    Effusion.Application.Connection.connect(peer)
+    add_connected_peer(s, peer)
   end
 end
