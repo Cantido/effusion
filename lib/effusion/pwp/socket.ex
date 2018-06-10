@@ -18,7 +18,8 @@ defmodule Effusion.PWP.Socket do
   end
 
   def send_all(socket, messages) do
-    Enum.map(messages, fn(m) -> :ok = send_msg(socket, m) end)
+    _ = Enum.map(messages, fn(m) -> :ok = send_msg(socket, m) end)
+    :ok
   end
 
   def send_msg(socket, msg) do

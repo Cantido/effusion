@@ -29,7 +29,7 @@ defmodule Effusion.PWP.Connection do
   def handle_info(:timeout, peer) do
     case Socket.connect(peer) do
       {:ok, socket, peer} ->
-        :inet.setopts(socket, active: true)
+        :ok = :inet.setopts(socket, active: true)
         {:ok, peer}
       _ -> {:stop, :failed_handshake, peer}
     end
@@ -39,10 +39,9 @@ defmodule Effusion.PWP.Connection do
     case Socket.decode(data) do
       {:ok, msg} ->
         messages = SessionServer.handle_message(session, peer_id, msg)
-        Socket.send_all(socket, messages)
+        :ok = Socket.send_all(socket, messages)
         {:noreply, state}
       {:error, reason} -> {:error, reason}
-      err -> err
     end
   end
 

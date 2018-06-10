@@ -1,6 +1,6 @@
 defmodule Effusion.BTP.Block do
   defguard is_index(i) when is_integer(i) and i >= 0
-  defguard is_size(x) when is_integer (x) and x > 0
+  defguard is_size(x) when is_integer(x) and x > 0
 
   def id(i, o, s) when is_index(i) and is_index(o) and is_size(s) do
     %{index: i, offset: o, size: s}

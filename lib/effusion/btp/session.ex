@@ -96,22 +96,22 @@ defmodule Effusion.BTP.Session do
     |> increment_connections()
   end
 
-  defp next_request_msg(s) do
-    case next_request(s) do
-      %{index: i, offset: o, size: s} -> [{:request, i, o, s}]
-      :done -> []
+  defp next_request_msg(session) do
+    case next_request(session) do
+      {%{index: i, offset: o, size: sz}, session} -> {[{:request, i, o, sz}], session}
+      {:done, session} -> {[], session}
     end
   end
 
   def recv(s, peer_id, {:piece, b} = msg) do
     s = add_block(s, b)
-    session_messages = next_request_msg(s)
+    {session_messages, s} = next_request_msg(s)
     {s, peer_messages} = delegate_recv(s, peer_id, msg)
     {s, session_messages ++ peer_messages}
   end
 
   def recv(s, peer_id, :unchoke = msg) do
-    session_messages = next_request_msg(s)
+    {session_messages, s} = next_request_msg(s)
     {s, peer_messages} = delegate_recv(s, peer_id, msg)
     {s, session_messages ++ peer_messages}
   end
@@ -150,7 +150,7 @@ defmodule Effusion.BTP.Session do
       s.peer_id,
       s.meta.info_hash,
       self())
-    Effusion.PWP.Connection.connect(peer)
+    {:ok, _} = Effusion.PWP.Connection.connect(peer)
     add_connected_peer(s, peer)
   end
 end
