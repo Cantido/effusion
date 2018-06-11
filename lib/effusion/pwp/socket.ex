@@ -17,6 +17,20 @@ defmodule Effusion.PWP.Socket do
     end
   end
 
+  def accept(lsock, peer) do
+    with {:ok, socket} <- :gen_tcp.accept(lsock, 5_000),
+         {:ok, hs_bin} <- :gen_tcp.recv(socket, 68),
+         {:ok, hs = {:handshake, _, _, _}} <- Messages.decode(IO.iodata_to_binary(hs_bin)),
+         {:ok, peer} <- Peer.handshake(peer, hs),
+         :ok <- send_msg(socket, Peer.get_handshake(peer)),
+         :ok <- :inet.setopts(socket, packet: 4)
+    do
+      {:ok, socket, peer}
+    else
+      err -> err
+    end
+  end
+
   def send_all(socket, messages) do
     _ = Enum.map(messages, fn(m) -> :ok = send_msg(socket, m) end)
     :ok
