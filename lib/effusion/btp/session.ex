@@ -115,7 +115,7 @@ defmodule Effusion.BTP.Session do
     {peer, responses} = Peer.recv(peer, msg)
 
     session = add_connected_peer(s, peer)
-    {session, Map.new([{peer.peer_id, responses}])}
+    {session, responses}
   end
 
   def add_connected_peer(s, peer) do
