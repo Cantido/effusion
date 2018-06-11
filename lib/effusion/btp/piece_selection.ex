@@ -8,10 +8,15 @@ defmodule Effusion.BTP.PieceSelection do
   def next_block(info, have_pieces, block_size) do
     all_blocks = all_possible_blocks(info.length, info.piece_length, block_size)
 
-    all_blocks
+    next_block = all_blocks
       |> Enum.reject(fn(b) -> Map.get(b, :index) in have_pieces end)
       |> Enum.take_random(1)
       |> Enum.at(0)
+
+    case next_block do
+      nil -> :done
+      b -> b
+    end
   end
 
   def all_possible_blocks(file_size, whole_piece_size, block_size)  do
