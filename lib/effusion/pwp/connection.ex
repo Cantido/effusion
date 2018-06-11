@@ -26,6 +26,10 @@ defmodule Effusion.PWP.Connection do
     { :ok, peer, 0 }
   end
 
+  defp ntoa({host, port}) when is_binary(host) do
+    "#{host}:#{port}"
+  end
+
   defp ntoa({host, port}) do
     "#{:inet.ntoa(host)}:#{port}"
   end
