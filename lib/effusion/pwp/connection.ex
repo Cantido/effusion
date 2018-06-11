@@ -30,7 +30,7 @@ defmodule Effusion.PWP.Connection do
     case Socket.connect(peer) do
       {:ok, socket, peer} ->
         :ok = :inet.setopts(socket, active: true)
-        {:ok, peer}
+        {:noreply, peer}
       _ -> {:stop, :failed_handshake, peer}
     end
   end
