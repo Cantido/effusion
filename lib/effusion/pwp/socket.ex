@@ -27,6 +27,11 @@ defmodule Effusion.PWP.Socket do
     :gen_tcp.send(socket, request)
   end
 
+  def recv(socket) do
+    {:ok, packet} = :gen_tcp.recv(socket, 0)
+    decode(packet)
+  end
+
   def decode(data) do
     data1 = IO.iodata_to_binary(data)
     Messages.decode(data1)
