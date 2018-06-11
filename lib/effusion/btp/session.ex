@@ -20,16 +20,6 @@ defmodule Effusion.BTP.Session do
     }
   end
 
-  def handle_msg(s, peer_id, msg) do
-    peer = Map.get(s.connected_peers, peer_id)
-    case peer do
-      nil -> {s, []}
-      p ->
-        {peer, messages} = Peer.recv(p, msg)
-        {%{s | connected_peers: Map.put(s.connected_peers, peer_id, peer)}, messages}
-    end
-  end
-
   def blocks(s) do
     Torrent.blocks(s.torrent)
   end

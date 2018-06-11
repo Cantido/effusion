@@ -32,7 +32,7 @@ defmodule Effusion.BTP.SessionServer do
   end
 
   def handle_call({:handle_msg, peer_id, msg}, _from, state) do
-    {state, messages} = Session.handle_msg(state, peer_id, msg)
+    {state, messages} = Session.handle_message(state, peer_id, msg)
     {:reply, messages, state}
   end
 
