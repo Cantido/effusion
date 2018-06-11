@@ -11,8 +11,7 @@ defmodule Effusion.PWP.Socket do
     with {host, port} = peer.address,
          {:ok, socket} <- :gen_tcp.connect(host, port, [active: false], 5_000),
          :ok <- send_msg(socket, Peer.get_handshake(peer)),
-         {:ok, hs_bin} <- :gen_tcp.recv(socket, 68),
-         {:ok, hs = {:handshake, _, _, _}} <- Messages.decode(IO.iodata_to_binary(hs_bin)),
+         {:ok, hs = {:handshake, _, _, _}} <- recv(socket, 68),
          {:ok, peer} <- Peer.handshake(peer, hs),
          :ok <- :inet.setopts(socket, packet: 4)
     do
@@ -24,8 +23,7 @@ defmodule Effusion.PWP.Socket do
 
   def accept(lsock, peer) do
     with {:ok, socket} <- :gen_tcp.accept(lsock, 5_000),
-         {:ok, hs_bin} <- :gen_tcp.recv(socket, 68),
-         {:ok, hs = {:handshake, _, _, _}} <- Messages.decode(IO.iodata_to_binary(hs_bin)),
+         {:ok, hs = {:handshake, _, _, _}} <- recv(socket, 68),
          {:ok, peer} <- Peer.handshake(peer, hs),
          :ok <- send_msg(socket, Peer.get_handshake(peer)),
          :ok <- :inet.setopts(socket, packet: 4)
@@ -46,8 +44,8 @@ defmodule Effusion.PWP.Socket do
     :gen_tcp.send(socket, request)
   end
 
-  def recv(socket) do
-    {:ok, packet} = :gen_tcp.recv(socket, 0)
+  def recv(socket, size \\ 0) do
+    {:ok, packet} = :gen_tcp.recv(socket, size)
     decode(packet)
   end
 
