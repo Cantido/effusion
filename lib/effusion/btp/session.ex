@@ -131,7 +131,8 @@ defmodule Effusion.BTP.Session do
 
   defp select_peer(s) do
     s.peers
-       |> Enum.find(fn(p) -> Map.get(p, :peer_id) != s.peer_id end)
+       |> Enum.reject(fn(p) -> Map.get(p, :peer_id) == s.peer_id end)
+       |> Enum.random()
   end
 
   defp connect_to_peer(s, peer) do
