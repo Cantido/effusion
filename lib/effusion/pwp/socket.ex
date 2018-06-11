@@ -4,12 +4,12 @@ defmodule Effusion.PWP.Socket do
   alias Effusion.BTP.Peer
 
   def listen(port) do
-    :gen_tcp.listen(port, [:binary, active: false, reuseaddr: true, send_timeout: 5_000])
+    :gen_tcp.listen(port, [:binary, active: false, reuseaddr: true, send_timeout: 1_000])
   end
 
   def connect(peer) do
     with {host, port} = peer.address,
-         {:ok, socket} <- :gen_tcp.connect(host, port, [active: false], 5_000),
+         {:ok, socket} <- :gen_tcp.connect(host, port, [active: false], 1_000),
          :ok <- send_msg(socket, Peer.get_handshake(peer)),
          {:ok, hs = {:handshake, _, _, _}} <- recv(socket, 68),
          {:ok, peer} <- Peer.handshake(peer, hs),
@@ -22,7 +22,7 @@ defmodule Effusion.PWP.Socket do
   end
 
   def accept(lsock, peer) do
-    with {:ok, socket} <- :gen_tcp.accept(lsock, 5_000),
+    with {:ok, socket} <- :gen_tcp.accept(lsock, 1_000),
          {:ok, hs = {:handshake, _, _, _}} <- recv(socket, 68),
          {:ok, peer} <- Peer.handshake(peer, hs),
          :ok <- send_msg(socket, Peer.get_handshake(peer)),
