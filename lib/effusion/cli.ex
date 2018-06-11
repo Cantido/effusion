@@ -1,4 +1,5 @@
 defmodule Effusion.CLI do
+  alias Effusion.BTP.Metainfo
 
   @aliases [o: :output]
   @strict [output: :string]
@@ -9,6 +10,9 @@ defmodule Effusion.CLI do
       IO.warn("Invalid option #{i}")
     end)
 
-    {:ok, _torrent} = Effusion.download(file, dest)
+    {:ok, metabin} = File.read file
+    {:ok, meta} = Metainfo.decode(metabin)
+
+    {:ok, _torrent} = Effusion.download(meta, dest)
   end
 end
