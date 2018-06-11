@@ -52,14 +52,6 @@ defmodule Effusion.BTP.BlockTest do
     assert 1 == Block.size(%{index: 0, offset: 0, size: 1})
   end
 
-  test "an empty block is split into nothing" do
-    unsplit = Block.id(0, 0, 0)
-    splits = Block.split(unsplit, 2)
-
-    assert Enum.count(splits) == 0
-    assert splits == MapSet.new
-  end
-
   test "can be split into uneven pieces" do
     unsplit = Block.id(0, 0, 5)
     splits = Block.split(unsplit, 2)

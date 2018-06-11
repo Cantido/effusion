@@ -24,10 +24,10 @@ defmodule Effusion.BTP.SessionTest do
   test "expresses interest and unchokes after we send a bitfield" do
     session = new()
 
-    {session, msgs} = Session.recv(session, "Fake Peer Id ~~~~~~~", {:bitfield, <<0>>})
+    {session, msgs} = Session.handle_message(session, "Fake Peer Id ~~~~~~~", {:bitfield, <<0>>})
 
 
-    assert msgs == %{"Fake Peer Id ~~~~~~~" => [:interested, :unchoke]}
+    assert msgs == [:interested, :unchoke]
 
     peer = Map.get(session.connected_peers, "Fake Peer Id ~~~~~~~")
 

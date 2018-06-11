@@ -26,7 +26,7 @@ defmodule Effusion.PWP.SocketTest do
 
   describe "connect/1" do
     test "connects and sends a handshake first", %{lsock: lsock, peer: peer} do
-      task = Task.async(fn -> Socket.connect(peer) end)
+      _ = Task.async(fn -> Socket.connect(peer) end)
       {:ok, sock} = :gen_tcp.accept(lsock)
       {:ok, outgoing_handshake_bin} = :gen_tcp.recv(sock, 68)
       {:ok, outgoing_handshake} = outgoing_handshake_bin
@@ -44,6 +44,7 @@ defmodule Effusion.PWP.SocketTest do
       :ok = :gen_tcp.send(sock, good_handshake)
 
       {:ok, _, peer} = Task.await(task)
+      assert peer.handshaken
     end
 
     test "returns an error if the handshake is bad", %{lsock: lsock, peer: peer} do
