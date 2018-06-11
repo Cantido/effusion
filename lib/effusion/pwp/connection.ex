@@ -50,7 +50,7 @@ defmodule Effusion.PWP.Connection do
         Logger.debug("replying: #{inspect(messages)}")
         :ok = Socket.send_all(socket, messages)
         {:noreply, state}
-      {:error, reason} -> {:error, reason}
+      {:error, reason} -> {:stop, {:bad_message, reason, data}, state}
     end
   end
 
