@@ -1,6 +1,7 @@
 defmodule Effusion.BTP.Session do
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Peer
+  require Logger
 
   @local_peer_id "Effusion Experiment!"
 
@@ -103,6 +104,8 @@ defmodule Effusion.BTP.Session do
   def handle_message(s, peer_id, :unchoke = msg) do
     {session_messages, s} = next_request_msg(s)
     {s, peer_messages} = delegate_message(s, peer_id, msg)
+    messages = session_messages ++ peer_messages
+    Logger.debug("Got unchoke, so sending these request messages: #{inspect(messages)}")
     {s, session_messages ++ peer_messages}
   end
 
