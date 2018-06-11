@@ -103,24 +103,24 @@ defmodule Effusion.BTP.Session do
     end
   end
 
-  def recv(s, peer_id, {:piece, b} = msg) do
+  def handle_message(s, peer_id, {:piece, b} = msg) do
     s = add_block(s, b)
     {session_messages, s} = next_request_msg(s)
-    {s, peer_messages} = delegate_recv(s, peer_id, msg)
+    {s, peer_messages} = delegate_message(s, peer_id, msg)
     {s, session_messages ++ peer_messages}
   end
 
-  def recv(s, peer_id, :unchoke = msg) do
+  def handle_message(s, peer_id, :unchoke = msg) do
     {session_messages, s} = next_request_msg(s)
-    {s, peer_messages} = delegate_recv(s, peer_id, msg)
+    {s, peer_messages} = delegate_message(s, peer_id, msg)
     {s, session_messages ++ peer_messages}
   end
 
-  def recv(s, peer_id, msg) do
-    delegate_recv(s, peer_id, msg)
+  def handle_message(s, peer_id, msg) do
+    delegate_message(s, peer_id, msg)
   end
 
-  defp delegate_recv(s, peer_id, msg) do
+  defp delegate_message(s, peer_id, msg) do
     peer = Map.fetch!(s.connected_peers, peer_id)
     {peer, responses} = Peer.recv(peer, msg)
 
