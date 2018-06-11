@@ -2,6 +2,11 @@ defmodule Effusion.PWP.Socket do
   require Logger
   alias Effusion.PWP.Messages
   alias Effusion.BTP.Peer
+
+  def listen(port) do
+    :gen_tcp.listen(port, [:binary, active: false, reuseaddr: true, send_timeout: 5_000])
+  end
+
   def connect(peer) do
     with {host, port} = peer.address,
          {:ok, socket} <- :gen_tcp.connect(host, port, [active: false], 5_000),
@@ -49,5 +54,9 @@ defmodule Effusion.PWP.Socket do
   def decode(data) do
     data1 = IO.iodata_to_binary(data)
     Messages.decode(data1)
+  end
+
+  def close(socket) do
+    :gen_tcp.close(socket)
   end
 end

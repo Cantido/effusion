@@ -47,10 +47,10 @@ defmodule EffusionTest do
 
   setup do
     {_host, port} = @remote_peer.address
-    {:ok, lsock} = :gen_tcp.listen(port, [:binary, active: false, reuseaddr: true, send_timeout: 5_000])
+    {:ok, lsock} = Socket.listen(port)
 
     on_exit fn ->
-      :ok = :gen_tcp.close(lsock)
+      :ok = Socket.close(lsock)
     end
 
     %{lsock: lsock}

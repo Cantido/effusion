@@ -63,7 +63,7 @@ defmodule Effusion.PWP.Connection do
   end
 
   def terminate(_, %{socket: socket}) do
-    :gen_tcp.close(socket)
+    Socket.close(socket)
   end
 
   def terminate(_, _), do: :ok
