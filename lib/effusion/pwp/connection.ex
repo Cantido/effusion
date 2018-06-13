@@ -20,6 +20,10 @@ defmodule Effusion.PWP.Connection do
     GenServer.start_link(__MODULE__, peer)
   end
 
+  def peer_id(pid) do
+    GenServer.call(pid, :peer_id)
+  end
+
   ## Callbacks
 
   def init(peer) do
@@ -60,6 +64,10 @@ defmodule Effusion.PWP.Connection do
   end
 
   def handle_info(:timeout, peer), do: handshake(peer)
+  def handle_call(:peer_id, _from, %{remote_peer_id: remote_peer_id} = state) do
+    {:reply, remote_peer_id, state}
+  end
+
   def handle_info({:tcp, socket, data}, state), do: handle_packet(socket, data, state)
   def handle_info({:tcp_closed, _socket}, state), do: {:stop, :normal, state}
   def handle_info(_, state), do: {:noreply, state}
