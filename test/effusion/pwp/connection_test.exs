@@ -4,7 +4,7 @@ defmodule Effusion.PWP.ConnectionTest do
   doctest Effusion.PWP.Connection
 
   test "replies stop when decode of a packet fails" do
-    state = %{session: nil, remote_peer_id: nil}
+    state = {nil, nil, nil}
 
     actual_response = Connection.handle_packet(nil, <<"bad message!!!">>, state)
     expected_response = {:stop, {:bad_message, :invalid, <<"bad message!!!">>}, state}
