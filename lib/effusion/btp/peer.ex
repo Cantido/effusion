@@ -15,6 +15,10 @@ defmodule Effusion.BTP.Peer do
     }
   end
 
+  def set_remote_peer_id(p = %{peer_id: peer_id}, remote_peer_id) when peer_id != remote_peer_id do
+    Map.put(p, :remote_peer_id, remote_peer_id)
+  end
+
   def get_handshake(p) do
     {:handshake, p.peer_id, p.info_hash}
   end

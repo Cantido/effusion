@@ -39,12 +39,12 @@ defmodule Effusion.BTP.Session do
     write(s)
   end
 
-  def add_listener(s, pid) do
+  def add_listener(s, pid) when is_pid(pid) do
     Map.update!(s, :listeners, &MapSet.put(&1, pid))
   end
 
-  def each_listener(s, fun) do
-    Enum.each(s.listeners, &fun.(&1))
+  def each_listener(%{listeners: listeners}, fun) do
+    Enum.each(listeners, &fun.(&1))
   end
 
   def write(s) do
@@ -94,50 +94,50 @@ defmodule Effusion.BTP.Session do
     end
   end
 
-  def handle_message(s, peer_id, {:piece, b} = msg) do
+  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, {:piece, b} = msg) when peer_id != remote_peer_id do
     s = add_block(s, b)
     {session_messages, s} = next_request_msg(s)
-    {s, peer_messages} = delegate_message(s, peer_id, msg)
+    {s, peer_messages} = delegate_message(s, remote_peer_id, msg)
     {s, session_messages ++ peer_messages}
   end
 
-  def handle_message(s, peer_id, :unchoke = msg) do
+  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, :unchoke = msg) when peer_id != remote_peer_id do
     {session_messages, s} = next_request_msg(s)
-    {s, peer_messages} = delegate_message(s, peer_id, msg)
+    {s, peer_messages} = delegate_message(s, remote_peer_id, msg)
     messages = session_messages ++ peer_messages
     Logger.debug("Got unchoke, so sending these request messages: #{inspect(messages)}")
     {s, session_messages ++ peer_messages}
   end
 
-  def handle_message(s, peer_id, msg) do
-    delegate_message(s, peer_id, msg)
+  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, msg) when peer_id != remote_peer_id do
+    delegate_message(s, remote_peer_id, msg)
   end
 
-  defp delegate_message(s, peer_id, msg) do
-    peer = get_connected_peer(s, peer_id)
+  defp delegate_message(s = %{peer_id: peer_id}, remote_peer_id, msg) when peer_id != remote_peer_id do
+    peer = get_connected_peer(s, remote_peer_id)
     {peer, responses} = Peer.recv(peer, msg)
 
     session = add_connected_peer(s, peer)
     {session, responses}
   end
 
-  defp get_connected_peer(s, peer_id) do
+  defp get_connected_peer(s = %{peer_id: peer_id}, remote_peer_id) when peer_id != remote_peer_id do
     s
     |> Map.get(:connected_peers, Map.new())
-    |> Map.get(peer_id, default_peer(s, peer_id))
+    |> Map.get(remote_peer_id, default_peer(s, remote_peer_id))
   end
 
-  defp default_peer(%{peer_id: peer_id, meta: %{info_hash: info_hash}}, remote_peer_id) do
+  defp default_peer(%{peer_id: peer_id, meta: %{info_hash: info_hash}}, remote_peer_id) when peer_id != remote_peer_id do
     Peer.new(
       {nil, nil},
       peer_id,
       info_hash,
       self())
-    |> Map.put(:remote_peer_id, remote_peer_id)
+    |> Peer.set_remote_peer_id(remote_peer_id)
   end
 
-  def add_connected_peer(s, peer) do
-    Map.update!(s, :connected_peers, &Map.put(&1, peer.peer_id, peer))
+  def add_connected_peer(s = %{peer_id: peer_id}, peer = %{remote_peer_id: remote_peer_id}) when peer_id != remote_peer_id do
+    Map.update!(s, :connected_peers, &Map.put(&1, remote_peer_id, peer))
   end
 
   defp increment_connections(s) do
@@ -149,7 +149,7 @@ defmodule Effusion.BTP.Session do
 
   defp select_peer(s) do
     s.peers
-       |> Enum.reject(fn(p) -> Map.get(p, :peer_id) == s.peer_id end)
+       |> Enum.reject(fn(p) -> Map.get(p, :remote_peer_id) == s.peer_id end)
        |> Enum.random()
   end
 
