@@ -9,7 +9,7 @@ defmodule Effusion.PWP.Socket do
 
   def connect(peer) do
     with {host, port} = peer.address,
-         {:ok, socket} <- :gen_tcp.connect(host, port, [active: false], 1_000),
+         {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false], 1_000),
          :ok <- send_msg(socket, Peer.get_handshake(peer)),
          {:ok, hs = {:handshake, _, _, _}} <- recv(socket, 68),
          {:ok, peer} <- Peer.handshake(peer, hs),
@@ -50,8 +50,7 @@ defmodule Effusion.PWP.Socket do
   end
 
   def decode(data) do
-    data1 = IO.iodata_to_binary(data)
-    Messages.decode(data1)
+    Messages.decode(data)
   end
 
   def close(socket) do
