@@ -50,7 +50,7 @@ defmodule Effusion.PWP.Connection do
     end
   end
 
-  def handle_packet(socket, data, %{session: session, peer_id: peer_id} = state) do
+  def handle_packet(socket, data, %{session: session, remote_peer_id: peer_id} = state) do
     case Socket.decode(data) do
       {:ok, msg} ->
         Logger.debug("Got a message!!! #{inspect(msg)}")
