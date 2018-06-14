@@ -114,11 +114,26 @@ defmodule Effusion.BTP.Session do
   end
 
   defp delegate_message(s, peer_id, msg) do
-    peer = Map.fetch!(s.connected_peers, peer_id)
+    peer = get_connected_peer(s, peer_id)
     {peer, responses} = Peer.recv(peer, msg)
 
     session = add_connected_peer(s, peer)
     {session, responses}
+  end
+
+  defp get_connected_peer(s, peer_id) do
+    s
+    |> Map.get(:connected_peers, Map.new())
+    |> Map.get(peer_id, default_peer(s, peer_id))
+  end
+
+  defp default_peer(%{peer_id: peer_id, meta: %{info_hash: info_hash}}, remote_peer_id) do
+    Peer.new(
+      {nil, nil},
+      peer_id,
+      info_hash,
+      self())
+    |> Map.put(:remote_peer_id, remote_peer_id)
   end
 
   def add_connected_peer(s, peer) do
@@ -145,6 +160,6 @@ defmodule Effusion.BTP.Session do
       s.meta.info_hash,
       self())
     {:ok, _} = Effusion.PWP.Connection.connect(peer)
-    add_connected_peer(s, peer)
+    s
   end
 end
