@@ -78,7 +78,18 @@ defmodule Effusion.BTP.Session do
       s.meta.info.length
     )
 
-    %{s | peers: res.peers}
+    peers =
+      Enum.map(
+        res.peers,
+        fn p ->
+          Peer.new(
+            {p.ip, p.port},
+            p.peer_id,
+            s.meta.info_hash,
+            self())
+        end)
+
+    %{s | peers: peers}
   end
 
   def start(session, thp_client) do
@@ -136,8 +147,23 @@ defmodule Effusion.BTP.Session do
     |> Peer.set_remote_peer_id(remote_peer_id)
   end
 
+  def add_connected_peer(s, peer_id, peer_address) do
+    peer = Peer.new(
+      peer_address,
+      s.peer_id,
+      s.meta.info_hash,
+      self())
+    |> Map.put(:remote_peer_id, peer_id)
+
+    add_connected_peer(s, peer)
+  end
+
   def add_connected_peer(s = %{peer_id: peer_id}, peer = %{remote_peer_id: remote_peer_id}) when peer_id != remote_peer_id do
     Map.update!(s, :connected_peers, &Map.put(&1, remote_peer_id, peer))
+  end
+
+  def remove_connected_peer(s, peer_id) do
+    Map.update!(s, :connected_peers, &Map.delete(&1, peer_id))
   end
 
   defp increment_connections(s) do
@@ -154,11 +180,6 @@ defmodule Effusion.BTP.Session do
   end
 
   defp connect_to_peer(s, peer) do
-    peer = Peer.new(
-      {peer.ip, peer.port},
-      s.peer_id,
-      s.meta.info_hash,
-      self())
     {:ok, _} = Effusion.PWP.Connection.connect(peer)
     s
   end
