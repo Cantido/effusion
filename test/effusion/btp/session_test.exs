@@ -7,8 +7,6 @@ defmodule Effusion.BTP.SessionTest do
 
   setup :verify_on_exit!
 
-
-
   def new do
     metainfo = TestHelper.tiny_meta()
 
