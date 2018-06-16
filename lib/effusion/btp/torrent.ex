@@ -45,6 +45,10 @@ defmodule Effusion.BTP.Torrent do
     (pieces(torrent) |> Enum.count()) == Enum.count(torrent.info.pieces)
   end
 
+  def bytes_completed(torrent) do
+    bytes_received(torrent) + bytes_written(torrent)
+  end
+
   def bytes_received(torrent) do
     info = torrent.info
     pieces = pieces(torrent)

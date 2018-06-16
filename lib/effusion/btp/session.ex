@@ -49,8 +49,12 @@ defmodule Effusion.BTP.Session do
   end
 
   def write(s) do
-    {:ok, torrent} = Torrent.write_to(s.torrent, s.file)
-    %{s | torrent: torrent}
+    if s.file == nil do
+      s
+    else
+      {:ok, torrent} = Torrent.write_to(s.torrent, s.file)
+      %{s | torrent: torrent}
+    end
   end
 
   def done?(s) do
@@ -75,8 +79,8 @@ defmodule Effusion.BTP.Session do
       s.peer_id,
       s.meta.info_hash,
       0,
-      0,
-      s.meta.info.length
+      Torrent.bytes_completed(s.torrent),
+      Torrent.bytes_left(s.torrent)
     )
 
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
