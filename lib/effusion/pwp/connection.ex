@@ -39,7 +39,7 @@ defmodule Effusion.PWP.Connection do
     case Socket.connect(peer) do
       {:ok, socket, peer} ->
         Logger.debug("Successfully connected to #{ntoa(peer.address)}")
-        :ok = SessionServer.register_connection(peer.session, peer.remote_peer_id, peer.address)
+        {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, peer.remote_peer_id)
         :ok = :inet.setopts(socket, active: :once)
         {:noreply, {socket, peer.session, peer.remote_peer_id, peer.address}}
       {:error, reason} ->

@@ -6,7 +6,8 @@ defmodule Effusion.Application do
   def start(_type, _args) do
     children = [
       Effusion.Application.SessionServerSupervisor,
-      Effusion.Application.ConnectionSupervisor
+      Effusion.Application.ConnectionSupervisor,
+      {Registry, keys: :duplicate, name: ConnectionRegistry}
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]

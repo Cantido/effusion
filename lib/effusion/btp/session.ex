@@ -163,17 +163,6 @@ defmodule Effusion.BTP.Session do
     |> Peer.set_remote_peer_id(remote_peer_id)
   end
 
-  def add_connected_peer(s, peer_id, peer_address) do
-    peer = Peer.new(
-      peer_address,
-      s.peer_id,
-      s.meta.info_hash,
-      self())
-    |> Map.put(:remote_peer_id, peer_id)
-
-    add_connected_peer(s, peer)
-  end
-
   def add_connected_peer(s = %{peer_id: peer_id}, peer = %{remote_peer_id: remote_peer_id}) when peer_id != remote_peer_id do
     Map.update!(s, :connected_peers, &Map.put(&1, remote_peer_id, peer))
   end
