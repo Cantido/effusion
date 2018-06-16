@@ -96,6 +96,13 @@ defmodule Effusion.BTP.TorrentTest do
     assert Torrent.bytes_left(torrent) == 2
   end
 
+  test "bytes_left returns a value if the torrent is incomplete and has unfinished pieces" do
+    torrent = Torrent.new(@meta.info)
+    |> Torrent.add_block(%{index: 0, offset: 0, data: "t"})
+
+    assert Torrent.bytes_left(torrent) == 4
+  end
+
   test "bytes_left returns a value if the torrent is incomplete, and we have the last odd-sized piece" do
     torrent = Torrent.new(@meta.info)
     |> Torrent.add_block(%{index: 1, offset: 0, data: "y\n"})

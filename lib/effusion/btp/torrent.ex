@@ -46,10 +46,10 @@ defmodule Effusion.BTP.Torrent do
   end
 
   def bytes_completed(torrent) do
-    bytes_received(torrent) + bytes_written(torrent)
+    bytes_received(torrent) + bytes_written(torrent) + bytes_in_blocks(torrent)
   end
 
-  def bytes_received(torrent) do
+  defp bytes_received(torrent) do
     info = torrent.info
     pieces = pieces(torrent)
 
@@ -66,7 +66,7 @@ defmodule Effusion.BTP.Torrent do
     end
   end
 
-  def bytes_written(torrent) do
+  defp bytes_written(torrent) do
     info = torrent.info
     pieces = Map.get(torrent, :written, IntSet.new())
 
@@ -83,11 +83,16 @@ defmodule Effusion.BTP.Torrent do
     end
   end
 
+  defp bytes_in_blocks(torrent) do
+    blocks(torrent)
+    |> Enum.reduce(0, fn b, acc -> acc + byte_size(b.data) end)
+  end
+
   def bytes_left(torrent) do
     if done?(torrent) do
       0
     else
-      torrent.info.length - bytes_received(torrent) - bytes_written(torrent)
+      torrent.info.length - bytes_completed(torrent)
     end
   end
 
