@@ -79,6 +79,8 @@ defmodule Effusion.BTP.Session do
       s.meta.info.length
     )
 
+    Process.send_after(self(), :interval_expired, res.interval * 1_000)
+
     peers =
       Enum.map(
         res.peers,

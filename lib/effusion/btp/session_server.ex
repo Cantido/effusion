@@ -61,6 +61,10 @@ defmodule Effusion.BTP.SessionServer do
     {:noreply, Session.start(state, @thp_client)}
   end
 
+  def handle_info(:interval_expired, state) do
+    {:noreply, Session.announce(state, @thp_client)}
+  end
+
   def handle_info(_, state) do
     {:noreply, state}
   end
