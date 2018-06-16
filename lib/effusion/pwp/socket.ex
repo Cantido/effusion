@@ -45,8 +45,10 @@ defmodule Effusion.PWP.Socket do
   end
 
   def recv(socket, size \\ 0) do
-    {:ok, packet} = :gen_tcp.recv(socket, size)
-    decode(packet)
+    case :gen_tcp.recv(socket, size) do
+      {:ok, packet} -> decode(packet)
+      err -> err
+    end
   end
 
   def decode(data) do
