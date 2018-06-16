@@ -58,4 +58,8 @@ defmodule Effusion.PWP.Socket do
   def close(socket) do
     :gen_tcp.close(socket)
   end
+
+  def address(socket) when not is_nil(socket) do
+    :inet.peername(socket)
+  end
 end

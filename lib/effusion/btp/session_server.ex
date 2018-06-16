@@ -27,8 +27,8 @@ defmodule Effusion.BTP.SessionServer do
     GenServer.call(pid, {:register_connection, peer_id, peer_address})
   end
 
-  def unregister_connection(pid, peer_id) do
-    GenServer.call(pid, {:unregister_connection, peer_id})
+  def unregister_connection(pid, peer_id, address \\ nil) do
+    GenServer.call(pid, {:unregister_connection, peer_id, address})
   end
 
   ## Callbacks
@@ -44,8 +44,8 @@ defmodule Effusion.BTP.SessionServer do
     {:reply, messages, state}
   end
 
-  def handle_call(:await, from, state) do
-    state = Session.add_listener(state, from)
+  def handle_call(:await, {from_pid, _from_ref}, state) do
+    state = Session.add_listener(state, from_pid)
     {:noreply, state}
   end
 
@@ -53,8 +53,8 @@ defmodule Effusion.BTP.SessionServer do
     {:reply, :ok, Session.add_connected_peer(state, peer_id, peer_address)}
   end
 
-  def handle_call({:unregister_connection, peer_id}, _from, state) do
-    {:reply, :ok, Session.remove_connected_peer(state, peer_id)}
+  def handle_call({:unregister_connection, peer_id, address}, _from, state) do
+    {:reply, :ok, Session.handle_disconnect(state, peer_id, address)}
   end
 
   def handle_info(:timeout, state) do

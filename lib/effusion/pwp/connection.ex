@@ -41,13 +41,13 @@ defmodule Effusion.PWP.Connection do
         Logger.debug("Successfully connected to #{ntoa(peer.address)}")
         :ok = SessionServer.register_connection(peer.session, peer.remote_peer_id, peer.address)
         :ok = :inet.setopts(socket, active: :once)
-        {:noreply, {socket, peer.session, peer.remote_peer_id}}
+        {:noreply, {socket, peer.session, peer.remote_peer_id, peer.address}}
       {:error, reason} ->
-        {:stop, {:failed_handshake, reason}, peer}
+        {:stop, {:failed_handshake, reason}, {nil, peer.session, peer.remote_peer_id, peer.address}}
     end
   end
 
-  def handle_packet(socket, data, {_socket, session, peer_id}) do
+  def handle_packet(socket, data, {_socket, session, peer_id, address}) do
     case Socket.decode(data) do
       {:ok, msg} ->
         Logger.debug("Got a message!!! #{inspect(msg)}")
@@ -55,9 +55,9 @@ defmodule Effusion.PWP.Connection do
         Logger.debug("replying: #{inspect(messages)}")
         :ok = Socket.send_all(socket, messages)
         :ok = :inet.setopts(socket, active: :once)
-        {:noreply, {socket, session, peer_id}}
+        {:noreply, {socket, session, peer_id, address}}
       {:error, reason} ->
-        {:stop, {:bad_message, reason, data}, {socket, session, peer_id}}
+        {:stop, {:bad_message, reason, data}, {socket, session, peer_id, address}}
     end
   end
 
@@ -66,9 +66,13 @@ defmodule Effusion.PWP.Connection do
   def handle_info({:tcp_closed, _socket}, state), do: {:stop, :normal, state}
   def handle_info(_, state), do: {:noreply, state}
 
-  def terminate(_, {socket, session, peer_id}) do
+  def terminate(_, {nil, session, peer_id, address}) do
+    SessionServer.unregister_connection(session, peer_id, address)
+  end
+
+  def terminate(_, {socket, session, peer_id, address}) do
     Socket.close(socket)
-    SessionServer.unregister_connection(session, peer_id)
+    SessionServer.unregister_connection(session, peer_id, address)
     :ok
   end
 end

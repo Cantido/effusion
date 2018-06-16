@@ -15,6 +15,7 @@ defmodule Effusion.BTP.Session do
       local_peer: local_server,
       peers: MapSet.new(),
       connected_peers: Map.new(),
+      closed_connections: MapSet.new(),
       peer_id: @local_peer_id,
       listeners: MapSet.new(),
       requested: MapSet.new()
@@ -138,6 +139,15 @@ defmodule Effusion.BTP.Session do
     |> Map.get(remote_peer_id, default_peer(s, remote_peer_id))
   end
 
+  defp peer(s, peer_id, peer_address) do
+    Peer.new(
+      peer_address,
+      s.peer_id,
+      s.meta.info_hash,
+      self())
+    |> Map.put(:remote_peer_id, peer_id)
+  end
+
   defp default_peer(%{peer_id: peer_id, meta: %{info_hash: info_hash}}, remote_peer_id) when peer_id != remote_peer_id do
     Peer.new(
       {nil, nil},
@@ -166,6 +176,17 @@ defmodule Effusion.BTP.Session do
     Map.update!(s, :connected_peers, &Map.delete(&1, peer_id))
   end
 
+  defp add_closed_connection(s, peer_id, address) do
+    Map.update!(s, :closed_connections, &MapSet.put(&1, peer(s, peer_id, address)))
+  end
+
+  def handle_disconnect(s, peer_id, address) do
+    s
+    |> remove_connected_peer(peer_id)
+    |> add_closed_connection(peer_id, address)
+    |> increment_connections()
+  end
+
   defp increment_connections(s) do
     case select_peer(s) do
       nil -> s
@@ -174,8 +195,15 @@ defmodule Effusion.BTP.Session do
   end
 
   defp select_peer(s) do
+    disconnected_addresses = Enum.map(s.closed_connections, fn c -> c.address end) |> MapSet.new()
+    disconnected_ids = Enum.map(s.closed_connections, fn c -> c.remote_peer_id end) |> MapSet.new()
     s.peers
-       |> Enum.reject(fn(p) -> Map.get(p, :remote_peer_id) == s.peer_id end)
+       |> Enum.reject(fn(p) ->
+         peer_id = Map.get(p, :remote_peer_id)
+         peer_id == s.peer_id
+         || MapSet.member?(disconnected_addresses, p.address)
+         || MapSet.member?(disconnected_ids, peer_id)
+       end)
        |> Enum.random()
   end
 
