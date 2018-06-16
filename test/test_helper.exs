@@ -1,4 +1,5 @@
 ExUnit.start(capture_log: true)
+ExUnit.configure(timeout: 500)
 
 defmodule TestHelper do
   def mint_info_hash do
