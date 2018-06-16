@@ -7,7 +7,8 @@ defmodule Effusion.BTP.Torrent do
     %{info: info, blocks: MapSet.new()}
   end
 
-  def add_block(torrent, block) do
+  def add_block(torrent = %{info: %{piece_length: piece_length}}, block = %{data: data})
+  when byte_size(data) <= piece_length do
     {finished, unfinished} =
       blocks(torrent)
       |> reduce_blocks(block)
@@ -42,6 +43,48 @@ defmodule Effusion.BTP.Torrent do
 
   def done?(torrent) do
     (pieces(torrent) |> Enum.count()) == Enum.count(torrent.info.pieces)
+  end
+
+  def bytes_received(torrent) do
+    info = torrent.info
+    pieces = pieces(torrent)
+
+    last_piece_size = rem(info.length, info.piece_length)
+    last_piece_index = Enum.count(info.pieces) - 1
+    has_last_piece = Enum.any? pieces, fn p -> p.index == last_piece_index end
+
+    naive_size = Enum.count(pieces) * torrent.info.piece_length
+
+    if has_last_piece do
+      naive_size - torrent.info.piece_length + last_piece_size
+    else
+      naive_size
+    end
+  end
+
+  def bytes_written(torrent) do
+    info = torrent.info
+    pieces = Map.get(torrent, :written, IntSet.new())
+
+    last_piece_size = rem(info.length, info.piece_length)
+    last_piece_index = Enum.count(info.pieces) - 1
+    has_last_piece = Enum.member? pieces, last_piece_index
+
+    naive_size = Enum.count(pieces) * torrent.info.piece_length
+
+    if has_last_piece do
+      naive_size - torrent.info.piece_length + last_piece_size
+    else
+      naive_size
+    end
+  end
+
+  def bytes_left(torrent) do
+    if done?(torrent) do
+      0
+    else
+      torrent.info.length - bytes_received(torrent) - bytes_written(torrent)
+    end
   end
 
   def remove_piece(torrent, piece) do

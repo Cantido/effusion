@@ -66,4 +66,54 @@ defmodule Effusion.BTP.TorrentTest do
     assert Enum.count(Torrent.pieces(torrent)) == 0
     assert Enum.count(Torrent.blocks(torrent)) == 0
   end
+
+  test "done? is true when the entire file is provided" do
+    torrent = Torrent.new(@meta.info)
+    |> Torrent.add_block(%{index: 0, offset: 0, data: "tin"})
+    |> Torrent.add_block(%{index: 1, offset: 0, data: "y\n"})
+
+    assert Torrent.done?(torrent)
+  end
+
+  test "bytes_left returns torrent size if no pieces were added" do
+    torrent = Torrent.new(@meta.info)
+
+    assert Torrent.bytes_left(torrent) == @meta.info.length
+  end
+
+  test "bytes_left returns zero if the torrent is complete" do
+    torrent = Torrent.new(@meta.info)
+    |> Torrent.add_block(%{index: 0, offset: 0, data: "tin"})
+    |> Torrent.add_block(%{index: 1, offset: 0, data: "y\n"})
+
+    assert Torrent.bytes_left(torrent) == 0
+  end
+
+  test "bytes_left returns a value if the torrent is incomplete" do
+    torrent = Torrent.new(@meta.info)
+    |> Torrent.add_block(%{index: 0, offset: 0, data: "tin"})
+
+    assert Torrent.bytes_left(torrent) == 2
+  end
+
+  test "bytes_left returns a value if the torrent is incomplete, and we have the last odd-sized piece" do
+    torrent = Torrent.new(@meta.info)
+    |> Torrent.add_block(%{index: 1, offset: 0, data: "y\n"})
+
+    assert Torrent.bytes_left(torrent) == 3
+  end
+
+  test "bytes_left returns a value if some pieces have been written out" do
+    torrent = Torrent.new(@meta.info)
+    |> Map.put(:written, IntSet.new(0))
+
+    assert Torrent.bytes_left(torrent) == 2
+  end
+
+  test "bytes_left returns a value if the very last piece has been written out" do
+    torrent = Torrent.new(@meta.info)
+    |> Map.put(:written, IntSet.new(1))
+
+    assert Torrent.bytes_left(torrent) == 3
+  end
 end
