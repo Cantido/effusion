@@ -1,5 +1,5 @@
 defmodule Effusion.BTP.SessionTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   alias Effusion.BTP.Session
   alias Effusion.BTP.Peer
   doctest Effusion.BTP.Session
