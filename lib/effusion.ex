@@ -15,7 +15,9 @@ defmodule Effusion do
   end
 
   def download(meta, destfile) do
-    {:ok, pid} = start_download(meta, destfile)
-    SessionServer.await(pid)
+    case start_download(meta, destfile) do
+      {:ok, pid} -> SessionServer.await(pid)
+      err -> err
+    end
   end
 end
