@@ -70,10 +70,12 @@ defmodule Effusion.BTP.SessionServer do
   end
 
   def terminate(:normal, state) do
+    Session.announce(state, @thp_client, :stopped)
     reply_to_listeners(state, {:ok, Session.torrent(state)})
   end
 
   def terminate(reason, state) do
+    Session.announce(state, @thp_client, :stopped)
     reply_to_listeners(state, {:error, :torrent_crashed, [reason: reason]})
   end
 
