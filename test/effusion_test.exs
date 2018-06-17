@@ -34,7 +34,7 @@ defmodule EffusionTest do
     self()
   )
 
-  defp stub_tracker(_, _, _, _, _, _, _, _) do
+  defp stub_tracker(_, _, _, _, _, _, _, _, _) do
     {host, port} = @remote_peer.address
     {
       :ok,
@@ -72,7 +72,7 @@ defmodule EffusionTest do
 
   test "download a file", %{lsock: lsock, destfile: file} do
     Effusion.THP.Mock
-    |> expect(:announce, &stub_tracker/8)
+    |> expect(:announce, &stub_tracker/9)
 
     {:ok, _} = Effusion.start_download(@torrent, file)
 

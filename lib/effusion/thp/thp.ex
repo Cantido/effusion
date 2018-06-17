@@ -27,6 +27,7 @@ defmodule Effusion.THP do
     info_hash :: Effusion.info_hash(),
     uploaded :: non_neg_integer(),
     downloaded :: non_neg_integer(),
-    left :: non_neg_integer()
+    left :: non_neg_integer(),
+    event :: :started | :stopped | :completed | :interval
   ) :: {:ok, tracker_response()} | {:error, any()}
 end

@@ -86,7 +86,7 @@ defmodule Effusion.BTP.Session do
     {next_block, s1}
   end
 
-  def announce(s, client) do
+  def announce(s, client, event \\ :interval) do
     {local_host, local_port} = s.local_peer
 
     {:ok, res} = client.announce(
@@ -97,7 +97,8 @@ defmodule Effusion.BTP.Session do
       s.meta.info_hash,
       0,
       Torrent.bytes_completed(s.torrent),
-      Torrent.bytes_left(s.torrent)
+      Torrent.bytes_left(s.torrent),
+      event
     )
 
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
@@ -118,7 +119,7 @@ defmodule Effusion.BTP.Session do
 
   def start(session, thp_client) do
     session
-    |> announce(thp_client)
+    |> announce(thp_client, :started)
     |> increment_connections()
   end
 

@@ -5,6 +5,11 @@ defmodule Effusion.THP.HTTPTest do
 
   @body File.read! "test/tracker_response.txt"
 
+  setup do
+    bypass = Bypass.open
+    {:ok, bypass: bypass}
+  end
+
   test "decodes interval" do
     {:ok, body} = HTTP.decode @body
 
@@ -51,5 +56,36 @@ defmodule Effusion.THP.HTTPTest do
     [peer | _rest] = body.peers
 
     assert Map.has_key?(peer, :peer_id)
+  end
+
+  test "sends STARTED event", %{bypass: bypass} do
+    Bypass.expect_once bypass, fn conn ->
+      assert "/announce" == conn.request_path
+      assert "GET" == conn.method
+      query = Plug.Conn.fetch_query_params(conn).query_params
+
+      assert query["info_hash"] == "12345678901234567890"
+      assert query["peer_id"] == "12345678901234567890"
+      assert query["port"] == "8001"
+      assert query["uploaded"] == "0"
+      assert query["downloaded"] == "0"
+      assert query["left"] == "0"
+      assert query["event"] == "started"
+      assert query["ip"] == "192.168.1.1"
+
+      Plug.Conn.resp conn, 200, @body
+    end
+
+    {:ok, _} = HTTP.announce(
+      "http://localhost:#{bypass.port}/announce",
+      {192,168,1,1},
+      8001,
+      "12345678901234567890",
+      "12345678901234567890",
+      0,
+      0,
+      0,
+      :started
+    )
   end
 end

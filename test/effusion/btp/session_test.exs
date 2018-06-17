@@ -40,7 +40,7 @@ defmodule Effusion.BTP.SessionTest do
   end
 
   test "sends torrent's download progress in announce" do
-    stub_tracker = fn (_, _, _, _, _, _, downloaded, left) ->
+    stub_tracker = fn (_, _, _, _, _, _, downloaded, left, _) ->
       assert downloaded == 3
       assert left == 2
       {:ok, %{interval: 9_000, peers: []}}
@@ -58,7 +58,7 @@ defmodule Effusion.BTP.SessionTest do
   end
 
   test "sends HAVE messages once it finishes a piece" do
-    stub_tracker = fn (_, _, _, _, _, _, _, _) ->
+    stub_tracker = fn (_, _, _, _, _, _, _, _, _) ->
       {:ok, %{interval: 9_000, peers: []}}
     end
 
@@ -73,5 +73,16 @@ defmodule Effusion.BTP.SessionTest do
     |> Session.handle_message(peer.remote_peer_id, {:piece, %{index: 0, offset: 0, data: "tin"}})
 
     assert_receive({:btp_send, {:have, 0}})
+  end
+
+  test "sends STARTED message to tracker on start" do
+    stub_tracker = fn (_, _, _, _, _, _, _, _, event) ->
+      assert event == :started
+      {:ok, %{interval: 9_000, peers: []}}
+    end
+    Effusion.THP.Mock
+    |> expect(:announce, stub_tracker)
+
+    Session.start(new(), Effusion.THP.Mock)
   end
 end

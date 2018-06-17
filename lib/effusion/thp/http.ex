@@ -12,7 +12,8 @@ defmodule Effusion.THP.HTTP do
     info_hash,
     uploaded,
     downloaded,
-    left
+    left,
+    event \\ :interval
   ) do
     tracker_request = %{
       info_hash: info_hash,
@@ -24,8 +25,33 @@ defmodule Effusion.THP.HTTP do
       ip: to_string(:inet.ntoa(peer_host))
     }
 
-    http_res = HTTPotion.get(tracker_url <> "?" <> URI.encode_query(tracker_request))
-    decode(http_res.body)
+    with {:ok, event} <- build_event_param(event),
+         tracker_request = Map.put(tracker_request, :event, event),
+         http_res = HTTPotion.get(tracker_url <> "?" <> URI.encode_query(tracker_request))
+    do
+      decode_response(http_res)
+    else
+      err -> err
+    end
+  end
+
+
+  defp build_event_param(event) do
+    case event do
+      :started -> {:ok, "started"}
+      :stopped -> {:ok, "stopped"}
+      :completed -> {:ok, "completed"}
+      :interval -> {:ok, ""}
+      _ -> {:error, {:bad_event, event}}
+    end
+  end
+
+  defp decode_response(http_res) do
+    if HTTPotion.Response.success?(http_res) do
+      decode(http_res.body)
+    else
+      {:error, {:http_request_failed, http_res.status_code, http_res}}
+    end
   end
 
   @body_names %{
@@ -39,14 +65,16 @@ defmodule Effusion.THP.HTTP do
     "peer id" => :peer_id
   }
 
+
   def decode(body) do
-    {:ok, bterm} = ExBencode.decode(body)
-
-    tokenized = bterm
-      |> Effusion.Map.rename_keys(@body_names)
-      |> Map.update(:peers, [], &update_peers/1)
-
-    {:ok, tokenized}
+    case ExBencode.decode(body) do
+      {:ok, bterm} ->
+        tokenized = bterm
+        |> Effusion.Map.rename_keys(@body_names)
+        |> Map.update(:peers, [], &update_peers/1)
+        {:ok, tokenized}
+      err -> err
+    end
   end
 
   defp update_peers(peers) do
