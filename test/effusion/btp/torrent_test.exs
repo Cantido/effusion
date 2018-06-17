@@ -123,4 +123,32 @@ defmodule Effusion.BTP.TorrentTest do
 
     assert Torrent.bytes_left(torrent) == 3
   end
+
+  test "new torrent has an empty bitfield" do
+    torrent = Torrent.new(@meta.info)
+
+    assert Enum.empty?(Torrent.bitfield(torrent))
+  end
+
+  test "a torrent with a written piece has that piece in its bitfield" do
+    torrent = Torrent.new(@meta.info)
+    |> Map.put(:written, IntSet.new(1))
+
+    assert Torrent.bitfield(torrent) |> Enum.member?(1)
+  end
+
+  test "a torrent with a piece in memory has that piece in its bitfield" do
+    torrent = Torrent.new(@meta.info)
+    |> Torrent.add_block(%{index: 1, offset: 0, data: "y\n"})
+
+    assert Torrent.bitfield(torrent) |> Enum.member?(1)
+  end
+
+  test "a torrent with a written piece and a cached piece has both in its bitfield" do
+    torrent = Torrent.new(@meta.info)
+    |> Map.put(:written, IntSet.new(0))
+    |> Torrent.add_block(%{index: 1, offset: 0, data: "y\n"})
+
+    assert Torrent.bitfield(torrent) == IntSet.new([0, 1])
+  end
 end

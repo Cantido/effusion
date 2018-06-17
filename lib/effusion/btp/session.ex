@@ -35,7 +35,24 @@ defmodule Effusion.BTP.Session do
   end
 
   def add_block(s, block) do
-    torrent = Torrent.add_block(s.torrent, block)
+    torrent = s.torrent
+
+    pieces_before = Torrent.bitfield(torrent)
+    torrent = Torrent.add_block(torrent, block)
+    pieces_after = Torrent.bitfield(torrent)
+
+    new_pieces = IntSet.difference(pieces_after, pieces_before)
+
+    if not Enum.empty?(new_pieces) do
+      Registry.dispatch(ConnectionRegistry, s.meta.info_hash, fn connections ->
+        Enum.map(connections, fn {c, _} ->
+          Enum.map(new_pieces, fn p ->
+            send c, {:btp_send, {:have, p}}
+          end)
+        end)
+      end)
+    end
+
     s = %{s | torrent: torrent}
     write(s)
   end

@@ -7,6 +7,13 @@ defmodule Effusion.BTP.Torrent do
     %{info: info, blocks: MapSet.new()}
   end
 
+  def bitfield(torrent) do
+    written = finished_pieces(torrent)
+    cached = Enum.map(pieces(torrent), fn p -> p.index end) |> IntSet.new()
+
+    IntSet.union(written, cached)
+  end
+
   def add_block(torrent = %{info: %{piece_length: piece_length}}, block = %{data: data})
   when byte_size(data) <= piece_length do
     {finished, unfinished} =
