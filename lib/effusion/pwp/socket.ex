@@ -34,14 +34,11 @@ defmodule Effusion.PWP.Socket do
     end
   end
 
-  def send_all(socket, messages) do
-    _ = Enum.map(messages, fn(m) -> :ok = send_msg(socket, m) end)
-    :ok
-  end
-
   def send_msg(socket, msg) do
-    {:ok, request} = Messages.encode(msg)
-    :gen_tcp.send(socket, request)
+    case Messages.encode(msg) do
+      {:ok, request} -> :gen_tcp.send(socket, request)
+      err -> err
+    end
   end
 
   def recv(socket, size \\ 0) do

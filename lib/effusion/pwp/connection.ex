@@ -34,7 +34,7 @@ defmodule Effusion.PWP.Connection do
     "#{:inet.ntoa(host)}:#{port}"
   end
 
-  def handshake(peer) do
+  defp handshake(peer) do
     Logger.debug("Establishing connection to #{ntoa(peer.address)}")
     case Socket.connect(peer) do
       {:ok, socket, peer} ->
@@ -51,13 +51,18 @@ defmodule Effusion.PWP.Connection do
     case Socket.decode(data) do
       {:ok, msg} ->
         Logger.debug("Got a message!!! #{inspect(msg)}")
-        messages = SessionServer.handle_message(session, peer_id, msg)
-        Logger.debug("replying: #{inspect(messages)}")
-        :ok = Socket.send_all(socket, messages)
+        :ok = SessionServer.handle_message(session, peer_id, msg)
         :ok = :inet.setopts(socket, active: :once)
         {:noreply, {socket, session, peer_id, address}}
       {:error, reason} ->
         {:stop, {:bad_message, reason, data}, {socket, session, peer_id, address}}
+    end
+  end
+
+  def handle_info({:btp_send, msg}, state = {socket, _, _, _}) do
+    case Socket.send_msg(socket, msg) do
+      :ok -> {:noreply, state}
+      {:error, reason} -> {:stop, {:send_failure, reason}, state}
     end
   end
 

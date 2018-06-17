@@ -37,7 +37,15 @@ defmodule Effusion.BTP.SessionServer do
 
   def handle_call({:handle_msg, peer_id, msg}, _from, state) do
     {state, messages} = Session.handle_message(state, peer_id, msg)
-    {:reply, messages, state}
+    Logger.debug("replying: #{inspect(messages)}")
+
+    [{conn_pid, ^peer_id}] = Registry.match(ConnectionRegistry, state.meta.info_hash, peer_id)
+
+    Enum.map(messages, fn(m) ->
+      send(conn_pid, {:btp_send, m})
+    end)
+
+    {:reply, :ok, state}
   end
 
   def handle_call(:await, {from_pid, _from_ref}, state) do
