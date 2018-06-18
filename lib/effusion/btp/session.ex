@@ -69,7 +69,7 @@ defmodule Effusion.BTP.Session do
     if s.file == nil do
       s
     else
-      {:ok, torrent} = Torrent.write_to(s.torrent, s.file)
+      {:ok, torrent} = Effusion.IO.write_to(s.torrent, s.file)
       %{s | torrent: torrent}
     end
   end
