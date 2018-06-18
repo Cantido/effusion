@@ -1,7 +1,6 @@
 defmodule Effusion.BTP.Torrent do
   require Logger
   alias Effusion.BTP.Block
-  alias Effusion.Hash
 
   def new(info) do
     %{info: info, blocks: MapSet.new()}
@@ -161,11 +160,6 @@ defmodule Effusion.BTP.Torrent do
   end
 
   defp verify_all(pieces, info) do
-    Enum.filter(pieces, &correct_hash?(&1, info)) |> MapSet.new()
-  end
-
-  defp correct_hash?(piece, info) do
-    expected_hash = Enum.at(info.pieces, piece.index)
-    Hash.matches?(expected_hash, piece.data)
+    Enum.filter(pieces, &Block.correct_hash?(&1, info)) |> MapSet.new()
   end
 end
