@@ -15,22 +15,24 @@ defmodule Effusion.IO do
     {:ok, torrent}
   end
 
+  defp open(torrent, destdir) do
+    with path <- Path.join(destdir, torrent.info.name),
+         :ok <- File.mkdir_p(destdir),
+         do: File.open(path, [:read, :write])
+  end
+
   def write_piece(torrent, destdir, %{index: i, data: d}) when is_binary(d) do
-    path = Path.join(destdir, torrent.info.name)
-    :ok = File.mkdir_p(destdir)
-    {:ok, file} = File.open(path, [:read, :write])
+    {:ok, device} = open(torrent, destdir)
 
     with piece_start_byte <- i * torrent.info.piece_length,
-         _ = Logger.debug("writing #{inspect(d)} to #{inspect(file)}"),
-         :ok <- :file.pwrite(file, {:bof, piece_start_byte}, [d]),
-         torrent <- torrent
-         |> Map.update(:written, IntSet.new(i), &IntSet.put(&1, i))
+         :ok <- :file.pwrite(device, {:bof, piece_start_byte}, [d]),
+         torrent <- Map.update(torrent, :written, IntSet.new(i), &IntSet.put(&1, i))
     do
-      :ok = File.close(file)
+      _ = File.close(device)
       {:ok, torrent}
     else
       err ->
-        _ = File.close(file)
+        _ = File.close(device)
         err
     end
   end
