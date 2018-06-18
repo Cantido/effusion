@@ -57,10 +57,12 @@ defmodule EffusionTest do
   end
 
   setup do
-    {:ok, file} = File.open("testtiny.txt", [:read, :write])
+    Temp.track!
+
+    {:ok, file} = Temp.path
 
     on_exit fn ->
-      File.rm("testtiny.txt")
+      File.rm_rf file
     end
 
     %{destfile: file}
@@ -99,7 +101,7 @@ defmodule EffusionTest do
     :timer.sleep(100)
     :file.datasync(file)
 
-    {:ok, contents} = File.read("testtiny.txt")
+    {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
 
     assert "tiny\n" == contents
   end

@@ -2,7 +2,7 @@ defmodule Effusion.BTP.Torrent do
   require Logger
   alias Effusion.BTP.Block
 
-  def new(info) do
+  def new(info = %{piece_length: _, pieces: _}) do
     %{info: info, blocks: MapSet.new()}
   end
 
@@ -14,7 +14,9 @@ defmodule Effusion.BTP.Torrent do
   end
 
   def add_block(torrent = %{info: %{piece_length: piece_length}}, block = %{data: data})
-  when byte_size(data) <= piece_length do
+  when is_integer(piece_length)
+   and 0 <= piece_length
+   and byte_size(data) <= piece_length do
     {finished, unfinished} =
       blocks(torrent)
       |> reduce_blocks(block)
