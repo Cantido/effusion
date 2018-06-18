@@ -2,7 +2,7 @@ defmodule Effusion.BTP.Metainfo.MultiFileInfo do
   alias Effusion.BTP.Metainfo
 
   @enforce_keys [:files, :name, :piece_length, :pieces]
-  defstruct [:files, :name, :piece_length, :pieces]
+  defstruct [:files, :name, :piece_length, :pieces, :length]
 
   def new(fields) do
     struct(Effusion.BTP.Metainfo.MultiFileInfo, update_info(fields))
@@ -13,6 +13,17 @@ defmodule Effusion.BTP.Metainfo.MultiFileInfo do
     |> Effusion.Map.rename_keys(info_tokens())
     |> Map.update!(:pieces, &Metainfo.update_pieces/1)
     |> Map.update!(:files, &update_files/1)
+    |> put_total_length()
+  end
+
+  defp put_total_length(info) do
+    Map.put(info, :length, total_length(info))
+  end
+
+  defp total_length(info) do
+    info.files
+    |> Enum.map(&(&1.length))
+    |> Enum.sum()
   end
 
   defp update_files(files) do
