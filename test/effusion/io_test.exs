@@ -34,7 +34,7 @@ defmodule Effusion.IOTest do
     Effusion.IO.write_to(torrent, tmp_path)
 
     hello = File.read! Path.join(tmp_path, "hello_world/hello.txt")
-    world = File.read! Path.join(tmp_path, "hello_world/world`.txt")
+    world = File.read! Path.join(tmp_path, "hello_world/world.txt")
 
     assert hello == "Hello\n"
     assert world == "world!\n"
