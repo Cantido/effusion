@@ -34,4 +34,21 @@ defmodule Effusion.BTP.MetainfoTest do
 
     assert inspect(decode_result) == "#Metainfo<[\"linuxmint-18.3-cinnamon-64bit.iso\" d2e53fb603652d991991b6ad2357a7a2845a5319]>"
   end
+
+  test "multi-file torrent" do
+    {:ok, metainfo} = File.read "test/lovecraft.torrent"
+
+    {:ok, decode_result} = Metainfo.decode(metainfo)
+
+    assert decode_result != nil
+    assert Map.get(decode_result, :info_hash) == <<88, 143, 185, 194, 207, 159, 124, 235, 151, 57, 118, 193, 224, 234, 175, 56, 195, 68, 73, 153>>
+
+    assert Enum.count(decode_result.info.files) == 52
+
+    file = hd(decode_result.info.files)
+
+    assert file.length == 93_355_085
+    assert file.path == ["SevenH.P.LovecraftStories_librivox.m4b"]
+
+  end
 end
