@@ -2,6 +2,8 @@ defmodule Effusion.BTP.TorrentTest do
   use ExUnit.Case, async: true
   doctest Effusion.BTP.Torrent
   alias Effusion.BTP.Torrent
+  alias Effusion.BTP.Metainfo
+  alias Effusion.BTP.Block
 
   @meta TestHelper.tiny_meta()
 
@@ -150,5 +152,14 @@ defmodule Effusion.BTP.TorrentTest do
     |> Torrent.add_block(%{index: 1, offset: 0, data: "y\n"})
 
     assert Torrent.bitfield(torrent) == IntSet.new([0, 1])
+  end
+
+  test "accepts blocks for multi-file torrents" do
+    {:ok, metabin} = File.read "test/hello_world.torrent"
+    {:ok, meta} = Metainfo.decode(metabin)
+
+    torrent = meta.info
+    |> Torrent.new()
+    |> Torrent.add_block(Block.new(0, 0, "Hello\nworld!\n"))
   end
 end
