@@ -27,11 +27,6 @@ defmodule Effusion.IO do
     path = Path.join(destdir, torrent.info.name)
     :ok = File.mkdir_p(path)
 
-    # case 1: piece is entirely within a single dest file
-    # case 2: piece overlaps multiple files (as with hello_world.torrent)
-
-    # paths, with position & bytes to write.
-
     file_bytes = split_bytes_to_files(torrent, %{index: i, data: d})
 
     Enum.map(file_bytes, fn {rel_path, {pos, data}} ->
