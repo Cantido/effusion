@@ -1,6 +1,10 @@
 defmodule Effusion.BTP.Metainfo.SingleFileInfo do
   alias Effusion.BTP.Metainfo
 
+  @moduledoc """
+  A metadata file's `:info` block describing a single downloadable file.
+  """
+
   @enforce_keys [:length, :name, :piece_length, :pieces]
   defstruct [:length, :md5sum, :name, :piece_length, :pieces]
 

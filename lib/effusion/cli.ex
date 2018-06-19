@@ -1,9 +1,18 @@
 defmodule Effusion.CLI do
   alias Effusion.BTP.Metainfo
 
+  @moduledoc """
+  A command-line interface to Effusion.
+  """
+
   @aliases [o: :output]
   @strict [output: :string]
 
+  @doc """
+  Download a file.
+
+  Usage: `effusion <name> -o <destination>`
+  """
   def main(argv) do
     {[output: dest], [file], invalid} = OptionParser.parse(argv, strict: @strict, aliases: @aliases)
     Enum.each(invalid, fn(i) ->

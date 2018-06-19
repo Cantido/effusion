@@ -3,10 +3,22 @@ defmodule Effusion.BTP.Session do
   alias Effusion.BTP.Peer
   require Logger
 
+  @moduledoc """
+  The top-level data structure of a downloading file.
+
+  This module decides when to connect to peers, when to ask for pieces,
+  when to write pieces to disk, etc.
+  """
+
   @local_peer_id "Effusion Experiment!"
 
   @block_size Application.get_env(:effusion, :block_size)
 
+  @doc """
+  Create a new download.
+
+  This only creates a data structure. To actually start the download, call `start/1`.
+  """
   def new(meta, local_server, file \\ nil) do
     %{
       file: file,
@@ -22,18 +34,32 @@ defmodule Effusion.BTP.Session do
     }
   end
 
+  @doc """
+  Get the blocks that have not been assembled into pieces and verified.
+  """
   def blocks(s) do
     Torrent.blocks(s.torrent)
   end
 
+  @doc """
+  Get the set of listeners waiting for this torrent to finish.
+  """
   def listeners(s) do
     s.listeners
   end
 
+  @doc """
+  Get the torrent that this download is downloading.
+  """
   def torrent(s) do
     s.torrent
   end
 
+  @doc """
+  Add a block of data to this download.
+
+  This may trigger messages to be sent to any connections associated with this download's torrent.
+  """
   def add_block(s, block) do
     torrent = s.torrent
 
@@ -57,14 +83,23 @@ defmodule Effusion.BTP.Session do
     write(s)
   end
 
+  @doc """
+  Add a process that should be notified when this download completes or crashes.
+  """
   def add_listener(s, pid) when is_pid(pid) do
     Map.update!(s, :listeners, &MapSet.put(&1, pid))
   end
 
+  @doc """
+  Perform a function on all of this download's listening processes.
+  """
   def each_listener(%{listeners: listeners}, fun) do
     Enum.each(listeners, &fun.(&1))
   end
 
+  @doc """
+  Flush this download's in-memory and verified pieces to disk.
+  """
   def write(s) do
     if s.file == nil do
       s
@@ -74,10 +109,16 @@ defmodule Effusion.BTP.Session do
     end
   end
 
+  @doc """
+  Check if this download has received all necessary bytes.
+  """
   def done?(s) do
     Torrent.done?(s.torrent)
   end
 
+  @doc """
+  Get the next piece that this download should ask for.
+  """
   def next_request(s) do
     have_pieces = Torrent.finished_pieces(s.torrent)
     next_block = Effusion.BTP.PieceSelection.next_block(s.meta.info, have_pieces, @block_size)
@@ -86,6 +127,10 @@ defmodule Effusion.BTP.Session do
     {next_block, s1}
   end
 
+  @doc """
+  Announce an event to this download's tracker,
+  using the given Tracker HTTP Protocol (THP) client.
+  """
   def announce(s, client, event \\ :interval) do
     {local_host, local_port} = s.local_peer
 
@@ -117,6 +162,12 @@ defmodule Effusion.BTP.Session do
     %{s | peers: peers}
   end
 
+  @doc """
+  Start a download.
+
+  This means the session will make an announcement to the tracker and begin
+  making connections.
+  """
   def start(session, thp_client) do
     session
     |> announce(thp_client, :started)
@@ -130,12 +181,20 @@ defmodule Effusion.BTP.Session do
     end
   end
 
+  @doc """
+  Handle a Peer Wire Protocol (PWP) message send by the remote peer identified by `peer_id`.
+
+  For more information about messages, see `Effusion.PWP.Messages`.
+  """
+  def handle_message(session, peer_id, message)
+
   def handle_message(s = %{peer_id: peer_id}, remote_peer_id, {:piece, b} = msg) when peer_id != remote_peer_id do
     s = add_block(s, b)
     {session_messages, s} = next_request_msg(s)
     {s, peer_messages} = delegate_message(s, remote_peer_id, msg)
     {s, session_messages ++ peer_messages}
   end
+
 
   def handle_message(s = %{peer_id: peer_id}, remote_peer_id, :unchoke = msg) when peer_id != remote_peer_id do
     {session_messages, s} = next_request_msg(s)
@@ -181,10 +240,22 @@ defmodule Effusion.BTP.Session do
     |> Peer.set_remote_peer_id(remote_peer_id)
   end
 
+  @doc """
+  Add a peer to this session's list of connected peers.
+
+  This does not mean the session will connect to the peer,
+  it is pretty much only used for testing.
+  """
   def add_connected_peer(s = %{peer_id: peer_id}, peer = %{remote_peer_id: remote_peer_id}) when peer_id != remote_peer_id do
     Map.update!(s, :connected_peers, &Map.put(&1, remote_peer_id, peer))
   end
 
+  @doc """
+  Remove a peer to this session's list of connected peers.
+
+  This does not mean the session will connect to the peer,
+  it is pretty much only used for testing.
+  """
   def remove_connected_peer(s, peer_id) do
     Map.update!(s, :connected_peers, &Map.delete(&1, peer_id))
   end
@@ -193,6 +264,9 @@ defmodule Effusion.BTP.Session do
     Map.update!(s, :closed_connections, &MapSet.put(&1, peer(s, peer_id, address)))
   end
 
+  @doc """
+  Perform actions necessary when a peer at a given address disconnects.
+  """
   def handle_disconnect(s, peer_id, address) do
     s
     |> remove_connected_peer(peer_id)

@@ -3,26 +3,45 @@ defmodule Effusion.BTP.SessionServer do
   require Logger
   alias Effusion.BTP.Session
 
+  @moduledoc """
+  An API to manage a `Effusion.BTP.Session` object as it is connected to many peers simultaneously.
+  """
+
   @thp_client Application.get_env(:effusion, :thp_client)
 
   ## API
 
+  @doc """
+  Start the Session Server in its own supervision tree.
+  """
   def start(meta, {_host, _port} = local_server, file) when is_map(meta) do
     Effusion.Application.SessionServerSupervisor.start_child([meta, local_server, file])
   end
 
+  @doc """
+  Start the session server and link it to the current process.
+  """
   def start_link([meta, local_peer, file]) do
     GenServer.start_link(__MODULE__, [meta, local_peer, file])
   end
 
+  @doc """
+  Wait on a download managed by a session server to complete.
+  """
   def await(pid) do
     GenServer.call(pid, :await, :infinity)
   end
 
+  @doc """
+  Handle a Peer Wire Protocol (PWP) message sent by a remote peer.
+  """
   def handle_message(pid, peer_id, message) do
     GenServer.call(pid, {:handle_msg, peer_id, message})
   end
 
+  @doc """
+  Handle a peer disconnection.
+  """
   def unregister_connection(pid, peer_id, address \\ nil) do
     GenServer.call(pid, {:unregister_connection, peer_id, address})
   end

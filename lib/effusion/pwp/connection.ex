@@ -12,10 +12,16 @@ defmodule Effusion.PWP.Connection do
 
   ## API
 
+  @doc """
+  Start a connection to a `peer` in the Connection supervision hierarchy.
+  """
   def connect(peer) do
     Effusion.Application.ConnectionSupervisor.start_child(peer)
   end
 
+  @doc """
+  Start a connection to a `peer`, and link the resulting process to the current process.
+  """
   def start_link(peer) do
     GenServer.start_link(__MODULE__, peer)
   end

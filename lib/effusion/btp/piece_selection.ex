@@ -2,9 +2,16 @@ defmodule Effusion.BTP.PieceSelection do
   require Logger
   alias Effusion.BTP.Block
 
+  @moduledoc """
+  Strategies for selecting which pieces of a torrent to download.
+  """
+
   defguard is_index(i) when is_integer(i) and i >= 0
   defguard is_size(x) when is_integer(x) and x > 0
 
+  @doc """
+  Get the next block to request, or `nil` if the torrent is done.
+  """
   def next_block(info, have_pieces, block_size) do
     all_blocks = all_possible_blocks(info.length, info.piece_length, block_size)
 
@@ -19,7 +26,7 @@ defmodule Effusion.BTP.PieceSelection do
     end
   end
 
-  def all_possible_blocks(file_size, whole_piece_size, block_size)  do
+  defp all_possible_blocks(file_size, whole_piece_size, block_size)  do
     file_size
     |> file_to_pieces(whole_piece_size)
     |> Enum.flat_map(&Block.split(&1, block_size))

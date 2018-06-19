@@ -3,9 +3,16 @@ defmodule Effusion.BTP.Metainfo do
   alias Effusion.BTP.Metainfo.SingleFileInfo
   alias Effusion.BTP.Metainfo.MultiFileInfo
 
+  @moduledoc """
+  Functions for working with a BitTorrent metadata file, AKA a torrent file.
+  """
+
   @enforce_keys [:info_hash, :announce, :created_by, :info]
   defstruct [:info_hash, :announce, :announce_list, :comment, :created_by, :creation_date, :info]
 
+  @doc """
+  Decide a metadata binary into an Elixir data structure.
+  """
   def decode(bin) do
     {:ok, decoded} = ExBencode.decode(bin)
 

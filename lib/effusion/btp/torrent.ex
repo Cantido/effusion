@@ -2,10 +2,22 @@ defmodule Effusion.BTP.Torrent do
   require Logger
   alias Effusion.BTP.Block
 
+  @moduledoc """
+  Functions for assembling the file that results from a torrent download.
+  """
+
+  @doc """
+  Create a map that describes a torrent download.
+  """
   def new(info = %{piece_length: _, pieces: _}) do
     %{info: info, blocks: MapSet.new()}
   end
 
+  @doc """
+  Get the bitfield value representing the torrent's finished pieces.
+
+  This bitfield includes both in-memory as well as on-disk pieces.
+  """
   def bitfield(torrent) do
     written = finished_pieces(torrent)
     cached = Enum.map(pieces(torrent), fn p -> p.index end) |> IntSet.new()
@@ -13,6 +25,12 @@ defmodule Effusion.BTP.Torrent do
     IntSet.union(written, cached)
   end
 
+  @doc """
+  Add a block of data to `torrent`.
+
+  If the addition of the block finishes a piece,
+  the piece will then be verified and moved to the `:pieces` set.
+  """
   def add_block(torrent = %{info: %{piece_length: piece_length}}, block = %{data: data})
   when is_integer(piece_length)
    and 0 <= piece_length
@@ -33,26 +51,46 @@ defmodule Effusion.BTP.Torrent do
     |> Map.put(:pieces, pieces1)
   end
 
+  @doc """
+  Get the set of blocks cached by this torrent.
+  """
   def blocks(torrent) do
     Map.get(torrent, :blocks, MapSet.new())
   end
 
+  @doc """
+  Get the pieces that have been verified and written to disk.
+  """
   def finished_pieces(torrent) do
     Map.get(torrent, :written, IntSet.new())
   end
 
+  @doc """
+  Get the pieces that have been verified but not yet written to disk.
+  """
   def pieces(torrent) do
     Map.get(torrent, :pieces, MapSet.new())
   end
 
+  @doc """
+  Get the pieces that have been verified and written to disk.
+  """
   def written(torrent) do
     Map.get(torrent, :written, IntSet.new())
   end
 
+  @doc """
+  Check if the torrent has cached or written all of the pieces it needs to be complete.
+  """
   def done?(torrent) do
     (pieces(torrent) |> Enum.count()) == Enum.count(torrent.info.pieces)
   end
 
+  @doc """
+  Get the number of bytes that have been added to this torrent.
+
+  This includes bytes in blocks that have not yet been verified.
+  """
   def bytes_completed(torrent) do
     bytes_received(torrent) + bytes_written(torrent) + bytes_in_blocks(torrent)
   end
@@ -96,6 +134,9 @@ defmodule Effusion.BTP.Torrent do
     |> Enum.reduce(0, fn b, acc -> acc + byte_size(b.data) end)
   end
 
+  @doc """
+  Get the number of bytes still necessary for this download to be finished.
+  """
   def bytes_left(torrent) do
     if done?(torrent) do
       0
@@ -104,6 +145,9 @@ defmodule Effusion.BTP.Torrent do
     end
   end
 
+  @doc """
+  Remove a piece from the torrent.
+  """
   def remove_piece(torrent, piece) do
     pieces1 = pieces(torrent) |> MapSet.delete(piece)
 

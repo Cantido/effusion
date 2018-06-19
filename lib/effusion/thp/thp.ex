@@ -3,22 +3,34 @@ defmodule Effusion.THP do
   Behavior defining the contract of the Tracker HTTP Protocol.
   """
 
+  @typedoc """
+  A peer returned by a tracker.
+  """
   @type peer :: %{
     ip: :inet.hostname() | :inet.ip_address(),
     port: :inet.port_number(),
     peer_id: Effusion.peer_id()
   }
 
+  @typedoc """
+  A peer returned by a tracker when it was called with the `compact` option set.
+  """
   @type compact_peer :: %{
     ip: :inet.ip4_address(),
     port: :inet.port_number()
   }
 
+  @typedoc """
+  A successful response from from a tracker.
+  """
   @type tracker_response :: %{
     interval: pos_integer(),
     peers: [peer] | [compact_peer]
   }
 
+  @doc """
+  Announce an event to the given tracker.
+  """
   @callback announce(
     tracker_url :: String.t() | :unicode.unicode_binary(),
     peer_host :: :inet.hostname() | :inet.ip_address(),

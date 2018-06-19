@@ -2,8 +2,24 @@ defmodule Effusion.IO do
   require Logger
   alias Effusion.BTP.Torrent
 
-  def write_to(torrent, file) do
-    write_pieces(torrent, file, Enum.to_list(Torrent.pieces(torrent)))
+  @moduledoc """
+  Functions for reading and writing files described by torrents.
+  """
+
+  @doc """
+  Writes the completed pieces of `torrent` to a file in `directory`.
+
+  If the torrent describes a single file, then that file with be created
+  in `directory` with the torrent's `:name`.
+  If `torrent` describes multiple files,
+  then a directory with the torrent's `:name` will be created in `directory`,
+  and the torrent's files will be written to that directory.
+
+  The `torrent` will have its in-memory pieces cleared,
+  and will be updated to remember the pieces that were written.
+  """
+  def write_to(torrent, directory) do
+    write_pieces(torrent, directory, Enum.to_list(Torrent.pieces(torrent)))
   end
 
   defp write_pieces(torrent, file, [piece | rest]) do
@@ -15,7 +31,7 @@ defmodule Effusion.IO do
     {:ok, torrent}
   end
 
-  def write_piece(torrent, destdir, block) do
+  defp write_piece(torrent, destdir, block) do
     if Map.has_key?(torrent.info, :files) do
       write_piece_multi_file(torrent, destdir, block)
     else

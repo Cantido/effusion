@@ -1,6 +1,10 @@
 defmodule Effusion.BTP.Metainfo.MultiFileInfo do
   alias Effusion.BTP.Metainfo
 
+  @moduledoc """
+  A metadata file's `:info` block describing mutliple downloadable files.
+  """
+
   @enforce_keys [:files, :name, :piece_length, :pieces]
   defstruct [:files, :name, :piece_length, :pieces, :length]
 

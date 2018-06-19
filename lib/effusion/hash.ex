@@ -1,10 +1,10 @@
 defmodule Effusion.Hash do
   @moduledoc """
-  Utilities for working with hashes.
+  Utilities for working with SHA-1 hashes.
   """
 
   @doc """
-  Formats a hash into a nice readable hex string.
+  Formats a hash into a nice, readable hex string.
 
   ## Examples
 
@@ -20,7 +20,7 @@ defmodule Effusion.Hash do
 
 
   @doc """
-  Calculate the sha1 hash on a binary.
+  Calculate the SHA-1 hash on a binary.
 
   ## Examples
 
@@ -32,7 +32,7 @@ defmodule Effusion.Hash do
   end
 
   @doc """
-  Check a piece of data's hash against another hash.
+  Check a piece of data's SHA-1 hash against another SHA-1 hash.
 
   ## Examples
 

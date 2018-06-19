@@ -65,7 +65,9 @@ defmodule Effusion.THP.HTTP do
     "peer id" => :peer_id
   }
 
-
+  @doc """
+  Decode a tracker response.
+  """
   def decode(body) do
     case ExBencode.decode(body) do
       {:ok, bterm} ->
