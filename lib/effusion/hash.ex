@@ -4,17 +4,29 @@ defmodule Effusion.Hash do
   """
 
   @doc """
+  Returns `true` if `term` is a 20-byte binary; otherwise returns `false`.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      iex> Effusion.Hash.is_hash("12345678901234567890")
+      true
+
+      iex> Effusion.Hash.is_hash("1234567890")
+      false
+  """
+  defguard is_hash(term) when is_binary(term) and byte_size(term) == 20
+
+  @doc """
   Formats a hash into a nice, readable hex string.
 
   ## Examples
 
-      iex> Effusion.Hash.inspect(<<1, 2, 3>>)
-      "010203"
-
-      iex> Effusion.Hash.inspect(<<50, 100, 150, 200, 250>>)
-      "326496c8fa"
+      iex> Effusion.Hash.calc("Hello!") |> Effusion.Hash.inspect()
+      "69342c5c39e5ae5f0077aecc32c0f81811fb8193"
   """
-  def inspect(hash) when is_binary(hash) do
+  def inspect(hash) when is_hash(hash) do
     Base.encode16 hash, case: :lower
   end
 
@@ -36,13 +48,13 @@ defmodule Effusion.Hash do
 
   ## Examples
 
-      Effusion.Hash.matches(Effusion.Hash.calc("Hello!"), "Hello!")
+      iex> Effusion.Hash.calc("Hello!") |> Effusion.Hash.matches?("Hello!")
       true
 
-      Effusion.Hash.matches(<<1, 2, 3>>, "Nope!")
+      iex> Effusion.Hash.calc("Hello!") |> Effusion.Hash.matches?("Nope!")
       false
   """
-  def matches?(hash, data) when is_binary(hash) do
+  def matches?(hash, data) when is_hash(hash) and is_binary(data) do
     calc(data) == hash
   end
 end

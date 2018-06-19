@@ -1,6 +1,7 @@
 defmodule Effusion.BTP.Session do
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Peer
+  import Effusion.BTP.Peer
   require Logger
 
   @moduledoc """
@@ -93,7 +94,8 @@ defmodule Effusion.BTP.Session do
   @doc """
   Perform a function on all of this download's listening processes.
   """
-  def each_listener(%{listeners: listeners}, fun) do
+  def each_listener(%{listeners: listeners}, fun)
+  when is_function(fun, 1) do
     Enum.each(listeners, &fun.(&1))
   end
 
@@ -188,7 +190,8 @@ defmodule Effusion.BTP.Session do
   """
   def handle_message(session, peer_id, message)
 
-  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, {:piece, b} = msg) when peer_id != remote_peer_id do
+  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, {:piece, b} = msg)
+  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     s = add_block(s, b)
     {session_messages, s} = next_request_msg(s)
     {s, peer_messages} = delegate_message(s, remote_peer_id, msg)
@@ -196,7 +199,8 @@ defmodule Effusion.BTP.Session do
   end
 
 
-  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, :unchoke = msg) when peer_id != remote_peer_id do
+  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, :unchoke = msg)
+  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     {session_messages, s} = next_request_msg(s)
     {s, peer_messages} = delegate_message(s, remote_peer_id, msg)
     messages = session_messages ++ peer_messages
@@ -204,11 +208,13 @@ defmodule Effusion.BTP.Session do
     {s, session_messages ++ peer_messages}
   end
 
-  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, msg) when peer_id != remote_peer_id do
+  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, msg)
+  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     delegate_message(s, remote_peer_id, msg)
   end
 
-  defp delegate_message(s = %{peer_id: peer_id}, remote_peer_id, msg) when peer_id != remote_peer_id do
+  defp delegate_message(s = %{peer_id: peer_id}, remote_peer_id, msg)
+  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     peer = get_connected_peer(s, remote_peer_id)
     {peer, responses} = Peer.recv(peer, msg)
 
@@ -216,13 +222,15 @@ defmodule Effusion.BTP.Session do
     {session, responses}
   end
 
-  defp get_connected_peer(s = %{peer_id: peer_id}, remote_peer_id) when peer_id != remote_peer_id do
+  defp get_connected_peer(s = %{peer_id: peer_id}, remote_peer_id)
+  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     s
     |> Map.get(:connected_peers, Map.new())
     |> Map.get(remote_peer_id, default_peer(s, remote_peer_id))
   end
 
-  defp peer(s, peer_id, peer_address) do
+  defp peer(s, peer_id, peer_address)
+  when is_peer_id(peer_id) do
     Peer.new(
       peer_address,
       s.peer_id,
@@ -231,7 +239,8 @@ defmodule Effusion.BTP.Session do
     |> Map.put(:remote_peer_id, peer_id)
   end
 
-  defp default_peer(%{peer_id: peer_id, meta: %{info_hash: info_hash}}, remote_peer_id) when peer_id != remote_peer_id do
+  defp default_peer(%{peer_id: peer_id, meta: %{info_hash: info_hash}}, remote_peer_id)
+  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     Peer.new(
       {nil, nil},
       peer_id,
@@ -246,7 +255,8 @@ defmodule Effusion.BTP.Session do
   This does not mean the session will connect to the peer,
   it is pretty much only used for testing.
   """
-  def add_connected_peer(s = %{peer_id: peer_id}, peer = %{remote_peer_id: remote_peer_id}) when peer_id != remote_peer_id do
+  def add_connected_peer(s = %{peer_id: peer_id}, peer = %{remote_peer_id: remote_peer_id})
+  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     Map.update!(s, :connected_peers, &Map.put(&1, remote_peer_id, peer))
   end
 
@@ -256,18 +266,21 @@ defmodule Effusion.BTP.Session do
   This does not mean the session will connect to the peer,
   it is pretty much only used for testing.
   """
-  def remove_connected_peer(s, peer_id) do
+  def remove_connected_peer(s, peer_id)
+  when is_peer_id(peer_id) do
     Map.update!(s, :connected_peers, &Map.delete(&1, peer_id))
   end
 
-  defp add_closed_connection(s, peer_id, address) do
+  defp add_closed_connection(s, peer_id, address)
+  when is_peer_id(peer_id) do
     Map.update!(s, :closed_connections, &MapSet.put(&1, peer(s, peer_id, address)))
   end
 
   @doc """
   Perform actions necessary when a peer at a given address disconnects.
   """
-  def handle_disconnect(s, peer_id, address) do
+  def handle_disconnect(s, peer_id, address)
+  when is_peer_id(peer_id) do
     s
     |> remove_connected_peer(peer_id)
     |> add_closed_connection(peer_id, address)
