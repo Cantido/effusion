@@ -161,5 +161,7 @@ defmodule Effusion.BTP.TorrentTest do
     torrent = meta.info
     |> Torrent.new()
     |> Torrent.add_block(Block.new(0, 0, "Hello\nworld!\n"))
+
+    assert Torrent.done?(torrent)
   end
 end
