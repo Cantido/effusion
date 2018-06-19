@@ -4,11 +4,11 @@ defmodule Effusion.PWP.Messages do
     Encode and decode Peer Wire Protocol (PWP) messages.
   """
 
-  defguard is_uint32(i) when i in 0..4294967295
-  defguard is_all_uint32(a, b) when is_uint32(a) and is_uint32(b)
-  defguard is_all_uint32(a, b, c) when is_uint32(a) and is_uint32(b) and is_uint32(c)
-  defguard is_under_max_bitfield_size(s) when is_uint32(byte_size(s) + 1)
-  defguard is_under_max_block_size(s) when is_uint32(byte_size(s) + 9)
+  defguardp is_uint32(i) when i in 0..4294967295
+  defguardp is_all_uint32(a, b) when is_uint32(a) and is_uint32(b)
+  defguardp is_all_uint32(a, b, c) when is_uint32(a) and is_uint32(b) and is_uint32(c)
+  defguardp is_under_max_bitfield_size(s) when is_uint32(byte_size(s) + 1)
+  defguardp is_under_max_block_size(s) when is_uint32(byte_size(s) + 9)
 
   @doc """
   Decodes a binary into a peer wire protocol message.

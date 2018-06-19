@@ -6,8 +6,7 @@ defmodule Effusion.BTP.PieceSelection do
   Strategies for selecting which pieces of a torrent to download.
   """
 
-  defguard is_index(i) when is_integer(i) and i >= 0
-  defguard is_size(x) when is_integer(x) and x > 0
+  defguardp is_size(x) when is_integer(x) and x > 0
 
   @doc """
   Get the next block to request, or `nil` if the torrent is done.

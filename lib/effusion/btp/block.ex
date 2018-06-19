@@ -12,8 +12,8 @@ defmodule Effusion.BTP.Block do
   indicating the data's offset from the start of the piece with index `:index`.
   """
 
-  defguard is_index(i) when is_integer(i) and i >= 0
-  defguard is_size(x) when is_integer(x) and x > 0
+  defguardp is_index(i) when is_integer(i) and i >= 0
+  defguardp is_size(x) when is_integer(x) and x > 0
 
   @doc """
   Make a data structure that represents a block.
