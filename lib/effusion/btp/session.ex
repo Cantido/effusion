@@ -1,6 +1,7 @@
 defmodule Effusion.BTP.Session do
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Peer
+  alias Effusion.BTP.Block
   import Effusion.BTP.Peer
   require Logger
 
@@ -31,7 +32,8 @@ defmodule Effusion.BTP.Session do
       closed_connections: MapSet.new(),
       peer_id: @local_peer_id,
       listeners: MapSet.new(),
-      requested: MapSet.new()
+      requested: MapSet.new(),
+      requested_pieces: MapSet.new()
     }
   end
 
@@ -61,27 +63,50 @@ defmodule Effusion.BTP.Session do
 
   This may trigger messages to be sent to any connections associated with this download's torrent.
   """
-  def add_block(s, block) do
+  def add_block(s, block, from) when is_peer_id(from) do
+    s = cancel_block_requests(s, block, from)
+
     torrent = s.torrent
 
     pieces_before = Torrent.bitfield(torrent)
     torrent = Torrent.add_block(torrent, block)
     pieces_after = Torrent.bitfield(torrent)
 
-    new_pieces = IntSet.difference(pieces_after, pieces_before)
-
-    if not Enum.empty?(new_pieces) do
-      Registry.dispatch(ConnectionRegistry, s.meta.info_hash, fn connections ->
-        Enum.map(connections, fn {c, _} ->
-          Enum.map(new_pieces, fn p ->
-            send c, {:btp_send, {:have, p}}
-          end)
+    case IntSet.difference(pieces_after, pieces_before) |> Enum.to_list() do
+      [new_piece] ->
+        Registry.dispatch(ConnectionRegistry, s.meta.info_hash, fn connections ->
+          connections
+          |> Enum.map(&send_message(&1, {:have, new_piece}))
         end)
-      end)
+      _ -> :ok
     end
 
     s = %{s | torrent: torrent}
     write(s)
+  end
+
+  defp cancel_block_requests(s, block, from) do
+    block_id = Block.id(block)
+    peers_with_request = s
+    |> Map.get(:requested_pieces, MapSet.new())
+    |> Map.get(block_id, MapSet.new())
+
+    :ok = Registry.dispatch(ConnectionRegistry, s.meta.info_hash, fn connections ->
+      connections
+      |> Enum.reject(fn {_, peer_id} -> peer_id == from end)
+      |> Enum.filter(fn {_, peer_id} -> MapSet.member?(peers_with_request, peer_id) end)
+      |> Enum.map(&send_message(&1, {:cancel, block_id}))
+    end)
+
+    Map.update(s, :requested_pieces, Map.new(), &Map.delete(&1, block_id))
+  end
+
+  defp send_message(pid, message) when is_pid(pid) do
+    send pid, {:btp_send, message}
+  end
+
+  defp send_message({c, id}, message) do
+    send c, {:btp_send, id, message}
   end
 
   @doc """
@@ -192,7 +217,7 @@ defmodule Effusion.BTP.Session do
 
   def handle_message(s = %{peer_id: peer_id}, remote_peer_id, {:piece, b} = msg)
   when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-    s = add_block(s, b)
+    s = add_block(s, b, remote_peer_id)
     {session_messages, s} = next_request_msg(s)
     {s, peer_messages} = delegate_message(s, remote_peer_id, msg)
     {s, session_messages ++ peer_messages}

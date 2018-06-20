@@ -2,6 +2,7 @@ defmodule Effusion.BTP.SessionTest do
   use ExUnit.Case, async: true
   alias Effusion.BTP.Session
   alias Effusion.BTP.Peer
+  alias Effusion.BTP.Block
   doctest Effusion.BTP.Session
   import Mox
 
@@ -22,6 +23,10 @@ defmodule Effusion.BTP.SessionTest do
   def new do
     Session.new(@torrent, {{192, 168, 1, 1}, 8080})
     |> Session.add_connected_peer(peer())
+  end
+
+  def stub_tracker(_, _, _, _, _, _, _, _, _) do
+    {:ok, %{interval: 9_000, peers: []}}
   end
 
   test "expresses interest and unchokes after we send a bitfield" do
@@ -66,13 +71,14 @@ defmodule Effusion.BTP.SessionTest do
     |> stub(:announce, stub_tracker)
 
     peer = peer()
+    remote_peer_id = peer.remote_peer_id
 
     {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, peer.remote_peer_id)
 
     {_session, _msg} = new()
     |> Session.handle_message(peer.remote_peer_id, {:piece, %{index: 0, offset: 0, data: "tin"}})
 
-    assert_receive({:btp_send, {:have, 0}})
+    assert_receive({:btp_send, ^remote_peer_id, {:have, 0}})
   end
 
   test "sends STARTED message to tracker on start" do
@@ -84,5 +90,35 @@ defmodule Effusion.BTP.SessionTest do
     |> expect(:announce, stub_tracker)
 
     Session.start(new(), Effusion.THP.Mock)
+  end
+
+  test "sends CANCEL messages to peers it sent requests to" do
+    Effusion.THP.Mock
+    |> stub(:announce, &stub_tracker/9)
+
+    info_hash = @torrent.info_hash
+
+    piece_sender_id = "123456789012345678~1"
+    piece_requestee_id = "123456789012345678~2"
+    bystander_id = "123456789012345678~3"
+
+    {:ok, _pid} = Registry.register(ConnectionRegistry, info_hash, piece_sender_id)
+    {:ok, _pid} = Registry.register(ConnectionRegistry, info_hash, piece_requestee_id)
+    {:ok, _pid} = Registry.register(ConnectionRegistry, info_hash, bystander_id)
+
+    block_id = Block.id(0, 0, 1)
+    block_data = Block.new(0, 0, "t")
+
+    requested_pieces = Map.new([
+      {block_id, MapSet.new([piece_sender_id, piece_requestee_id])}
+    ])
+
+    new()
+    |> Map.put(:requested_pieces, requested_pieces)
+    |> Session.handle_message(piece_sender_id, {:piece, block_data})
+
+    refute_received {:btp_send, ^piece_sender_id, {:cancel, ^block_id}}
+    assert_received {:btp_send, ^piece_requestee_id, {:cancel, ^block_id}}
+    refute_received {:btp_send, ^bystander_id, {:cancel, ^block_id}}
   end
 end

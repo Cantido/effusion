@@ -72,6 +72,11 @@ defmodule Effusion.PWP.Connection do
     end
   end
 
+  def handle_info({:btp_send, dest_peer_id, msg}, state = {_socket, _session, peer_id, _address})
+  when dest_peer_id == peer_id do
+    handle_info({:btp_send, msg}, state)
+  end
+
   def handle_info(:timeout, peer), do: handshake(peer)
   def handle_info({:tcp, socket, data}, state), do: handle_packet(socket, data, state)
   def handle_info({:tcp_closed, _socket}, state), do: {:stop, :normal, state}

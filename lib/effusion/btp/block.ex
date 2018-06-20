@@ -24,6 +24,10 @@ defmodule Effusion.BTP.Block do
     %{index: i, offset: o, size: s}
   end
 
+  def id(%{index: i, offset: o, data: d}) do
+    %{index: i, offset: o, size: byte_size(d)}
+  end
+
   @doc """
   Make a data structure for a block containing some data.
   """
