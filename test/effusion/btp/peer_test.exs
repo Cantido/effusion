@@ -37,7 +37,7 @@ defmodule Effusion.BTP.PeerTest do
     assert peer.remote_peer_id == "Another Peer Id ~~~~"
   end
 
-  test "check an invalid handshake" do
+  test "check an invalid info_hash in handshake" do
     hs = {
       :handshake,
       "Another Peer Id ~~~~",
@@ -50,7 +50,29 @@ defmodule Effusion.BTP.PeerTest do
       :mismatched_info_hash,
       [expected: "Fake Info Hash ~~~~~", actual: "Bad Info Hash ~~~~~~"]
     }
+  end
 
+  test "check an invalid peer_id in handshake" do
+    peer = Peer.new(
+      {{192, 168, 1, 1}, 8000},
+      "Local Peer Id ~~~~~~",
+      "Fake Info Hash ~~~~~",
+      self()
+    )
+    |> Peer.set_remote_peer_id("Expected Remote Id~~")
+
+    hs = {
+      :handshake,
+      "Bad Remote Id ~~~~~~",
+      "Fake Info Hash ~~~~~",
+      <<0, 0, 0, 0, 0, 0, 0, 0>>
+    }
+
+    assert Peer.handshake(peer, hs) == {
+      :error,
+      :mismatched_peer_id,
+      [expected: "Expected Remote Id~~", actual: "Bad Remote Id ~~~~~~"]
+    }
   end
 
   test "check a valid handshake when peer has already handshaken" do

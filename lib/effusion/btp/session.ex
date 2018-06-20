@@ -175,18 +175,17 @@ defmodule Effusion.BTP.Session do
 
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
 
-    peers =
-      Enum.map(
-        res.peers,
-        fn p ->
-          Peer.new(
-            {p.ip, p.port},
-            p.peer_id,
-            s.meta.info_hash,
-            self())
-        end)
+    peers = res.peers
+    |> Enum.map(fn p ->
+        Peer.new(
+          {p.ip, p.port},
+          s.peer_id,
+          s.meta.info_hash,
+          self())
+        |> Peer.set_remote_peer_id(p.peer_id)
+      end)
 
-    %{s | peers: peers}
+    %{s | peers: MapSet.new(peers)}
   end
 
   @doc """

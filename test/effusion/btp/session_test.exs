@@ -121,4 +121,27 @@ defmodule Effusion.BTP.SessionTest do
     assert_received {:btp_send, ^piece_requestee_id, {:cancel, ^block_id}}
     refute_received {:btp_send, ^bystander_id, {:cancel, ^block_id}}
   end
+
+  test "saves peers that result from announce" do
+    stub_tracker = fn(_, _, _, _, _, _, _, _, _) ->
+      {
+        :ok,
+        %{
+          interval: 9_000,
+          peers: [
+            %{ip: {127, 0, 0, 1}, port: 8001, peer_id: "remote peer id~~~~~~"}
+          ]
+        }
+      }
+    end
+    Effusion.THP.Mock
+    |> expect(:announce, stub_tracker)
+
+    session = Session.new(@torrent, {{192, 168, 1, 1}, 8080})
+    |> Session.announce(Effusion.THP.Mock, :started)
+
+    [peer] = Enum.take(session.peers, 1)
+
+    assert peer.remote_peer_id == "remote peer id~~~~~~"
+  end
 end
