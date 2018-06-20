@@ -27,6 +27,10 @@ defmodule Effusion.BTP.MetainfoTest do
     assert decode_result.info.pieces == expected_pieces
   end
 
+  test "reject a non-bencode metainfo file" do
+    assert {:error, :not_bencoded_form} = Metainfo.decode("abcdefg")
+  end
+
   test "reject a malformed metainfo file" do
     {:ok, metainfo} = File.read("test/hello_world.torrent")
     # dictionaries need to be alphabetized by their key
@@ -38,7 +42,7 @@ defmodule Effusion.BTP.MetainfoTest do
   test "inspect" do
     {:ok, metainfo} = File.read("test/linuxmint-18.3-cinnamon-64bit.iso.torrent")
 
-    {:ok, decode_result} = Metainfo.decode(metainfo)
+    assert {:ok, decode_result} = Metainfo.decode(metainfo)
 
     assert inspect(decode_result) == "#Metainfo<[\"linuxmint-18.3-cinnamon-64bit.iso\" d2e53fb603652d991991b6ad2357a7a2845a5319]>"
   end
