@@ -27,6 +27,14 @@ defmodule Effusion.BTP.MetainfoTest do
     assert decode_result.info.pieces == expected_pieces
   end
 
+  test "reject a malformed metainfo file" do
+    {:ok, metainfo} = File.read("test/hello_world.torrent")
+    # dictionaries need to be alphabetized by their key
+    metainfo = :binary.replace(metainfo, "d6:lengthi6e4:pathl9:hello.txtee", "dl9:hello.txte6:lengthi6e4:pathe")
+
+    assert {:error, :malformed_info_dict} = Metainfo.decode(metainfo)
+  end
+
   test "inspect" do
     {:ok, metainfo} = File.read("test/linuxmint-18.3-cinnamon-64bit.iso.torrent")
 

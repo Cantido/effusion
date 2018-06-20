@@ -14,17 +14,27 @@ defmodule Effusion.BTP.Metainfo do
   Decide a metadata binary into an Elixir data structure.
   """
   def decode(bin) do
-    {:ok, decoded} = ExBencode.decode(bin)
+    with {:ok, decoded} <- ExBencode.decode(bin),
+         {:ok, info} <- ExBencode.encode(decoded["info"]),
+         :ok <- check_info_block(info, bin),
+         info_hash = Hash.calc(info),
+         result = decoded
+          |> Map.put(:info_hash, info_hash)
+          |> Effusion.Map.rename_keys(key_tokens())
+          |> Map.update!(:info, &update_info/1)
+    do
+      {:ok, struct(Effusion.BTP.Metainfo, result)}
+    else
+      err -> err
+    end
+  end
 
-    {:ok, info} = ExBencode.encode(decoded["info"])
-    info_hash = Hash.calc(info)
-
-    result = decoded
-      |> Map.put(:info_hash, info_hash)
-      |> Effusion.Map.rename_keys(key_tokens())
-      |> Map.update!(:info, &update_info/1)
-
-    {:ok, struct(Effusion.BTP.Metainfo, result)}
+  defp check_info_block(ours, bin)
+  when is_binary(ours) and is_binary(bin) and byte_size(ours) < byte_size(bin) do
+    case :binary.match(bin, ours) do
+      :nomatch -> {:error, :malformed_info_dict}
+      {_start, _length} -> :ok
+    end
   end
 
   defp update_info(info) do
