@@ -72,6 +72,7 @@ defmodule Effusion.THP.HTTPTest do
       assert query["left"] == "0"
       assert query["event"] == "started"
       assert query["ip"] == "192.168.1.1"
+      assert query["trackerid"] == "this is my tracker id"
 
       Plug.Conn.resp conn, 200, @body
     end
@@ -85,7 +86,8 @@ defmodule Effusion.THP.HTTPTest do
       0,
       0,
       0,
-      :started
+      :started,
+      "this is my tracker id"
     )
   end
 end

@@ -33,7 +33,8 @@ defmodule Effusion.BTP.Session do
       peer_id: @local_peer_id,
       listeners: MapSet.new(),
       requested: MapSet.new(),
-      requested_pieces: MapSet.new()
+      requested_pieces: MapSet.new(),
+      tracker_id: ""
     }
   end
 
@@ -170,7 +171,8 @@ defmodule Effusion.BTP.Session do
       0,
       Torrent.bytes_completed(s.torrent),
       Torrent.bytes_left(s.torrent),
-      event
+      event,
+      s.tracker_id
     )
 
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
@@ -185,7 +187,15 @@ defmodule Effusion.BTP.Session do
         |> Peer.set_remote_peer_id(p.peer_id)
       end)
 
-    %{s | peers: MapSet.new(peers)}
+    tracker_id = if Map.get(res, :tracker_id, "") != "" do
+      res.tracker_id
+    else
+      s.tracker_id
+    end
+
+    s
+    |> Map.put(:peers, MapSet.new(peers))
+    |> Map.put(:tracker_id, tracker_id)
   end
 
   @doc """

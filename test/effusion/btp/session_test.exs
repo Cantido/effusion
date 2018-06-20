@@ -25,7 +25,7 @@ defmodule Effusion.BTP.SessionTest do
     |> Session.add_connected_peer(peer())
   end
 
-  def stub_tracker(_, _, _, _, _, _, _, _, _) do
+  def stub_tracker(_, _, _, _, _, _, _, _, _, _) do
     {:ok, %{interval: 9_000, peers: []}}
   end
 
@@ -45,7 +45,7 @@ defmodule Effusion.BTP.SessionTest do
   end
 
   test "sends torrent's download progress in announce" do
-    stub_tracker = fn (_, _, _, _, _, _, downloaded, left, _) ->
+    stub_tracker = fn (_, _, _, _, _, _, downloaded, left, _, _) ->
       assert downloaded == 3
       assert left == 2
       {:ok, %{interval: 9_000, peers: []}}
@@ -62,8 +62,27 @@ defmodule Effusion.BTP.SessionTest do
     Session.announce(session, Effusion.THP.Mock)
   end
 
+  test "includes peer_id in successive announcements" do
+    stub_tracker_1 = fn (_, _, _, _, _, _, _, _, _, _) ->
+      {:ok, %{tracker_id: "this is my tracker id", interval: 9_000, peers: []}}
+    end
+    stub_tracker_2 = fn (_, _, _, _, _, _, _, _, _, tracker_id) ->
+      assert tracker_id == "this is my tracker id"
+      {:ok, %{interval: 9_000, peers: []}}
+    end
+
+    Effusion.THP.Mock
+    |> expect(:announce, stub_tracker_1)
+    |> expect(:announce, 2, stub_tracker_2)
+
+    new()
+    |> Session.announce(Effusion.THP.Mock, :started)
+    |> Session.announce(Effusion.THP.Mock, :interval)
+    |> Session.announce(Effusion.THP.Mock, :completed)
+  end
+
   test "sends HAVE messages once it finishes a piece" do
-    stub_tracker = fn (_, _, _, _, _, _, _, _, _) ->
+    stub_tracker = fn (_, _, _, _, _, _, _, _, _, _) ->
       {:ok, %{interval: 9_000, peers: []}}
     end
 
@@ -82,7 +101,7 @@ defmodule Effusion.BTP.SessionTest do
   end
 
   test "sends STARTED message to tracker on start" do
-    stub_tracker = fn (_, _, _, _, _, _, _, _, event) ->
+    stub_tracker = fn (_, _, _, _, _, _, _, _, event, _) ->
       assert event == :started
       {:ok, %{interval: 9_000, peers: []}}
     end
@@ -94,7 +113,7 @@ defmodule Effusion.BTP.SessionTest do
 
   test "sends CANCEL messages to peers it sent requests to" do
     Effusion.THP.Mock
-    |> stub(:announce, &stub_tracker/9)
+    |> stub(:announce, &stub_tracker/10)
 
     info_hash = @torrent.info_hash
 
@@ -123,7 +142,7 @@ defmodule Effusion.BTP.SessionTest do
   end
 
   test "saves peers that result from announce" do
-    stub_tracker = fn(_, _, _, _, _, _, _, _, _) ->
+    stub_tracker = fn(_, _, _, _, _, _, _, _, _, _) ->
       {
         :ok,
         %{

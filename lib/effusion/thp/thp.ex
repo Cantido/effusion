@@ -25,7 +25,8 @@ defmodule Effusion.THP do
   """
   @type tracker_response :: %{
     interval: pos_integer(),
-    peers: [peer] | [compact_peer]
+    peers: [peer] | [compact_peer],
+    tracker_id: String.t()
   }
 
   @doc """
@@ -40,6 +41,7 @@ defmodule Effusion.THP do
     uploaded :: non_neg_integer(),
     downloaded :: non_neg_integer(),
     left :: non_neg_integer(),
-    event :: :started | :stopped | :completed | :interval
+    event :: :started | :stopped | :completed | :interval,
+    tracker_id :: String.t()
   ) :: {:ok, tracker_response()} | {:error, any()}
 end

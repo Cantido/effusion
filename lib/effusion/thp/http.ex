@@ -13,7 +13,8 @@ defmodule Effusion.THP.HTTP do
     uploaded,
     downloaded,
     left,
-    event \\ :interval
+    event \\ :interval,
+    tracker_id \\ ""
   ) do
     tracker_request = %{
       info_hash: info_hash,
@@ -22,7 +23,8 @@ defmodule Effusion.THP.HTTP do
       uploaded: uploaded,
       downloaded: downloaded,
       left: left,
-      ip: to_string(:inet.ntoa(peer_host))
+      trackerid: tracker_id,
+      ip: to_string(:inet.ntoa(peer_host)),
     }
 
     with {:ok, event} <- build_event_param(event),
@@ -56,7 +58,8 @@ defmodule Effusion.THP.HTTP do
 
   @body_names %{
     "interval" => :interval,
-    "peers" => :peers
+    "peers" => :peers,
+    "tracker id" => :tracker_id
   }
 
   @peer_names %{
