@@ -26,6 +26,10 @@ defmodule Effusion.PWP.Connection do
     GenServer.start_link(__MODULE__, peer)
   end
 
+  def disconnect(pid) do
+    send(pid, :disconnect)
+  end
+
   ## Callbacks
 
   def init(peer) do
@@ -56,7 +60,6 @@ defmodule Effusion.PWP.Connection do
   def handle_packet(socket, data, {_socket, session, peer_id, address}) do
     case Socket.decode(data) do
       {:ok, msg} ->
-        Logger.debug("Got a message!!! #{inspect(msg)}")
         :ok = SessionServer.handle_message(session, peer_id, msg)
         :ok = :inet.setopts(socket, active: :once)
         {:noreply, {socket, session, peer_id, address}}
@@ -80,6 +83,7 @@ defmodule Effusion.PWP.Connection do
   def handle_info(:timeout, peer), do: handshake(peer)
   def handle_info({:tcp, socket, data}, state), do: handle_packet(socket, data, state)
   def handle_info({:tcp_closed, _socket}, state), do: {:stop, :normal, state}
+  def handle_info(:disconnect, state), do: {:stop, :normal, state}
   def handle_info(_, state), do: {:noreply, state}
 
   def terminate(_, {nil, session, peer_id, address}) do

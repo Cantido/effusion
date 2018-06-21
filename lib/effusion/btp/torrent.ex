@@ -19,8 +19,8 @@ defmodule Effusion.BTP.Torrent do
   This bitfield includes both in-memory as well as on-disk pieces.
   """
   def bitfield(torrent) do
-    written = finished_pieces(torrent)
-    cached = Enum.map(pieces(torrent), fn p -> p.index end) |> IntSet.new()
+    written = written(torrent)
+    cached = Enum.map(verified(torrent), fn p -> p.index end) |> IntSet.new()
 
     IntSet.union(written, cached)
   end
@@ -36,54 +36,50 @@ defmodule Effusion.BTP.Torrent do
    and 0 <= piece_length
    and byte_size(data) <= piece_length do
     {finished, unfinished} =
-      blocks(torrent)
+      unfinished(torrent)
       |> reduce_blocks(block)
       |> split_finished(torrent.info)
 
-    finished = finished
+    verified = finished
       |> strip_offsets()
       |> verify_all(torrent.info)
-
-    pieces1 = pieces(torrent) |> MapSet.union(finished)
+      |> MapSet.union(verified(torrent))
 
     torrent
-    |> Map.put(:blocks, unfinished)
-    |> Map.put(:pieces, pieces1)
+    |> Map.put(:unfinished, unfinished)
+    |> Map.put(:verified, verified)
   end
 
   @doc """
   Get the set of blocks cached by this torrent.
   """
-  def blocks(torrent) do
-    Map.get(torrent, :blocks, MapSet.new())
+  def unfinished(torrent) do
+    Map.get(torrent, :unfinished, MapSet.new())
   end
 
-  @doc """
-  Get the pieces that have been verified and written to disk.
-  """
-  def finished_pieces(torrent) do
-    Map.get(torrent, :written, IntSet.new())
+  def verified(torrent) do
+    Map.get(torrent, :verified, MapSet.new())
   end
 
-  @doc """
-  Get the pieces that have been verified but not yet written to disk.
-  """
-  def pieces(torrent) do
-    Map.get(torrent, :pieces, MapSet.new())
-  end
-
-  @doc """
-  Get the pieces that have been verified and written to disk.
-  """
   def written(torrent) do
     Map.get(torrent, :written, IntSet.new())
   end
 
   @doc """
+  Returns `true` if all pieces of this torrent have been written to disk.
+  """
+  def all_written?(torrent) do
+    written(torrent) |> Enum.count() == Enum.count(torrent.info.pieces)
+  end
+
+  @doc """
   Check if the torrent has cached or written all of the pieces it needs to be complete.
   """
-  def done?(torrent) do
-    (pieces(torrent) |> Enum.count()) == Enum.count(torrent.info.pieces)
+  def all_present?(torrent) do
+    in_memory_pieces = verified(torrent) |> Enum.count()
+    on_disk_pieces = written(torrent) |> Enum.count()
+
+    (in_memory_pieces + on_disk_pieces) == Enum.count(torrent.info.pieces)
   end
 
   @doc """
@@ -92,29 +88,30 @@ defmodule Effusion.BTP.Torrent do
   This includes bytes in blocks that have not yet been verified.
   """
   def bytes_completed(torrent) do
-    bytes_received(torrent) + bytes_written(torrent) + bytes_in_blocks(torrent)
+    unfinished_bytes(torrent) +
+    verified_bytes(torrent) +
+    bytes_written(torrent)
   end
 
-  defp bytes_received(torrent) do
-    info = torrent.info
-    pieces = pieces(torrent)
+  defp unfinished_bytes(torrent) do
+    torrent
+    |> unfinished()
+    |> Enum.map(&Map.get(&1, :data))
+    |> Enum.map(&byte_size/1)
+    |> Enum.sum()
+  end
 
-    last_piece_size = rem(info.length, info.piece_length)
-    last_piece_index = Enum.count(info.pieces) - 1
-    has_last_piece = Enum.any? pieces, fn p -> p.index == last_piece_index end
-
-    naive_size = Enum.count(pieces) * torrent.info.piece_length
-
-    if has_last_piece do
-      naive_size - torrent.info.piece_length + last_piece_size
-    else
-      naive_size
-    end
+  defp verified_bytes(torrent) do
+    torrent
+    |> verified()
+    |> Enum.map(&Map.get(&1, :data))
+    |> Enum.map(&byte_size/1)
+    |> Enum.sum()
   end
 
   defp bytes_written(torrent) do
     info = torrent.info
-    pieces = Map.get(torrent, :written, IntSet.new())
+    pieces = written(torrent)
 
     last_piece_size = rem(info.length, info.piece_length)
     last_piece_index = Enum.count(info.pieces) - 1
@@ -129,29 +126,32 @@ defmodule Effusion.BTP.Torrent do
     end
   end
 
-  defp bytes_in_blocks(torrent) do
-    blocks(torrent)
-    |> Enum.reduce(0, fn b, acc -> acc + byte_size(b.data) end)
-  end
-
   @doc """
   Get the number of bytes still necessary for this download to be finished.
   """
   def bytes_left(torrent) do
-    if done?(torrent) do
+    if all_present?(torrent) do
       0
     else
       torrent.info.length - bytes_completed(torrent)
     end
   end
 
-  @doc """
-  Remove a piece from the torrent.
-  """
-  def remove_piece(torrent, piece) do
-    pieces1 = pieces(torrent) |> MapSet.delete(piece)
+  def mark_piece_written(torrent, piece = %{ index: i }) do
+    torrent
+    |> Map.update(:written, IntSet.new(i), &IntSet.put(&1, i))
+    |> remove_piece(i)
+  end
 
-    Map.put(torrent, :pieces, pieces1)
+  defp remove_piece(torrent, index) do
+    verified = torrent
+    |> verified()
+    |> Enum.reject(fn p ->
+      p.index == index
+    end)
+    |> MapSet.new()
+
+    Map.put(torrent, :verified, verified)
   end
 
   defp reduce_blocks(blocks, block) do

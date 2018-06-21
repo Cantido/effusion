@@ -19,12 +19,16 @@ defmodule Effusion.IO do
   and will be updated to remember the pieces that were written.
   """
   def write_to(torrent, directory) do
-    write_pieces(torrent, directory, Enum.to_list(Torrent.pieces(torrent)))
+    write_pieces(torrent, directory, Enum.to_list(Torrent.verified(torrent)))
   end
 
   defp write_pieces(torrent, file, [piece | rest]) do
-    with {:ok, torrent} <- write_piece(torrent, file, piece),
-         do: write_pieces(torrent, file, rest)
+    with {:ok, torrent} <- write_piece(torrent, file, piece)
+    do
+      torrent
+      |> Torrent.mark_piece_written(piece)
+      |> write_pieces(file, rest)
+   end
   end
 
   defp write_pieces(torrent, _file, []) do
@@ -50,20 +54,21 @@ defmodule Effusion.IO do
       {:ok, device} = File.open(file, [:read, :write])
       :ok = :file.pwrite(device, {:bof, pos}, [data])
     end)
-
-    Map.update(torrent, :written, IntSet.new(i), &IntSet.put(&1, i))
+    torrent
   end
 
-  # Splits a piece into a map of paths and the data & offset to write
-  # to that path.
-  #
-  # Example
-  #
-  #    %{
-  #      "hello.txt" => {0, "Hello\n"},
-  #      "world.txt" => {0, "world!\n"}
-  #     }
-  #
+  @doc """
+  Splits a piece into a map of paths and the data & offset to write
+   to that path.
+
+   Example
+
+      %{
+        "hello.txt" => {0, "Hello\n"},
+        "world.txt" => {0, "world!\n"}
+       }
+
+  """
   defp split_bytes_to_files(torrent, %{index: i, data: d}) do
     piece_start = i * torrent.info.piece_length
     piece_end = piece_start + byte_size(d)
@@ -116,8 +121,7 @@ defmodule Effusion.IO do
     {:ok, device} = open(torrent, destdir)
 
     with piece_start_byte <- i * torrent.info.piece_length,
-         :ok <- :file.pwrite(device, {:bof, piece_start_byte}, [d]),
-         torrent <- Map.update(torrent, :written, IntSet.new(i), &IntSet.put(&1, i))
+         :ok <- :file.pwrite(device, {:bof, piece_start_byte}, [d])
     do
       _ = File.close(device)
       {:ok, torrent}

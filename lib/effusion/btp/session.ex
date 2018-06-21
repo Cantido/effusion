@@ -42,7 +42,7 @@ defmodule Effusion.BTP.Session do
   Get the blocks that have not been assembled into pieces and verified.
   """
   def blocks(s) do
-    Torrent.blocks(s.torrent)
+    Torrent.unfinished(s.torrent)
   end
 
   @doc """
@@ -129,26 +129,22 @@ defmodule Effusion.BTP.Session do
   Flush this download's in-memory and verified pieces to disk.
   """
   def write(s) do
-    if s.file == nil do
-      s
-    else
-      {:ok, torrent} = Effusion.IO.write_to(s.torrent, s.file)
-      %{s | torrent: torrent}
-    end
+    {:ok, torrent} = Effusion.IO.write_to(s.torrent, s.file)
+    %{s | torrent: torrent}
   end
 
   @doc """
   Check if this download has received all necessary bytes.
   """
   def done?(s) do
-    Torrent.done?(s.torrent)
+    Torrent.all_present?(s.torrent)
   end
 
   @doc """
   Get the next piece that this download should ask for.
   """
   def next_request(s) do
-    have_pieces = Torrent.finished_pieces(s.torrent)
+    have_pieces = Torrent.bitfield(s.torrent)
     next_block = Effusion.BTP.PieceSelection.next_block(s.meta.info, have_pieces, @block_size)
     s1 = Map.update!(s, :requested, &MapSet.put(&1, next_block))
 
@@ -161,6 +157,8 @@ defmodule Effusion.BTP.Session do
   """
   def announce(s, client, event \\ :interval) do
     {local_host, local_port} = s.local_peer
+
+    Logger.debug "Logging event #{event}"
 
     {:ok, res} = client.announce(
       s.meta.announce,

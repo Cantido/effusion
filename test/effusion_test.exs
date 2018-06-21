@@ -74,7 +74,7 @@ defmodule EffusionTest do
 
   test "download a file", %{lsock: lsock, destfile: file} do
     Effusion.THP.Mock
-    |> expect(:announce, &stub_tracker/10)
+    |> expect(:announce, 2, &stub_tracker/10)
 
     {:ok, _} = Effusion.start_download(@torrent, file)
 

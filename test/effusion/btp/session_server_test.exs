@@ -19,32 +19,66 @@ defmodule Effusion.BTP.SessionServerTest do
     assert event == :stopped
     {:ok, %{interval: 9_000, peers: []}}
   end
+  defp stub_completed(_, _, _, _, _, _, _, _, event, _) do
+    assert event == :completed
+    {:ok, %{interval: 9_000, peers: []}}
+  end
 
-  test "announces again after interval" do
+  setup do
+    Temp.track!
+
+    {:ok, file} = Temp.path
+
+    on_exit fn ->
+      File.rm_rf file
+    end
+
+    %{destfile: file}
+  end
+
+  test "announces again after interval", %{destfile: file} do
     Effusion.THP.Mock
     |> expect(:announce, &stub_started/10)
     |> expect(:announce, &stub_interval/10)
 
     {:ok, _} = start_supervised({
       SessionServer,
-      [TestHelper.tiny_meta(), {nil, nil}, nil]
+      [TestHelper.tiny_meta(), {nil, nil}, file]
     })
 
     :timer.sleep(1_100)
   end
 
-  test "sends STOPPED event on termination" do
+  test "sends STOPPED event on termination", %{destfile: file} do
     Effusion.THP.Mock
     |> expect(:announce, &stub_started/10)
     |> expect(:announce, &stub_stopped/10)
 
     {:ok, spid} = start_supervised({
       SessionServer,
-      [TestHelper.tiny_meta(), {nil, nil}, nil]
+      [TestHelper.tiny_meta(), {nil, nil}, file]
     })
 
     GenServer.stop(spid)
     :timer.sleep(100)
     verify!()
+  end
+
+  test "sends COMPLETED event and terminates when finished", %{destfile: file} do
+    Effusion.THP.Mock
+    |> expect(:announce, &stub_started/10)
+    |> expect(:announce, &stub_completed/10)
+
+    {:ok, spid} = start_supervised({
+      SessionServer,
+      [TestHelper.tiny_meta(), {nil, nil}, file]
+    })
+
+    SessionServer.handle_message(spid, "peer id ~~~~~~~~~~~~", {:piece, %{index: 0, offset: 0, data: "tin"}})
+    SessionServer.handle_message(spid, "peer id ~~~~~~~~~~~~", {:piece, %{index: 1, offset: 0, data: "y\n"}})
+
+    :timer.sleep(100)
+
+    refute Process.alive?(spid)
   end
 end

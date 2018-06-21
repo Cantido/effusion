@@ -1,7 +1,9 @@
 defmodule Effusion.BTP.SessionServer do
-  use GenServer
+  use GenServer, restart: :transient
   require Logger
   alias Effusion.BTP.Session
+  alias Effusion.BTP.Torrent
+  alias Effusion.PWP.Connection
 
   @moduledoc """
   An API to manage a `Effusion.BTP.Session` object as it is connected to many peers simultaneously.
@@ -43,7 +45,7 @@ defmodule Effusion.BTP.SessionServer do
   Handle a peer disconnection.
   """
   def unregister_connection(pid, peer_id, address \\ nil) do
-    GenServer.call(pid, {:unregister_connection, peer_id, address})
+    GenServer.cast(pid, {:unregister_connection, peer_id, address})
   end
 
   ## Callbacks
@@ -55,16 +57,27 @@ defmodule Effusion.BTP.SessionServer do
   end
 
   def handle_call({:handle_msg, peer_id, msg}, _from, state) do
+    Logger.debug("Got a message!!! #{inspect(msg)}")
+
     {state, messages} = Session.handle_message(state, peer_id, msg)
+
     Logger.debug("replying: #{inspect(messages)}")
 
-    [{conn_pid, ^peer_id}] = Registry.match(ConnectionRegistry, state.meta.info_hash, peer_id)
+    connections = Registry.match(ConnectionRegistry, state.meta.info_hash, peer_id)
 
-    Enum.map(messages, fn(m) ->
-      send(conn_pid, {:btp_send, m})
-    end)
+    case connections do
+      [{conn_pid, ^peer_id}] ->
+        Enum.map(messages, fn(m) ->
+          send(conn_pid, {:btp_send, m})
+        end)
+      [] -> []
+    end
 
-    {:reply, :ok, state}
+    if(Session.done?(state)) do
+      {:stop, :normal, :ok, state}
+    else
+      {:reply, :ok, state}
+    end
   end
 
   def handle_call(:await, {from_pid, _from_ref}, state) do
@@ -72,8 +85,8 @@ defmodule Effusion.BTP.SessionServer do
     {:noreply, state}
   end
 
-  def handle_call({:unregister_connection, peer_id, address}, _from, state) do
-    {:reply, :ok, Session.handle_disconnect(state, peer_id, address)}
+  def handle_cast({:unregister_connection, peer_id, address}, _from, state) do
+    {:noreply, Session.handle_disconnect(state, peer_id, address)}
   end
 
   def handle_info(:timeout, state) do
@@ -89,7 +102,20 @@ defmodule Effusion.BTP.SessionServer do
   end
 
   def terminate(:normal, state) do
-    Session.announce(state, @thp_client, :stopped)
+    :ok = Registry.dispatch(ConnectionRegistry, state.meta.info_hash, fn connections ->
+      connections
+      |> Enum.map(fn {c, p} -> Connection.disconnect(c) end)
+    end)
+
+    Logger.debug "Terminating normally"
+
+    if(Session.done?(state)) do
+      Logger.debug "Download finished, sending COMPLETED"
+      Session.announce(state, @thp_client, :completed)
+    else
+      Logger.debug "Download not finished, sending STOPPED"
+      Session.announce(state, @thp_client, :stopped)
+    end
     reply_to_listeners(state, {:ok, Session.torrent(state)})
   end
 
