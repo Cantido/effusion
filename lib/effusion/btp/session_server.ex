@@ -80,8 +80,8 @@ defmodule Effusion.BTP.SessionServer do
     end
   end
 
-  def handle_call(:await, {from_pid, _from_ref}, state) do
-    state = Session.add_listener(state, from_pid)
+  def handle_call(:await, from, state) do
+    state = Session.add_listener(state, from)
     {:noreply, state}
   end
 

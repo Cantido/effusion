@@ -113,8 +113,8 @@ defmodule Effusion.BTP.Session do
   @doc """
   Add a process that should be notified when this download completes or crashes.
   """
-  def add_listener(s, pid) when is_pid(pid) do
-    Map.update!(s, :listeners, &MapSet.put(&1, pid))
+  def add_listener(s, from) do
+    Map.update!(s, :listeners, &MapSet.put(&1, from))
   end
 
   @doc """
