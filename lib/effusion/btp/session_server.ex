@@ -85,7 +85,7 @@ defmodule Effusion.BTP.SessionServer do
     {:noreply, state}
   end
 
-  def handle_cast({:unregister_connection, peer_id, address}, _from, state) do
+  def handle_cast({:unregister_connection, peer_id, address}, state) do
     {:noreply, Session.handle_disconnect(state, peer_id, address)}
   end
 
