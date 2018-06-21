@@ -205,7 +205,7 @@ defmodule Effusion.BTP.Session do
   def start(session, thp_client) do
     session
     |> announce(thp_client, :started)
-    |> increment_connections()
+    |> connect_to_all()
   end
 
   defp next_request_msg(session) do
@@ -324,6 +324,11 @@ defmodule Effusion.BTP.Session do
       nil -> s
       peer -> connect_to_peer(s, peer)
     end
+  end
+
+  defp connect_to_all(s) do
+    s.peers
+    |> Enum.reduce(s, fn p, session -> connect_to_peer(session, p) end)
   end
 
   defp select_peer(s) do
