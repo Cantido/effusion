@@ -22,39 +22,39 @@ defmodule Effusion.IO do
     write_pieces(torrent, directory, Enum.to_list(Torrent.verified(torrent)))
   end
 
-  defp write_pieces(torrent, file, [piece | rest]) do
-    with {:ok, torrent} <- write_piece(torrent, file, piece)
+  def write_pieces(torrent = %{info: info}, file, [piece | rest]) do
+    with :ok <- write_piece(info, file, piece),
+         torrent = Torrent.mark_piece_written(torrent, piece),
+         {:ok, torrent} <- write_pieces(torrent, file, rest)
     do
-      torrent
-      |> Torrent.mark_piece_written(piece)
-      |> write_pieces(file, rest)
+      {:ok, torrent}
    end
   end
 
-  defp write_pieces(torrent, _file, []) do
+  def write_pieces(torrent, _file, []) do
     {:ok, torrent}
   end
 
-  defp write_piece(torrent, destdir, block) do
-    if Map.has_key?(torrent.info, :files) do
-      write_piece_multi_file(torrent, destdir, block)
+  def write_piece(info, destdir, block) do
+    if Map.has_key?(info, :files) do
+      write_piece_multi_file(info, destdir, block)
     else
-      write_piece_single_file(torrent, destdir, block)
+      write_piece_single_file(info, destdir, block)
     end
   end
 
-  defp write_piece_multi_file(torrent, destdir, %{index: i, data: d}) when is_binary(d) do
-    path = Path.join(destdir, torrent.info.name)
+  defp write_piece_multi_file(info, destdir, %{index: i, data: d}) when is_binary(d) do
+    path = Path.join(destdir, info.name)
     :ok = File.mkdir_p(path)
 
-    file_bytes = split_bytes_to_files(torrent, %{index: i, data: d})
+    file_bytes = split_bytes_to_files(info, %{index: i, data: d})
 
     Enum.map(file_bytes, fn {rel_path, {pos, data}} ->
       file = Path.join(path, rel_path)
       {:ok, device} = File.open(file, [:read, :write])
       :ok = :file.pwrite(device, {:bof, pos}, [data])
     end)
-    torrent
+    :ok
   end
 
   @doc """
@@ -69,20 +69,20 @@ defmodule Effusion.IO do
        }
 
   """
-  defp split_bytes_to_files(torrent, %{index: i, data: d}) do
-    piece_start = i * torrent.info.piece_length
+  defp split_bytes_to_files(info, %{index: i, data: d}) do
+    piece_start = i * info.piece_length
     piece_end = piece_start + byte_size(d)
 
-    torrent.info.files
+    info.files
     |> Enum.with_index()
     |> Enum.filter(fn {f, fi} ->
-      file_start = first_byte_index(torrent, fi)
+      file_start = first_byte_index(info, fi)
       file_end = file_start + f.length
 
       file_start <= piece_end && piece_start <= file_end
     end)
     |> Enum.map(fn {f, fi} ->
-      file_start = first_byte_index(torrent, fi)
+      file_start = first_byte_index(info, fi)
       file_end = file_start + f.length
 
       chunk_start = max(piece_start, file_start)
@@ -104,27 +104,27 @@ defmodule Effusion.IO do
     0
   end
 
-  defp first_byte_index(torrent, file_index) when file_index > 0 do
-    torrent.info.files
+  defp first_byte_index(info, file_index) when file_index > 0 do
+    info.files
     |> Enum.slice(0..(file_index - 1))
     |> Enum.map(&(&1.length))
     |> Enum.sum()
   end
 
-  defp open(torrent, destdir) do
-    with path <- Path.join(destdir, torrent.info.name),
+  defp open(info, destdir) do
+    with path <- Path.join(destdir, info.name),
          :ok <- File.mkdir_p(destdir),
          do: File.open(path, [:read, :write])
   end
 
-  defp write_piece_single_file(torrent, destdir, %{index: i, data: d}) when is_binary(d) do
-    {:ok, device} = open(torrent, destdir)
+  defp write_piece_single_file(info, destdir, %{index: i, data: d}) when is_binary(d) do
+    {:ok, device} = open(info, destdir)
 
-    with piece_start_byte <- i * torrent.info.piece_length,
+    with piece_start_byte <- i * info.piece_length,
          :ok <- :file.pwrite(device, {:bof, piece_start_byte}, [d])
     do
       _ = File.close(device)
-      {:ok, torrent}
+      :ok
     else
       err ->
         _ = File.close(device)
