@@ -2,7 +2,6 @@ defmodule Effusion.BTP.SessionServer do
   use GenServer, restart: :transient
   require Logger
   alias Effusion.BTP.Session
-  alias Effusion.BTP.Torrent
   alias Effusion.PWP.Connection
 
   @moduledoc """
@@ -57,15 +56,15 @@ defmodule Effusion.BTP.SessionServer do
   end
 
   def handle_call({:handle_msg, peer_id, msg}, _from, state) do
-    Logger.debug("Got a message!!! #{inspect(msg)}")
+    _ = Logger.debug("Got a message!!! #{inspect(msg)}")
 
     {state, messages} = Session.handle_message(state, peer_id, msg)
 
-    Logger.debug("replying: #{inspect(messages)}")
+    _ = Logger.debug("replying: #{inspect(messages)}")
 
     connections = Registry.match(ConnectionRegistry, state.meta.info_hash, peer_id)
 
-    case connections do
+    _ = case connections do
       [{conn_pid, ^peer_id}] ->
         Enum.map(messages, fn(m) ->
           send(conn_pid, {:btp_send, m})
@@ -104,23 +103,19 @@ defmodule Effusion.BTP.SessionServer do
   def terminate(:normal, state) do
     :ok = Registry.dispatch(ConnectionRegistry, state.meta.info_hash, fn connections ->
       connections
-      |> Enum.map(fn {c, p} -> Connection.disconnect(c) end)
+      |> Enum.map(fn {c, _p} -> Connection.disconnect(c) end)
     end)
 
-    Logger.debug "Terminating normally"
-
-    if(Session.done?(state)) do
-      Logger.debug "Download finished, sending COMPLETED"
+    state = if(Session.done?(state)) do
       Session.announce(state, @thp_client, :completed)
     else
-      Logger.debug "Download not finished, sending STOPPED"
       Session.announce(state, @thp_client, :stopped)
     end
     reply_to_listeners(state, {:ok, Session.torrent(state)})
   end
 
   def terminate(reason, state) do
-    Session.announce(state, @thp_client, :stopped)
+    state = Session.announce(state, @thp_client, :stopped)
     reply_to_listeners(state, {:error, :torrent_crashed, [reason: reason]})
   end
 

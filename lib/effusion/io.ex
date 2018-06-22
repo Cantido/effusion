@@ -49,7 +49,7 @@ defmodule Effusion.IO do
 
     file_bytes = split_bytes_to_files(torrent, %{index: i, data: d})
 
-    Enum.map(file_bytes, fn {rel_path, {pos, data}} ->
+    _ = Enum.map(file_bytes, fn {rel_path, {pos, data}} ->
       file = Path.join(path, rel_path)
       {:ok, device} = File.open(file, [:read, :write])
       :ok = :file.pwrite(device, {:bof, pos}, [data])
@@ -57,18 +57,17 @@ defmodule Effusion.IO do
     torrent
   end
 
-  @doc """
-  Splits a piece into a map of paths and the data & offset to write
-   to that path.
 
-   Example
-
-      %{
-        "hello.txt" => {0, "Hello\n"},
-        "world.txt" => {0, "world!\n"}
-       }
-
-  """
+  # Splits a piece into a map of paths and the data & offset to write
+  # to that path.
+  #
+  # Example
+  #
+  #    %{
+  #      "hello.txt" => {0, "Hello\n"},
+  #      "world.txt" => {0, "world!\n"}
+  #     }
+  #
   defp split_bytes_to_files(torrent, %{index: i, data: d}) do
     piece_start = i * torrent.info.piece_length
     piece_end = piece_start + byte_size(d)

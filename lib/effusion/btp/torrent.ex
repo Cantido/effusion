@@ -137,7 +137,7 @@ defmodule Effusion.BTP.Torrent do
     end
   end
 
-  def mark_piece_written(torrent, piece = %{ index: i }) do
+  def mark_piece_written(torrent, %{ index: i }) do
     torrent
     |> Map.update(:written, IntSet.new(i), &IntSet.put(&1, i))
     |> remove_piece(i)

@@ -158,8 +158,6 @@ defmodule Effusion.BTP.Session do
   def announce(s, client, event \\ :interval) do
     {local_host, local_port} = s.local_peer
 
-    Logger.debug "Logging event #{event}"
-
     {:ok, res} = client.announce(
       s.meta.announce,
       local_host,
@@ -235,8 +233,6 @@ defmodule Effusion.BTP.Session do
   when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     {session_messages, s} = next_request_msg(s)
     {s, peer_messages} = delegate_message(s, remote_peer_id, msg)
-    messages = session_messages ++ peer_messages
-    Logger.debug("Got unchoke, so sending these request messages: #{inspect(messages)}")
     {s, session_messages ++ peer_messages}
   end
 
