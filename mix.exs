@@ -33,6 +33,7 @@ defmodule Effusion.Mixfile do
       {:int_set, "~> 1.2"},
       {:ranch, "~> 1.4"},
       {:httpotion, "~> 3.0.2"},
+      {:gen_stage, "~> 0.14"},
       {:temp, "~> 0.4", only: :test},
       {:mox, "~> 0.3", only: :test},
       {:bypass, "~> 0.8", only: :test},
