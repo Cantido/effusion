@@ -73,6 +73,8 @@ defmodule Effusion.BTP.Session do
     torrent = Torrent.add_block(torrent, block)
     pieces_after = Torrent.bitfield(torrent)
 
+    :ok = Effusion.PieceStage.put_event({s.meta.info_hash, s.meta.info, s.file, block})
+
     case IntSet.difference(pieces_after, pieces_before) |> Enum.to_list() do
       [new_piece] ->
         Registry.dispatch(ConnectionRegistry, s.meta.info_hash, fn connections ->
@@ -82,8 +84,7 @@ defmodule Effusion.BTP.Session do
       _ -> :ok
     end
 
-    s = %{s | torrent: torrent}
-    write(s)
+    %{s | torrent: torrent}
   end
 
   defp cancel_block_requests(s, block, from) do
@@ -123,26 +124,6 @@ defmodule Effusion.BTP.Session do
   def each_listener(%{listeners: listeners}, fun)
   when is_function(fun, 1) do
     Enum.each(listeners, &fun.(&1))
-  end
-
-  @doc """
-  Flush this download's in-memory and verified pieces to disk.
-  """
-  def write(s) do
-    pieces = Enum.to_list(Torrent.verified(s.torrent))
-
-    torrent = s.torrent
-    info = s.torrent.info
-    file = s.file
-
-    Enum.reduce(pieces, torrent, fn piece, torrent ->
-      case Effusion.PieceStage.put_event({info, file, piece}) do
-        :ok -> Torrent.mark_piece_written(torrent, piece)
-        _ -> torrent
-      end
-    end)
-
-    %{s | torrent: torrent}
   end
 
   @doc """
