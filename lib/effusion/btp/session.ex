@@ -129,7 +129,19 @@ defmodule Effusion.BTP.Session do
   Flush this download's in-memory and verified pieces to disk.
   """
   def write(s) do
-    {:ok, torrent} = Effusion.IO.write_to(s.torrent, s.file)
+    pieces = Enum.to_list(Torrent.verified(s.torrent))
+
+    torrent = s.torrent
+    info = s.torrent.info
+    file = s.file
+
+    Enum.reduce(pieces, torrent, fn piece, torrent ->
+      case Effusion.PieceStage.put_event({info, file, piece}) do
+        :ok -> Torrent.mark_piece_written(torrent, piece)
+        _ -> torrent
+      end
+    end)
+
     %{s | torrent: torrent}
   end
 
