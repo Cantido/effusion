@@ -11,7 +11,7 @@ defmodule Effusion.BTP.PieceSelection do
   @doc """
   Get the next block to request, or `nil` if the torrent is done.
   """
-  def next_block(info, have_pieces, block_size) do
+  def next_block(info, have_pieces, peers, block_size) do
     all_blocks = all_possible_blocks(info.length, info.piece_length, block_size)
 
     next_block = all_blocks
