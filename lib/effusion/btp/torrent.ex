@@ -25,6 +25,16 @@ defmodule Effusion.BTP.Torrent do
     IntSet.union(written, cached)
   end
 
+  def has_block?(torrent, block) do
+    i = block.index
+    o = block.offset
+
+    torrent.unfinished
+    |> Enum.filter(fn b -> b.index == i end)
+    |> Enum.filter(fn b -> b.offset == o end)
+    |> Enum.any?()
+  end
+
   @doc """
   Add a block of data to `torrent`.
 

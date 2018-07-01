@@ -12,19 +12,37 @@ defmodule Effusion.BTP.PieceSelection do
   @doc """
   Get the next block to request, or `nil` if the torrent is done.
   """
-  def next_block(torrent, _peers, block_size) do
+  def next_block(torrent, peers, block_size) do
+    possible_requests(torrent, peers, block_size)
+    |> Enum.random()
+  end
+
+  # Returns a set of ID-block pairs, of all blocks that can be requested, and from what peers
+  defp possible_requests(torrent, peers, block_size) do
+    we_have = Torrent.bitfield(torrent)
     info = torrent.info
-    have_pieces = Torrent.bitfield(torrent)
-    all_blocks = all_possible_blocks(info.length, info.piece_length, block_size)
+    peers
+    # select peers that have pieces we need
+    |> Enum.map(fn p -> {p.remote_peer_id, p.has} end)
+    |> Enum.map(fn {id, has} -> {id, IntSet.difference(has, we_have)} end)
+    |> Enum.reject(fn {id, has} -> Enum.empty?(has) end)
+    # Split out pairs of peer IDs and single pieces
+    |> Enum.flat_map(fn {id, has} -> for p <- has, do: {id, p} end)
+    |> Enum.map(fn {id, p} -> {id, Block.id(p, 0, piece_size(p, info))} end)
+    # Split ID-piece pairs into many ID-block pairs
+    |> Enum.flat_map(fn {id, p} -> for b <- Block.split(p, block_size), do: {id, b} end)
+    # Reject ones we have
+    |> Enum.reject(fn {id, b} -> Torrent.has_block?(torrent, b) end)
+  end
 
-    next_block = all_blocks
-      |> Enum.reject(fn(b) -> Map.get(b, :index) in have_pieces end)
-      |> Enum.take_random(1)
-      |> Enum.at(0)
+  defp piece_size(index, info) do
+    {whole_piece_count, last_piece_size} = divrem(info.length, info.piece_length)
+    last_piece_index = whole_piece_count - 1
 
-    case next_block do
-      nil -> :done
-      b -> b
+    if(index == last_piece_index) do
+      last_piece_size
+    else
+      info.piece_length
     end
   end
 
