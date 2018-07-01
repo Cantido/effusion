@@ -137,8 +137,10 @@ defmodule Effusion.BTP.Session do
   Get the next piece that this download should ask for.
   """
   def next_request(s) do
-    have_pieces = Torrent.bitfield(s.torrent)
-    next_block = Effusion.BTP.PieceSelection.next_block(s.torrent, s.connected_peers, @block_size)
+    next_block = Effusion.BTP.PieceSelection.next_block(
+      s.torrent,
+      Map.values(s.connected_peers),
+      @block_size)
     s1 = Map.update!(s, :requested, &MapSet.put(&1, next_block))
 
     {next_block, s1}
@@ -201,8 +203,8 @@ defmodule Effusion.BTP.Session do
 
   defp next_request_msg(session) do
     case next_request(session) do
-      {%{index: i, offset: o, size: sz}, session} -> {[{:request, i, o, sz}], session}
-      {:done, session} -> {[], session}
+      {{_peer_id, %{index: i, offset: o, size: sz}}, session} -> {[{:request, i, o, sz}], session}
+      {nil, session} -> {[], session}
     end
   end
 
