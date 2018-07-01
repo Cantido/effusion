@@ -10,11 +10,20 @@ defmodule Effusion.BTP.PieceSelection do
   defguardp is_size(x) when is_integer(x) and x > 0
 
   @doc """
-  Get the next block to request, or `nil` if the torrent is done.
+  Get the next block to request, or `nil` if nothing can be requested.
   """
   def next_block(torrent, peers, block_size) do
-    possible_requests(torrent, peers, block_size)
-    |> Enum.random()
+    if Torrent.all_present?(torrent) do
+      nil
+    else
+      poss = possible_requests(torrent, peers, block_size)
+
+      if Enum.any?(poss) do
+        Enum.random(poss)
+      else
+        nil
+      end
+    end
   end
 
   # Returns a set of ID-block pairs, of all blocks that can be requested, and from what peers
