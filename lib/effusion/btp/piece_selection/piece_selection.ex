@@ -27,7 +27,7 @@ defmodule Effusion.BTP.PieceSelection do
   end
 
   # Returns a set of ID-block pairs, of all blocks that can be requested, and from what peers
-  defp possible_requests(torrent, peers, block_size) do
+  def possible_requests(torrent, peers, block_size) do
     we_have = Torrent.bitfield(torrent)
     info = torrent.info
     peers
