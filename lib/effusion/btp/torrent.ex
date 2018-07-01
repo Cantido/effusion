@@ -29,7 +29,7 @@ defmodule Effusion.BTP.Torrent do
     i = block.index
     o = block.offset
 
-    torrent.unfinished
+    unfinished(torrent)
     |> Enum.filter(fn b -> b.index == i end)
     |> Enum.filter(fn b -> b.offset == o end)
     |> Enum.any?()
