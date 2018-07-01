@@ -79,7 +79,8 @@ defmodule EffusionTest do
     {:ok, _} = Effusion.start_download(@torrent, file)
 
     {:ok, sock, _remote_peer} = Socket.accept(lsock, @remote_peer)
-    :ok = Socket.send_msg(sock, {:bitfield, <<0b11>>})
+    bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
+    :ok = Socket.send_msg(sock, {:bitfield, bitfield})
     {:ok, :interested} = Socket.recv(sock)
     {:ok, :unchoke} = Socket.recv(sock)
     :ok = Socket.send_msg(sock, :unchoke)
