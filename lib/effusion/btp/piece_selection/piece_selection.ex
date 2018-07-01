@@ -2,6 +2,7 @@ defmodule Effusion.BTP.PieceSelection do
   require Logger
   alias Effusion.BTP.Block
   alias Effusion.BTP.Torrent
+  import Effusion.Math
 
   @moduledoc """
   Strategies for selecting which pieces of a torrent to download.
@@ -51,9 +52,5 @@ defmodule Effusion.BTP.PieceSelection do
     else
       info.piece_length
     end
-  end
-
-  defp divrem(a, b) when is_integer(a) and is_integer(b) and b != 0 do
-    {div(a, b), rem(a, b)}
   end
 end
