@@ -58,24 +58,27 @@ defmodule Effusion.BTP.SessionServer do
   def handle_call({:handle_msg, peer_id, msg}, _from, state) do
     _ = Logger.debug("Got a message!!! #{inspect(msg)}")
 
-    {state, messages} = Session.handle_message(state, peer_id, msg)
+    case Session.handle_message(state, peer_id, msg) do
+      {:error, reason} -> {:stop, reason, {:error, reason}, state}
+      {state, messages} ->
 
-    _ = Logger.debug("replying: #{inspect(messages)}")
+        _ = Logger.debug("replying: #{inspect(messages)}")
 
-    connections = Registry.match(ConnectionRegistry, state.meta.info_hash, peer_id)
+        connections = Registry.match(ConnectionRegistry, state.meta.info_hash, peer_id)
 
-    _ = case connections do
-      [{conn_pid, ^peer_id}] ->
-        Enum.map(messages, fn(m) ->
-          send(conn_pid, {:btp_send, m})
-        end)
-      [] -> []
-    end
+        _ = case connections do
+          [{conn_pid, ^peer_id}] ->
+            Enum.map(messages, fn(m) ->
+              send(conn_pid, {:btp_send, m})
+            end)
+          [] -> []
+        end
 
-    if(Session.done?(state)) do
-      {:stop, :normal, :ok, state}
-    else
-      {:reply, :ok, state}
+        if(Session.done?(state)) do
+          {:stop, :normal, :ok, state}
+        else
+          {:reply, :ok, state}
+        end
     end
   end
 
