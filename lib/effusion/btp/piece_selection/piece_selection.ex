@@ -46,7 +46,7 @@ defmodule Effusion.BTP.PieceSelection do
 
   defp piece_size(index, info) do
     {whole_piece_count, last_piece_size} = divrem(info.length, info.piece_length)
-    last_piece_index = whole_piece_count - 1
+    last_piece_index = whole_piece_count
 
     if(index == last_piece_index) do
       last_piece_size
