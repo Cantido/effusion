@@ -43,20 +43,35 @@ defmodule Effusion.IO do
     end
   end
 
-  defp write_piece_multi_file(info, destdir, %{index: i, data: d}) when is_binary(d) do
-    path = Path.join(destdir, info.name)
-    :ok = File.mkdir_p(path)
-
-    file_bytes = split_bytes_to_files(info, %{index: i, data: d})
-
-    _ = Enum.map(file_bytes, fn {rel_path, {pos, data}} ->
-      file = Path.join(path, rel_path)
-      {:ok, device} = File.open(file, [:read, :write])
-      :ok = :file.pwrite(device, {:bof, pos}, [data])
-    end)
-    :ok
+  defp write_piece_single_file(info, destdir, %{index: i, data: d}) when is_binary(d) do
+    piece_start_byte = i * info.piece_length
+    write_chunk(destdir, info.name, piece_start_byte, d)
   end
 
+  defp write_piece_multi_file(info, destdir, %{index: i, data: d}) when is_binary(d) do
+    with torrent_root_dir = Path.join(destdir, info.name),
+         :ok <- File.mkdir_p(torrent_root_dir)
+    do
+      file_bytes = split_bytes_to_files(info, %{index: i, data: d})
+      _ = Enum.map(file_bytes, fn {file_rel_path, {pos, data}} ->
+        {file_rel_dir, [file_name]} = Enum.split(file_rel_path, -1)
+        file_dir = Path.join(torrent_root_dir, file_rel_dir)
+        write_chunk(file_dir, file_name, pos, data)
+      end)
+      :ok
+    end
+  end
+
+  defp write_chunk(destdir, name, pos, data) do
+    with path = Path.join(destdir, name),
+         :ok <- File.mkdir_p(destdir),
+         {:ok, device} <- File.open(path, [:read, :write])
+    do
+      write_result = :file.pwrite(device, {:bof, pos}, [data])
+      _ = File.close(device)
+      write_result
+    end
+  end
 
   defp split_bytes_to_files(info, %{index: i, data: d}) do
     piece_start = i * info.piece_length
@@ -84,7 +99,7 @@ defmodule Effusion.IO do
 
       file_data = :binary.part(d, binary_part_pos, binary_part_len)
 
-      {Path.join(f.path), {file_offset, file_data}}
+      {f.path, {file_offset, file_data}}
     end)
     |> Map.new()
   end
@@ -98,29 +113,5 @@ defmodule Effusion.IO do
     |> Enum.slice(0..(file_index - 1))
     |> Enum.map(&(&1.length))
     |> Enum.sum()
-  end
-
-  defp open(info, destdir) do
-    with path <- Path.join(destdir, info.name),
-         :ok <- File.mkdir_p(destdir),
-         do: File.open(path, [:read, :write])
-  end
-
-  defp write_piece_single_file(info, destdir, piece = %{data: d}) when is_binary(d) do
-    with {:ok, device} <- open(info, destdir),
-    do: do_write(info, device, piece)
-  end
-
-  defp do_write(info, device, %{index: i, data: d}) do
-    with piece_start_byte <- i * info.piece_length,
-         :ok <- :file.pwrite(device, {:bof, piece_start_byte}, [d])
-    do
-      _ = File.close(device)
-      :ok
-    else
-      err ->
-        _ = File.close(device)
-        err
-    end
   end
 end
