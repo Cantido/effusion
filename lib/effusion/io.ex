@@ -106,9 +106,12 @@ defmodule Effusion.IO do
          do: File.open(path, [:read, :write])
   end
 
-  defp write_piece_single_file(info, destdir, %{index: i, data: d}) when is_binary(d) do
-    {:ok, device} = open(info, destdir)
+  defp write_piece_single_file(info, destdir, piece = %{data: d}) when is_binary(d) do
+    with {:ok, device} <- open(info, destdir),
+    do: do_write(info, device, piece)
+  end
 
+  defp do_write(info, device, %{index: i, data: d}) do
     with piece_start_byte <- i * info.piece_length,
          :ok <- :file.pwrite(device, {:bof, piece_start_byte}, [d])
     do
