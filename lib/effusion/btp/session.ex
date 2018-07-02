@@ -73,6 +73,8 @@ defmodule Effusion.BTP.Session do
     torrent = Torrent.add_block(torrent, block)
     pieces_after = Torrent.bitfield(torrent)
 
+    :ok = Effusion.PieceStage.put_event({s.meta.info_hash, s.meta.info, s.file, block})
+
     case IntSet.difference(pieces_after, pieces_before) |> Enum.to_list() do
       [new_piece] ->
         Registry.dispatch(ConnectionRegistry, s.meta.info_hash, fn connections ->
@@ -82,8 +84,7 @@ defmodule Effusion.BTP.Session do
       _ -> :ok
     end
 
-    s = %{s | torrent: torrent}
-    write(s)
+    %{s | torrent: torrent}
   end
 
   defp cancel_block_requests(s, block, from) do
@@ -126,26 +127,6 @@ defmodule Effusion.BTP.Session do
   end
 
   @doc """
-  Flush this download's in-memory and verified pieces to disk.
-  """
-  def write(s) do
-    pieces = Enum.to_list(Torrent.verified(s.torrent))
-
-    torrent = s.torrent
-    info = s.torrent.info
-    file = s.file
-
-    Enum.reduce(pieces, torrent, fn piece, torrent ->
-      case Effusion.PieceStage.put_event({info, file, piece}) do
-        :ok -> Torrent.mark_piece_written(torrent, piece)
-        _ -> torrent
-      end
-    end)
-
-    %{s | torrent: torrent}
-  end
-
-  @doc """
   Check if this download has received all necessary bytes.
   """
   def done?(s) do
@@ -156,8 +137,10 @@ defmodule Effusion.BTP.Session do
   Get the next piece that this download should ask for.
   """
   def next_request(s) do
-    have_pieces = Torrent.bitfield(s.torrent)
-    next_block = Effusion.BTP.PieceSelection.next_block(s.meta.info, have_pieces, @block_size)
+    next_block = Effusion.BTP.PieceSelection.next_block(
+      s.torrent,
+      Map.values(s.connected_peers),
+      @block_size)
     s1 = Map.update!(s, :requested, &MapSet.put(&1, next_block))
 
     {next_block, s1}
@@ -169,8 +152,6 @@ defmodule Effusion.BTP.Session do
   """
   def announce(s, client, event \\ :interval) do
     {local_host, local_port} = s.local_peer
-
-    Logger.debug "Logging event #{event}"
 
     {:ok, res} = client.announce(
       s.meta.announce,
@@ -222,8 +203,8 @@ defmodule Effusion.BTP.Session do
 
   defp next_request_msg(session) do
     case next_request(session) do
-      {%{index: i, offset: o, size: sz}, session} -> {[{:request, i, o, sz}], session}
-      {:done, session} -> {[], session}
+      {{_peer_id, %{index: i, offset: o, size: sz}}, session} -> {[{:request, i, o, sz}], session}
+      {nil, session} -> {[], session}
     end
   end
 
@@ -233,6 +214,19 @@ defmodule Effusion.BTP.Session do
   For more information about messages, see `Effusion.PWP.Messages`.
   """
   def handle_message(session, peer_id, message)
+
+  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, msg = {:bitfield, b})
+  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
+
+    pieces_count = Enum.count(s.meta.info.pieces)
+    max_i = Enum.max(IntSet.new(b), fn -> 0 end)
+
+    if 0 <= max_i && max_i < pieces_count do
+      delegate_message(s, remote_peer_id, msg)
+    else
+      {:error, :index_out_of_bounds}
+    end
+  end
 
   def handle_message(s = %{peer_id: peer_id}, remote_peer_id, {:piece, b} = msg)
   when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
@@ -247,9 +241,19 @@ defmodule Effusion.BTP.Session do
   when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     {session_messages, s} = next_request_msg(s)
     {s, peer_messages} = delegate_message(s, remote_peer_id, msg)
-    messages = session_messages ++ peer_messages
-    Logger.debug("Got unchoke, so sending these request messages: #{inspect(messages)}")
     {s, session_messages ++ peer_messages}
+  end
+
+  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, msg = {:have, i})
+  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
+
+    pieces_count = Enum.count(s.meta.info.pieces)
+
+    if 0 <= i && i < pieces_count do
+      delegate_message(s, remote_peer_id, msg)
+    else
+      {:error, :index_out_of_bounds}
+    end
   end
 
   def handle_message(s = %{peer_id: peer_id}, remote_peer_id, msg)

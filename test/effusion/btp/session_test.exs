@@ -66,6 +66,20 @@ defmodule Effusion.BTP.SessionTest do
     refute Session.done?(session)
   end
 
+  test "returns an error when we get a :have message for a piece outside the torrent's bounds", %{destfile: file} do
+    peer = peer()
+    session = new(file)
+
+    assert {:error, :index_out_of_bounds} == Session.handle_message(session, peer.remote_peer_id, {:have, 3})
+  end
+
+  test "returns an error when we get a :bitfield message for a piece outside the torrent's bounds", %{destfile: file} do
+    peer = peer()
+    session = new(file)
+
+    assert {:error, :index_out_of_bounds} == Session.handle_message(session, peer.remote_peer_id, {:bitfield, <<0b001>>})
+  end
+
   test "is done when we have all the pieces", %{destfile: file} do
     peer = peer()
     session = new(file)

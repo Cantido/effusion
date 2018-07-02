@@ -25,6 +25,16 @@ defmodule Effusion.BTP.Torrent do
     IntSet.union(written, cached)
   end
 
+  def has_block?(torrent, block) do
+    i = block.index
+    o = block.offset
+
+    unfinished(torrent)
+    |> Enum.filter(fn b -> b.index == i end)
+    |> Enum.filter(fn b -> b.offset == o end)
+    |> Enum.any?()
+  end
+
   @doc """
   Add a block of data to `torrent`.
 
@@ -137,7 +147,7 @@ defmodule Effusion.BTP.Torrent do
     end
   end
 
-  def mark_piece_written(torrent, piece = %{ index: i }) do
+  def mark_piece_written(torrent, %{ index: i }) do
     torrent
     |> Map.update(:written, IntSet.new(i), &IntSet.put(&1, i))
     |> remove_piece(i)

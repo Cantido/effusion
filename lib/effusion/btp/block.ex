@@ -1,5 +1,6 @@
 defmodule Effusion.BTP.Block do
   alias Effusion.Hash
+  import Effusion.Math
 
   @moduledoc """
   A chunk of data for a download.
@@ -132,9 +133,5 @@ defmodule Effusion.BTP.Block do
   def correct_hash?(block, info) do
     expected_hash = Enum.at(info.pieces, block.index)
     Hash.matches?(expected_hash, block.data)
-  end
-
-  defp divrem(a, b) when is_integer(a) and is_integer(b) and b != 0 do
-    {div(a, b), rem(a, b)}
   end
 end

@@ -123,8 +123,8 @@ defmodule Effusion.PWP.Messages do
       iex> Effusion.PWP.Messages.encode({:have, 690042})
       {:ok, <<4, 690042 :: 32>>}
 
-      iex> Effusion.PWP.Messages.encode({:bitfield, <<0b0000_0000>>})
-      {:ok, <<5, 0>>}
+      iex> Effusion.PWP.Messages.encode({:bitfield, <<0b0000_0100>>})
+      {:ok, <<5, 0b0000_0100>>}
 
       iex> Effusion.PWP.Messages.encode({:request, 420, 69, 666})
       {:ok, <<6, 0, 0, 1, 164, 0, 0, 0, 69, 0, 0, 2, 154>>}
@@ -144,7 +144,10 @@ defmodule Effusion.PWP.Messages do
   def encode(:interested), do: {:ok, <<2>>}
   def encode(:uninterested), do: {:ok, <<3>>}
   def encode({:have, index}) when is_uint32(index), do: {:ok, <<4, index :: 32>>}
-  def encode({:bitfield, val}) when is_binary(val) and is_under_max_bitfield_size(val), do: {:ok, <<5>> <> val}
+  def encode({:bitfield, val})
+  when is_bitstring(val) and is_under_max_bitfield_size(val) do
+    {:ok, <<5>> <> right_pad_bitstring_to_bytes(val)}
+   end
   def encode({:request, i, o, s}) when is_all_uint32(i, o, s), do: {:ok, <<6, i :: 32, o :: 32, s :: 32>>}
   def encode({:piece, i, o, b}) when is_all_uint32(i, o) and is_binary(b) and is_under_max_block_size(b), do: {:ok, <<7, i :: 32, o :: 32>> <> b}
   def encode({:cancel, i, o, s}) when is_all_uint32(i, o, s), do: {:ok, <<8, i :: 32, o :: 32, s :: 32>>}
@@ -153,4 +156,10 @@ defmodule Effusion.PWP.Messages do
   end
 
   def encode(m), do: {:error, {:unknown_message, m}}
+
+  defp right_pad_bitstring_to_bytes(bits) when is_bitstring(bits) do
+    extra_bits_needed = (byte_size(bits) * 8) - bit_size(bits)
+    padding = <<0::size(extra_bits_needed)>>
+    <<bits::bitstring, padding::bitstring>>
+  end
 end
