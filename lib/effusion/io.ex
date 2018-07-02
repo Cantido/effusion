@@ -51,30 +51,24 @@ defmodule Effusion.IO do
   end
 
   defp split_bytes_to_files(destdir, info = %{files: _}, %{index: i, data: d}) do
-    piece_start = i * info.piece_length
-    piece_end = piece_start + byte_size(d)
+    piece_range = Effusion.Range.poslen(i * info.piece_length, byte_size(d))
 
     info.files
     |> Enum.with_index()
-    |> Enum.filter(fn {f, fi} ->
-      file_start = first_byte_index(info, fi)
-      file_end = file_start + f.length
-
-      file_start <= piece_end && piece_start <= file_end
-    end)
     |> Enum.map(fn {f, fi} ->
       file_start = first_byte_index(info, fi)
-      file_end = file_start + f.length
-
-      chunk_start = max(piece_start, file_start)
-      chunk_end = min(file_end, piece_end)
-
-      binary_part_pos = max(0, file_start - piece_start)
-      binary_part_len = chunk_end - chunk_start
-
-      file_offset = max(0, piece_start - file_start)
-
-      file_data = :binary.part(d, binary_part_pos, binary_part_len)
+      file_range = Effusion.Range.poslen(file_start, f.length)
+      {f, file_range}
+    end)
+    |> Enum.filter(fn {_f, file_range} ->
+      Effusion.Range.overlap?(file_range, piece_range)
+    end)
+    |> Enum.map(fn {f, file_range = file_start.._} ->
+      overlap = Effusion.Range.overlap(file_range, piece_range)
+      poslen = Effusion.Range.overlap_poslen(file_range, piece_range)
+      
+      file_offset.._ = Effusion.Range.shift(overlap, -file_start)
+      file_data = :binary.part(d, poslen)
 
       {Path.join([destdir, info.name, f.path]), {file_offset, file_data}}
     end)
