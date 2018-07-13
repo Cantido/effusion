@@ -70,6 +70,16 @@ defmodule Effusion.BTP.TorrentTest do
     assert Enum.count(Torrent.unfinished(torrent)) == 0
   end
 
+  test "take_verified removes verified pieces from torrent" do
+    torrent = Torrent.new(@meta.info)
+    |> Torrent.add_block(%{index: 0, offset: 0, data: "tin"})
+
+    assert {verified, torrent} = Torrent.take_verified(torrent)
+    assert %{index: 0, data: "tin"} in verified
+    assert Torrent.verified(torrent) |> Enum.empty?()
+    assert Torrent.written(torrent) == IntSet.new(0)
+  end
+
   test "all_present? is false when the part of the file is provided" do
     torrent = Torrent.new(@meta.info)
     |> Torrent.add_block(%{index: 0, offset: 0, data: "tin"})
@@ -211,6 +221,14 @@ defmodule Effusion.BTP.TorrentTest do
     |> Torrent.mark_piece_written(%{index: 1})
 
     assert Torrent.bytes_left(torrent) == 3
+  end
+
+  test "can mark many pieces as written" do
+    torrent = Torrent.new(@meta.info)
+    |> Torrent.mark_pieces_written([%{index: 0}, %{index: 1}])
+
+    assert Torrent.bytes_left(torrent) == 0
+    assert Torrent.bytes_completed(torrent) == 5
   end
 
   test "new torrent has an empty bitfield" do

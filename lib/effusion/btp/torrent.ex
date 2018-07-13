@@ -76,6 +76,16 @@ defmodule Effusion.BTP.Torrent do
   end
 
   @doc """
+  Updates the torrent to mark all verified pieces as written,
+  then returns the verified pieces.
+  """
+  def take_verified(torrent) do
+    v = verified(torrent) |> Enum.to_list()
+    t = mark_pieces_written(torrent, v)
+    {v, t}
+  end
+
+  @doc """
   Returns `true` if all pieces of this torrent have been written to disk.
   """
   def all_written?(torrent) do
@@ -152,6 +162,14 @@ defmodule Effusion.BTP.Torrent do
     |> Map.update(:written, IntSet.new(i), &IntSet.put(&1, i))
     |> remove_piece(i)
   end
+
+  def mark_pieces_written(torrent, [piece | rest]) do
+    torrent
+    |> mark_piece_written(piece)
+    |> mark_pieces_written(rest)
+  end
+
+  def mark_pieces_written(torrent, []), do: torrent
 
   defp remove_piece(torrent, index) do
     verified = torrent

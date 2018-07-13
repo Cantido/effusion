@@ -21,11 +21,7 @@ defmodule Effusion.PieceStage do
     torrent = Map.get(torrents, info_hash, Torrent.new(info))
     |> Torrent.add_block(block)
 
-    verified = Torrent.verified(torrent)
-
-    torrent = Enum.reduce(verified, torrent, fn p, t ->
-      Torrent.mark_piece_written(t, p)
-    end)
+    {verified, torrent} = Torrent.take_verified(torrent)
 
     events = verified
     |> Enum.map(fn p -> {info, file, p} end)
