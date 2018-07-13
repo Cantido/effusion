@@ -74,8 +74,10 @@ defmodule Effusion.BTP.SessionServerTest do
       [TestHelper.tiny_meta(), {nil, nil}, file]
     })
 
-    SessionServer.handle_message(spid, "peer id ~~~~~~~~~~~~", {:piece, %{index: 0, offset: 0, data: "tin"}})
-    SessionServer.handle_message(spid, "peer id ~~~~~~~~~~~~", {:piece, %{index: 1, offset: 0, data: "y\n"}})
+    ih = TestHelper.tiny_meta().info_hash
+
+    SessionServer.handle_message(ih, "peer id ~~~~~~~~~~~~", {:piece, %{index: 0, offset: 0, data: "tin"}})
+    SessionServer.handle_message(ih, "peer id ~~~~~~~~~~~~", {:piece, %{index: 1, offset: 0, data: "y\n"}})
 
     :timer.sleep(100)
 

@@ -23,28 +23,28 @@ defmodule Effusion.BTP.SessionServer do
   Start the session server and link it to the current process.
   """
   def start_link([meta, local_peer, file]) do
-    GenServer.start_link(__MODULE__, [meta, local_peer, file])
+    GenServer.start_link(__MODULE__, [meta, local_peer, file], name: {:via, Registry, {SessionRegistry, meta.info_hash}})
   end
 
   @doc """
   Wait on a download managed by a session server to complete.
   """
-  def await(pid) do
-    GenServer.call(pid, :await, :infinity)
+  def await(info_hash) do
+    GenServer.call({:via, Registry, {SessionRegistry, info_hash}}, :await, :infinity)
   end
 
   @doc """
   Handle a Peer Wire Protocol (PWP) message sent by a remote peer.
   """
-  def handle_message(pid, peer_id, message) do
-    GenServer.call(pid, {:handle_msg, peer_id, message})
+  def handle_message(info_hash, peer_id, message) do
+    GenServer.call({:via, Registry, {SessionRegistry, info_hash}}, {:handle_msg, peer_id, message})
   end
 
   @doc """
   Handle a peer disconnection.
   """
-  def unregister_connection(pid, peer_id, address \\ nil) do
-    GenServer.cast(pid, {:unregister_connection, peer_id, address})
+  def unregister_connection(info_hash, peer_id, address \\ nil) do
+    GenServer.cast({:via, Registry, {SessionRegistry, info_hash}}, {:unregister_connection, peer_id, address})
   end
 
   ## Callbacks

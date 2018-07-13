@@ -51,20 +51,20 @@ defmodule Effusion.PWP.Connection do
         _ = Logger.debug("Successfully connected to #{ntoa(peer.address)}")
         {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, peer.remote_peer_id)
         :ok = :inet.setopts(socket, active: :once)
-        {:noreply, {socket, peer.session, peer.remote_peer_id, peer.address}}
+        {:noreply, {socket, peer.info_hash, peer.remote_peer_id, peer.address}}
       {:error, reason} ->
-        {:stop, {:failed_handshake, reason}, {nil, peer.session, peer.remote_peer_id, peer.address}}
+        {:stop, {:failed_handshake, reason}, {nil, peer.info_hash, peer.remote_peer_id, peer.address}}
     end
   end
 
-  def handle_packet(socket, data, {_socket, session, peer_id, address}) do
+  def handle_packet(socket, data, {_socket, info_hash, peer_id, address}) do
     case Socket.decode(data) do
       {:ok, msg} ->
-        :ok = SessionServer.handle_message(session, peer_id, msg)
+        :ok = SessionServer.handle_message(info_hash, peer_id, msg)
         :ok = :inet.setopts(socket, active: :once)
-        {:noreply, {socket, session, peer_id, address}}
+        {:noreply, {socket, info_hash, peer_id, address}}
       {:error, reason} ->
-        {:stop, {:bad_message, reason, data}, {socket, session, peer_id, address}}
+        {:stop, {:bad_message, reason, data}, {socket, info_hash, peer_id, address}}
     end
   end
 
@@ -75,7 +75,7 @@ defmodule Effusion.PWP.Connection do
     end
   end
 
-  def handle_info({:btp_send, dest_peer_id, msg}, state = {_socket, _session, peer_id, _address})
+  def handle_info({:btp_send, dest_peer_id, msg}, state = {_socket, _info_hash, peer_id, _address})
   when dest_peer_id == peer_id do
     handle_info({:btp_send, msg}, state)
   end
@@ -86,13 +86,13 @@ defmodule Effusion.PWP.Connection do
   def handle_info(:disconnect, state), do: {:stop, :normal, state}
   def handle_info(_, state), do: {:noreply, state}
 
-  def terminate(_, {nil, session, peer_id, address}) do
-    SessionServer.unregister_connection(session, peer_id, address)
+  def terminate(_, {nil, info_hash, peer_id, address}) do
+    SessionServer.unregister_connection(info_hash, peer_id, address)
   end
 
-  def terminate(_, {socket, session, peer_id, address}) do
+  def terminate(_, {socket, info_hash, peer_id, address}) do
     Socket.close(socket)
-    SessionServer.unregister_connection(session, peer_id, address)
+    SessionServer.unregister_connection(info_hash, peer_id, address)
     :ok
   end
 end
