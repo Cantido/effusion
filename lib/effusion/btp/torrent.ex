@@ -86,6 +86,15 @@ defmodule Effusion.BTP.Torrent do
   end
 
   @doc """
+  Add a block to a torrent, then take the verified pieces, marking them as written.
+  """
+  def add_block_and_take_verified(torrent, block) do
+    torrent
+    |> add_block(block)
+    |> take_verified()
+  end
+
+  @doc """
   Returns `true` if all pieces of this torrent have been written to disk.
   """
   def all_written?(torrent) do

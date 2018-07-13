@@ -70,6 +70,16 @@ defmodule Effusion.BTP.TorrentTest do
     assert Enum.count(Torrent.unfinished(torrent)) == 0
   end
 
+  test "add block and take verified" do
+    torrent = Torrent.new(@meta.info)
+
+    {verified, torrent} = Torrent.add_block_and_take_verified(torrent, %{index: 0, offset: 0, data: "tin"})
+
+    assert %{index: 0, data: "tin"} in verified
+    assert Torrent.verified(torrent) |> Enum.empty?()
+    assert Torrent.written(torrent) == IntSet.new(0)
+  end
+
   test "take_verified removes verified pieces from torrent" do
     torrent = Torrent.new(@meta.info)
     |> Torrent.add_block(%{index: 0, offset: 0, data: "tin"})
