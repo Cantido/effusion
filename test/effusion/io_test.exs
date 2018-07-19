@@ -5,10 +5,16 @@ defmodule Effusion.IOTest do
   alias Effusion.BTP.Metainfo
   doctest Effusion.IO
 
+
+  setup do
+    :ets.insert(MetadataTable, {TestHelper.tiny_meta().info_hash, TestHelper.tiny_meta()})
+    :ok
+  end
+
   test "writes the contents of the torrent out to a file" do
     Temp.track!
 
-    torrent = TestHelper.tiny_meta().info
+    torrent = TestHelper.tiny_meta().info_hash
     |> Torrent.new()
     |> Torrent.add_block(Block.new(0, 0, "tin"))
     |> Torrent.add_block(Block.new(1, 0, "y\n"))
@@ -26,7 +32,7 @@ defmodule Effusion.IOTest do
     {:ok, metabin} = File.read "test/hello_world.torrent"
     {:ok, meta} = Metainfo.decode(metabin)
 
-    torrent = meta.info
+    torrent = meta.info_hash
     |> Torrent.new()
     |> Torrent.add_block(Block.new(0, 0, "Hello\nworld!\n"))
 

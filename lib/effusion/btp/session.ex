@@ -25,7 +25,7 @@ defmodule Effusion.BTP.Session do
     %{
       file: file,
       meta: meta,
-      torrent: Torrent.new(meta.info),
+      torrent: Torrent.new(meta.info_hash),
       local_peer: local_server,
       peers: MapSet.new(),
       connected_peers: Map.new(),

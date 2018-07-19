@@ -4,6 +4,8 @@ defmodule Effusion.Application do
   use Application
 
   def start(_type, _args) do
+    :ets.new(MetadataTable, [:set, :public, :named_table, read_concurrency: true])
+
     children = [
       Effusion.Application.SessionServerSupervisor,
       Effusion.Application.ConnectionSupervisor,

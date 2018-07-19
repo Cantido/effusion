@@ -23,7 +23,9 @@ defmodule Effusion.BTP.Metainfo do
           |> Effusion.Map.rename_keys(key_tokens())
           |> Map.update!(:info, &update_info/1)
     do
-      {:ok, struct(Effusion.BTP.Metainfo, result)}
+      meta = struct(Effusion.BTP.Metainfo, result)
+      :ets.insert(MetadataTable, {meta.info_hash, meta})
+      {:ok, meta}
     else
       err -> err
     end
@@ -69,6 +71,10 @@ defmodule Effusion.BTP.Metainfo do
 
   defp binary_chunk(<<head::binary-size(20), rest::binary>>) when rem(byte_size(rest), 20) == 0 do
     [head | binary_chunk(rest)]
+  end
+
+  def get_meta(info_hash) do
+    :ets.lookup_element(MetadataTable, info_hash, 2)
   end
 
   defimpl Inspect, for: Effusion.BTP.Metainfo.SingleFileInfo do

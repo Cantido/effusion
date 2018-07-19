@@ -23,7 +23,7 @@ defmodule Effusion.PieceStage do
         torrents,
         info_hash,
         &Torrent.add_block_and_take_verified(&1, block),
-        Torrent.new(info))
+        Torrent.new(info_hash))
 
     events = Enum.map(verified, fn p -> {info, file, p} end)
 

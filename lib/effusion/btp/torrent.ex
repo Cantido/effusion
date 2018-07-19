@@ -1,6 +1,7 @@
 defmodule Effusion.BTP.Torrent do
   require Logger
   alias Effusion.BTP.Block
+  alias Effusion.BTP.Metainfo
 
   @moduledoc """
   Functions for assembling the file that results from a torrent download.
@@ -9,8 +10,12 @@ defmodule Effusion.BTP.Torrent do
   @doc """
   Create a map that describes a torrent download.
   """
-  def new(info = %{piece_length: _, pieces: _}) do
-    %{info: info, blocks: MapSet.new()}
+  def new(info_hash) do
+    %{
+      info_hash: info_hash,
+      info: Metainfo.get_meta(info_hash).info,
+      blocks: MapSet.new()
+    }
   end
 
   @doc """

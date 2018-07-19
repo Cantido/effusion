@@ -5,10 +5,16 @@ defmodule Effusion.BTP.PieceSelectionTest do
   alias Effusion.BTP.Peer
   doctest Effusion.BTP.PieceSelection
 
-  @tiny TestHelper.tiny_meta()
+  @meta TestHelper.tiny_meta()
+  @info_hash @meta.info_hash
+
+  setup do
+    :ets.insert(MetadataTable, {@info_hash, @meta})
+    :ok
+  end
 
   test "set of possible requests is empty when we have no peers" do
-    torrent = Torrent.new(@tiny.info)
+    torrent = Torrent.new(@info_hash)
     peers = []
     block_size = 1
 
@@ -18,7 +24,7 @@ defmodule Effusion.BTP.PieceSelectionTest do
   end
 
   test "set of possible requests contains all pieces a single if a single peer has them" do
-    torrent = Torrent.new(@tiny.info)
+    torrent = Torrent.new(@info_hash)
     peer = Peer.new(
       {nil, nil},
       "12345678901234567890",
@@ -42,7 +48,7 @@ defmodule Effusion.BTP.PieceSelectionTest do
   end
 
   test "doesn't act wierd with a huge block size" do
-    torrent = Torrent.new(@tiny.info)
+    torrent = Torrent.new(@info_hash)
     peer = Peer.new(
       {nil, nil},
       "12345678901234567890",
