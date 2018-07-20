@@ -64,15 +64,7 @@ defmodule Effusion.BTP.SessionServer do
 
         _ = Logger.debug("replying: #{inspect(messages)}")
 
-        connections = Registry.match(ConnectionRegistry, state.meta.info_hash, peer_id)
-
-        _ = case connections do
-          [{conn_pid, ^peer_id}] ->
-            Enum.map(messages, fn(m) ->
-              send(conn_pid, {:btp_send, m})
-            end)
-          [] -> []
-        end
+        Enum.each(messages, &Connection.btp_send(state.meta.info_hash, peer_id, &1))
 
         if(Session.done?(state)) do
           {:stop, :normal, :ok, state}
@@ -104,10 +96,7 @@ defmodule Effusion.BTP.SessionServer do
   end
 
   def terminate(:normal, state) do
-    :ok = Registry.dispatch(ConnectionRegistry, state.meta.info_hash, fn connections ->
-      connections
-      |> Enum.map(fn {c, _p} -> Connection.disconnect(c) end)
-    end)
+    Connection.disconnect_all(state.meta.info_hash)
 
     state = if(Session.done?(state)) do
       Session.announce(state, @thp_client, :completed)

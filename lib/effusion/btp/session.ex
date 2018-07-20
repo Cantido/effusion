@@ -2,6 +2,7 @@ defmodule Effusion.BTP.Session do
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
+  alias Effusion.PWP.Connection
   import Effusion.BTP.Peer
   require Logger
 
@@ -76,11 +77,7 @@ defmodule Effusion.BTP.Session do
     :ok = Effusion.PieceStage.put_event({s.meta.info_hash, s.meta.info, s.file, block})
 
     case IntSet.difference(pieces_after, pieces_before) |> Enum.to_list() do
-      [new_piece] ->
-        Registry.dispatch(ConnectionRegistry, s.meta.info_hash, fn connections ->
-          connections
-          |> Enum.map(&send_message(&1, {:have, new_piece}))
-        end)
+      [new_piece] -> Connection.btp_broadcast(s.meta.info_hash, {:have, new_piece})
       _ -> :ok
     end
 
@@ -93,22 +90,11 @@ defmodule Effusion.BTP.Session do
     |> Map.get(:requested_pieces, MapSet.new())
     |> Map.get(block_id, MapSet.new())
 
-    :ok = Registry.dispatch(ConnectionRegistry, s.meta.info_hash, fn connections ->
-      connections
-      |> Enum.reject(fn {_, peer_id} -> peer_id == from end)
-      |> Enum.filter(fn {_, peer_id} -> MapSet.member?(peers_with_request, peer_id) end)
-      |> Enum.map(&send_message(&1, {:cancel, block_id}))
+    Connection.btp_broadcast(s.meta.info_hash, {:cancel, block_id}, fn peer_id ->
+      peer_id != from && MapSet.member?(peers_with_request, peer_id)
     end)
 
     Map.update(s, :requested_pieces, Map.new(), &Map.delete(&1, block_id))
-  end
-
-  defp send_message(pid, message) when is_pid(pid) do
-    send pid, {:btp_send, message}
-  end
-
-  defp send_message({c, id}, message) do
-    send c, {:btp_send, id, message}
   end
 
   @doc """
