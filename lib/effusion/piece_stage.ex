@@ -2,6 +2,7 @@ defmodule Effusion.PieceStage do
   use GenStage
   require Logger
   alias Effusion.BTP.Torrent
+  alias Effusion.PWP.Connection
   import Effusion.Hash
 
   def start_link(_) do
@@ -25,6 +26,8 @@ defmodule Effusion.PieceStage do
         &Torrent.add_block_and_take_verified(&1, block),
         Torrent.new(info_hash)
       )
+
+    Enum.each(verified, &Connection.btp_broadcast(info_hash, {:have, &1.index}))
 
     events = Enum.map(verified, fn p -> {info, file, p} end)
 

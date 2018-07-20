@@ -67,18 +67,9 @@ defmodule Effusion.BTP.Session do
   def add_block(s, block, from) when is_peer_id(from) do
     s = cancel_block_requests(s, block, from)
 
-    torrent = s.torrent
-
-    pieces_before = Torrent.bitfield(torrent)
-    torrent = Torrent.add_block(torrent, block)
-    pieces_after = Torrent.bitfield(torrent)
+    torrent = Torrent.add_block(s.torrent, block)
 
     :ok = Effusion.PieceStage.put_event({s.meta.info_hash, s.meta.info, s.file, block})
-
-    case IntSet.difference(pieces_after, pieces_before) |> Enum.to_list() do
-      [new_piece] -> Connection.btp_broadcast(s.meta.info_hash, {:have, new_piece})
-      _ -> :ok
-    end
 
     %{s | torrent: torrent}
   end
