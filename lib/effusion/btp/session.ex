@@ -242,7 +242,6 @@ defmodule Effusion.BTP.Session do
     next_request_msg(s)
   end
 
-
   defp session_handle_message(s, _remote_peer_id, _msg), do: {s, []}
 
   defp delegate_message(s = %{peer_id: peer_id}, remote_peer_id, msg)
