@@ -316,7 +316,13 @@ defmodule Effusion.BTP.Session do
   end
 
   defp increment_connections(s) do
-    case select_peer(s) do
+    selected = Effusion.BTP.PeerSelection.select_peer(
+      s.peer_id,
+      s.peers,
+      s.closed_connections
+    )
+
+    case selected do
       nil -> s
       peer -> connect_to_peer(s, peer)
     end
@@ -325,10 +331,6 @@ defmodule Effusion.BTP.Session do
   defp connect_to_all(s) do
     s.peers
     |> Enum.reduce(s, fn p, session -> connect_to_peer(session, p) end)
-  end
-
-  defp select_peer(s) do
-    Effusion.BTP.PeerSelection.select_peer(s)
   end
 
   defp connect_to_peer(s, peer) do
