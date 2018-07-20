@@ -33,7 +33,6 @@ defmodule Effusion.BTP.Session do
       closed_connections: MapSet.new(),
       peer_id: @local_peer_id,
       listeners: MapSet.new(),
-      requested: MapSet.new(),
       requested_pieces: MapSet.new(),
       tracker_id: ""
     }
@@ -132,9 +131,12 @@ defmodule Effusion.BTP.Session do
         @block_size
       )
 
-    s1 = Map.update!(s, :requested, &MapSet.put(&1, next_block))
-
-    {next_block, s1}
+    case next_block do
+      nil -> {nil, s}
+      _ ->
+        s1 = Map.update!(s, :requested_pieces, &MapSet.put(&1, next_block))
+        {next_block, s1}
+    end
   end
 
   defp next_request_msg(session) do
