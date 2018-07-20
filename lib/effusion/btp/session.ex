@@ -216,7 +216,7 @@ defmodule Effusion.BTP.Session do
     pieces_count = Enum.count(s.meta.info.pieces)
     max_i = Enum.max(IntSet.new(b), fn -> 0 end)
 
-    if 0 <= max_i && max_i < pieces_count do
+    if max_i in 0..(pieces_count-1) do
       {s, []}
     else
       {:error, :index_out_of_bounds}
@@ -226,7 +226,7 @@ defmodule Effusion.BTP.Session do
   defp session_handle_message(s, _remote_peer_id, {:have, i}) do
     pieces_count = Enum.count(s.meta.info.pieces)
 
-    if 0 <= i && i < pieces_count do
+    if i in 0..(pieces_count-1) do
       {s, []}
     else
       {:error, :index_out_of_bounds}
