@@ -266,7 +266,8 @@ defmodule Effusion.BTP.TorrentTest do
     |> Torrent.mark_piece_written(%{index: 0})
     |> Torrent.add_block(%{index: 1, offset: 0, data: "y\n"})
 
-    assert Torrent.bitfield(torrent) == IntSet.new([0, 1])
+    assert 0 in Torrent.bitfield(torrent)
+    assert 1 in Torrent.bitfield(torrent)
   end
 
   test "accepts blocks for multi-file torrents" do

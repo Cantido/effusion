@@ -30,7 +30,7 @@ defmodule Effusion.Mixfile do
   defp deps do
     [
       {:ex_bencode, "~> 2.0"},
-      {:int_set, "~> 1.2"},
+      {:int_set, "~> 1.3"},
       {:ranch, "~> 1.4"},
       {:httpotion, "~> 3.0.2"},
       {:gen_stage, "~> 0.14"},

@@ -10,7 +10,7 @@
   "gen_stage": {:hex, :gen_stage, "0.14.0", "65ae78509f85b59d360690ce3378d5096c3130a0694bab95b0c4ae66f3008fad", [:mix], [], "hexpm"},
   "httpotion": {:hex, :httpotion, "3.0.3", "17096ea1a7c0b2df74509e9c15a82b670d66fc4d66e6ef584189f63a9759428d", [:mix], [{:ibrowse, "~> 4.4", [hex: :ibrowse, repo: "hexpm", optional: false]}], "hexpm"},
   "ibrowse": {:hex, :ibrowse, "4.4.0", "2d923325efe0d2cb09b9c6a047b2835a5eda69d8a47ed6ff8bc03628b764e991", [:rebar3], [], "hexpm"},
-  "int_set": {:hex, :int_set, "1.2.0", "c695a1d142de356e34c683035a99a8bc745e72e5d40339ea9a5fb1e51057976b", [:mix], [], "hexpm"},
+  "int_set": {:hex, :int_set, "1.3.0", "0edf9c04c8d67d05ef4c14451ee0113a13ebf3810a00ca2d6b8d004b83c5faf9", [:mix], [], "hexpm"},
   "mime": {:hex, :mime, "1.3.0", "5e8d45a39e95c650900d03f897fbf99ae04f60ab1daa4a34c7a20a5151b7a5fe", [:mix], [], "hexpm"},
   "mox": {:hex, :mox, "0.3.1", "2ab1dce006387a91fbe1e727ba468d3e0691eacfd4e2fc7308d53676ec335c46", [:mix], [], "hexpm"},
   "plug": {:hex, :plug, "1.6.0", "90d338a44c8cd762c32d3ea324f6728445c6145b51895403854b77f1536f1617", [:mix], [{:cowboy, "~> 1.0.1 or ~> 1.1 or ~> 2.4", [hex: :cowboy, repo: "hexpm", optional: true]}, {:mime, "~> 1.0", [hex: :mime, repo: "hexpm", optional: false]}], "hexpm"},
