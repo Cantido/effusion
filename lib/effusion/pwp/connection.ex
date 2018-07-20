@@ -3,6 +3,7 @@ defmodule Effusion.PWP.Connection do
   alias Effusion.BTP.SessionServer
   alias Effusion.PWP.Socket
   require Logger
+
   @moduledoc """
   A connection to a peer.
 
@@ -38,26 +39,28 @@ defmodule Effusion.PWP.Connection do
   end
 
   def btp_broadcast(info_hash, message, peer_id_selector \\ fn _ -> true end) do
-    :ok = Registry.dispatch(ConnectionRegistry, info_hash, fn connections ->
-      connections
-      |> Enum.filter(fn {_, peer_id} -> peer_id_selector.(peer_id) end)
-      |> Enum.each(fn {c, id} -> send c, {:btp_send, id, message} end)
-    end)
+    :ok =
+      Registry.dispatch(ConnectionRegistry, info_hash, fn connections ->
+        connections
+        |> Enum.filter(fn {_, peer_id} -> peer_id_selector.(peer_id) end)
+        |> Enum.each(fn {c, id} -> send(c, {:btp_send, id, message}) end)
+      end)
   end
 
   def btp_send(info_hash, peer_id, message) do
     connections = Registry.match(ConnectionRegistry, info_hash, peer_id)
 
-    _ = case connections do
-      [{conn_pid, ^peer_id}] -> send(conn_pid, {:btp_send, message})
-      [] -> []
-    end
+    _ =
+      case connections do
+        [{conn_pid, ^peer_id}] -> send(conn_pid, {:btp_send, message})
+        [] -> []
+      end
   end
 
   ## Callbacks
 
   def init(peer) do
-    { :ok, peer, 0 }
+    {:ok, peer, 0}
   end
 
   defp ntoa({host, port}) when is_binary(host) do
@@ -70,14 +73,17 @@ defmodule Effusion.PWP.Connection do
 
   defp handshake(peer) do
     _ = Logger.debug("Establishing connection to #{ntoa(peer.address)}")
+
     case Socket.connect(peer) do
       {:ok, socket, peer} ->
         _ = Logger.debug("Successfully connected to #{ntoa(peer.address)}")
         {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, peer.remote_peer_id)
         :ok = :inet.setopts(socket, active: :once)
         {:noreply, {socket, peer.info_hash, peer.remote_peer_id, peer.address}}
+
       {:error, reason} ->
-        {:stop, {:failed_handshake, reason}, {nil, peer.info_hash, peer.remote_peer_id, peer.address}}
+        {:stop, {:failed_handshake, reason},
+         {nil, peer.info_hash, peer.remote_peer_id, peer.address}}
     end
   end
 
@@ -87,6 +93,7 @@ defmodule Effusion.PWP.Connection do
         :ok = SessionServer.handle_message(info_hash, peer_id, msg)
         :ok = :inet.setopts(socket, active: :once)
         {:noreply, {socket, info_hash, peer_id, address}}
+
       {:error, reason} ->
         {:stop, {:bad_message, reason, data}, {socket, info_hash, peer_id, address}}
     end
@@ -99,8 +106,11 @@ defmodule Effusion.PWP.Connection do
     end
   end
 
-  def handle_info({:btp_send, dest_peer_id, msg}, state = {_socket, _info_hash, peer_id, _address})
-  when dest_peer_id == peer_id do
+  def handle_info(
+        {:btp_send, dest_peer_id, msg},
+        state = {_socket, _info_hash, peer_id, _address}
+      )
+      when dest_peer_id == peer_id do
     handle_info({:btp_send, msg}, state)
   end
 

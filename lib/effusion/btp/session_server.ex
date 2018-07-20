@@ -23,7 +23,11 @@ defmodule Effusion.BTP.SessionServer do
   Start the session server and link it to the current process.
   """
   def start_link([meta, local_peer, file]) do
-    GenServer.start_link(__MODULE__, [meta, local_peer, file], name: {:via, Registry, {SessionRegistry, meta.info_hash}})
+    GenServer.start_link(
+      __MODULE__,
+      [meta, local_peer, file],
+      name: {:via, Registry, {SessionRegistry, meta.info_hash}}
+    )
   end
 
   @doc """
@@ -37,14 +41,20 @@ defmodule Effusion.BTP.SessionServer do
   Handle a Peer Wire Protocol (PWP) message sent by a remote peer.
   """
   def handle_message(info_hash, peer_id, message) do
-    GenServer.call({:via, Registry, {SessionRegistry, info_hash}}, {:handle_msg, peer_id, message})
+    GenServer.call(
+      {:via, Registry, {SessionRegistry, info_hash}},
+      {:handle_msg, peer_id, message}
+    )
   end
 
   @doc """
   Handle a peer disconnection.
   """
   def unregister_connection(info_hash, peer_id, address \\ nil) do
-    GenServer.cast({:via, Registry, {SessionRegistry, info_hash}}, {:unregister_connection, peer_id, address})
+    GenServer.cast(
+      {:via, Registry, {SessionRegistry, info_hash}},
+      {:unregister_connection, peer_id, address}
+    )
   end
 
   ## Callbacks
@@ -59,14 +69,15 @@ defmodule Effusion.BTP.SessionServer do
     _ = Logger.debug("Got a message!!! #{inspect(msg)}")
 
     case Session.handle_message(state, peer_id, msg) do
-      {:error, reason} -> {:stop, reason, {:error, reason}, state}
-      {state, messages} ->
+      {:error, reason} ->
+        {:stop, reason, {:error, reason}, state}
 
+      {state, messages} ->
         _ = Logger.debug("replying: #{inspect(messages)}")
 
         Enum.each(messages, &Connection.btp_send(state.meta.info_hash, peer_id, &1))
 
-        if(Session.done?(state)) do
+        if Session.done?(state) do
           {:stop, :normal, :ok, state}
         else
           {:reply, :ok, state}
@@ -98,11 +109,13 @@ defmodule Effusion.BTP.SessionServer do
   def terminate(:normal, state) do
     Connection.disconnect_all(state.meta.info_hash)
 
-    state = if(Session.done?(state)) do
-      Session.announce(state, @thp_client, :completed)
-    else
-      Session.announce(state, @thp_client, :stopped)
-    end
+    state =
+      if Session.done?(state) do
+        Session.announce(state, @thp_client, :completed)
+      else
+        Session.announce(state, @thp_client, :stopped)
+      end
+
     reply_to_listeners(state, {:ok, Session.torrent(state)})
   end
 

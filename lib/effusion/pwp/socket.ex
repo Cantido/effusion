@@ -23,8 +23,7 @@ defmodule Effusion.PWP.Socket do
          :ok <- send_msg(socket, Peer.get_handshake(peer)),
          {:ok, hs = {:handshake, _, _, _}} <- recv(socket, 68),
          {:ok, peer} <- Peer.handshake(peer, hs),
-         :ok <- :inet.setopts(socket, packet: 4)
-    do
+         :ok <- :inet.setopts(socket, packet: 4) do
       {:ok, socket, peer}
     else
       err -> err
@@ -40,8 +39,7 @@ defmodule Effusion.PWP.Socket do
          {:ok, hs = {:handshake, _, _, _}} <- recv(socket, 68),
          {:ok, peer} <- Peer.handshake(peer, hs),
          :ok <- send_msg(socket, Peer.get_handshake(peer)),
-         :ok <- :inet.setopts(socket, packet: 4)
-    do
+         :ok <- :inet.setopts(socket, packet: 4) do
       {:ok, socket, peer}
     else
       err -> err

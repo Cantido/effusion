@@ -3,8 +3,8 @@ defmodule Effusion.PWP.Messages.Handshake do
   Encode and decode peer handshake messages.
   """
 
-  @protocol_name <<"BitTorrent protocol" :: utf8>>
-  @protocol_name_size <<19 :: integer-size(8)>>
+  @protocol_name <<"BitTorrent protocol"::utf8>>
+  @protocol_name_size <<19::integer-size(8)>>
   @reserved_bytes <<0, 0, 0, 0, 0, 0, 0, 0>>
 
   @doc """
@@ -12,11 +12,9 @@ defmodule Effusion.PWP.Messages.Handshake do
   a handshake packet binary.
   """
   def decode(
-      <<@protocol_name_size,
-        @protocol_name,
-        reserved :: bytes-size(8),
-        info_hash :: bytes-size(20),
-        peer_id :: bytes-size(20)>>) do
+        <<@protocol_name_size, @protocol_name, reserved::bytes-size(8), info_hash::bytes-size(20),
+          peer_id::bytes-size(20)>>
+      ) do
     {:ok, {:handshake, peer_id, info_hash, reserved}}
   end
 
@@ -27,11 +25,8 @@ defmodule Effusion.PWP.Messages.Handshake do
   @doc """
   Builds a handshake packet binary for the info hash and peer id.
   """
-  def encode(peer_id, info_hash)  do
-    <<@protocol_name_size,
-    @protocol_name,
-    @reserved_bytes,
-    info_hash :: bytes-size(20),
-    peer_id :: bytes-size(20) >>
+  def encode(peer_id, info_hash) do
+    <<@protocol_name_size, @protocol_name, @reserved_bytes, info_hash::bytes-size(20),
+      peer_id::bytes-size(20)>>
   end
 end

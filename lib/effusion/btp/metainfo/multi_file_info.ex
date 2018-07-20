@@ -26,7 +26,7 @@ defmodule Effusion.BTP.Metainfo.MultiFileInfo do
 
   defp total_length(info) do
     info.files
-    |> Enum.map(&(&1.length))
+    |> Enum.map(& &1.length)
     |> Enum.sum()
   end
 

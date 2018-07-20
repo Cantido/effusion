@@ -11,27 +11,30 @@ defmodule Effusion.BTP.SessionServerTest do
     assert event == :started
     {:ok, %{interval: 1, peers: []}}
   end
+
   defp stub_interval(_, _, _, _, _, _, _, _, event, _) do
     assert event == :interval
     {:ok, %{interval: 9_000, peers: []}}
   end
+
   defp stub_stopped(_, _, _, _, _, _, _, _, event, _) do
     assert event == :stopped
     {:ok, %{interval: 9_000, peers: []}}
   end
+
   defp stub_completed(_, _, _, _, _, _, _, _, event, _) do
     assert event == :completed
     {:ok, %{interval: 9_000, peers: []}}
   end
 
   setup do
-    Temp.track!
+    Temp.track!()
 
-    {:ok, file} = Temp.path
+    {:ok, file} = Temp.path()
 
-    on_exit fn ->
-      File.rm_rf file
-    end
+    on_exit(fn ->
+      File.rm_rf(file)
+    end)
 
     %{destfile: file}
   end
@@ -41,10 +44,11 @@ defmodule Effusion.BTP.SessionServerTest do
     |> expect(:announce, &stub_started/10)
     |> expect(:announce, &stub_interval/10)
 
-    {:ok, _} = start_supervised({
-      SessionServer,
-      [TestHelper.tiny_meta(), {nil, nil}, file]
-    })
+    {:ok, _} =
+      start_supervised({
+        SessionServer,
+        [TestHelper.tiny_meta(), {nil, nil}, file]
+      })
 
     :timer.sleep(1_100)
   end
@@ -54,10 +58,11 @@ defmodule Effusion.BTP.SessionServerTest do
     |> expect(:announce, &stub_started/10)
     |> expect(:announce, &stub_stopped/10)
 
-    {:ok, spid} = start_supervised({
-      SessionServer,
-      [TestHelper.tiny_meta(), {nil, nil}, file]
-    })
+    {:ok, spid} =
+      start_supervised({
+        SessionServer,
+        [TestHelper.tiny_meta(), {nil, nil}, file]
+      })
 
     GenServer.stop(spid)
     :timer.sleep(100)
@@ -69,15 +74,25 @@ defmodule Effusion.BTP.SessionServerTest do
     |> expect(:announce, &stub_started/10)
     |> expect(:announce, &stub_completed/10)
 
-    {:ok, spid} = start_supervised({
-      SessionServer,
-      [TestHelper.tiny_meta(), {nil, nil}, file]
-    })
+    {:ok, spid} =
+      start_supervised({
+        SessionServer,
+        [TestHelper.tiny_meta(), {nil, nil}, file]
+      })
 
     ih = TestHelper.tiny_meta().info_hash
 
-    SessionServer.handle_message(ih, "peer id ~~~~~~~~~~~~", {:piece, %{index: 0, offset: 0, data: "tin"}})
-    SessionServer.handle_message(ih, "peer id ~~~~~~~~~~~~", {:piece, %{index: 1, offset: 0, data: "y\n"}})
+    SessionServer.handle_message(
+      ih,
+      "peer id ~~~~~~~~~~~~",
+      {:piece, %{index: 0, offset: 0, data: "tin"}}
+    )
+
+    SessionServer.handle_message(
+      ih,
+      "peer id ~~~~~~~~~~~~",
+      {:piece, %{index: 1, offset: 0, data: "y\n"}}
+    )
 
     :timer.sleep(100)
 

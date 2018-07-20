@@ -25,12 +25,11 @@ defmodule Effusion.BTP.PieceSelectionTest do
 
   test "set of possible requests contains all pieces a single if a single peer has them" do
     torrent = Torrent.new(@info_hash)
-    peer = Peer.new(
-      {nil, nil},
-      "12345678901234567890",
-      "12345678901234567890",
-      self())
-    |> Peer.set_remote_peer_id("Remote peer ID ~~~~~")
+
+    peer =
+      Peer.new({nil, nil}, "12345678901234567890", "12345678901234567890", self())
+      |> Peer.set_remote_peer_id("Remote peer ID ~~~~~")
+
     {peer, _} = Peer.recv(peer, {:have, 0})
     {peer, _} = Peer.recv(peer, {:have, 1})
     peers = [peer]
@@ -40,21 +39,25 @@ defmodule Effusion.BTP.PieceSelectionTest do
 
     # assert possible == []
 
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 0, offset: 0, size: 1}}) # t
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 0, offset: 1, size: 1}}) # i
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 0, offset: 2, size: 1}}) # n
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 1, offset: 0, size: 1}}) # y
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 1, offset: 1, size: 1}}) # \n
+    # t
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 0, offset: 0, size: 1}})
+    # i
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 0, offset: 1, size: 1}})
+    # n
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 0, offset: 2, size: 1}})
+    # y
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 1, offset: 0, size: 1}})
+    # \n
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 1, offset: 1, size: 1}})
   end
 
   test "doesn't act wierd with a huge block size" do
     torrent = Torrent.new(@info_hash)
-    peer = Peer.new(
-      {nil, nil},
-      "12345678901234567890",
-      "12345678901234567890",
-      self())
-    |> Peer.set_remote_peer_id("Remote peer ID ~~~~~")
+
+    peer =
+      Peer.new({nil, nil}, "12345678901234567890", "12345678901234567890", self())
+      |> Peer.set_remote_peer_id("Remote peer ID ~~~~~")
+
     {peer, _} = Peer.recv(peer, {:have, 0})
     {peer, _} = Peer.recv(peer, {:have, 1})
     peers = [peer]
@@ -64,7 +67,9 @@ defmodule Effusion.BTP.PieceSelectionTest do
 
     # assert possible == []
 
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 0, offset: 0, size: 3}}) # tin
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 1, offset: 0, size: 2}}) # y\n
+    # tin
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 0, offset: 0, size: 3}})
+    # y\n
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 1, offset: 0, size: 2}})
   end
 end

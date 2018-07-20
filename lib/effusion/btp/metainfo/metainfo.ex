@@ -18,11 +18,11 @@ defmodule Effusion.BTP.Metainfo do
          {:ok, info} <- ExBencode.encode(decoded["info"]),
          :ok <- check_info_block(info, bin),
          info_hash = Hash.calc(info),
-         result = decoded
-          |> Map.put(:info_hash, info_hash)
-          |> Effusion.Map.rename_keys(key_tokens())
-          |> Map.update!(:info, &update_info/1)
-    do
+         result =
+           decoded
+           |> Map.put(:info_hash, info_hash)
+           |> Effusion.Map.rename_keys(key_tokens())
+           |> Map.update!(:info, &update_info/1) do
       meta = struct(Effusion.BTP.Metainfo, result)
       :ets.insert(MetadataTable, {meta.info_hash, meta})
       {:ok, meta}
@@ -32,7 +32,7 @@ defmodule Effusion.BTP.Metainfo do
   end
 
   defp check_info_block(ours, bin)
-  when is_binary(ours) and is_binary(bin) and byte_size(ours) < byte_size(bin) do
+       when is_binary(ours) and is_binary(bin) and byte_size(ours) < byte_size(bin) do
     case :binary.match(bin, ours) do
       :nomatch -> {:error, :malformed_info_dict}
       {_start, _length} -> :ok

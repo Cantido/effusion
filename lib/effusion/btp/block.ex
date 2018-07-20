@@ -41,7 +41,7 @@ defmodule Effusion.BTP.Block do
   if they are in the same piece.
   """
   def sequential?(%{index: i1, offset: o1, data: d1}, %{index: i2, offset: o2}) do
-    (i1 == i2) and (o1 + byte_size(d1) == o2)
+    i1 == i2 and o1 + byte_size(d1) == o2
   end
 
   @doc """
@@ -62,6 +62,7 @@ defmodule Effusion.BTP.Block do
           offset: o1,
           data: d1 <> d2
         }
+
       sequential?(b2, b1) ->
         %{
           index: i2,
@@ -101,16 +102,14 @@ defmodule Effusion.BTP.Block do
   @doc """
   Split a piece into many blocks of a certain size.
   """
-  def split(%{index: index, offset: 0, size: piece_size} = piece, block_size) when is_index(index) and is_size(piece_size) and is_size(block_size) do
+  def split(%{index: index, offset: 0, size: piece_size} = piece, block_size)
+      when is_index(index) and is_size(piece_size) and is_size(block_size) do
     {whole_block_count, last_block_size} = divrem(piece.size, block_size)
     whole_block_indices = 0..(whole_block_count - 1)
 
     whole_blocks =
       if whole_block_count > 0 do
-        for b_i <- whole_block_indices,
-            offset = b_i * block_size,
-            into: MapSet.new()
-        do
+        for b_i <- whole_block_indices, offset = b_i * block_size, into: MapSet.new() do
           id(piece.index, offset, block_size)
         end
       else

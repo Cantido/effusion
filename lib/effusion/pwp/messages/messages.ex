@@ -1,10 +1,11 @@
 defmodule Effusion.PWP.Messages do
   alias Effusion.PWP.Messages.Handshake
+
   @moduledoc """
     Encode and decode Peer Wire Protocol (PWP) messages.
   """
 
-  defguardp is_uint32(i) when i in 0..4294967295
+  defguardp is_uint32(i) when i in 0..4_294_967_295
   defguardp is_all_uint32(a, b) when is_uint32(a) and is_uint32(b)
   defguardp is_all_uint32(a, b, c) when is_uint32(a) and is_uint32(b) and is_uint32(c)
   defguardp is_under_max_bitfield_size(s) when is_uint32(byte_size(s) + 1)
@@ -67,33 +68,33 @@ defmodule Effusion.PWP.Messages do
   def decode(<<2>>), do: {:ok, :interested}
   def decode(<<3>>), do: {:ok, :uninterested}
 
-  def decode(<<4, index :: 32>>) do
+  def decode(<<4, index::32>>) do
     {:ok, {:have, index}}
   end
 
-  def decode(<<5, rest :: binary>>) do
+  def decode(<<5, rest::binary>>) do
     {:ok, {:bitfield, rest}}
   end
 
-  def decode(<<6, index :: 32, offset :: 32, size :: 32>>) do
+  def decode(<<6, index::32, offset::32, size::32>>) do
     {:ok, {:request, %{index: index, offset: offset, size: size}}}
   end
 
-  def decode(<<7, index :: 32, offset :: 32, data :: binary>>) do
+  def decode(<<7, index::32, offset::32, data::binary>>) do
     {:ok, {:piece, %{index: index, offset: offset, data: data}}}
   end
 
-  def decode(<<8, index :: 32, offset :: 32, size :: 32>>) do
+  def decode(<<8, index::32, offset::32, size::32>>) do
     {:ok, {:cancel, %{index: index, offset: offset, size: size}}}
   end
 
   def decode(<<19, "BitTorrent protocol", _rest::binary>> = msg), do: Handshake.decode(msg)
 
-  def decode(<<id, rest :: binary>>) when id in 0..3 and bit_size(rest) > 0 do
+  def decode(<<id, rest::binary>>) when id in 0..3 and bit_size(rest) > 0 do
     {:error, :no_payload_allowed}
   end
 
-  def decode(<<_, _rest :: binary>>) do
+  def decode(<<_, _rest::binary>>) do
     {:error, :invalid}
   end
 
@@ -143,14 +144,23 @@ defmodule Effusion.PWP.Messages do
   def encode(:unchoke), do: {:ok, <<1>>}
   def encode(:interested), do: {:ok, <<2>>}
   def encode(:uninterested), do: {:ok, <<3>>}
-  def encode({:have, index}) when is_uint32(index), do: {:ok, <<4, index :: 32>>}
+  def encode({:have, index}) when is_uint32(index), do: {:ok, <<4, index::32>>}
+
   def encode({:bitfield, val})
-  when is_bitstring(val) and is_under_max_bitfield_size(val) do
+      when is_bitstring(val) and is_under_max_bitfield_size(val) do
     {:ok, <<5>> <> right_pad_bitstring_to_bytes(val)}
-   end
-  def encode({:request, i, o, s}) when is_all_uint32(i, o, s), do: {:ok, <<6, i :: 32, o :: 32, s :: 32>>}
-  def encode({:piece, i, o, b}) when is_all_uint32(i, o) and is_binary(b) and is_under_max_block_size(b), do: {:ok, <<7, i :: 32, o :: 32>> <> b}
-  def encode({:cancel, i, o, s}) when is_all_uint32(i, o, s), do: {:ok, <<8, i :: 32, o :: 32, s :: 32>>}
+  end
+
+  def encode({:request, i, o, s}) when is_all_uint32(i, o, s),
+    do: {:ok, <<6, i::32, o::32, s::32>>}
+
+  def encode({:piece, i, o, b})
+      when is_all_uint32(i, o) and is_binary(b) and is_under_max_block_size(b),
+      do: {:ok, <<7, i::32, o::32>> <> b}
+
+  def encode({:cancel, i, o, s}) when is_all_uint32(i, o, s),
+    do: {:ok, <<8, i::32, o::32, s::32>>}
+
   def encode({:handshake, peer_id, info_hash}) do
     {:ok, Handshake.encode(peer_id, info_hash)}
   end
@@ -158,7 +168,7 @@ defmodule Effusion.PWP.Messages do
   def encode(m), do: {:error, {:unknown_message, m}}
 
   defp right_pad_bitstring_to_bytes(bits) when is_bitstring(bits) do
-    extra_bits_needed = (byte_size(bits) * 8) - bit_size(bits)
+    extra_bits_needed = byte_size(bits) * 8 - bit_size(bits)
     padding = <<0::size(extra_bits_needed)>>
     <<bits::bitstring, padding::bitstring>>
   end

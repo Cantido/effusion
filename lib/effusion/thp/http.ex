@@ -5,17 +5,17 @@ defmodule Effusion.THP.HTTP do
   """
 
   def announce(
-    tracker_url,
-    peer_host,
-    peer_port,
-    peer_id,
-    info_hash,
-    uploaded,
-    downloaded,
-    left,
-    event \\ :interval,
-    tracker_id \\ ""
-  ) do
+        tracker_url,
+        peer_host,
+        peer_port,
+        peer_id,
+        info_hash,
+        uploaded,
+        downloaded,
+        left,
+        event \\ :interval,
+        tracker_id \\ ""
+      ) do
     tracker_request = %{
       info_hash: info_hash,
       peer_id: peer_id,
@@ -24,19 +24,17 @@ defmodule Effusion.THP.HTTP do
       downloaded: downloaded,
       left: left,
       trackerid: tracker_id,
-      ip: to_string(:inet.ntoa(peer_host)),
+      ip: to_string(:inet.ntoa(peer_host))
     }
 
     with {:ok, event} <- build_event_param(event),
          tracker_request = Map.put(tracker_request, :event, event),
-         http_res = HTTPotion.get(tracker_url <> "?" <> URI.encode_query(tracker_request))
-    do
+         http_res = HTTPotion.get(tracker_url <> "?" <> URI.encode_query(tracker_request)) do
       decode_response(http_res)
     else
       err -> err
     end
   end
-
 
   defp build_event_param(event) do
     case event do
@@ -74,11 +72,15 @@ defmodule Effusion.THP.HTTP do
   def decode(body) do
     case ExBencode.decode(body) do
       {:ok, bterm} ->
-        tokenized = bterm
-        |> Effusion.Map.rename_keys(@body_names)
-        |> Map.update(:peers, [], &update_peers/1)
+        tokenized =
+          bterm
+          |> Effusion.Map.rename_keys(@body_names)
+          |> Map.update(:peers, [], &update_peers/1)
+
         {:ok, tokenized}
-      err -> err
+
+      err ->
+        err
     end
   end
 
@@ -88,14 +90,13 @@ defmodule Effusion.THP.HTTP do
 
   defp update_peer(peer) do
     peer
-      |> Effusion.Map.rename_keys(@peer_names)
-      |> Map.update!(:ip, &parse_address/1)
+    |> Effusion.Map.rename_keys(@peer_names)
+    |> Map.update!(:ip, &parse_address/1)
   end
 
   defp parse_address(addr) do
     with addr_charlist <- to_charlist(addr),
-         {:ok, ip} <- :inet.parse_address(addr_charlist)
-    do
+         {:ok, ip} <- :inet.parse_address(addr_charlist) do
       ip
     end
   end

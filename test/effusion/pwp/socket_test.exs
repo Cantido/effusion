@@ -13,13 +13,13 @@ defmodule Effusion.PWP.SocketTest do
   @remote_peer_id "Other peer 123456789"
 
   setup do
-    {:ok, lsock} = :gen_tcp.listen(@port, [active: false, reuseaddr: true, send_timeout: 5_000])
+    {:ok, lsock} = :gen_tcp.listen(@port, active: false, reuseaddr: true, send_timeout: 5_000)
 
     peer = Peer.new({@host, @port}, @local_peer_id, @info_hash, self())
 
-    on_exit fn ->
+    on_exit(fn ->
       :ok = :gen_tcp.close(lsock)
-    end
+    end)
 
     %{lsock: lsock, peer: peer}
   end
@@ -29,11 +29,14 @@ defmodule Effusion.PWP.SocketTest do
       _ = Task.async(fn -> Socket.connect(peer) end)
       {:ok, sock} = :gen_tcp.accept(lsock)
       {:ok, outgoing_handshake_bin} = :gen_tcp.recv(sock, 68)
-      {:ok, outgoing_handshake} = outgoing_handshake_bin
-      |> IO.iodata_to_binary()
-      |> Messages.decode()
 
-      assert {:handshake, @local_peer_id, @info_hash, <<0,0,0,0,0,0,0,0>>} = outgoing_handshake
+      {:ok, outgoing_handshake} =
+        outgoing_handshake_bin
+        |> IO.iodata_to_binary()
+        |> Messages.decode()
+
+      assert {:handshake, @local_peer_id, @info_hash, <<0, 0, 0, 0, 0, 0, 0, 0>>} =
+               outgoing_handshake
     end
 
     test "returns the socket and peer if the handshake succeeds", %{lsock: lsock, peer: peer} do
@@ -51,7 +54,10 @@ defmodule Effusion.PWP.SocketTest do
       task = Task.async(fn -> Socket.connect(peer) end)
       {:ok, sock} = :gen_tcp.accept(lsock)
       {:ok, _} = :gen_tcp.recv(sock, 68)
-      {:ok, bad_handshake} = Messages.encode({:handshake, @remote_peer_id, "Bad info hash ~~~~~~"})
+
+      {:ok, bad_handshake} =
+        Messages.encode({:handshake, @remote_peer_id, "Bad info hash ~~~~~~"})
+
       :ok = :gen_tcp.send(sock, bad_handshake)
 
       {:error, :mismatched_info_hash, _info} = Task.await(task)

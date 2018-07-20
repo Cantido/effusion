@@ -10,17 +10,16 @@ defmodule Effusion.BTP.PeerTest do
       "Fake Info Hash ~~~~~",
       self()
     )
-
   end
 
   test "getting the handshake for a peer" do
-    hs = Peer.get_handshake new()
+    hs = Peer.get_handshake(new())
 
     assert hs == {
-      :handshake,
-      "Fake Peer Id ~~~~~~~",
-      "Fake Info Hash ~~~~~",
-    }
+             :handshake,
+             "Fake Peer Id ~~~~~~~",
+             "Fake Info Hash ~~~~~"
+           }
   end
 
   test "check a valid handshake" do
@@ -46,20 +45,21 @@ defmodule Effusion.BTP.PeerTest do
     }
 
     assert Peer.handshake(new(), hs) == {
-      :error,
-      :mismatched_info_hash,
-      [expected: "Fake Info Hash ~~~~~", actual: "Bad Info Hash ~~~~~~"]
-    }
+             :error,
+             :mismatched_info_hash,
+             [expected: "Fake Info Hash ~~~~~", actual: "Bad Info Hash ~~~~~~"]
+           }
   end
 
   test "check an invalid peer_id in handshake" do
-    peer = Peer.new(
-      {{192, 168, 1, 1}, 8000},
-      "Local Peer Id ~~~~~~",
-      "Fake Info Hash ~~~~~",
-      self()
-    )
-    |> Peer.set_remote_peer_id("Expected Remote Id~~")
+    peer =
+      Peer.new(
+        {{192, 168, 1, 1}, 8000},
+        "Local Peer Id ~~~~~~",
+        "Fake Info Hash ~~~~~",
+        self()
+      )
+      |> Peer.set_remote_peer_id("Expected Remote Id~~")
 
     hs = {
       :handshake,
@@ -69,10 +69,10 @@ defmodule Effusion.BTP.PeerTest do
     }
 
     assert Peer.handshake(peer, hs) == {
-      :error,
-      :mismatched_peer_id,
-      [expected: "Expected Remote Id~~", actual: "Bad Remote Id ~~~~~~"]
-    }
+             :error,
+             :mismatched_peer_id,
+             [expected: "Expected Remote Id~~", actual: "Bad Remote Id ~~~~~~"]
+           }
   end
 
   test "check a valid handshake when peer has already handshaken" do
@@ -86,9 +86,9 @@ defmodule Effusion.BTP.PeerTest do
     {:ok, peer} = Peer.handshake(new(), hs)
 
     assert Peer.handshake(peer, hs) == {
-      :error,
-      :local_peer_already_handshaken
-    }
+             :error,
+             :local_peer_already_handshaken
+           }
   end
 
   test "expresses interest and unchokes after we send a bitfield" do

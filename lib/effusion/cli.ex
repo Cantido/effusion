@@ -14,12 +14,14 @@ defmodule Effusion.CLI do
   Usage: `effusion <name> -o <destination>`
   """
   def main(argv) do
-    {[output: dest], [file], invalid} = OptionParser.parse(argv, strict: @strict, aliases: @aliases)
-    Enum.each(invalid, fn(i) ->
+    {[output: dest], [file], invalid} =
+      OptionParser.parse(argv, strict: @strict, aliases: @aliases)
+
+    Enum.each(invalid, fn i ->
       IO.warn("Invalid option #{i}")
     end)
 
-    {:ok, metabin} = File.read file
+    {:ok, metabin} = File.read(file)
     {:ok, meta} = Metainfo.decode(metabin)
 
     {:ok, _torrent} = Effusion.download(meta, dest)

@@ -47,15 +47,14 @@ defmodule Effusion.BTP.Torrent do
   the piece will then be verified and moved to the `:pieces` set.
   """
   def add_block(torrent = %{info: %{piece_length: piece_length}}, block = %{data: data})
-  when is_integer(piece_length)
-   and 0 <= piece_length
-   and byte_size(data) <= piece_length do
+      when is_integer(piece_length) and 0 <= piece_length and byte_size(data) <= piece_length do
     {finished, unfinished} =
       unfinished(torrent)
       |> reduce_blocks(block)
       |> split_finished(torrent.info)
 
-    verified = finished
+    verified =
+      finished
       |> strip_offsets()
       |> verify_all(torrent.info)
       |> MapSet.union(verified(torrent))
@@ -113,7 +112,7 @@ defmodule Effusion.BTP.Torrent do
     in_memory_pieces = verified(torrent) |> Enum.count()
     on_disk_pieces = written(torrent) |> Enum.count()
 
-    (in_memory_pieces + on_disk_pieces) == Enum.count(torrent.info.pieces)
+    in_memory_pieces + on_disk_pieces == Enum.count(torrent.info.pieces)
   end
 
   @doc """
@@ -122,9 +121,7 @@ defmodule Effusion.BTP.Torrent do
   This includes bytes in blocks that have not yet been verified.
   """
   def bytes_completed(torrent) do
-    unfinished_bytes(torrent) +
-    verified_bytes(torrent) +
-    bytes_written(torrent)
+    unfinished_bytes(torrent) + verified_bytes(torrent) + bytes_written(torrent)
   end
 
   defp unfinished_bytes(torrent) do
@@ -149,7 +146,7 @@ defmodule Effusion.BTP.Torrent do
 
     last_piece_size = rem(info.length, info.piece_length)
     last_piece_index = Enum.count(info.pieces) - 1
-    has_last_piece = Enum.member? pieces, last_piece_index
+    has_last_piece = Enum.member?(pieces, last_piece_index)
 
     naive_size = Enum.count(pieces) * torrent.info.piece_length
 
@@ -171,7 +168,7 @@ defmodule Effusion.BTP.Torrent do
     end
   end
 
-  def mark_piece_written(torrent, %{ index: i }) do
+  def mark_piece_written(torrent, %{index: i}) do
     torrent
     |> Map.update(:written, IntSet.new(i), &IntSet.put(&1, i))
     |> remove_piece(i)
@@ -186,18 +183,20 @@ defmodule Effusion.BTP.Torrent do
   def mark_pieces_written(torrent, []), do: torrent
 
   defp remove_piece(torrent, index) do
-    verified = torrent
-    |> verified()
-    |> Enum.reject(fn p ->
-      p.index == index
-    end)
-    |> MapSet.new()
+    verified =
+      torrent
+      |> verified()
+      |> Enum.reject(fn p ->
+        p.index == index
+      end)
+      |> MapSet.new()
 
     Map.put(torrent, :verified, verified)
   end
 
   defp reduce_blocks(blocks, block) do
     adjacent_block = Enum.find(blocks, fn b -> Block.adjacent?(b, block) end)
+
     if adjacent_block == nil do
       MapSet.put(blocks, block)
     else
@@ -216,7 +215,7 @@ defmodule Effusion.BTP.Torrent do
 
   defp find_finished(blocks, %{piece_length: target_size, length: file_size, pieces: pieces}) do
     last_piece_index = Enum.count(pieces) - 1
-    last_piece_size = rem file_size, target_size
+    last_piece_size = rem(file_size, target_size)
 
     finished = find_finished_whole_pieces(blocks, target_size)
     finished_last = find_finished_last_piece(blocks, last_piece_index, last_piece_size)

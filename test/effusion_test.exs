@@ -11,7 +11,7 @@ defmodule EffusionTest do
   @torrent %{
     announce: "http://localhost:6969/announce",
     created_by: "Lovingly hand-crafted, by Rosa <3",
-    creation_date: 1517785476,
+    creation_date: 1_517_785_476,
     encoding: "UTF-8",
     info: %{
       :length => 5,
@@ -19,23 +19,27 @@ defmodule EffusionTest do
       :piece_length => 3,
       # Pieces are "tin" and "y\n"
       :pieces => [
-        <<242, 105, 25, 118, 134, 197, 108, 67, 163, 82, 84, 216, 119, 167, 25, 148, 192, 181, 112, 48>>,
-        <<144, 99, 169, 240, 224, 50, 182, 35, 148, 3, 183, 25, 203, 187, 165, 106, 196, 228, 228, 95>>
-    ],
+        <<242, 105, 25, 118, 134, 197, 108, 67, 163, 82, 84, 216, 119, 167, 25, 148, 192, 181,
+          112, 48>>,
+        <<144, 99, 169, 240, 224, 50, 182, 35, 148, 3, 183, 25, 203, 187, 165, 106, 196, 228, 228,
+          95>>
+      ],
       "private" => 0
     },
-    info_hash: <<95, 189, 143, 1, 37, 56, 146, 40, 140, 78, 2, 250, 208, 144, 217, 10, 49, 7, 64, 28>>
+    info_hash:
+      <<95, 189, 143, 1, 37, 56, 146, 40, 140, 78, 2, 250, 208, 144, 217, 10, 49, 7, 64, 28>>
   }
 
   @remote_peer Peer.new(
-    {{127, 0, 0, 1}, 8001},
-    "Other peer 123456789",
-    @torrent.info_hash,
-    self()
-  )
+                 {{127, 0, 0, 1}, 8001},
+                 "Other peer 123456789",
+                 @torrent.info_hash,
+                 self()
+               )
 
   defp stub_tracker(_, _, _, _, _, _, _, _, _, _) do
     {host, port} = @remote_peer.address
+
     {
       :ok,
       %{
@@ -49,21 +53,21 @@ defmodule EffusionTest do
     {_host, port} = @remote_peer.address
     {:ok, lsock} = Socket.listen(port)
 
-    on_exit fn ->
+    on_exit(fn ->
       :ok = Socket.close(lsock)
-    end
+    end)
 
     %{lsock: lsock}
   end
 
   setup do
-    Temp.track!
+    Temp.track!()
 
-    {:ok, file} = Temp.path
+    {:ok, file} = Temp.path()
 
-    on_exit fn ->
-      File.rm_rf file
-    end
+    on_exit(fn ->
+      File.rm_rf(file)
+    end)
 
     %{destfile: file}
   end
@@ -87,10 +91,11 @@ defmodule EffusionTest do
 
     {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
 
-    {i2, piece1, piece2} = case i1 do
-      0 -> {1, {:piece, 0, 0, "tin"}, {:piece, 1, 0, "y\n"}}
-      1 -> {0, {:piece, 1, 0, "y\n"}, {:piece, 0, 0, "tin"}}
-    end
+    {i2, piece1, piece2} =
+      case i1 do
+        0 -> {1, {:piece, 0, 0, "tin"}, {:piece, 1, 0, "y\n"}}
+        1 -> {0, {:piece, 1, 0, "y\n"}, {:piece, 0, 0, "tin"}}
+      end
 
     :ok = Socket.send_msg(sock, piece1)
     {:ok, {:have, ^i1}} = Socket.recv(sock)

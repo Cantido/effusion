@@ -9,19 +9,19 @@ defmodule Effusion.PWP.ConnectionTest do
   @torrent TestHelper.tiny_meta()
 
   @remote_peer Peer.new(
-    {{127, 0, 0, 1}, 8001},
-    "Other peer 123456789",
-    @torrent.info_hash,
-    self()
-  )
+                 {{127, 0, 0, 1}, 8001},
+                 "Other peer 123456789",
+                 @torrent.info_hash,
+                 self()
+               )
 
   setup do
     {_host, port} = @remote_peer.address
     {:ok, lsock} = Socket.listen(port)
 
-    on_exit fn ->
+    on_exit(fn ->
       :ok = Socket.close(lsock)
-    end
+    end)
 
     %{lsock: lsock}
   end
@@ -35,7 +35,7 @@ defmodule Effusion.PWP.ConnectionTest do
     assert actual_response == expected_response
   end
 
-  test "registers with ConnectionRegistry on successful handshake", %{lsock: lsock}  do
+  test "registers with ConnectionRegistry on successful handshake", %{lsock: lsock} do
     {:ok, cpid} = start_supervised({Connection, @remote_peer})
 
     {:ok, _sock, _remote_peer} = Socket.accept(lsock, @remote_peer)

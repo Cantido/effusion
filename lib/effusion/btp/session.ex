@@ -86,9 +86,11 @@ defmodule Effusion.BTP.Session do
 
   defp cancel_block_requests(s, block, from) do
     block_id = Block.id(block)
-    peers_with_request = s
-    |> Map.get(:requested_pieces, MapSet.new())
-    |> Map.get(block_id, MapSet.new())
+
+    peers_with_request =
+      s
+      |> Map.get(:requested_pieces, MapSet.new())
+      |> Map.get(block_id, MapSet.new())
 
     Connection.btp_broadcast(s.meta.info_hash, {:cancel, block_id}, fn peer_id ->
       peer_id != from && MapSet.member?(peers_with_request, peer_id)
@@ -108,7 +110,7 @@ defmodule Effusion.BTP.Session do
   Perform a function on all of this download's listening processes.
   """
   def each_listener(%{listeners: listeners}, fun)
-  when is_function(fun, 1) do
+      when is_function(fun, 1) do
     Enum.each(listeners, &fun.(&1))
   end
 
@@ -123,10 +125,13 @@ defmodule Effusion.BTP.Session do
   Get the next piece that this download should ask for.
   """
   def next_request(s) do
-    next_block = Effusion.BTP.PieceSelection.next_block(
-      s.torrent,
-      Map.values(s.connected_peers),
-      @block_size)
+    next_block =
+      Effusion.BTP.PieceSelection.next_block(
+        s.torrent,
+        Map.values(s.connected_peers),
+        @block_size
+      )
+
     s1 = Map.update!(s, :requested, &MapSet.put(&1, next_block))
 
     {next_block, s1}
@@ -146,36 +151,35 @@ defmodule Effusion.BTP.Session do
   def announce(s, client, event \\ :interval) do
     {local_host, local_port} = s.local_address
 
-    {:ok, res} = client.announce(
-      s.meta.announce,
-      local_host,
-      local_port,
-      s.peer_id,
-      s.meta.info_hash,
-      0,
-      Torrent.bytes_completed(s.torrent),
-      Torrent.bytes_left(s.torrent),
-      event,
-      s.tracker_id
-    )
+    {:ok, res} =
+      client.announce(
+        s.meta.announce,
+        local_host,
+        local_port,
+        s.peer_id,
+        s.meta.info_hash,
+        0,
+        Torrent.bytes_completed(s.torrent),
+        Torrent.bytes_left(s.torrent),
+        event,
+        s.tracker_id
+      )
 
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
 
-    peers = res.peers
-    |> Enum.map(fn p ->
-        Peer.new(
-          {p.ip, p.port},
-          s.peer_id,
-          s.meta.info_hash,
-          self())
+    peers =
+      res.peers
+      |> Enum.map(fn p ->
+        Peer.new({p.ip, p.port}, s.peer_id, s.meta.info_hash, self())
         |> Peer.set_remote_peer_id(p.peer_id)
       end)
 
-    tracker_id = if Map.get(res, :tracker_id, "") != "" do
-      res.tracker_id
-    else
-      s.tracker_id
-    end
+    tracker_id =
+      if Map.get(res, :tracker_id, "") != "" do
+        res.tracker_id
+      else
+        s.tracker_id
+      end
 
     s
     |> Map.put(:peers, MapSet.new(peers))
@@ -202,10 +206,11 @@ defmodule Effusion.BTP.Session do
   def handle_message(session, peer_id, message)
 
   def handle_message(s = %{peer_id: peer_id}, remote_peer_id, msg)
-  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-
+      when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     case session_handle_message(s, remote_peer_id, msg) do
-      {:error, reason} -> {:error, reason}
+      {:error, reason} ->
+        {:error, reason}
+
       {s, session_messages} ->
         {s, peer_messages} = delegate_message(s, remote_peer_id, msg)
         {s, session_messages ++ peer_messages}
@@ -216,7 +221,7 @@ defmodule Effusion.BTP.Session do
     pieces_count = Enum.count(s.meta.info.pieces)
     max_i = Enum.max(IntSet.new(b), fn -> 0 end)
 
-    if max_i in 0..(pieces_count-1) do
+    if max_i in 0..(pieces_count - 1) do
       {s, []}
     else
       {:error, :index_out_of_bounds}
@@ -226,7 +231,7 @@ defmodule Effusion.BTP.Session do
   defp session_handle_message(s, _remote_peer_id, {:have, i}) do
     pieces_count = Enum.count(s.meta.info.pieces)
 
-    if i in 0..(pieces_count-1) do
+    if i in 0..(pieces_count - 1) do
       {s, []}
     else
       {:error, :index_out_of_bounds}
@@ -245,7 +250,7 @@ defmodule Effusion.BTP.Session do
   defp session_handle_message(s, _remote_peer_id, _msg), do: {s, []}
 
   defp delegate_message(s = %{peer_id: peer_id}, remote_peer_id, msg)
-  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
+       when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     peer = get_connected_peer(s, remote_peer_id)
     {peer, responses} = Peer.recv(peer, msg)
 
@@ -254,29 +259,21 @@ defmodule Effusion.BTP.Session do
   end
 
   defp get_connected_peer(s = %{peer_id: peer_id}, remote_peer_id)
-  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
+       when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     s
     |> Map.get(:connected_peers, Map.new())
     |> Map.get(remote_peer_id, default_peer(s, remote_peer_id))
   end
 
   defp peer(s, peer_id, peer_address)
-  when is_peer_id(peer_id) do
-    Peer.new(
-      peer_address,
-      s.peer_id,
-      s.meta.info_hash,
-      self())
+       when is_peer_id(peer_id) do
+    Peer.new(peer_address, s.peer_id, s.meta.info_hash, self())
     |> Map.put(:remote_peer_id, peer_id)
   end
 
   defp default_peer(%{peer_id: peer_id, meta: %{info_hash: info_hash}}, remote_peer_id)
-  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-    Peer.new(
-      {nil, nil},
-      peer_id,
-      info_hash,
-      self())
+       when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
+    Peer.new({nil, nil}, peer_id, info_hash, self())
     |> Peer.set_remote_peer_id(remote_peer_id)
   end
 
@@ -287,7 +284,7 @@ defmodule Effusion.BTP.Session do
   it is pretty much only used for testing.
   """
   def add_connected_peer(s = %{peer_id: peer_id}, peer = %{remote_peer_id: remote_peer_id})
-  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
+      when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     Map.update!(s, :connected_peers, &Map.put(&1, remote_peer_id, peer))
   end
 
@@ -298,12 +295,12 @@ defmodule Effusion.BTP.Session do
   it is pretty much only used for testing.
   """
   def remove_connected_peer(s, peer_id)
-  when is_peer_id(peer_id) do
+      when is_peer_id(peer_id) do
     Map.update!(s, :connected_peers, &Map.delete(&1, peer_id))
   end
 
   defp add_closed_connection(s, peer_id, address)
-  when is_peer_id(peer_id) do
+       when is_peer_id(peer_id) do
     Map.update!(s, :closed_connections, &MapSet.put(&1, peer(s, peer_id, address)))
   end
 
@@ -311,7 +308,7 @@ defmodule Effusion.BTP.Session do
   Perform actions necessary when a peer at a given address disconnects.
   """
   def handle_disconnect(s, peer_id, address)
-  when is_peer_id(peer_id) do
+      when is_peer_id(peer_id) do
     s
     |> remove_connected_peer(peer_id)
     |> add_closed_connection(peer_id, address)

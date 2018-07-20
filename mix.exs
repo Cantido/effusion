@@ -6,19 +6,20 @@ defmodule Effusion.Mixfile do
       app: :effusion,
       version: "0.1.0",
       elixir: "~> 1.6",
-      elixirc_paths: elixirc_paths(Mix.env),
-      start_permanent: Mix.env == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
+      start_permanent: Mix.env() == :prod,
       description: "A BitTorrent library.",
-      escript: [main_module: Effusion.CLI], # build with `mix escript.build`
+      # build with `mix escript.build`
+      escript: [main_module: Effusion.CLI],
       package: package(),
       deps: deps(),
       source_url: "https://github.com/Cantido/effusion",
-      dialyzer: [ flags: ["-Wunmatched_returns", :error_handling, :race_conditions, :underspecs]]
+      dialyzer: [flags: ["-Wunmatched_returns", :error_handling, :race_conditions, :underspecs]]
     ]
   end
 
   defp elixirc_paths(:test), do: ["test/support", "lib"]
-  defp elixirc_paths(_),     do: ["lib"]
+  defp elixirc_paths(_), do: ["lib"]
 
   def application do
     [
@@ -43,11 +44,12 @@ defmodule Effusion.Mixfile do
   end
 
   defp package do
-    [ name: :effusion,
+    [
+      name: :effusion,
       files: ["lib", "mix.exs", "README.md", "LICENSE"],
       maintainers: ["Rosa Richter"],
       licenses: ["GPL v3"],
-      links: %{"Github" => "https://github.com/Cantido/effusion"},
+      links: %{"Github" => "https://github.com/Cantido/effusion"}
     ]
   end
 end

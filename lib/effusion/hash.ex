@@ -27,9 +27,8 @@ defmodule Effusion.Hash do
       "69342c5c39e5ae5f0077aecc32c0f81811fb8193"
   """
   def inspect(hash) when is_hash(hash) do
-    Base.encode16 hash, case: :lower
+    Base.encode16(hash, case: :lower)
   end
-
 
   @doc """
   Calculate the SHA-1 hash on a binary.

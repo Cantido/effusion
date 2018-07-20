@@ -4,41 +4,25 @@ defmodule Effusion.BTP.BlockTest do
   alias Effusion.BTP.Block
 
   test "sequential blocks" do
-    assert Block.sequential?(
-      Block.new(0, 0, "h"),
-      Block.new(0, 1, "i"))
+    assert Block.sequential?(Block.new(0, 0, "h"), Block.new(0, 1, "i"))
 
-    refute Block.sequential?(
-      Block.new(0, 1, "i"),
-      Block.new(0, 0, "h"))
+    refute Block.sequential?(Block.new(0, 1, "i"), Block.new(0, 0, "h"))
 
-    refute Block.sequential?(
-      Block.new(0, 0, "a"),
-      Block.new(1, 1, "d"))
+    refute Block.sequential?(Block.new(0, 0, "a"), Block.new(1, 1, "d"))
   end
 
   test "adjacent blocks" do
-    assert Block.adjacent?(
-      %{index: 0, offset: 0, data: "h"},
-      %{index: 0, offset: 1, data: "i"})
+    assert Block.adjacent?(%{index: 0, offset: 0, data: "h"}, %{index: 0, offset: 1, data: "i"})
 
-    assert Block.adjacent?(
-      %{index: 0, offset: 1, data: "i"},
-      %{index: 0, offset: 0, data: "h"})
+    assert Block.adjacent?(%{index: 0, offset: 1, data: "i"}, %{index: 0, offset: 0, data: "h"})
 
-    refute Block.adjacent?(
-      %{index: 0, offset: 0, data: "a"},
-      %{index: 0, offset: 2, data: "c"})
+    refute Block.adjacent?(%{index: 0, offset: 0, data: "a"}, %{index: 0, offset: 2, data: "c"})
   end
 
   test "adjacent blocks can be merged" do
-    merged1 = Block.merge(
-      %{index: 0, offset: 0, data: "h"},
-      %{index: 0, offset: 1, data: "i"})
+    merged1 = Block.merge(%{index: 0, offset: 0, data: "h"}, %{index: 0, offset: 1, data: "i"})
 
-    merged2 = Block.merge(
-      %{index: 0, offset: 0, data: "h"},
-      %{index: 0, offset: 1, data: "i"})
+    merged2 = Block.merge(%{index: 0, offset: 0, data: "h"}, %{index: 0, offset: 1, data: "i"})
 
     assert merged1 == %{index: 0, offset: 0, data: "hi"}
     assert merged2 == %{index: 0, offset: 0, data: "hi"}

@@ -35,15 +35,16 @@ defmodule Effusion.IO do
 
   defp do_write_pieces(info, destdir, pieces) do
     pieces
-    |> Enum.flat_map(fn %{index: i, data: d} -> split_bytes_to_files(destdir, info, %{index: i, data: d}) end)
+    |> Enum.flat_map(fn %{index: i, data: d} ->
+      split_bytes_to_files(destdir, info, %{index: i, data: d})
+    end)
     |> Enum.group_by(fn {path, _} -> path end, fn {_, locbytes} -> locbytes end)
     |> Enum.each(fn {path, locbytes} -> write_chunk(path, locbytes) end)
   end
 
   defp write_chunk(path, locbytes) when is_list(locbytes) do
     with :ok <- File.mkdir_p(Path.dirname(path)),
-         {:ok, device} <- File.open(path, [:read, :write])
-    do
+         {:ok, device} <- File.open(path, [:read, :write]) do
       write_result = :file.pwrite(device, locbytes)
       _ = File.close(device)
       write_result
@@ -66,7 +67,7 @@ defmodule Effusion.IO do
     |> Enum.map(fn {f, file_range = file_start.._} ->
       overlap = Effusion.Range.overlap(file_range, piece_range)
       poslen = Effusion.Range.overlap_poslen(file_range, piece_range)
-      
+
       file_offset.._ = Effusion.Range.shift(overlap, -file_start)
       file_data = :binary.part(d, poslen)
 
@@ -85,7 +86,7 @@ defmodule Effusion.IO do
   defp first_byte_index(info, file_index) when file_index > 0 do
     info.files
     |> Enum.slice(0..(file_index - 1))
-    |> Enum.map(&(&1.length))
+    |> Enum.map(& &1.length)
     |> Enum.sum()
   end
 end

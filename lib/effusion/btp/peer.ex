@@ -27,7 +27,7 @@ defmodule Effusion.BTP.Peer do
   To set the ID of the remote peer, see `set_remote_peer_id/2`.
   """
   def new({_host, _port} = address, peer_id, info_hash, session)
-  when is_peer_id(peer_id) and is_hash(info_hash) and is_pid(session) do
+      when is_peer_id(peer_id) and is_hash(info_hash) and is_pid(session) do
     %{
       address: address,
       peer_id: peer_id,
@@ -47,7 +47,7 @@ defmodule Effusion.BTP.Peer do
   Set the 20-byte peer ID value that identifies the remote peer.
   """
   def set_remote_peer_id(p = %{peer_id: peer_id}, remote_peer_id)
-  when is_peer_id(remote_peer_id) and peer_id != remote_peer_id do
+      when is_peer_id(remote_peer_id) and peer_id != remote_peer_id do
     Map.put(p, :remote_peer_id, remote_peer_id)
   end
 
@@ -62,14 +62,17 @@ defmodule Effusion.BTP.Peer do
   Accept a handshake message received by a remote peer, and validate it.
   """
   def handshake(p, {:handshake, remote_peer_id, info_hash, _reserved})
-  when is_peer_id(remote_peer_id) and is_hash(info_hash) do
+      when is_peer_id(remote_peer_id) and is_hash(info_hash) do
     cond do
       p.handshaken ->
         {:error, :local_peer_already_handshaken}
+
       p.info_hash != info_hash ->
         {:error, :mismatched_info_hash, [expected: p.info_hash, actual: info_hash]}
+
       p.remote_peer_id != nil and p.remote_peer_id != remote_peer_id ->
         {:error, :mismatched_peer_id, [expected: p.remote_peer_id, actual: remote_peer_id]}
+
       true ->
         {:ok, %{p | handshaken: true, remote_peer_id: remote_peer_id}}
     end
@@ -82,7 +85,8 @@ defmodule Effusion.BTP.Peer do
   def recv(peer, message)
 
   def recv(p, {:bitfield, b}) do
-    p = p
+    p =
+      p
       |> Map.put(:has, IntSet.new(b))
       |> Map.put(:am_choking, false)
       |> Map.put(:am_interested, true)

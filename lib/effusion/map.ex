@@ -22,10 +22,7 @@ defmodule Effusion.Map do
   The function argument `fun` *will* be run on the default argument.
   """
   def get_and_update(map, key, fun, default \\ nil) do
-    Map.get_and_update(
-      map,
-      key,
-      &nil_safe_call(fun, &1, default))
+    Map.get_and_update(map, key, &nil_safe_call(fun, &1, default))
   end
 
   defp nil_safe_call(fun, nil, default) do

@@ -17,20 +17,21 @@ defmodule Effusion.PieceStage do
   end
 
   def handle_call({:put_event, {info_hash, info, file, block}}, _from, torrents)
-  when is_hash(info_hash) do
+      when is_hash(info_hash) do
     {verified, torrents} =
       Effusion.Map.get_and_update(
         torrents,
         info_hash,
         &Torrent.add_block_and_take_verified(&1, block),
-        Torrent.new(info_hash))
+        Torrent.new(info_hash)
+      )
 
     events = Enum.map(verified, fn p -> {info, file, p} end)
 
     {:reply, :ok, events, torrents}
   end
 
-  def handle_demand(_, state)  do
+  def handle_demand(_, state) do
     {:noreply, [], state}
   end
 end

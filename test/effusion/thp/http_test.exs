@@ -3,15 +3,15 @@ defmodule Effusion.THP.HTTPTest do
   alias Effusion.THP.HTTP
   doctest Effusion.THP.HTTP
 
-  @body File.read! "test/tracker_response.txt"
+  @body File.read!("test/tracker_response.txt")
 
   setup do
-    bypass = Bypass.open
+    bypass = Bypass.open()
     {:ok, bypass: bypass}
   end
 
   test "decodes interval" do
-    {:ok, body} = HTTP.decode @body
+    {:ok, body} = HTTP.decode(@body)
 
     assert Map.has_key?(body, :interval)
 
@@ -20,7 +20,7 @@ defmodule Effusion.THP.HTTPTest do
   end
 
   test "decodes peers" do
-    {:ok, body} = HTTP.decode @body
+    {:ok, body} = HTTP.decode(@body)
     assert Map.has_key?(body, :peers)
 
     [peer | _rest] = body.peers
@@ -29,7 +29,7 @@ defmodule Effusion.THP.HTTPTest do
   end
 
   test "decodes peer port" do
-    {:ok, body} = HTTP.decode @body
+    {:ok, body} = HTTP.decode(@body)
 
     [peer | _rest] = body.peers
 
@@ -38,7 +38,7 @@ defmodule Effusion.THP.HTTPTest do
   end
 
   test "decodes peer ip address" do
-    {:ok, body} = HTTP.decode @body
+    {:ok, body} = HTTP.decode(@body)
 
     [peer | _rest] = body.peers
 
@@ -51,7 +51,7 @@ defmodule Effusion.THP.HTTPTest do
   end
 
   test "decodes peer id" do
-    {:ok, body} = HTTP.decode @body
+    {:ok, body} = HTTP.decode(@body)
 
     [peer | _rest] = body.peers
 
@@ -59,7 +59,7 @@ defmodule Effusion.THP.HTTPTest do
   end
 
   test "sends STARTED event", %{bypass: bypass} do
-    Bypass.expect_once bypass, fn conn ->
+    Bypass.expect_once(bypass, fn conn ->
       assert "/announce" == conn.request_path
       assert "GET" == conn.method
       query = Plug.Conn.fetch_query_params(conn).query_params
@@ -74,20 +74,21 @@ defmodule Effusion.THP.HTTPTest do
       assert query["ip"] == "192.168.1.1"
       assert query["trackerid"] == "this is my tracker id"
 
-      Plug.Conn.resp conn, 200, @body
-    end
+      Plug.Conn.resp(conn, 200, @body)
+    end)
 
-    {:ok, _} = HTTP.announce(
-      "http://localhost:#{bypass.port}/announce",
-      {192,168,1,1},
-      8001,
-      "12345678901234567890",
-      "12345678901234567890",
-      0,
-      0,
-      0,
-      :started,
-      "this is my tracker id"
-    )
+    {:ok, _} =
+      HTTP.announce(
+        "http://localhost:#{bypass.port}/announce",
+        {192, 168, 1, 1},
+        8001,
+        "12345678901234567890",
+        "12345678901234567890",
+        0,
+        0,
+        0,
+        :started,
+        "this is my tracker id"
+      )
   end
 end
