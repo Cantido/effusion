@@ -132,6 +132,13 @@ defmodule Effusion.BTP.Session do
     {next_block, s1}
   end
 
+  defp next_request_msg(session) do
+    case next_request(session) do
+      {{_peer_id, %{index: i, offset: o, size: sz}}, session} -> {session, [{:request, i, o, sz}]}
+      {nil, session} -> {session, []}
+    end
+  end
+
   @doc """
   Announce an event to this download's tracker,
   using the given Tracker HTTP Protocol (THP) client.
@@ -185,13 +192,6 @@ defmodule Effusion.BTP.Session do
     session
     |> announce(thp_client, :started)
     |> connect_to_all()
-  end
-
-  defp next_request_msg(session) do
-    case next_request(session) do
-      {{_peer_id, %{index: i, offset: o, size: sz}}, session} -> {session, [{:request, i, o, sz}]}
-      {nil, session} -> {session, []}
-    end
   end
 
   @doc """
