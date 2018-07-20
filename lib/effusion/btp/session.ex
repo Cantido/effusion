@@ -189,8 +189,8 @@ defmodule Effusion.BTP.Session do
 
   defp next_request_msg(session) do
     case next_request(session) do
-      {{_peer_id, %{index: i, offset: o, size: sz}}, session} -> {[{:request, i, o, sz}], session}
-      {nil, session} -> {[], session}
+      {{_peer_id, %{index: i, offset: o, size: sz}}, session} -> {session, [{:request, i, o, sz}]}
+      {nil, session} -> {session, []}
     end
   end
 
@@ -201,51 +201,49 @@ defmodule Effusion.BTP.Session do
   """
   def handle_message(session, peer_id, message)
 
-  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, msg = {:bitfield, b})
+  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, msg)
   when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
 
+    case session_handle_message(s, remote_peer_id, msg) do
+      {:error, reason} -> {:error, reason}
+      {s, session_messages} ->
+        {s, peer_messages} = delegate_message(s, remote_peer_id, msg)
+        {s, session_messages ++ peer_messages}
+    end
+  end
+
+  defp session_handle_message(s, _remote_peer_id, {:bitfield, b}) do
     pieces_count = Enum.count(s.meta.info.pieces)
     max_i = Enum.max(IntSet.new(b), fn -> 0 end)
 
     if 0 <= max_i && max_i < pieces_count do
-      delegate_message(s, remote_peer_id, msg)
+      {s, []}
     else
       {:error, :index_out_of_bounds}
     end
   end
 
-  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, {:piece, b} = msg)
-  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-    s = add_block(s, b, remote_peer_id)
-    {session_messages, s} = next_request_msg(s)
-    {s, peer_messages} = delegate_message(s, remote_peer_id, msg)
-    {s, session_messages ++ peer_messages}
-  end
-
-
-  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, :unchoke = msg)
-  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-    {session_messages, s} = next_request_msg(s)
-    {s, peer_messages} = delegate_message(s, remote_peer_id, msg)
-    {s, session_messages ++ peer_messages}
-  end
-
-  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, msg = {:have, i})
-  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-
+  defp session_handle_message(s, _remote_peer_id, {:have, i}) do
     pieces_count = Enum.count(s.meta.info.pieces)
 
     if 0 <= i && i < pieces_count do
-      delegate_message(s, remote_peer_id, msg)
+      {s, []}
     else
       {:error, :index_out_of_bounds}
     end
   end
 
-  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, msg)
-  when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-    delegate_message(s, remote_peer_id, msg)
+  defp session_handle_message(s, remote_peer_id, {:piece, b}) do
+    s = add_block(s, b, remote_peer_id)
+    next_request_msg(s)
   end
+
+  defp session_handle_message(s, _remote_peer_id, :unchoke) do
+    next_request_msg(s)
+  end
+
+
+  defp session_handle_message(s, _remote_peer_id, _msg), do: {s, []}
 
   defp delegate_message(s = %{peer_id: peer_id}, remote_peer_id, msg)
   when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
