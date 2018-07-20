@@ -21,12 +21,12 @@ defmodule Effusion.BTP.Session do
 
   This only creates a data structure. To actually start the download, call `start/1`.
   """
-  def new(meta, local_server, file \\ nil) do
+  def new(meta, local_address, file \\ nil) do
     %{
       file: file,
       meta: meta,
       torrent: Torrent.new(meta.info_hash),
-      local_peer: local_server,
+      local_address: local_address,
       peers: MapSet.new(),
       connected_peers: Map.new(),
       closed_connections: MapSet.new(),
@@ -151,7 +151,7 @@ defmodule Effusion.BTP.Session do
   using the given Tracker HTTP Protocol (THP) client.
   """
   def announce(s, client, event \\ :interval) do
-    {local_host, local_port} = s.local_peer
+    {local_host, local_port} = s.local_address
 
     {:ok, res} = client.announce(
       s.meta.announce,
