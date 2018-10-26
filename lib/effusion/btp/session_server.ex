@@ -75,7 +75,9 @@ defmodule Effusion.BTP.SessionServer do
       {state, messages} ->
         _ = Logger.debug("replying: #{inspect(messages)}")
 
-        Enum.each(messages, &Connection.btp_send(state.meta.info_hash, peer_id, &1))
+        Enum.each(messages, fn {remote_peer_id, outgoing_msg} ->
+          Connection.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
+        end)
 
         if Session.done?(state) do
           {:stop, :normal, :ok, state}

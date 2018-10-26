@@ -65,31 +65,34 @@ defmodule Effusion.BTP.Session do
   This may trigger messages to be sent to any connections associated with this download's torrent.
   """
   def add_block(s, block, from) when is_peer_id(from) do
-    s = cancel_block_requests(s, block, from)
+    {s, cancel_messages} = cancel_block_requests(s, block, from)
 
     torrent = Torrent.add_block(s.torrent, block)
     verified = Torrent.verified(torrent)
 
-    Enum.each(verified, &Connection.btp_broadcast(s.meta.info_hash, {:have, &1.index}))
+    have_messages = verified
+    |> Enum.map(&({:broadcast, {:have, &1.index}}))
 
     {:ok, torrent} = Effusion.IO.write_to(torrent, s.file)
 
-    %{s | torrent: torrent}
+    {
+      %{s | torrent: torrent},
+      have_messages ++ cancel_messages
+    }
   end
 
   defp cancel_block_requests(s, block, from) do
     block_id = Block.id(block)
 
-    peers_with_request =
+    messages =
       s
       |> Map.get(:requested_pieces, MapSet.new())
       |> Map.get(block_id, MapSet.new())
-
-    Connection.btp_broadcast(s.meta.info_hash, {:cancel, block_id}, fn peer_id ->
-      peer_id != from && MapSet.member?(peers_with_request, peer_id)
-    end)
+      |> Enum.filter(&(&1 != from))
+      |> Enum.map(&({&1, {:cancel, block_id}}))
 
     Map.update(s, :requested_pieces, Map.new(), &Map.delete(&1, block_id))
+    {s, messages}
   end
 
   @doc """
@@ -135,7 +138,7 @@ defmodule Effusion.BTP.Session do
 
   defp next_request_msg(session) do
     case next_request(session) do
-      {{_peer_id, %{index: i, offset: o, size: sz}}, session} -> {session, [{:request, i, o, sz}]}
+      {{peer_id, %{index: i, offset: o, size: sz}}, session} -> {session, [{peer_id, {:request, i, o, sz}}]}
       {nil, session} -> {session, []}
     end
   end
@@ -235,8 +238,9 @@ defmodule Effusion.BTP.Session do
   end
 
   defp session_handle_message(s, remote_peer_id, {:piece, b}) do
-    s = add_block(s, b, remote_peer_id)
-    next_request_msg(s)
+    {s, block_messages} = add_block(s, b, remote_peer_id)
+    {s, request_messages} = next_request_msg(s)
+    {s, block_messages ++ request_messages}
   end
 
   defp session_handle_message(s, _remote_peer_id, :unchoke) do
@@ -251,7 +255,7 @@ defmodule Effusion.BTP.Session do
     {peer, responses} = Peer.recv(peer, msg)
 
     session = add_connected_peer(s, peer)
-    {session, responses}
+    {session, Enum.map(responses, fn r -> {remote_peer_id, r} end)}
   end
 
   defp get_connected_peer(s = %{peer_id: peer_id}, remote_peer_id)

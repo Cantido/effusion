@@ -47,12 +47,16 @@ defmodule Effusion.PWP.Connection do
       end)
   end
 
+  def btp_send(info_hash, :broadcast, message) do
+    btp_broadcast(info_hash, message)
+  end
+
   def btp_send(info_hash, peer_id, message) do
     connections = Registry.match(ConnectionRegistry, info_hash, peer_id)
 
     _ =
       case connections do
-        [{conn_pid, ^peer_id}] -> send(conn_pid, {:btp_send, message})
+        [{conn_pid, ^peer_id}] -> send(conn_pid, {:btp_send, peer_id, message})
         [] -> []
       end
   end

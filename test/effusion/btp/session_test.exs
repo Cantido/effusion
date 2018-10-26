@@ -48,7 +48,10 @@ defmodule Effusion.BTP.SessionTest do
 
     {session, msgs} = Session.handle_message(session, peer.remote_peer_id, {:bitfield, <<0>>})
 
-    assert msgs == [:interested, :unchoke]
+    assert msgs == [
+      {"Fake Peer Id ~~~~~~~", :interested},
+      {"Fake Peer Id ~~~~~~~", :unchoke}
+    ]
 
     peer = Map.get(session.connected_peers, peer.remote_peer_id)
 
@@ -151,18 +154,15 @@ defmodule Effusion.BTP.SessionTest do
     |> stub(:announce, stub_tracker)
 
     peer = peer()
-    remote_peer_id = peer.remote_peer_id
 
-    {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, peer.remote_peer_id)
-
-    {_session, _msg} =
+    {_session, msgs} =
       new(file)
       |> Session.handle_message(
         peer.remote_peer_id,
         {:piece, %{index: 0, offset: 0, data: "tin"}}
       )
 
-    assert_receive({:btp_send, ^remote_peer_id, {:have, 0}})
+    assert Enum.member?(msgs, {:broadcast, {:have, 0}})
   end
 
   test "sends STARTED message to tracker on start", %{destfile: file} do
@@ -199,13 +199,11 @@ defmodule Effusion.BTP.SessionTest do
         {block_id, MapSet.new([piece_sender_id, piece_requestee_id])}
       ])
 
-    new(file)
+    {_s, messages} = new(file)
     |> Map.put(:requested_pieces, requested_pieces)
     |> Session.handle_message(piece_sender_id, {:piece, block_data})
 
-    refute_received {:btp_send, ^piece_sender_id, {:cancel, ^block_id}}
-    assert_received {:btp_send, ^piece_requestee_id, {:cancel, ^block_id}}
-    refute_received {:btp_send, ^bystander_id, {:cancel, ^block_id}}
+    assert messages == [{piece_requestee_id, {:cancel, block_id}}]
   end
 
   test "saves peers that result from announce", %{destfile: file} do
