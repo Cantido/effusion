@@ -10,9 +10,7 @@ defmodule Effusion.Application do
       Effusion.Application.SessionServerSupervisor,
       Effusion.Application.ConnectionSupervisor,
       {Registry, keys: :duplicate, name: ConnectionRegistry},
-      {Registry, keys: :unique, name: SessionRegistry},
-      Effusion.PieceStage,
-      Effusion.IOStage
+      {Registry, keys: :unique, name: SessionRegistry}
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]

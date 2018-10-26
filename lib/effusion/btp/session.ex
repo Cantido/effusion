@@ -68,8 +68,11 @@ defmodule Effusion.BTP.Session do
     s = cancel_block_requests(s, block, from)
 
     torrent = Torrent.add_block(s.torrent, block)
+    verified = Torrent.verified(torrent)
 
-    :ok = Effusion.PieceStage.put_event({s.meta.info_hash, s.meta.info, s.file, block})
+    Enum.each(verified, &Connection.btp_broadcast(s.meta.info_hash, {:have, &1.index}))
+
+    {:ok, torrent} = Effusion.IO.write_to(torrent, s.file)
 
     %{s | torrent: torrent}
   end
