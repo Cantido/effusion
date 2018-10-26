@@ -97,11 +97,19 @@ defmodule Effusion.BTP.SessionServer do
   end
 
   def handle_info(:timeout, state) do
-    {:noreply, Session.start(state, @thp_client)}
+    {session, announce_response} = Session.start(state, @thp_client)
+
+    Process.send_after(self(), :interval_expired, announce_response.interval * 1_000)
+
+    {:noreply, session}
   end
 
   def handle_info(:interval_expired, state) do
-    {:noreply, Session.announce(state, @thp_client)}
+    {session, res} = Session.announce(state, @thp_client)
+
+    Process.send_after(self(), :interval_expired, res.interval * 1_000)
+
+    {:noreply, session}
   end
 
   def handle_info(_, state) do
@@ -111,7 +119,7 @@ defmodule Effusion.BTP.SessionServer do
   def terminate(:normal, state) do
     Connection.disconnect_all(state.meta.info_hash)
 
-    state =
+    {state, _response} =
       if Session.done?(state) do
         Session.announce(state, @thp_client, :completed)
       else
@@ -122,7 +130,7 @@ defmodule Effusion.BTP.SessionServer do
   end
 
   def terminate(reason, state) do
-    state = Session.announce(state, @thp_client, :stopped)
+    {state, _res} = Session.announce(state, @thp_client, :stopped)
     reply_to_listeners(state, {:error, :torrent_crashed, [reason: reason]})
   end
 

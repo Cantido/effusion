@@ -139,10 +139,10 @@ defmodule Effusion.BTP.SessionTest do
     |> expect(:announce, stub_tracker_1)
     |> expect(:announce, 2, stub_tracker_2)
 
-    new(file)
-    |> Session.announce(Effusion.THP.Mock, :started)
-    |> Session.announce(Effusion.THP.Mock, :interval)
-    |> Session.announce(Effusion.THP.Mock, :completed)
+    session = new(file)
+    {session, _res} = Session.announce(session, Effusion.THP.Mock, :started)
+    {session, _res} = Session.announce(session, Effusion.THP.Mock, :interval)
+    {_session, _res} = Session.announce(session, Effusion.THP.Mock, :completed)
   end
 
   test "sends HAVE messages once it finishes a piece", %{destfile: file} do
@@ -222,7 +222,7 @@ defmodule Effusion.BTP.SessionTest do
     Effusion.THP.Mock
     |> expect(:announce, stub_tracker)
 
-    session =
+    {session, _res} =
       Session.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
       |> Session.announce(Effusion.THP.Mock, :started)
 

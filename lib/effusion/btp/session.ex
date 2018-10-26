@@ -164,8 +164,6 @@ defmodule Effusion.BTP.Session do
         s.tracker_id
       )
 
-    Process.send_after(self(), :interval_expired, res.interval * 1_000)
-
     peers =
       res.peers
       |> Enum.map(fn p ->
@@ -180,9 +178,11 @@ defmodule Effusion.BTP.Session do
         s.tracker_id
       end
 
-    s
+    s = s
     |> Map.put(:peers, MapSet.new(peers))
     |> Map.put(:tracker_id, tracker_id)
+
+    {s, res}
   end
 
   @doc """
@@ -192,9 +192,9 @@ defmodule Effusion.BTP.Session do
   making connections.
   """
   def start(session, thp_client) do
-    session
-    |> announce(thp_client, :started)
-    |> connect_to_all()
+    {session, response} = announce(session, thp_client, :started)
+    session = connect_to_all(session)
+    {session, response}
   end
 
   @doc """
