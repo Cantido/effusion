@@ -13,7 +13,7 @@ defmodule Effusion.BTP.Session do
   when to write pieces to disk, etc.
   """
 
-  @local_peer_id "Effusion Experiment!"
+  @local_peer_id Application.get_env(:effusion, :peer_id)
 
   @block_size Application.get_env(:effusion, :block_size)
 
