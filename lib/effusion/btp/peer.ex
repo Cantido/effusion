@@ -79,11 +79,11 @@ defmodule Effusion.BTP.Peer do
     end
   end
 
-  def inc_fail_count(peer) do
+  def inc_fail_count(peer) when is_map(peer) do
     Map.update(peer, :failcount, 0, &(&1+1))
   end
 
-  def dec_fail_count(peer) do
+  def dec_fail_count(peer) when is_map(peer) do
     Map.update(peer, :failcount, 0, &(&1-1))
   end
 
@@ -93,7 +93,7 @@ defmodule Effusion.BTP.Peer do
   """
   def recv(peer, message)
 
-  def recv(p, {:bitfield, b}) do
+  def recv(p, {:bitfield, b}) when is_map(peer) do
     p =
       p
       |> Map.put(:has, IntSet.new(b))
@@ -103,21 +103,21 @@ defmodule Effusion.BTP.Peer do
     {p, [:interested, :unchoke]}
   end
 
-  def recv(p, :unchoke) do
+  def recv(p, :unchoke) when is_map(peer) do
     {
       Map.put(p, :peer_choking, false),
       []
     }
   end
 
-  def recv(p, {:have, i}) do
+  def recv(p, {:have, i}) when is_map(peer) do
     {
       Map.update!(p, :has, &IntSet.put(&1, i)),
       []
     }
   end
 
-  def recv(p, _) do
+  def recv(p, _) when is_map(peer) do
     {p, []}
   end
 end

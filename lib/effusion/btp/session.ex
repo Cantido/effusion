@@ -335,7 +335,7 @@ defmodule Effusion.BTP.Session do
     |> Enum.reduce(s, fn {_addr, p}, session -> connect_to_peer(session, p) end)
   end
 
-  defp connect_to_peer(s, peer) do
+  defp connect_to_peer(s, peer) when is_map(peer) do
     {:ok, _} = Effusion.PWP.Connection.connect(peer)
     s
   end
