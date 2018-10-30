@@ -35,6 +35,7 @@ defmodule Effusion.BTP.Peer do
       info_hash: info_hash,
       session: session,
       handshaken: false,
+      failcount: 0,
       peer_choking: true,
       peer_interested: false,
       am_choking: true,
@@ -47,7 +48,7 @@ defmodule Effusion.BTP.Peer do
   Set the 20-byte peer ID value that identifies the remote peer.
   """
   def set_remote_peer_id(p = %{peer_id: peer_id}, remote_peer_id)
-      when is_peer_id(remote_peer_id) and peer_id != remote_peer_id do
+      when (is_peer_id(remote_peer_id) or remote_peer_id == nil) and peer_id != remote_peer_id do
     Map.put(p, :remote_peer_id, remote_peer_id)
   end
 
@@ -76,6 +77,14 @@ defmodule Effusion.BTP.Peer do
       true ->
         {:ok, %{p | handshaken: true, remote_peer_id: remote_peer_id}}
     end
+  end
+
+  def inc_fail_count(peer) do
+    Map.update(peer, :failcount, 0, &(&1+1))
+  end
+
+  def dec_fail_count(peer) do
+    Map.update(peer, :failcount, 0, &(&1-1))
   end
 
   @doc """

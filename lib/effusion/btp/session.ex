@@ -2,7 +2,6 @@ defmodule Effusion.BTP.Session do
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
-  alias Effusion.PWP.Connection
   import Effusion.BTP.Peer
   require Logger
 
@@ -147,8 +146,8 @@ defmodule Effusion.BTP.Session do
   Announce an event to this download's tracker,
   using the given Tracker HTTP Protocol (THP) client.
   """
-  def announce(s, client, event \\ :interval) do
-    {local_host, local_port} = s.local_address
+  def announce(%{} = s, client, event \\ :interval) do
+    {local_host, local_port} = Map.get(s, :local_address)
 
     {:ok, res} =
       client.announce(
@@ -164,12 +163,19 @@ defmodule Effusion.BTP.Session do
         s.tracker_id
       )
 
-    peers =
+
+    known_ids = Enum.map(s.peers, &(&1.remote_peer_id)) |> MapSet.new()
+    known_addrs = Enum.map(s.peers, &(&1.address)) |> MapSet.new()
+
+    new_peers =
       res.peers
       |> Enum.map(fn p ->
         Peer.new({p.ip, p.port}, s.peer_id, s.meta.info_hash, self())
-        |> Peer.set_remote_peer_id(p.peer_id)
+        |> Peer.set_remote_peer_id(Map.get(p, :peer_id, nil))
       end)
+      |> Enum.reject(&Enum.member?(known_ids, &1.remote_peer_id))
+      |> Enum.reject(&Enum.member?(known_addrs, &1.address))
+      |> MapSet.new()
 
     tracker_id =
       if Map.get(res, :tracker_id, "") != "" do
@@ -178,8 +184,21 @@ defmodule Effusion.BTP.Session do
         s.tracker_id
       end
 
+    announced_addrs = res.peers
+    |> Enum.map(&({&1.ip, &1.port}))
+    |> MapSet.new()
+
+    all_peers = MapSet.union(new_peers, MapSet.new(s.peers))
+    |> Enum.map(fn p ->
+      if Enum.member?(announced_addrs, p.address) do
+        Peer.dec_fail_count(p)
+      else
+        p
+      end
+    end)
+
     s = s
-    |> Map.put(:peers, MapSet.new(peers))
+    |> Map.put(:peers, all_peers)
     |> Map.put(:tracker_id, tracker_id)
 
     {s, res}

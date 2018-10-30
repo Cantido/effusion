@@ -230,4 +230,77 @@ defmodule Effusion.BTP.SessionTest do
 
     assert peer.remote_peer_id == "remote peer id~~~~~~"
   end
+
+
+  test "does not save the same peer ID twice", %{destfile: file} do
+    stub_tracker = fn _, _, _, _, _, _, _, _, _, _ ->
+      {
+        :ok,
+        %{
+          interval: 9_000,
+          peers: [
+            %{ip: {127, 0, 0, 1}, port: 8001, peer_id: "remote peer id~~~~~~"}
+          ]
+        }
+      }
+    end
+
+    Effusion.THP.Mock
+    |> stub(:announce, stub_tracker)
+
+    {session, _res} =
+      Session.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
+      |> Session.announce(Effusion.THP.Mock, :started)
+    {session, _res} = Session.announce(session, Effusion.THP.Mock)
+
+    assert Enum.count(session.peers) == 1
+  end
+
+  test "compact peer response", %{destfile: file} do
+    stub_tracker = fn _, _, _, _, _, _, _, _, _, _ ->
+      {
+        :ok,
+        %{
+          interval: 9_000,
+          peers: [
+            %{ip: {127, 0, 0, 1}, port: 8001}
+          ]
+        }
+      }
+    end
+
+    Effusion.THP.Mock
+    |> stub(:announce, stub_tracker)
+
+    {session, _res} =
+      Session.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
+      |> Session.announce(Effusion.THP.Mock, :started)
+    {session, _res} = Session.announce(session, Effusion.THP.Mock)
+
+    assert Enum.count(session.peers) == 1
+  end
+
+  test "rejects the same ip", %{destfile: file} do
+    stub_tracker = fn _, _, _, _, _, _, _, _, _, _ ->
+      {
+        :ok,
+        %{
+          interval: 9_000,
+          peers: [
+            %{ip: {127, 0, 0, 1}, port: 8001}
+          ]
+        }
+      }
+    end
+
+    Effusion.THP.Mock
+    |> stub(:announce, stub_tracker)
+
+    {session, _res} =
+      Session.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
+      |> Session.announce(Effusion.THP.Mock, :started)
+    {session, _res} = Session.announce(session, Effusion.THP.Mock)
+
+    assert Enum.count(session.peers) == 1
+  end
 end
