@@ -57,6 +57,13 @@ defmodule Effusion.BTP.SessionServer do
     )
   end
 
+  def connected(info_hash, peer_id, address) do
+    GenServer.cast(
+      {:via, Registry, {SessionRegistry, info_hash}},
+      {:connected, peer_id, address}
+    )
+  end
+
   ## Callbacks
 
   def init([meta, local_peer, file]) do
@@ -90,6 +97,10 @@ defmodule Effusion.BTP.SessionServer do
   def handle_call(:await, from, state) do
     state = Session.add_listener(state, from)
     {:noreply, state}
+  end
+
+  def handle_cast({:connected, peer_id, address}, state) do
+    {:noreply, Session.handle_connect(state, peer_id, address)}
   end
 
   def handle_cast({:unregister_connection, peer_id, address}, state) do

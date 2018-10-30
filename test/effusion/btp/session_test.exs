@@ -34,8 +34,10 @@ defmodule Effusion.BTP.SessionTest do
   end
 
   def new(destfile) do
+    peer = peer()
     Session.new(@torrent, {{192, 168, 1, 1}, 8080}, destfile)
-    |> Session.add_connected_peer(peer())
+    |> Map.update(:peers, Map.new(), &Map.put(&1, peer.address, peer))
+    |> Map.update(:peer_addresses, Map.new(), &Map.put(&1, "Fake Peer Id ~~~~~~~", {{192, 168, 1, 2}, 8000}))
   end
 
   def stub_tracker(_, _, _, _, _, _, _, _, _, _) do
@@ -53,7 +55,7 @@ defmodule Effusion.BTP.SessionTest do
       {"Fake Peer Id ~~~~~~~", :unchoke}
     ]
 
-    peer = Map.get(session.connected_peers, peer.remote_peer_id)
+    peer = Map.get(session.peers, peer.address)
 
     assert peer.am_interested
     refute peer.am_choking
@@ -183,7 +185,7 @@ defmodule Effusion.BTP.SessionTest do
 
     info_hash = @torrent.info_hash
 
-    piece_sender_id = "123456789012345678~1"
+    piece_sender_id = "Fake Peer Id ~~~~~~~"
     piece_requestee_id = "123456789012345678~2"
     bystander_id = "123456789012345678~3"
 
@@ -226,7 +228,7 @@ defmodule Effusion.BTP.SessionTest do
       Session.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
       |> Session.announce(Effusion.THP.Mock, :started)
 
-    [peer] = Enum.take(session.peers, 1)
+    peer = Map.get(session.peers, {{127, 0, 0, 1}, 8001})
 
     assert peer.remote_peer_id == "remote peer id~~~~~~"
   end

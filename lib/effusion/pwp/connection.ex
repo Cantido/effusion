@@ -82,6 +82,7 @@ defmodule Effusion.PWP.Connection do
       {:ok, socket, peer} ->
         _ = Logger.debug("Successfully connected to #{ntoa(peer.address)}")
         {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, peer.remote_peer_id)
+        :ok = SessionServer.connected(peer.info_hash, peer.remote_peer_id, peer.address)
         :ok = :inet.setopts(socket, active: :once)
         {:noreply, {socket, peer.info_hash, peer.remote_peer_id, peer.address}}
 
@@ -131,6 +132,10 @@ defmodule Effusion.PWP.Connection do
   def terminate(_, {socket, info_hash, peer_id, address}) do
     Socket.close(socket)
     SessionServer.unregister_connection(info_hash, peer_id, address)
+    :ok
+  end
+
+  def terminate(_, _peer) do
     :ok
   end
 end

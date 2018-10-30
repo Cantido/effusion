@@ -82,6 +82,8 @@ defmodule Effusion.BTP.SessionServerTest do
 
     ih = TestHelper.tiny_meta().info_hash
 
+    SessionServer.connected(ih, "peer id ~~~~~~~~~~~~", {"host", 8000})
+
     SessionServer.handle_message(
       ih,
       "peer id ~~~~~~~~~~~~",

@@ -27,7 +27,8 @@ defmodule Effusion.BTP.Session do
       meta: meta,
       torrent: Torrent.new(meta.info_hash),
       local_address: local_address,
-      peers: MapSet.new(),
+      peers: Map.new(),
+      peer_addresses: Map.new(),
       connected_peers: Map.new(),
       closed_connections: MapSet.new(),
       peer_id: @local_peer_id,
@@ -123,7 +124,8 @@ defmodule Effusion.BTP.Session do
     next_block =
       Effusion.BTP.PieceSelection.next_block(
         s.torrent,
-        Map.values(s.connected_peers),
+        Map.values(s.peers),
+        # actual_connected_peers,
         @block_size
       )
 
@@ -163,9 +165,8 @@ defmodule Effusion.BTP.Session do
         s.tracker_id
       )
 
-
-    known_ids = Enum.map(s.peers, &(&1.remote_peer_id)) |> MapSet.new()
-    known_addrs = Enum.map(s.peers, &(&1.address)) |> MapSet.new()
+    known_addrs = Map.keys(s.peers)
+    {known_ids, _} = Map.split(s.peer_addresses, known_addrs)
 
     new_peers =
       res.peers
@@ -175,7 +176,23 @@ defmodule Effusion.BTP.Session do
       end)
       |> Enum.reject(&Enum.member?(known_ids, &1.remote_peer_id))
       |> Enum.reject(&Enum.member?(known_addrs, &1.address))
-      |> MapSet.new()
+      |> Map.new(&({&1.address, &1}))
+
+    announced_addrs = res.peers
+    |> Enum.map(&({&1.ip, &1.port}))
+    |> MapSet.new()
+
+    all_peers = Map.merge(new_peers, s.peers)
+    {dec_failcount, keep_failcount} = Map.split(all_peers, announced_addrs)
+
+    all_updated_peers = dec_failcount
+    |> Enum.map(fn {addr, p} -> {addr, Peer.dec_fail_count(p)} end)
+    |> Map.new()
+    |> Map.merge(keep_failcount)
+
+    peer_addresses = all_updated_peers
+    |> Enum.reject(fn {_addr, p} -> p.remote_peer_id == nil end)
+    |> Map.new(fn {addr, p} -> {p.remote_peer_id, addr} end)
 
     tracker_id =
       if Map.get(res, :tracker_id, "") != "" do
@@ -184,21 +201,10 @@ defmodule Effusion.BTP.Session do
         s.tracker_id
       end
 
-    announced_addrs = res.peers
-    |> Enum.map(&({&1.ip, &1.port}))
-    |> MapSet.new()
-
-    all_peers = MapSet.union(new_peers, MapSet.new(s.peers))
-    |> Enum.map(fn p ->
-      if Enum.member?(announced_addrs, p.address) do
-        Peer.dec_fail_count(p)
-      else
-        p
-      end
-    end)
 
     s = s
-    |> Map.put(:peers, all_peers)
+    |> Map.put(:peers, all_updated_peers)
+    |> Map.put(:peer_addresses, peer_addresses)
     |> Map.put(:tracker_id, tracker_id)
 
     {s, res}
@@ -268,20 +274,23 @@ defmodule Effusion.BTP.Session do
 
   defp session_handle_message(s, _remote_peer_id, _msg), do: {s, []}
 
-  defp delegate_message(s = %{peer_id: peer_id}, remote_peer_id, msg)
-       when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-    peer = get_connected_peer(s, remote_peer_id)
+  defp delegate_message(s, remote_peer_id, msg)
+       when is_peer_id(remote_peer_id) do
+
+    # select peer
+    {:ok, peer} = get_connected_peer(s, remote_peer_id)
+
     {peer, responses} = Peer.recv(peer, msg)
 
-    session = add_connected_peer(s, peer)
+    session = Map.update(s, :peers, Map.new(), &Map.put(&1, peer.address, peer))
     {session, Enum.map(responses, fn r -> {remote_peer_id, r} end)}
   end
 
-  defp get_connected_peer(s = %{peer_id: peer_id}, remote_peer_id)
-       when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-    s
-    |> Map.get(:connected_peers, Map.new())
-    |> Map.get(remote_peer_id, default_peer(s, remote_peer_id))
+  defp get_connected_peer(s, remote_peer_id)
+       when is_peer_id(remote_peer_id) do
+
+    {:ok, address} = Map.fetch(s.peer_addresses, remote_peer_id)
+    Map.fetch(s.peers, address)
   end
 
   defp peer(s, peer_id, peer_address)
@@ -290,37 +299,12 @@ defmodule Effusion.BTP.Session do
     |> Map.put(:remote_peer_id, peer_id)
   end
 
-  defp default_peer(%{peer_id: peer_id, meta: %{info_hash: info_hash}}, remote_peer_id)
-       when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-    Peer.new({nil, nil}, peer_id, info_hash, self())
-    |> Peer.set_remote_peer_id(remote_peer_id)
-  end
-
-  @doc """
-  Add a peer to this session's list of connected peers.
-
-  This does not mean the session will connect to the peer,
-  it is pretty much only used for testing.
-  """
-  def add_connected_peer(s = %{peer_id: peer_id}, peer = %{remote_peer_id: remote_peer_id})
-      when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-    Map.update!(s, :connected_peers, &Map.put(&1, remote_peer_id, peer))
-  end
-
-  @doc """
-  Remove a peer to this session's list of connected peers.
-
-  This does not mean the session will connect to the peer,
-  it is pretty much only used for testing.
-  """
-  def remove_connected_peer(s, peer_id)
+  def handle_connect(s, peer_id, address)
       when is_peer_id(peer_id) do
-    Map.update!(s, :connected_peers, &Map.delete(&1, peer_id))
-  end
-
-  defp add_closed_connection(s, peer_id, address)
-       when is_peer_id(peer_id) do
-    Map.update!(s, :closed_connections, &MapSet.put(&1, peer(s, peer_id, address)))
+    _ = Logger.debug("Handling connection success to #{inspect(address)}")
+    s
+    |> Map.update(:peers, Map.new(), &Map.put(&1, address, peer(s, peer_id, address)))
+    |> Map.update(:peer_addresses, Map.new(), &Map.put(&1, peer_id, address))
   end
 
   @doc """
@@ -329,8 +313,7 @@ defmodule Effusion.BTP.Session do
   def handle_disconnect(s, peer_id, address)
       when is_peer_id(peer_id) do
     s
-    |> remove_connected_peer(peer_id)
-    |> add_closed_connection(peer_id, address)
+    |> Map.update(:peers, Map.new(), &Map.delete(&1, address))
     |> increment_connections()
   end
 
@@ -338,7 +321,7 @@ defmodule Effusion.BTP.Session do
     selected = Effusion.BTP.PeerSelection.select_peer(
       s.peer_id,
       s.peers,
-      s.closed_connections
+      []
     )
 
     case selected do
@@ -349,7 +332,7 @@ defmodule Effusion.BTP.Session do
 
   defp connect_to_all(s) do
     s.peers
-    |> Enum.reduce(s, fn p, session -> connect_to_peer(session, p) end)
+    |> Enum.reduce(s, fn {_addr, p}, session -> connect_to_peer(session, p) end)
   end
 
   defp connect_to_peer(s, peer) do
