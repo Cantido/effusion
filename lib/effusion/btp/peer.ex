@@ -93,7 +93,7 @@ defmodule Effusion.BTP.Peer do
   """
   def recv(peer, message)
 
-  def recv(p, {:bitfield, b}) when is_map(peer) do
+  def recv(p, {:bitfield, b}) when is_map(p) do
     p =
       p
       |> Map.put(:has, IntSet.new(b))
@@ -103,21 +103,21 @@ defmodule Effusion.BTP.Peer do
     {p, [:interested, :unchoke]}
   end
 
-  def recv(p, :unchoke) when is_map(peer) do
+  def recv(p, :unchoke) when is_map(p) do
     {
       Map.put(p, :peer_choking, false),
       []
     }
   end
 
-  def recv(p, {:have, i}) when is_map(peer) do
+  def recv(p, {:have, i}) when is_map(p) do
     {
       Map.update!(p, :has, &IntSet.put(&1, i)),
       []
     }
   end
 
-  def recv(p, _) when is_map(peer) do
+  def recv(p, _) when is_map(p) do
     {p, []}
   end
 end
