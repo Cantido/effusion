@@ -84,7 +84,7 @@ defmodule Effusion.BTP.Session do
   end
 
   def mark_piece_written(s, i) do
-    Map.update!(s, :torrent, &Torrent.mark_piece_written(&1, i))
+    Map.update(s, :torrent, Torrent.new(s.meta.info_hash), &Torrent.mark_piece_written(&1, i))
   end
 
   defp cancel_block_requests(s, block, from) do
@@ -106,7 +106,7 @@ defmodule Effusion.BTP.Session do
   Add a process that should be notified when this download completes or crashes.
   """
   def add_listener(s, from) do
-    Map.update!(s, :listeners, &MapSet.put(&1, from))
+    Map.update(s, :listeners, MapSet.new(), &MapSet.put(&1, from))
   end
 
   @doc """
@@ -139,7 +139,7 @@ defmodule Effusion.BTP.Session do
     case next_block do
       nil -> {nil, s}
       _ ->
-        s1 = Map.update!(s, :requested_pieces, &MapSet.put(&1, next_block))
+        s1 = Map.update(s, :requested_pieces, MapSet.new(), &MapSet.put(&1, next_block))
         {next_block, s1}
     end
   end
