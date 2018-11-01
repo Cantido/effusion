@@ -64,6 +64,17 @@ defmodule Effusion.BTP.SessionServer do
     )
   end
 
+  defp handle_internal_message(message, state) do
+    case message do
+      {:btp_connect, peer} ->
+        Effusion.PWP.Connection.connect(peer)
+      {remote_peer_id, outgoing_msg} ->
+        Connection.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
+      {:btp_send, remote_peer_id, outgoing_msg} ->
+        Connection.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
+    end
+  end
+
   ## Callbacks
 
   def init([meta, local_peer, file]) do
@@ -82,9 +93,7 @@ defmodule Effusion.BTP.SessionServer do
       {state, messages} ->
         _ = Logger.debug("replying: #{inspect(messages)}")
 
-        Enum.each(messages, fn {remote_peer_id, outgoing_msg} ->
-          Connection.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
-        end)
+        Enum.each(messages, &handle_internal_message(&1, state))
 
         if Session.done?(state) do
           {:stop, :normal, :ok, state}
@@ -104,13 +113,19 @@ defmodule Effusion.BTP.SessionServer do
   end
 
   def handle_cast({:unregister_connection, peer_id, address}, state) do
-    {:noreply, Session.handle_disconnect(state, peer_id, address)}
+    {session, messages} = Session.handle_disconnect(state, peer_id, address)
+
+    Enum.each(messages, &handle_internal_message(&1, state))
+
+    {:noreply, session}
   end
 
   def handle_info(:timeout, state) do
-    {session, announce_response} = Session.start(state, @thp_client)
+    {session, announce_response, messages} = Session.start(state, @thp_client)
 
     Process.send_after(self(), :interval_expired, announce_response.interval * 1_000)
+
+    Enum.each(messages, &handle_internal_message(&1, state))
 
     {:noreply, session}
   end

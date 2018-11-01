@@ -51,8 +51,8 @@ defmodule Effusion.BTP.SessionTest do
     {session, msgs} = Session.handle_message(session, peer.remote_peer_id, {:bitfield, <<0>>})
 
     assert msgs == [
-      {"Fake Peer Id ~~~~~~~", :interested},
-      {"Fake Peer Id ~~~~~~~", :unchoke}
+      {:btp_send, "Fake Peer Id ~~~~~~~", :interested},
+      {:btp_send, "Fake Peer Id ~~~~~~~", :unchoke}
     ]
 
     peer = Map.get(session.peers, peer.address)
@@ -205,7 +205,7 @@ defmodule Effusion.BTP.SessionTest do
     |> Map.put(:requested_pieces, requested_pieces)
     |> Session.handle_message(piece_sender_id, {:piece, block_data})
 
-    assert messages == [{piece_requestee_id, {:cancel, block_id}}]
+    assert messages == [{:btp_send, piece_requestee_id, {:cancel, block_id}}]
   end
 
   test "saves peers that result from announce", %{destfile: file} do

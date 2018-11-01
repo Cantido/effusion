@@ -89,9 +89,10 @@ defmodule Effusion.BTP.Session do
       |> Map.get(:requested_pieces, MapSet.new())
       |> Map.get(block_id, MapSet.new())
       |> Enum.filter(&(&1 != from))
-      |> Enum.map(&({&1, {:cancel, block_id}}))
+      |> Enum.map(&({:btp_send, &1, {:cancel, block_id}}))
 
-    Map.update(s, :requested_pieces, Map.new(), &Map.delete(&1, block_id))
+    s = Map.update(s, :requested_pieces, Map.new(), &Map.delete(&1, block_id))
+
     {s, messages}
   end
 
@@ -139,7 +140,7 @@ defmodule Effusion.BTP.Session do
 
   defp next_request_msg(session) do
     case next_request(session) do
-      {{peer_id, %{index: i, offset: o, size: sz}}, session} -> {session, [{peer_id, {:request, i, o, sz}}]}
+      {{peer_id, %{index: i, offset: o, size: sz}}, session} -> {session, [{:btp_send, peer_id, {:request, i, o, sz}}]}
       {nil, session} -> {session, []}
     end
   end
@@ -218,8 +219,8 @@ defmodule Effusion.BTP.Session do
   """
   def start(session, thp_client) do
     {session, response} = announce(session, thp_client, :started)
-    session = connect_to_all(session)
-    {session, response}
+    messages = Enum.map(session.peers, fn {_addr, p} -> {:btp_connect, p} end)
+    {session, response, messages}
   end
 
   @doc """
@@ -283,7 +284,7 @@ defmodule Effusion.BTP.Session do
     {peer, responses} = Peer.recv(peer, msg)
 
     session = Map.update(s, :peers, Map.new(), &Map.put(&1, peer.address, peer))
-    {session, Enum.map(responses, fn r -> {remote_peer_id, r} end)}
+    {session, Enum.map(responses, fn r -> {:btp_send, remote_peer_id, r} end)}
   end
 
   defp get_connected_peer(s, remote_peer_id)
@@ -325,18 +326,8 @@ defmodule Effusion.BTP.Session do
     )
 
     case selected do
-      nil -> s
-      peer -> connect_to_peer(s, peer)
+      nil -> {s, []}
+      peer -> {s, [{:btp_connect, peer}]}
     end
-  end
-
-  defp connect_to_all(s) do
-    s.peers
-    |> Enum.reduce(s, fn {_addr, p}, session -> connect_to_peer(session, p) end)
-  end
-
-  defp connect_to_peer(s, peer) when is_map(peer) do
-    {:ok, _} = Effusion.PWP.Connection.connect(peer)
-    s
   end
 end
