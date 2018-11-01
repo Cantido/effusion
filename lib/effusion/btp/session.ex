@@ -156,7 +156,7 @@ defmodule Effusion.BTP.Session do
   using the given Tracker HTTP Protocol (THP) client.
   """
   def announce(%{} = s, client, event \\ :interval) do
-    {local_host, local_port} = Map.get(s, :local_address)
+    {local_host, local_port} = Map.fetch!(s, :local_address)
 
     {:ok, res} =
       client.announce(
