@@ -64,14 +64,20 @@ defmodule Effusion.BTP.SessionServer do
     )
   end
 
-  defp handle_internal_message(message, state) do
+  defp handle_internal_message(message, state) when is_map(state) and is_tuple(message) do
     case message do
       {:btp_connect, peer} ->
         Effusion.PWP.Connection.connect(peer)
+        state
       {remote_peer_id, outgoing_msg} ->
         Connection.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
+        state
       {:btp_send, remote_peer_id, outgoing_msg} ->
         Connection.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
+        state
+      {:write_piece, info, destdir, block} ->
+        Effusion.IO.write_piece(info, destdir, block)
+        Session.mark_piece_written(state, block.index)
     end
   end
 
@@ -93,7 +99,7 @@ defmodule Effusion.BTP.SessionServer do
       {state, messages} ->
         _ = Logger.debug("replying: #{inspect(messages)}")
 
-        Enum.each(messages, &handle_internal_message(&1, state))
+        state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
 
         if Session.done?(state) do
           {:stop, :normal, :ok, state}

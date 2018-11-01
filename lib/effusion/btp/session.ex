@@ -73,12 +73,18 @@ defmodule Effusion.BTP.Session do
     have_messages = verified
     |> Enum.map(&({:broadcast, {:have, &1.index}}))
 
-    {:ok, torrent} = Effusion.IO.write_to(torrent, s.file)
+    write_messages = torrent
+    |> Torrent.verified()
+    |> Enum.map(fn p -> {:write_piece, torrent.info, s.file, p} end)
 
     {
       %{s | torrent: torrent},
-      have_messages ++ cancel_messages
+      write_messages ++ have_messages ++ cancel_messages
     }
+  end
+
+  def mark_piece_written(s, i) do
+    Map.update!(s, :torrent, &Torrent.mark_piece_written(&1, i))
   end
 
   defp cancel_block_requests(s, block, from) do
