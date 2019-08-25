@@ -15,7 +15,7 @@ defmodule Effusion.BTP.PieceSelection do
     if Torrent.all_present?(torrent) do
       nil
     else
-      poss = possible_requests(torrent, peers, block_size)
+      poss = blocks_available(torrent, peers, block_size)
 
       if Enum.any?(poss) do
         Enum.random(poss)
@@ -25,8 +25,10 @@ defmodule Effusion.BTP.PieceSelection do
     end
   end
 
-  # Returns a set of ID-block pairs, of all blocks that can be requested, and from what peers
-  def possible_requests(torrent, peers, block_size) do
+  @doc """
+  Returns a set of ID-block pairs, of all blocks that can be requested, and from what peers
+  """
+  def blocks_available(torrent, peers, block_size) do
     we_have = Torrent.bitfield(torrent)
     info = torrent.info
     peers

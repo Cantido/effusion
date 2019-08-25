@@ -18,7 +18,7 @@ defmodule Effusion.BTP.PieceSelectionTest do
     peers = []
     block_size = 1
 
-    possible = PieceSelection.possible_requests(torrent, peers, block_size)
+    possible = PieceSelection.blocks_available(torrent, peers, block_size)
 
     assert Enum.empty?(possible)
   end
@@ -35,7 +35,7 @@ defmodule Effusion.BTP.PieceSelectionTest do
     peers = [peer]
     block_size = 1
 
-    possible = PieceSelection.possible_requests(torrent, peers, block_size)
+    possible = PieceSelection.blocks_available(torrent, peers, block_size)
 
     # assert possible == []
 
@@ -63,7 +63,7 @@ defmodule Effusion.BTP.PieceSelectionTest do
     peers = [peer]
     block_size = 16_384
 
-    possible = PieceSelection.possible_requests(torrent, peers, block_size)
+    possible = PieceSelection.blocks_available(torrent, peers, block_size)
 
     # assert possible == []
 
