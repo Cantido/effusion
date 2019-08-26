@@ -32,33 +32,49 @@ defmodule Effusion.BTP.PieceSelection do
     we_have = Torrent.bitfield(torrent)
     info = torrent.info
     peers
-    |> select_peers_with_required_pieces(we_have)
+    |> available_pieces_by_peer()
+    |> select_required_pieces(we_have)
     |> expand_piece_sets()
     |> pieces_to_blocks(info, block_size)
-    |> reject_blocks_present_in_torrent()
+    |> reject_blocks_present_in_torrent(torrent)
   end
 
-  # select peers that have pieces we need
-  defp select_peers_with_required_pieces(peers, we_have) do
+  @doc """
+  """
+  defp available_pieces_by_peer(peers) do
     peers
     |> Enum.map(fn p -> {p.remote_peer_id, p.has} end)
+  end
+
+  @doc """
+  Selects peers that have pieces in the we_have set
+  """
+  defp select_required_pieces(pieces, we_have) do
+    pieces
     |> Enum.map(fn {id, has} -> {id, IntSet.difference(has, we_have)} end)
     |> Enum.reject(fn {_id, has} -> Enum.empty?(has) end)
   end
 
-  # expand {peer_id, pieces} into many {peer_id, piece} enums
+  @doc """
+  Expands `{peer_id, pieces}` into many `{peer_id, piece}` enums
+  """
   defp expand_piece_sets(peers) do
     peers
     |> Enum.flat_map(fn {id, has} -> for p <- has, do: {id, p} end)
   end
 
-  # split {peer_id, piece} into many {peer_id, block} enums
+  @doc """
+  Splits `{peer_id, piece}` into many `{peer_id, block}` enums
+  """
   defp pieces_to_blocks(pieces, info, block_size) do
     pieces
     |> Enum.map(fn {id, p} -> {id, Block.id(p, 0, piece_size(p, info))} end)
     |> Enum.flat_map(fn {id, p} -> for b <- Block.split(p, block_size), do: {id, b} end)
   end
 
+  @doc """
+  Filters out blocks that already exist in `torrent`
+  """
   defp reject_blocks_present_in_torrent(blocks, torrent) do
     blocks
     |> Enum.reject(fn {_id, b} -> Torrent.has_block?(torrent, b) end)
