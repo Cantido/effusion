@@ -187,7 +187,8 @@ defmodule Effusion.BTP.Download do
 
     announced_addrs = res.peers
     |> Enum.map(&({&1.ip, &1.port}))
-    |> MapSet.new()
+    |> Enum.uniq()
+    |> Enum.into([])
 
     all_peers = Map.merge(new_peers, d.peers)
     {dec_failcount, keep_failcount} = Map.split(all_peers, announced_addrs)
