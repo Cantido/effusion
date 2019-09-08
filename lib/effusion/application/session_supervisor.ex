@@ -10,6 +10,6 @@ defmodule Effusion.Application.SessionServerSupervisor do
   end
 
   def start_child(args) do
-    DynamicSupervisor.start_child(__MODULE__, {Effusion.BTP.SessionServer, args})
+    DynamicSupervisor.start_child(__MODULE__, {Effusion.BTP.DownloadServer, args})
   end
 end

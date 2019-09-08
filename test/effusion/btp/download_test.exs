@@ -1,10 +1,10 @@
-defmodule Effusion.BTP.SessionTest do
+defmodule Effusion.BTP.DownloadTest do
   use ExUnit.Case, async: true
-  alias Effusion.BTP.Session
+  alias Effusion.BTP.Download
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
   alias Effusion.BTP.Torrent
-  doctest Effusion.BTP.Session
+  doctest Effusion.BTP.Download
   import Mox
 
   setup :verify_on_exit!
@@ -35,7 +35,7 @@ defmodule Effusion.BTP.SessionTest do
 
   def new(destfile) do
     peer = peer()
-    Session.new(@torrent, {{192, 168, 1, 1}, 8080}, destfile)
+    Download.new(@torrent, {{192, 168, 1, 1}, 8080}, destfile)
     |> Map.update(:peers, Map.new(), &Map.put(&1, peer.address, peer))
     |> Map.update(:peer_addresses, Map.new(), &Map.put(&1, "Fake Peer Id ~~~~~~~", {{192, 168, 1, 2}, 8000}))
   end
@@ -48,7 +48,7 @@ defmodule Effusion.BTP.SessionTest do
     peer = peer()
     session = new(file)
 
-    {session, msgs} = Session.handle_message(session, peer.remote_peer_id, {:bitfield, <<0>>})
+    {session, msgs} = Download.handle_message(session, peer.remote_peer_id, {:bitfield, <<0>>})
 
     assert msgs == [
       {:btp_send, "Fake Peer Id ~~~~~~~", :interested},
@@ -66,9 +66,9 @@ defmodule Effusion.BTP.SessionTest do
     session = new(file)
 
     {session, _msgs} =
-      Session.handle_message(session, peer.remote_peer_id, {:piece, Block.new(0, 0, "tin")})
+      Download.handle_message(session, peer.remote_peer_id, {:piece, Block.new(0, 0, "tin")})
 
-    refute Session.done?(session)
+    refute Download.done?(session)
   end
 
   test "returns an error when we get a :have message for a piece outside the torrent's bounds", %{
@@ -78,7 +78,7 @@ defmodule Effusion.BTP.SessionTest do
     session = new(file)
 
     assert {:error, :index_out_of_bounds} ==
-             Session.handle_message(session, peer.remote_peer_id, {:have, 3})
+             Download.handle_message(session, peer.remote_peer_id, {:have, 3})
   end
 
   test "returns an error when we get a :bitfield message for a piece outside the torrent's bounds",
@@ -87,7 +87,7 @@ defmodule Effusion.BTP.SessionTest do
     session = new(file)
 
     assert {:error, :index_out_of_bounds} ==
-             Session.handle_message(session, peer.remote_peer_id, {:bitfield, <<0b001>>})
+             Download.handle_message(session, peer.remote_peer_id, {:bitfield, <<0b001>>})
   end
 
   test "is done when we have all the pieces", %{destfile: file} do
@@ -95,12 +95,12 @@ defmodule Effusion.BTP.SessionTest do
     session = new(file)
 
     {session, _msgs} =
-      Session.handle_message(session, peer.remote_peer_id, {:piece, Block.new(0, 0, "tin")})
+      Download.handle_message(session, peer.remote_peer_id, {:piece, Block.new(0, 0, "tin")})
 
     {session, _msgs} =
-      Session.handle_message(session, peer.remote_peer_id, {:piece, Block.new(1, 0, "y\n")})
+      Download.handle_message(session, peer.remote_peer_id, {:piece, Block.new(1, 0, "y\n")})
 
-    assert Session.done?(session)
+    assert Download.done?(session)
   end
 
   test "sends torrent's download progress in announce", %{destfile: file} do
@@ -117,14 +117,14 @@ defmodule Effusion.BTP.SessionTest do
 
     {session, _msg} =
       new(file)
-      |> Session.handle_message(
+      |> Download.handle_message(
         peer.remote_peer_id,
         {:piece, %{index: 0, offset: 0, data: "tin"}}
       )
 
     assert Torrent.bytes_completed(session.torrent) == 3
 
-    Session.announce(session, Effusion.THP.Mock)
+    Download.announce(session, Effusion.THP.Mock)
   end
 
   test "includes peer_id in successive announcements", %{destfile: file} do
@@ -142,9 +142,9 @@ defmodule Effusion.BTP.SessionTest do
     |> expect(:announce, 2, stub_tracker_2)
 
     session = new(file)
-    {session, _res} = Session.announce(session, Effusion.THP.Mock, :started)
-    {session, _res} = Session.announce(session, Effusion.THP.Mock, :interval)
-    {_session, _res} = Session.announce(session, Effusion.THP.Mock, :completed)
+    {session, _res} = Download.announce(session, Effusion.THP.Mock, :started)
+    {session, _res} = Download.announce(session, Effusion.THP.Mock, :interval)
+    {_session, _res} = Download.announce(session, Effusion.THP.Mock, :completed)
   end
 
   test "sends HAVE messages once it finishes a piece", %{destfile: file} do
@@ -159,7 +159,7 @@ defmodule Effusion.BTP.SessionTest do
 
     {_session, msgs} =
       new(file)
-      |> Session.handle_message(
+      |> Download.handle_message(
         peer.remote_peer_id,
         {:piece, %{index: 0, offset: 0, data: "tin"}}
       )
@@ -176,7 +176,7 @@ defmodule Effusion.BTP.SessionTest do
     Effusion.THP.Mock
     |> expect(:announce, stub_tracker)
 
-    Session.start(new(file), Effusion.THP.Mock)
+    Download.start(new(file), Effusion.THP.Mock)
   end
 
   test "sends CANCEL messages to peers it sent requests to", %{destfile: file} do
@@ -203,7 +203,7 @@ defmodule Effusion.BTP.SessionTest do
 
     {_s, messages} = new(file)
     |> Map.put(:requested_pieces, requested_pieces)
-    |> Session.handle_message(piece_sender_id, {:piece, block_data})
+    |> Download.handle_message(piece_sender_id, {:piece, block_data})
 
     assert messages == [{:btp_send, piece_requestee_id, {:cancel, block_id}}]
   end
@@ -225,8 +225,8 @@ defmodule Effusion.BTP.SessionTest do
     |> expect(:announce, stub_tracker)
 
     {session, _res} =
-      Session.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
-      |> Session.announce(Effusion.THP.Mock, :started)
+      Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
+      |> Download.announce(Effusion.THP.Mock, :started)
 
     peer = Map.get(session.peers, {{127, 0, 0, 1}, 8001})
 
@@ -251,9 +251,9 @@ defmodule Effusion.BTP.SessionTest do
     |> stub(:announce, stub_tracker)
 
     {session, _res} =
-      Session.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
-      |> Session.announce(Effusion.THP.Mock, :started)
-    {session, _res} = Session.announce(session, Effusion.THP.Mock)
+      Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
+      |> Download.announce(Effusion.THP.Mock, :started)
+    {session, _res} = Download.announce(session, Effusion.THP.Mock)
 
     assert Enum.count(session.peers) == 1
   end
@@ -275,9 +275,9 @@ defmodule Effusion.BTP.SessionTest do
     |> stub(:announce, stub_tracker)
 
     {session, _res} =
-      Session.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
-      |> Session.announce(Effusion.THP.Mock, :started)
-    {session, _res} = Session.announce(session, Effusion.THP.Mock)
+      Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
+      |> Download.announce(Effusion.THP.Mock, :started)
+    {session, _res} = Download.announce(session, Effusion.THP.Mock)
 
     assert Enum.count(session.peers) == 1
   end
@@ -299,9 +299,9 @@ defmodule Effusion.BTP.SessionTest do
     |> stub(:announce, stub_tracker)
 
     {session, _res} =
-      Session.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
-      |> Session.announce(Effusion.THP.Mock, :started)
-    {session, _res} = Session.announce(session, Effusion.THP.Mock)
+      Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
+      |> Download.announce(Effusion.THP.Mock, :started)
+    {session, _res} = Download.announce(session, Effusion.THP.Mock)
 
     assert Enum.count(session.peers) == 1
   end

@@ -1,6 +1,6 @@
 defmodule Effusion.PWP.Connection do
   use GenServer, restart: :temporary
-  alias Effusion.BTP.SessionServer
+  alias Effusion.BTP.DownloadServer
   alias Effusion.PWP.Socket
   require Logger
 
@@ -82,7 +82,7 @@ defmodule Effusion.PWP.Connection do
       {:ok, socket, peer} ->
         _ = Logger.debug("Successfully connected to #{ntoa(peer.address)}")
         {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, peer.remote_peer_id)
-        :ok = SessionServer.connected(peer.info_hash, peer.remote_peer_id, peer.address)
+        :ok = DownloadServer.connected(peer.info_hash, peer.remote_peer_id, peer.address)
         :ok = :inet.setopts(socket, active: :once)
         {:noreply, {socket, peer.info_hash, peer.remote_peer_id, peer.address}}
 
@@ -95,7 +95,7 @@ defmodule Effusion.PWP.Connection do
   def handle_packet(socket, data, {_socket, info_hash, peer_id, address}) do
     case Socket.decode(data) do
       {:ok, msg} ->
-        :ok = SessionServer.handle_message(info_hash, peer_id, msg)
+        :ok = DownloadServer.handle_message(info_hash, peer_id, msg)
         :ok = :inet.setopts(socket, active: :once)
         {:noreply, {socket, info_hash, peer_id, address}}
 
@@ -126,12 +126,12 @@ defmodule Effusion.PWP.Connection do
   def handle_info(_, state), do: {:noreply, state}
 
   def terminate(_, {nil, info_hash, peer_id, address}) do
-    SessionServer.unregister_connection(info_hash, peer_id, address)
+    DownloadServer.unregister_connection(info_hash, peer_id, address)
   end
 
   def terminate(_, {socket, info_hash, peer_id, address}) do
     Socket.close(socket)
-    SessionServer.unregister_connection(info_hash, peer_id, address)
+    DownloadServer.unregister_connection(info_hash, peer_id, address)
     :ok
   end
 

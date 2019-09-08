@@ -1,8 +1,8 @@
-defmodule Effusion.BTP.SessionServerTest do
+defmodule Effusion.BTP.DownloadServerTest do
   use ExUnit.Case
-  alias Effusion.BTP.SessionServer
+  alias Effusion.BTP.DownloadServer
   import Mox
-  doctest Effusion.BTP.SessionServer
+  doctest Effusion.BTP.DownloadServer
 
   setup :verify_on_exit!
   setup :set_mox_global
@@ -46,7 +46,7 @@ defmodule Effusion.BTP.SessionServerTest do
 
     {:ok, _} =
       start_supervised({
-        SessionServer,
+        DownloadServer,
         [TestHelper.tiny_meta(), {nil, nil}, file]
       })
 
@@ -60,7 +60,7 @@ defmodule Effusion.BTP.SessionServerTest do
 
     {:ok, spid} =
       start_supervised({
-        SessionServer,
+        DownloadServer,
         [TestHelper.tiny_meta(), {nil, nil}, file]
       })
 
@@ -76,21 +76,21 @@ defmodule Effusion.BTP.SessionServerTest do
 
     {:ok, spid} =
       start_supervised({
-        SessionServer,
+        DownloadServer,
         [TestHelper.tiny_meta(), {nil, nil}, file]
       })
 
     ih = TestHelper.tiny_meta().info_hash
 
-    SessionServer.connected(ih, "peer id ~~~~~~~~~~~~", {"host", 8000})
+    DownloadServer.connected(ih, "peer id ~~~~~~~~~~~~", {"host", 8000})
 
-    SessionServer.handle_message(
+    DownloadServer.handle_message(
       ih,
       "peer id ~~~~~~~~~~~~",
       {:piece, %{index: 0, offset: 0, data: "tin"}}
     )
 
-    SessionServer.handle_message(
+    DownloadServer.handle_message(
       ih,
       "peer id ~~~~~~~~~~~~",
       {:piece, %{index: 1, offset: 0, data: "y\n"}}

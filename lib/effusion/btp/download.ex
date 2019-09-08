@@ -1,4 +1,4 @@
-defmodule Effusion.BTP.Session do
+defmodule Effusion.BTP.Download do
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
@@ -41,22 +41,22 @@ defmodule Effusion.BTP.Session do
   @doc """
   Get the blocks that have not been assembled into pieces and verified.
   """
-  def blocks(s) do
-    Torrent.unfinished(s.torrent)
+  def blocks(d) do
+    Torrent.unfinished(d.torrent)
   end
 
   @doc """
   Get the set of listeners waiting for this torrent to finish.
   """
-  def listeners(s) do
-    s.listeners
+  def listeners(d) do
+    d.listeners
   end
 
   @doc """
   Get the torrent that this download is downloading.
   """
-  def torrent(s) do
-    s.torrent
+  def torrent(d) do
+    d.torrent
   end
 
   @doc """
@@ -64,10 +64,10 @@ defmodule Effusion.BTP.Session do
 
   This may trigger messages to be sent to any connections associated with this download's torrent.
   """
-  def add_block(s, block, from) when is_peer_id(from) do
-    {s, cancel_messages} = cancel_block_requests(s, block, from)
+  def add_block(d, block, from) when is_peer_id(from) do
+    {d, cancel_messages} = cancel_block_requests(d, block, from)
 
-    torrent = Torrent.add_block(s.torrent, block)
+    torrent = Torrent.add_block(d.torrent, block)
     verified = Torrent.verified(torrent)
 
     have_messages = verified
@@ -75,38 +75,38 @@ defmodule Effusion.BTP.Session do
 
     write_messages = torrent
     |> Torrent.verified()
-    |> Enum.map(fn p -> {:write_piece, torrent.info, s.file, p} end)
+    |> Enum.map(fn p -> {:write_piece, torrent.info, d.file, p} end)
 
     {
-      %{s | torrent: torrent},
+      %{d | torrent: torrent},
       write_messages ++ have_messages ++ cancel_messages
     }
   end
 
-  def mark_piece_written(s, i) do
-    Map.update(s, :torrent, Torrent.new(s.meta.info_hash), &Torrent.mark_piece_written(&1, i))
+  def mark_piece_written(d, i) do
+    Map.update(d, :torrent, Torrent.new(d.meta.info_hash), &Torrent.mark_piece_written(&1, i))
   end
 
-  defp cancel_block_requests(s, block, from) do
+  defp cancel_block_requests(d, block, from) do
     block_id = Block.id(block)
 
     messages =
-      s
+      d
       |> Map.get(:requested_pieces, MapSet.new())
       |> Map.get(block_id, MapSet.new())
       |> Enum.filter(&(&1 != from))
       |> Enum.map(&({:btp_send, &1, {:cancel, block_id}}))
 
-    s = Map.update(s, :requested_pieces, Map.new(), &Map.delete(&1, block_id))
+    d = Map.update(d, :requested_pieces, Map.new(), &Map.delete(&1, block_id))
 
-    {s, messages}
+    {d, messages}
   end
 
   @doc """
   Add a process that should be notified when this download completes or crashes.
   """
-  def add_listener(s, from) do
-    Map.update(s, :listeners, MapSet.new(), &MapSet.put(&1, from))
+  def add_listener(d, from) do
+    Map.update(d, :listeners, MapSet.new(), &MapSet.put(&1, from))
   end
 
   @doc """
@@ -120,26 +120,26 @@ defmodule Effusion.BTP.Session do
   @doc """
   Check if this download has received all necessary bytes.
   """
-  def done?(s) do
-    Torrent.all_present?(s.torrent)
+  def done?(d) do
+    Torrent.all_present?(d.torrent)
   end
 
   @doc """
   Get the next piece that this download should ask for.
   """
-  def next_request(s) do
+  def next_request(d) do
     next_block =
       Effusion.BTP.PieceSelection.next_block(
-        s.torrent,
-        Map.values(s.peers),
+        d.torrent,
+        Map.values(d.peers),
         # actual_connected_peers,
         @block_size
       )
 
     case next_block do
-      nil -> {nil, s}
+      nil -> {nil, d}
       _ ->
-        s1 = Map.update(s, :requested_pieces, MapSet.new(), &MapSet.put(&1, next_block))
+        s1 = Map.update(d, :requested_pieces, MapSet.new(), &MapSet.put(&1, next_block))
         {next_block, s1}
     end
   end
@@ -155,30 +155,30 @@ defmodule Effusion.BTP.Session do
   Announce an event to this download's tracker,
   using the given Tracker HTTP Protocol (THP) client.
   """
-  def announce(%{} = s, client, event \\ :interval) do
-    {local_host, local_port} = Map.fetch!(s, :local_address)
+  def announce(%{} = d, client, event \\ :interval) do
+    {local_host, local_port} = Map.fetch!(d, :local_address)
 
     {:ok, res} =
       client.announce(
-        s.meta.announce,
+        d.meta.announce,
         local_host,
         local_port,
-        s.peer_id,
-        s.meta.info_hash,
+        d.peer_id,
+        d.meta.info_hash,
         0,
-        Torrent.bytes_completed(s.torrent),
-        Torrent.bytes_left(s.torrent),
+        Torrent.bytes_completed(d.torrent),
+        Torrent.bytes_left(d.torrent),
         event,
-        s.tracker_id
+        d.tracker_id
       )
 
-    known_addrs = Map.keys(s.peers)
-    {known_ids, _} = Map.split(s.peer_addresses, known_addrs)
+    known_addrs = Map.keys(d.peers)
+    {known_ids, _} = Map.split(d.peer_addresses, known_addrs)
 
     new_peers =
       res.peers
       |> Enum.map(fn p ->
-        Peer.new({p.ip, p.port}, s.peer_id, s.meta.info_hash, self())
+        Peer.new({p.ip, p.port}, d.peer_id, d.meta.info_hash, self())
         |> Peer.set_remote_peer_id(Map.get(p, :peer_id, nil))
       end)
       |> Enum.reject(&Enum.member?(known_ids, &1.remote_peer_id))
@@ -189,7 +189,7 @@ defmodule Effusion.BTP.Session do
     |> Enum.map(&({&1.ip, &1.port}))
     |> MapSet.new()
 
-    all_peers = Map.merge(new_peers, s.peers)
+    all_peers = Map.merge(new_peers, d.peers)
     {dec_failcount, keep_failcount} = Map.split(all_peers, announced_addrs)
 
     all_updated_peers = dec_failcount
@@ -205,16 +205,16 @@ defmodule Effusion.BTP.Session do
       if Map.get(res, :tracker_id, "") != "" do
         res.tracker_id
       else
-        s.tracker_id
+        d.tracker_id
       end
 
 
-    s = s
+    d = d
     |> Map.put(:peers, all_updated_peers)
     |> Map.put(:peer_addresses, peer_addresses)
     |> Map.put(:tracker_id, tracker_id)
 
-    {s, res}
+    {d, res}
   end
 
   @doc """
@@ -236,104 +236,104 @@ defmodule Effusion.BTP.Session do
   """
   def handle_message(session, peer_id, message)
 
-  def handle_message(s = %{peer_id: peer_id}, remote_peer_id, msg)
+  def handle_message(d = %{peer_id: peer_id}, remote_peer_id, msg)
       when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-    case session_handle_message(s, remote_peer_id, msg) do
+    case session_handle_message(d, remote_peer_id, msg) do
       {:error, reason} ->
         {:error, reason}
 
-      {s, session_messages} ->
-        {s, peer_messages} = delegate_message(s, remote_peer_id, msg)
-        {s, session_messages ++ peer_messages}
+      {d, session_messages} ->
+        {d, peer_messages} = delegate_message(d, remote_peer_id, msg)
+        {d, session_messages ++ peer_messages}
     end
   end
 
-  defp session_handle_message(s, _remote_peer_id, {:bitfield, b}) do
-    pieces_count = Enum.count(s.meta.info.pieces)
+  defp session_handle_message(d, _remote_peer_id, {:bitfield, b}) do
+    pieces_count = Enum.count(d.meta.info.pieces)
     max_i = Enum.max(IntSet.new(b), fn -> 0 end)
 
     if max_i in 0..(pieces_count - 1) do
-      {s, []}
+      {d, []}
     else
       {:error, :index_out_of_bounds}
     end
   end
 
-  defp session_handle_message(s, _remote_peer_id, {:have, i}) do
-    pieces_count = Enum.count(s.meta.info.pieces)
+  defp session_handle_message(d, _remote_peer_id, {:have, i}) do
+    pieces_count = Enum.count(d.meta.info.pieces)
 
     if i in 0..(pieces_count - 1) do
-      {s, []}
+      {d, []}
     else
       {:error, :index_out_of_bounds}
     end
   end
 
-  defp session_handle_message(s, remote_peer_id, {:piece, b}) do
-    {s, block_messages} = add_block(s, b, remote_peer_id)
-    {s, request_messages} = next_request_msg(s)
-    {s, block_messages ++ request_messages}
+  defp session_handle_message(d, remote_peer_id, {:piece, b}) do
+    {d, block_messages} = add_block(d, b, remote_peer_id)
+    {d, request_messages} = next_request_msg(d)
+    {d, block_messages ++ request_messages}
   end
 
-  defp session_handle_message(s, _remote_peer_id, :unchoke) do
-    next_request_msg(s)
+  defp session_handle_message(d, _remote_peer_id, :unchoke) do
+    next_request_msg(d)
   end
 
-  defp session_handle_message(s, _remote_peer_id, _msg), do: {s, []}
+  defp session_handle_message(d, _remote_peer_id, _msg), do: {d, []}
 
-  defp delegate_message(s, remote_peer_id, msg)
+  defp delegate_message(d, remote_peer_id, msg)
        when is_peer_id(remote_peer_id) do
 
     # select peer
-    {:ok, peer} = get_connected_peer(s, remote_peer_id)
+    {:ok, peer} = get_connected_peer(d, remote_peer_id)
 
     {peer, responses} = Peer.recv(peer, msg)
 
-    session = Map.update(s, :peers, Map.new(), &Map.put(&1, peer.address, peer))
+    session = Map.update(d, :peers, Map.new(), &Map.put(&1, peer.address, peer))
     {session, Enum.map(responses, fn r -> {:btp_send, remote_peer_id, r} end)}
   end
 
-  defp get_connected_peer(s, remote_peer_id)
+  defp get_connected_peer(d, remote_peer_id)
        when is_peer_id(remote_peer_id) do
 
-    {:ok, address} = Map.fetch(s.peer_addresses, remote_peer_id)
-    Map.fetch(s.peers, address)
+    {:ok, address} = Map.fetch(d.peer_addresses, remote_peer_id)
+    Map.fetch(d.peers, address)
   end
 
-  defp peer(s, peer_id, peer_address)
+  defp peer(d, peer_id, peer_address)
        when is_peer_id(peer_id) do
-    Peer.new(peer_address, s.peer_id, s.meta.info_hash, self())
+    Peer.new(peer_address, d.peer_id, d.meta.info_hash, self())
     |> Map.put(:remote_peer_id, peer_id)
   end
 
-  def handle_connect(s, peer_id, address)
+  def handle_connect(d, peer_id, address)
       when is_peer_id(peer_id) do
     _ = Logger.debug("Handling connection success to #{inspect(address)}")
-    s
-    |> Map.update(:peers, Map.new(), &Map.put(&1, address, peer(s, peer_id, address)))
+    d
+    |> Map.update(:peers, Map.new(), &Map.put(&1, address, peer(d, peer_id, address)))
     |> Map.update(:peer_addresses, Map.new(), &Map.put(&1, peer_id, address))
   end
 
   @doc """
   Perform actions necessary when a peer at a given address disconnects.
   """
-  def handle_disconnect(s, peer_id, address)
+  def handle_disconnect(d, peer_id, address)
       when is_peer_id(peer_id) do
-    s
+    d
     |> Map.update(:peers, Map.new(), &Map.delete(&1, address))
     |> increment_connections()
   end
 
-  defp increment_connections(s) do
+  defp increment_connections(d) do
     selected = Effusion.BTP.PeerSelection.select_peer(
-      s.peer_id,
-      s.peers,
+      d.peer_id,
+      d.peers,
       []
     )
 
     case selected do
-      nil -> {s, []}
-      peer -> {s, [{:btp_connect, peer}]}
+      nil -> {d, []}
+      peer -> {d, [{:btp_connect, peer}]}
     end
   end
 end

@@ -1,11 +1,11 @@
-defmodule Effusion.BTP.SessionServer do
+defmodule Effusion.BTP.DownloadServer do
   use GenServer, restart: :transient
   require Logger
-  alias Effusion.BTP.Session
+  alias Effusion.BTP.Download
   alias Effusion.PWP.Connection
 
   @moduledoc """
-  An API to manage a `Effusion.BTP.Session` object as it is connected to many peers simultaneously.
+  An API to manage a `Effusion.BTP.Download` object as it is connected to many peers simultaneously.
   """
 
   @thp_client Application.get_env(:effusion, :thp_client)
@@ -13,7 +13,7 @@ defmodule Effusion.BTP.SessionServer do
   ## API
 
   @doc """
-  Start the Session Server in its own supervision tree.
+  Start the Download Server in its own supervision tree.
   """
   def start(meta, {_host, _port} = local_server, file) when is_map(meta) do
     Effusion.Application.SessionServerSupervisor.start_child([meta, local_server, file])
@@ -77,14 +77,14 @@ defmodule Effusion.BTP.SessionServer do
         state
       {:write_piece, info, destdir, block} ->
         Effusion.IO.write_piece(info, destdir, block)
-        Session.mark_piece_written(state, block.index)
+        Download.mark_piece_written(state, block.index)
     end
   end
 
   ## Callbacks
 
   def init([meta, local_peer, file]) do
-    state = Session.new(meta, local_peer, file)
+    state = Download.new(meta, local_peer, file)
 
     {:ok, state, 0}
   end
@@ -92,7 +92,7 @@ defmodule Effusion.BTP.SessionServer do
   def handle_call({:handle_msg, peer_id, msg}, _from, state) do
     _ = Logger.debug("Got a message!!! #{inspect(msg)}")
 
-    case Session.handle_message(state, peer_id, msg) do
+    case Download.handle_message(state, peer_id, msg) do
       {:error, reason} ->
         {:stop, reason, {:error, reason}, state}
 
@@ -101,7 +101,7 @@ defmodule Effusion.BTP.SessionServer do
 
         state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
 
-        if Session.done?(state) do
+        if Download.done?(state) do
           {:stop, :normal, :ok, state}
         else
           {:reply, :ok, state}
@@ -110,16 +110,16 @@ defmodule Effusion.BTP.SessionServer do
   end
 
   def handle_call(:await, from, state) do
-    state = Session.add_listener(state, from)
+    state = Download.add_listener(state, from)
     {:noreply, state}
   end
 
   def handle_cast({:connected, peer_id, address}, state) do
-    {:noreply, Session.handle_connect(state, peer_id, address)}
+    {:noreply, Download.handle_connect(state, peer_id, address)}
   end
 
   def handle_cast({:unregister_connection, peer_id, address}, state) do
-    {session, messages} = Session.handle_disconnect(state, peer_id, address)
+    {session, messages} = Download.handle_disconnect(state, peer_id, address)
 
     Enum.each(messages, &handle_internal_message(&1, state))
 
@@ -127,7 +127,7 @@ defmodule Effusion.BTP.SessionServer do
   end
 
   def handle_info(:timeout, state) do
-    {session, announce_response, messages} = Session.start(state, @thp_client)
+    {session, announce_response, messages} = Download.start(state, @thp_client)
 
     Process.send_after(self(), :interval_expired, announce_response.interval * 1_000)
 
@@ -137,7 +137,7 @@ defmodule Effusion.BTP.SessionServer do
   end
 
   def handle_info(:interval_expired, state) do
-    {session, res} = Session.announce(state, @thp_client)
+    {session, res} = Download.announce(state, @thp_client)
 
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
 
@@ -152,21 +152,21 @@ defmodule Effusion.BTP.SessionServer do
     Connection.disconnect_all(state.meta.info_hash)
 
     {state, _response} =
-      if Session.done?(state) do
-        Session.announce(state, @thp_client, :completed)
+      if Download.done?(state) do
+        Download.announce(state, @thp_client, :completed)
       else
-        Session.announce(state, @thp_client, :stopped)
+        Download.announce(state, @thp_client, :stopped)
       end
 
-    reply_to_listeners(state, {:ok, Session.torrent(state)})
+    reply_to_listeners(state, {:ok, Download.torrent(state)})
   end
 
   def terminate(reason, state) do
-    {state, _res} = Session.announce(state, @thp_client, :stopped)
+    {state, _res} = Download.announce(state, @thp_client, :stopped)
     reply_to_listeners(state, {:error, :torrent_crashed, [reason: reason]})
   end
 
   defp reply_to_listeners(state, msg) do
-    Session.each_listener(state, fn l -> GenServer.reply(l, msg) end)
+    Download.each_listener(state, fn l -> GenServer.reply(l, msg) end)
   end
 end
