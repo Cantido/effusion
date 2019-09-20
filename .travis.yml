@@ -1,3 +1,3 @@
 language: elixir
 elixir: '1.9'
-otp_release: '22'
+otp_release: '22.0'
