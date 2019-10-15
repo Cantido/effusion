@@ -28,7 +28,7 @@ defmodule Effusion do
   """
   def download(meta, destfile) do
     case start_download(meta, destfile) do
-      {:ok, pid} -> DownloadServer.await(pid)
+      {:ok, _pid} -> DownloadServer.await(meta.info_hash)
       err -> err
     end
   end
