@@ -1,3 +1,5 @@
-{:ok, file} = File.read "test/linuxmint-18.3-cinnamon-64bit.iso.torrent"
+{:ok, file} = File.read "test/lovecraft.torrent"
 
-Effusion.add_torrent(file, "Effusion Experiment!", {127, 0, 0, 1}, 4040)
+{:ok, meta} = Effusion.BTP.Metainfo.decode(file)
+
+Effusion.download(meta, File.cwd!)
