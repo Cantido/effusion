@@ -86,8 +86,8 @@ defmodule Effusion.PWP.Connection do
         :ok = :inet.setopts(socket, active: :once)
         {:noreply, {socket, peer.info_hash, peer.remote_peer_id, peer.address}}
 
-      {:error, reason} ->
-        {:stop, {:failed_handshake, reason},
+      {:error, _reason} ->
+        {:stop, :normal,
          {nil, peer.info_hash, peer.remote_peer_id, peer.address}}
     end
   end
@@ -99,15 +99,15 @@ defmodule Effusion.PWP.Connection do
         :ok = :inet.setopts(socket, active: :once)
         {:noreply, {socket, info_hash, peer_id, address}}
 
-      {:error, reason} ->
-        {:stop, {:bad_message, reason, data}, {socket, info_hash, peer_id, address}}
+      {:error, _reason} ->
+        {:stop, :normal, {socket, info_hash, peer_id, address}}
     end
   end
 
   def handle_info({:btp_send, msg}, state = {socket, _, _, _}) do
     case Socket.send_msg(socket, msg) do
       :ok -> {:noreply, state}
-      {:error, reason} -> {:stop, {:send_failure, reason}, state}
+      {:error, reason} -> {:stop, :normal, state}
     end
   end
 

@@ -30,7 +30,7 @@ defmodule Effusion.PWP.ConnectionTest do
     state = {nil, nil, nil, nil}
 
     actual_response = Connection.handle_packet(nil, <<"bad message!!!">>, state)
-    expected_response = {:stop, {:bad_message, :invalid, <<"bad message!!!">>}, state}
+    expected_response = {:stop, :normal, state}
 
     assert actual_response == expected_response
   end
