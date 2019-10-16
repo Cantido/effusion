@@ -9,11 +9,7 @@ defmodule Effusion.Application.SessionServerSupervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  def start_child([meta, _local_peer, _file] = args) do
-    spec = %{
-      id: meta.info_hash,
-      start: {Effusion.BTP.DownloadServer, :start_link, [args]}
-    }
-    DynamicSupervisor.start_child(__MODULE__, spec)
+  def start_child(args) do
+    DynamicSupervisor.start_child(__MODULE__, {Effusion.BTP.DownloadServer, args})
   end
 end
