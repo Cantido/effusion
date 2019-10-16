@@ -16,7 +16,7 @@ defmodule Effusion.BTP.DownloadServer do
   Start the Download Server in its own supervision tree.
   """
   def start(meta, {_host, _port} = local_server, file) when is_map(meta) do
-    Effusion.Application.SessionServerSupervisor.start_child([meta, local_server, file])
+    Effusion.Application.DownloadServerSupervisor.start_child([meta, local_server, file])
   end
 
   @doc """

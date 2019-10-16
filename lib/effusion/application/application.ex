@@ -7,7 +7,7 @@ defmodule Effusion.Application do
     :ets.new(MetadataTable, [:set, :public, :named_table, read_concurrency: true])
 
     children = [
-      Effusion.Application.SessionServerSupervisor,
+      Effusion.Application.DownloadServerSupervisor,
       Effusion.Application.ConnectionSupervisor,
       {Registry, keys: :duplicate, name: ConnectionRegistry},
       {Registry, keys: :unique, name: SessionRegistry}

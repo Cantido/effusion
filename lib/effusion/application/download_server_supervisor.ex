@@ -1,4 +1,4 @@
-defmodule Effusion.Application.SessionServerSupervisor do
+defmodule Effusion.Application.DownloadServerSupervisor do
   use DynamicSupervisor
 
   def start_link([]) do
