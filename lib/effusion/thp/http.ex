@@ -84,7 +84,24 @@ defmodule Effusion.THP.HTTP do
     end
   end
 
-  defp update_peers(peers) do
+  defp update_peers("") do
+    []
+  end
+
+  defp update_peers(peers) when is_binary(peers) do
+    peers
+    |> :binary.bin_to_list
+    |> Enum.chunk_every(6)
+    |> Enum.map(fn [ip0, ip1, ip2, ip3, p0, p1] ->
+      << port::16 >> = << p0, p1>>
+      %{
+        ip: {ip0, ip1, ip2, ip3},
+        port: port
+      }
+    end)
+  end
+
+  defp update_peers(peers) when is_map(peers) do
     Enum.map(peers, &update_peer/1)
   end
 
