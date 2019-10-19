@@ -87,7 +87,8 @@ defmodule Effusion.PWP.Connection do
         {:noreply, {socket, peer.info_hash, peer.remote_peer_id, peer.address}}
 
       {:error, reason} ->
-        {:stop, {:failed_handshake, reason},
+        Logger.debug "Handshake with #{ntoa peer.address} failed: #{inspect reason}"
+        {:stop, :normal,
          {nil, peer.info_hash, peer.remote_peer_id, peer.address}}
     end
   end

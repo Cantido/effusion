@@ -89,11 +89,12 @@ defmodule Effusion.BTP.DownloadServer do
     {:ok, state, 0}
   end
 
-  def handle_call({:handle_msg, peer_id, msg}, _from, state) do
+  def handle_call({:handle_msg, peer_id, msg}, _from, state) when is_map(state) do
     _ = Logger.debug("Got a message!!! #{inspect(msg)}")
 
     case Download.handle_message(state, peer_id, msg) do
       {:error, reason} ->
+        _ = Logger.error "Download encountered error: #{inspect reason}"
         {:stop, reason, {:error, reason}, state}
 
       {state, messages} ->
@@ -109,16 +110,16 @@ defmodule Effusion.BTP.DownloadServer do
     end
   end
 
-  def handle_call(:await, from, state) do
+  def handle_call(:await, from, state) when is_map(state) do
     state = Download.add_listener(state, from)
     {:noreply, state}
   end
 
-  def handle_cast({:connected, peer_id, address}, state) do
+  def handle_cast({:connected, peer_id, address}, state) when is_map(state) do
     {:noreply, Download.handle_connect(state, peer_id, address)}
   end
 
-  def handle_cast({:unregister_connection, peer_id, address}, state) do
+  def handle_cast({:unregister_connection, peer_id, address}, state) when is_map(state) do
     {session, messages} = Download.handle_disconnect(state, peer_id, address)
 
     Enum.each(messages, &handle_internal_message(&1, state))
@@ -126,7 +127,7 @@ defmodule Effusion.BTP.DownloadServer do
     {:noreply, session}
   end
 
-  def handle_info(:timeout, state) do
+  def handle_info(:timeout, state) when is_map(state) do
     {session, announce_response, messages} = Download.start(state, @thp_client)
 
     Process.send_after(self(), :interval_expired, announce_response.interval * 1_000)
@@ -136,7 +137,7 @@ defmodule Effusion.BTP.DownloadServer do
     {:noreply, session}
   end
 
-  def handle_info(:interval_expired, state) do
+  def handle_info(:interval_expired, state) when is_map(state) do
     {session, res} = Download.announce(state, @thp_client)
 
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
@@ -144,11 +145,11 @@ defmodule Effusion.BTP.DownloadServer do
     {:noreply, session}
   end
 
-  def handle_info(_, state) do
+  def handle_info(_, state) when is_map(state) do
     {:noreply, state}
   end
 
-  def terminate(:normal, state) do
+  def terminate(:normal, state) when is_map(state) do
     Connection.disconnect_all(state.meta.info_hash)
 
     {state, _response} =
@@ -161,12 +162,14 @@ defmodule Effusion.BTP.DownloadServer do
     reply_to_listeners(state, {:ok, Download.torrent(state)})
   end
 
-  def terminate(reason, state) do
+  def terminate(reason, state) when is_map(state) do
+    Logger.debug "download server terminating with reason: #{inspect reason}"
+
     {state, _res} = Download.announce(state, @thp_client, :stopped)
     reply_to_listeners(state, {:error, :torrent_crashed, [reason: reason]})
   end
 
-  defp reply_to_listeners(state, msg) do
+  defp reply_to_listeners(state, msg) when is_map(state) do
     Download.each_listener(state, fn l -> GenServer.reply(l, msg) end)
   end
 end
