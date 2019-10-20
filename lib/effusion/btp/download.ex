@@ -285,20 +285,22 @@ defmodule Effusion.BTP.Download do
   defp delegate_message(d, remote_peer_id, msg)
        when is_peer_id(remote_peer_id) do
 
-    # select peer
-    {:ok, peer} = get_connected_peer(d, remote_peer_id)
-
-    {peer, responses} = Peer.recv(peer, msg)
-
-    session = Map.update(d, :peers, Map.new(), &Map.put(&1, peer.address, peer))
-    {session, Enum.map(responses, fn r -> {:btp_send, remote_peer_id, r} end)}
+    with {:ok, peer} <- get_connected_peer(d, remote_peer_id),
+         {peer, responses} <- Peer.recv(peer, msg),
+         d = Map.update(d, :peers, Map.new(), &Map.put(&1, peer.address, peer)) do
+      {d, Enum.map(responses, fn r -> {:btp_send, remote_peer_id, r} end)}
+    else
+      _ -> {d, []}
+    end
   end
 
   defp get_connected_peer(d, remote_peer_id)
        when is_peer_id(remote_peer_id) do
-
-    {:ok, address} = Map.fetch(d.peer_addresses, remote_peer_id)
-    Map.fetch(d.peers, address)
+    with {:ok, address} <- Map.fetch(d.peer_addresses, remote_peer_id) do
+      Map.fetch(d.peers, address)
+    else
+      _ -> {:error, :peer_not_found}
+    end
   end
 
   defp peer(d, peer_id, peer_address)
