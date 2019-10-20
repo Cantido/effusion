@@ -159,7 +159,7 @@ defmodule Effusion.BTP.DownloadServer do
         Download.announce(state, @thp_client, :stopped)
       end
 
-    reply_to_listeners(state, {:ok, Download.torrent(state)})
+    reply_to_listeners(state, {:ok, Download.pieces(state)})
   end
 
   def terminate(reason, state) when is_map(state) do

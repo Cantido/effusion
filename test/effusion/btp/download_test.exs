@@ -122,7 +122,7 @@ defmodule Effusion.BTP.DownloadTest do
         {:piece, %{index: 0, offset: 0, data: "tin"}}
       )
 
-    assert Pieces.bytes_completed(session.torrent) == 3
+    assert Pieces.bytes_completed(session.pieces) == 3
 
     Download.announce(session, Effusion.THP.Mock)
   end
