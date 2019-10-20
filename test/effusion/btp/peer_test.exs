@@ -46,8 +46,8 @@ defmodule Effusion.BTP.PeerTest do
 
     assert Peer.handshake(new(), hs) == {
              :error,
-             :mismatched_info_hash,
-             [expected: "Fake Info Hash ~~~~~", actual: "Bad Info Hash ~~~~~~"]
+             {:mismatched_info_hash,
+              [expected: "Fake Info Hash ~~~~~", actual: "Bad Info Hash ~~~~~~"]}
            }
   end
 
@@ -70,8 +70,8 @@ defmodule Effusion.BTP.PeerTest do
 
     assert Peer.handshake(peer, hs) == {
              :error,
-             :mismatched_peer_id,
-             [expected: "Expected Remote Id~~", actual: "Bad Remote Id ~~~~~~"]
+             {:mismatched_peer_id,
+              [expected: "Expected Remote Id~~", actual: "Bad Remote Id ~~~~~~"]}
            }
   end
 
