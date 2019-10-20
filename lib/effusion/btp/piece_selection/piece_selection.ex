@@ -1,7 +1,7 @@
 defmodule Effusion.BTP.PieceSelection do
   require Logger
   alias Effusion.BTP.Block
-  alias Effusion.BTP.Torrent
+  alias Effusion.BTP.Pieces
   import Effusion.Math
 
   @moduledoc """
@@ -12,7 +12,7 @@ defmodule Effusion.BTP.PieceSelection do
   Get the next block to request, or `nil` if nothing can be requested.
   """
   def next_block(torrent, peers, block_size) do
-    if Torrent.all_present?(torrent) do
+    if Pieces.all_present?(torrent) do
       nil
     else
       poss = blocks_available(torrent, peers, block_size)
@@ -29,7 +29,7 @@ defmodule Effusion.BTP.PieceSelection do
   Returns a set of ID-block pairs, of all blocks that can be requested, and from what peers
   """
   def blocks_available(torrent, peers, block_size) do
-    we_have = Torrent.bitfield(torrent)
+    we_have = Pieces.bitfield(torrent)
     info = torrent.info
     peers
     |> available_pieces_by_peer()
@@ -77,7 +77,7 @@ defmodule Effusion.BTP.PieceSelection do
   """
   defp reject_blocks_present_in_torrent(blocks, torrent) do
     blocks
-    |> Enum.reject(fn {_id, b} -> Torrent.has_block?(torrent, b) end)
+    |> Enum.reject(fn {_id, b} -> Pieces.has_block?(torrent, b) end)
   end
 
   defp piece_size(index, info) do

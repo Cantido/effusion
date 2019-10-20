@@ -1,5 +1,5 @@
 defmodule Effusion.BTP.Download do
-  alias Effusion.BTP.Torrent
+  alias Effusion.BTP.Pieces
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
   import Effusion.BTP.Peer
@@ -25,7 +25,7 @@ defmodule Effusion.BTP.Download do
     %{
       file: file,
       meta: meta,
-      torrent: Torrent.new(meta.info_hash),
+      torrent: Pieces.new(meta.info_hash),
       local_address: local_address,
       peers: Map.new(),
       peer_addresses: Map.new(),
@@ -42,7 +42,7 @@ defmodule Effusion.BTP.Download do
   Get the blocks that have not been assembled into pieces and verified.
   """
   def blocks(d) do
-    Torrent.unfinished(d.torrent)
+    Pieces.unfinished(d.torrent)
   end
 
   @doc """
@@ -67,14 +67,14 @@ defmodule Effusion.BTP.Download do
   def add_block(d, block, from) when is_peer_id(from) do
     {d, cancel_messages} = cancel_block_requests(d, block, from)
 
-    torrent = Torrent.add_block(d.torrent, block)
-    verified = Torrent.verified(torrent)
+    torrent = Pieces.add_block(d.torrent, block)
+    verified = Pieces.verified(torrent)
 
     have_messages = verified
     |> Enum.map(&({:broadcast, {:have, &1.index}}))
 
     write_messages = torrent
-    |> Torrent.verified()
+    |> Pieces.verified()
     |> Enum.map(fn p -> {:write_piece, torrent.info, d.file, p} end)
 
     {
@@ -84,7 +84,7 @@ defmodule Effusion.BTP.Download do
   end
 
   def mark_piece_written(d, i) do
-    Map.update(d, :torrent, Torrent.new(d.meta.info_hash), &Torrent.mark_piece_written(&1, i))
+    Map.update(d, :torrent, Pieces.new(d.meta.info_hash), &Pieces.mark_piece_written(&1, i))
   end
 
   defp cancel_block_requests(d, block, from) do
@@ -121,7 +121,7 @@ defmodule Effusion.BTP.Download do
   Check if this download has received all necessary bytes.
   """
   def done?(d) do
-    Torrent.all_present?(d.torrent)
+    Pieces.all_present?(d.torrent)
   end
 
   @doc """
@@ -166,8 +166,8 @@ defmodule Effusion.BTP.Download do
         d.peer_id,
         d.meta.info_hash,
         0,
-        Torrent.bytes_completed(d.torrent),
-        Torrent.bytes_left(d.torrent),
+        Pieces.bytes_completed(d.torrent),
+        Pieces.bytes_left(d.torrent),
         event,
         d.tracker_id
       )

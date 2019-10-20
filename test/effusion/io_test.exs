@@ -1,6 +1,6 @@
 defmodule Effusion.IOTest do
   use ExUnit.Case
-  alias Effusion.BTP.Torrent
+  alias Effusion.BTP.Pieces
   alias Effusion.BTP.Block
   alias Effusion.BTP.Metainfo
   doctest Effusion.IO
@@ -15,9 +15,9 @@ defmodule Effusion.IOTest do
 
     torrent =
       TestHelper.tiny_meta().info_hash
-      |> Torrent.new()
-      |> Torrent.add_block(Block.new(0, 0, "tin"))
-      |> Torrent.add_block(Block.new(1, 0, "y\n"))
+      |> Pieces.new()
+      |> Pieces.add_block(Block.new(0, 0, "tin"))
+      |> Pieces.add_block(Block.new(1, 0, "y\n"))
 
     {:ok, tmp_path} = Temp.path()
     Effusion.IO.write_to(torrent, tmp_path)
@@ -34,8 +34,8 @@ defmodule Effusion.IOTest do
 
     torrent =
       meta.info_hash
-      |> Torrent.new()
-      |> Torrent.add_block(Block.new(0, 0, "Hello\nworld!\n"))
+      |> Pieces.new()
+      |> Pieces.add_block(Block.new(0, 0, "Hello\nworld!\n"))
 
     {:ok, tmp_path} = Temp.path()
     Effusion.IO.write_to(torrent, tmp_path)

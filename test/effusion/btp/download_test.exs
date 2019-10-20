@@ -3,7 +3,7 @@ defmodule Effusion.BTP.DownloadTest do
   alias Effusion.BTP.Download
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
-  alias Effusion.BTP.Torrent
+  alias Effusion.BTP.Pieces
   doctest Effusion.BTP.Download
   import Mox
 
@@ -122,7 +122,7 @@ defmodule Effusion.BTP.DownloadTest do
         {:piece, %{index: 0, offset: 0, data: "tin"}}
       )
 
-    assert Torrent.bytes_completed(session.torrent) == 3
+    assert Pieces.bytes_completed(session.torrent) == 3
 
     Download.announce(session, Effusion.THP.Mock)
   end
