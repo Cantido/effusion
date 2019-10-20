@@ -239,13 +239,11 @@ defmodule Effusion.BTP.Download do
 
   def handle_message(d = %{peer_id: peer_id}, remote_peer_id, msg)
       when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-    case session_handle_message(d, remote_peer_id, msg) do
-      {:error, reason} ->
-        {:error, reason}
-
-      {d, session_messages} ->
-        {d, peer_messages} = delegate_message(d, remote_peer_id, msg)
-        {d, session_messages ++ peer_messages}
+    with {:ok, d, session_messages} <- session_handle_message(d, remote_peer_id, msg) do
+      {d, peer_messages} = delegate_message(d, remote_peer_id, msg)
+      {d, session_messages ++ peer_messages}
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -254,7 +252,7 @@ defmodule Effusion.BTP.Download do
     max_i = Enum.max(IntSet.new(b), fn -> 0 end)
 
     if max_i in 0..(pieces_count - 1) do
-      {d, []}
+      {:ok, d, []}
     else
       {:error, :index_out_of_bounds}
     end
@@ -264,7 +262,7 @@ defmodule Effusion.BTP.Download do
     pieces_count = Enum.count(d.meta.info.pieces)
 
     if i in 0..(pieces_count - 1) do
-      {d, []}
+      {:ok, d, []}
     else
       {:error, :index_out_of_bounds}
     end
@@ -273,11 +271,12 @@ defmodule Effusion.BTP.Download do
   defp session_handle_message(d, remote_peer_id, {:piece, b}) do
     {d, block_messages} = add_block(d, b, remote_peer_id)
     {d, request_messages} = next_request_msg(d)
-    {d, block_messages ++ request_messages}
+    {:ok, d, block_messages ++ request_messages}
   end
 
   defp session_handle_message(d, _remote_peer_id, :unchoke) do
-    next_request_msg(d)
+    {d, req} = next_request_msg(d)
+    {:ok, d, req}
   end
 
   defp session_handle_message(d, _remote_peer_id, _msg), do: {d, []}
