@@ -1,6 +1,6 @@
 defmodule Effusion.IO do
   require Logger
-  alias Effusion.BTP.Torrent
+  alias Effusion.BTP.Pieces
 
   @moduledoc """
   Functions for reading and writing files described by torrents.
@@ -19,13 +19,13 @@ defmodule Effusion.IO do
   and will be updated to remember the pieces that were written.
   """
   def write_to(torrent, directory) do
-    write_pieces(torrent, directory, Enum.to_list(Torrent.verified(torrent)))
+    write_pieces(torrent, directory, Enum.to_list(Pieces.verified(torrent)))
   end
 
   def write_pieces(torrent = %{info: info}, destdir, pieces) do
     do_write_pieces(info, destdir, pieces)
 
-    torrent = Enum.reduce(pieces, torrent, fn p, t -> Torrent.mark_piece_written(t, p) end)
+    torrent = Enum.reduce(pieces, torrent, fn p, t -> Pieces.mark_piece_written(t, p) end)
     {:ok, torrent}
   end
 

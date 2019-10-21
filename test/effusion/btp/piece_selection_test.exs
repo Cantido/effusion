@@ -1,7 +1,7 @@
 defmodule Effusion.BTP.PieceSelectionTest do
   use ExUnit.Case, async: true
   alias Effusion.BTP.PieceSelection
-  alias Effusion.BTP.Torrent
+  alias Effusion.BTP.Pieces
   alias Effusion.BTP.Peer
   doctest Effusion.BTP.PieceSelection
 
@@ -14,7 +14,7 @@ defmodule Effusion.BTP.PieceSelectionTest do
   end
 
   test "set of possible requests is empty when we have no peers" do
-    torrent = Torrent.new(@info_hash)
+    torrent = Pieces.new(@info_hash)
     peers = []
     block_size = 1
 
@@ -24,7 +24,7 @@ defmodule Effusion.BTP.PieceSelectionTest do
   end
 
   test "set of possible requests contains all pieces a single if a single peer has them" do
-    torrent = Torrent.new(@info_hash)
+    torrent = Pieces.new(@info_hash)
 
     peer =
       Peer.new({nil, nil}, "12345678901234567890", "12345678901234567890", self())
@@ -52,7 +52,7 @@ defmodule Effusion.BTP.PieceSelectionTest do
   end
 
   test "doesn't act wierd with a huge block size" do
-    torrent = Torrent.new(@info_hash)
+    torrent = Pieces.new(@info_hash)
 
     peer =
       Peer.new({nil, nil}, "12345678901234567890", "12345678901234567890", self())

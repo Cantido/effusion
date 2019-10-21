@@ -64,21 +64,24 @@ defmodule Effusion.BTP.DownloadServer do
     )
   end
 
-  defp handle_internal_message(message, state) when is_map(state) and is_tuple(message) do
-    case message do
-      {:btp_connect, peer} ->
-        Effusion.PWP.Connection.connect(peer)
-        state
-      {remote_peer_id, outgoing_msg} ->
-        Connection.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
-        state
-      {:btp_send, remote_peer_id, outgoing_msg} ->
-        Connection.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
-        state
-      {:write_piece, info, destdir, block} ->
-        Effusion.IO.write_piece(info, destdir, block)
-        Download.mark_piece_written(state, block.index)
-    end
+  defp handle_internal_message({:btp_connect, peer}, state) when is_map(state) do
+    Effusion.PWP.Connection.connect(peer)
+    state
+  end
+
+  defp handle_internal_message({remote_peer_id, outgoing_msg}, state) when is_map(state) do
+    Connection.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
+    state
+  end
+
+  defp handle_internal_message({:btp_send, remote_peer_id, outgoing_msg}, state) when is_map(state) do
+    Connection.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
+    state
+  end
+
+  defp handle_internal_message({:write_piece, info, destdir, block}, state) when is_map(state) do
+    Effusion.IO.write_piece(info, destdir, block)
+    Download.mark_piece_written(state, block.index)
   end
 
   ## Callbacks
@@ -159,7 +162,7 @@ defmodule Effusion.BTP.DownloadServer do
         Download.announce(state, @thp_client, :stopped)
       end
 
-    reply_to_listeners(state, {:ok, Download.torrent(state)})
+    reply_to_listeners(state, {:ok, Download.pieces(state)})
   end
 
   def terminate(reason, state) when is_map(state) do

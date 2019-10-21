@@ -1,4 +1,4 @@
-defmodule Effusion.BTP.Torrent do
+defmodule Effusion.BTP.Pieces do
   require Logger
   alias Effusion.BTP.Block
   alias Effusion.BTP.Metainfo

@@ -1,5 +1,5 @@
 defmodule Effusion.BTP.Download do
-  alias Effusion.BTP.Torrent
+  alias Effusion.BTP.Pieces
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
   import Effusion.BTP.Peer
@@ -25,7 +25,7 @@ defmodule Effusion.BTP.Download do
     %{
       file: file,
       meta: meta,
-      torrent: Torrent.new(meta.info_hash),
+      pieces: Pieces.new(meta.info_hash),
       local_address: local_address,
       peers: Map.new(),
       peer_addresses: Map.new(),
@@ -42,7 +42,7 @@ defmodule Effusion.BTP.Download do
   Get the blocks that have not been assembled into pieces and verified.
   """
   def blocks(d) do
-    Torrent.unfinished(d.torrent)
+    Pieces.unfinished(d.pieces)
   end
 
   @doc """
@@ -53,10 +53,10 @@ defmodule Effusion.BTP.Download do
   end
 
   @doc """
-  Get the torrent that this download is downloading.
+  Get the pieces that this download is downloading.
   """
-  def torrent(d) do
-    d.torrent
+  def pieces(d) do
+    d.pieces
   end
 
   @doc """
@@ -67,24 +67,24 @@ defmodule Effusion.BTP.Download do
   def add_block(d, block, from) when is_peer_id(from) do
     {d, cancel_messages} = cancel_block_requests(d, block, from)
 
-    torrent = Torrent.add_block(d.torrent, block)
-    verified = Torrent.verified(torrent)
+    pieces = Pieces.add_block(d.pieces, block)
+    verified = Pieces.verified(pieces)
 
     have_messages = verified
     |> Enum.map(&({:broadcast, {:have, &1.index}}))
 
-    write_messages = torrent
-    |> Torrent.verified()
-    |> Enum.map(fn p -> {:write_piece, torrent.info, d.file, p} end)
+    write_messages = pieces
+    |> Pieces.verified()
+    |> Enum.map(fn p -> {:write_piece, pieces.info, d.file, p} end)
 
     {
-      %{d | torrent: torrent},
+      %{d | pieces: pieces},
       write_messages ++ have_messages ++ cancel_messages
     }
   end
 
   def mark_piece_written(d, i) do
-    Map.update(d, :torrent, Torrent.new(d.meta.info_hash), &Torrent.mark_piece_written(&1, i))
+    Map.update(d, :pieces, Pieces.new(d.meta.info_hash), &Pieces.mark_piece_written(&1, i))
   end
 
   defp cancel_block_requests(d, block, from) do
@@ -121,7 +121,7 @@ defmodule Effusion.BTP.Download do
   Check if this download has received all necessary bytes.
   """
   def done?(d) do
-    Torrent.all_present?(d.torrent)
+    Pieces.all_present?(d.pieces)
   end
 
   @doc """
@@ -130,7 +130,7 @@ defmodule Effusion.BTP.Download do
   def next_request(d) do
     next_block =
       Effusion.BTP.PieceSelection.next_block(
-        d.torrent,
+        d.pieces,
         Map.values(d.peers),
         # actual_connected_peers,
         @block_size
@@ -166,8 +166,8 @@ defmodule Effusion.BTP.Download do
         d.peer_id,
         d.meta.info_hash,
         0,
-        Torrent.bytes_completed(d.torrent),
-        Torrent.bytes_left(d.torrent),
+        Pieces.bytes_completed(d.pieces),
+        Pieces.bytes_left(d.pieces),
         event,
         d.tracker_id
       )
@@ -240,13 +240,11 @@ defmodule Effusion.BTP.Download do
 
   def handle_message(d = %{peer_id: peer_id}, remote_peer_id, msg)
       when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-    case session_handle_message(d, remote_peer_id, msg) do
-      {:error, reason} ->
-        {:error, reason}
-
-      {d, session_messages} ->
-        {d, peer_messages} = delegate_message(d, remote_peer_id, msg)
-        {d, session_messages ++ peer_messages}
+    with {:ok, d, session_messages} <- session_handle_message(d, remote_peer_id, msg) do
+      {d, peer_messages} = delegate_message(d, remote_peer_id, msg)
+      {d, session_messages ++ peer_messages}
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -255,7 +253,7 @@ defmodule Effusion.BTP.Download do
     max_i = Enum.max(IntSet.new(b), fn -> 0 end)
 
     if max_i in 0..(pieces_count - 1) do
-      {d, []}
+      {:ok, d, []}
     else
       {:error, :index_out_of_bounds}
     end
@@ -265,7 +263,7 @@ defmodule Effusion.BTP.Download do
     pieces_count = Enum.count(d.meta.info.pieces)
 
     if i in 0..(pieces_count - 1) do
-      {d, []}
+      {:ok, d, []}
     else
       {:error, :index_out_of_bounds}
     end
@@ -274,11 +272,12 @@ defmodule Effusion.BTP.Download do
   defp session_handle_message(d, remote_peer_id, {:piece, b}) do
     {d, block_messages} = add_block(d, b, remote_peer_id)
     {d, request_messages} = next_request_msg(d)
-    {d, block_messages ++ request_messages}
+    {:ok, d, block_messages ++ request_messages}
   end
 
   defp session_handle_message(d, _remote_peer_id, :unchoke) do
-    next_request_msg(d)
+    {d, req} = next_request_msg(d)
+    {:ok, d, req}
   end
 
   defp session_handle_message(d, _remote_peer_id, _msg), do: {d, []}
