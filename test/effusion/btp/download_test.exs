@@ -35,12 +35,9 @@ defmodule Effusion.BTP.DownloadTest do
 
   def new(destfile) do
     peer = peer()
-    swarm = %{peers: %{}, peer_addresses: %{}}
-    |> Map.update!(:peers, &Map.put(&1, peer.address, peer))
-    |> Map.update!(:peer_addresses, &Map.put(&1, "Fake Peer Id ~~~~~~~", {{192, 168, 1, 2}, 8000}))
-
     Download.new(@torrent, {{192, 168, 1, 1}, 8080}, destfile)
-    |> Map.put(:swarm, swarm)
+    |> Map.update(:peers, Map.new(), &Map.put(&1, peer.address, peer))
+    |> Map.update(:peer_addresses, Map.new(), &Map.put(&1, "Fake Peer Id ~~~~~~~", {{192, 168, 1, 2}, 8000}))
   end
 
   def stub_tracker(_, _, _, _, _, _, _, _, _, _) do
@@ -58,7 +55,7 @@ defmodule Effusion.BTP.DownloadTest do
       {:btp_send, "Fake Peer Id ~~~~~~~", :unchoke}
     ]
 
-    peer = Map.get(session.swarm.peers, peer.address)
+    peer = Map.get(session.peers, peer.address)
 
     assert peer.am_interested
     refute peer.am_choking
@@ -231,7 +228,7 @@ defmodule Effusion.BTP.DownloadTest do
       Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
       |> Download.announce(Effusion.THP.Mock, :started)
 
-    peer = Map.get(session.swarm.peers, {{127, 0, 0, 1}, 8001})
+    peer = Map.get(session.peers, {{127, 0, 0, 1}, 8001})
 
     assert peer.remote_peer_id == "remote peer id~~~~~~"
   end
@@ -258,7 +255,7 @@ defmodule Effusion.BTP.DownloadTest do
       |> Download.announce(Effusion.THP.Mock, :started)
     {session, _res} = Download.announce(session, Effusion.THP.Mock)
 
-    assert Enum.count(session.swarm.peers) == 1
+    assert Enum.count(session.peers) == 1
   end
 
   test "compact peer response", %{destfile: file} do
@@ -282,7 +279,7 @@ defmodule Effusion.BTP.DownloadTest do
       |> Download.announce(Effusion.THP.Mock, :started)
     {session, _res} = Download.announce(session, Effusion.THP.Mock)
 
-    assert Enum.count(session.swarm.peers) == 1
+    assert Enum.count(session.peers) == 1
   end
 
   test "rejects the same ip", %{destfile: file} do
@@ -306,6 +303,6 @@ defmodule Effusion.BTP.DownloadTest do
       |> Download.announce(Effusion.THP.Mock, :started)
     {session, _res} = Download.announce(session, Effusion.THP.Mock)
 
-    assert Enum.count(session.swarm.peers) == 1
+    assert Enum.count(session.peers) == 1
   end
 end

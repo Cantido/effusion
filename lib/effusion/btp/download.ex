@@ -2,7 +2,6 @@ defmodule Effusion.BTP.Download do
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
-  alias Effusion.BTP.Swarm
   import Effusion.BTP.Peer
   require Logger
 
@@ -28,7 +27,6 @@ defmodule Effusion.BTP.Download do
       meta: meta,
       pieces: Pieces.new(meta.info_hash),
       local_address: local_address,
-      swarm: Swarm.new(@local_peer_id, meta.info_hash),
       peers: Map.new(),
       peer_addresses: Map.new(),
       connected_peers: Map.new(),
@@ -133,7 +131,7 @@ defmodule Effusion.BTP.Download do
     next_block =
       Effusion.BTP.PieceSelection.next_block(
         d.pieces,
-        Map.values(d.swarm.peers),
+        Map.values(d.peers),
         # actual_connected_peers,
         @block_size
       )
@@ -174,6 +172,36 @@ defmodule Effusion.BTP.Download do
         d.tracker_id
       )
 
+    known_addrs = Map.keys(d.peers)
+    {known_ids, _} = Map.split(d.peer_addresses, known_addrs)
+
+    new_peers =
+      res.peers
+      |> Enum.map(fn p ->
+        Peer.new({p.ip, p.port}, d.peer_id, d.meta.info_hash, self())
+        |> Peer.set_remote_peer_id(Map.get(p, :peer_id, nil))
+      end)
+      |> Enum.reject(&Enum.member?(known_ids, &1.remote_peer_id))
+      |> Enum.reject(&Enum.member?(known_addrs, &1.address))
+      |> Map.new(&({&1.address, &1}))
+
+    announced_addrs = res.peers
+    |> Enum.map(&({&1.ip, &1.port}))
+    |> Enum.uniq()
+    |> Enum.into([])
+
+    all_peers = Map.merge(new_peers, d.peers)
+    {dec_failcount, keep_failcount} = Map.split(all_peers, announced_addrs)
+
+    all_updated_peers = dec_failcount
+    |> Enum.map(fn {addr, p} -> {addr, Peer.dec_fail_count(p)} end)
+    |> Map.new()
+    |> Map.merge(keep_failcount)
+
+    peer_addresses = all_updated_peers
+    |> Enum.reject(fn {_addr, p} -> p.remote_peer_id == nil end)
+    |> Map.new(fn {addr, p} -> {p.remote_peer_id, addr} end)
+
     tracker_id =
       if Map.get(res, :tracker_id, "") != "" do
         res.tracker_id
@@ -181,8 +209,10 @@ defmodule Effusion.BTP.Download do
         d.tracker_id
       end
 
+
     d = d
-    |> Map.update!(:swarm, &Swarm.add_peers(&1, res.peers))
+    |> Map.put(:peers, all_updated_peers)
+    |> Map.put(:peer_addresses, peer_addresses)
     |> Map.put(:tracker_id, tracker_id)
 
     {d, res}
@@ -211,8 +241,8 @@ defmodule Effusion.BTP.Download do
   def handle_message(d = %{peer_id: peer_id}, remote_peer_id, msg)
       when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
     with {:ok, d, session_messages} <- session_handle_message(d, remote_peer_id, msg) do
-      {swarm, peer_messages} = Swarm.delegate_message(d.swarm, remote_peer_id, msg)
-      {%{d | swarm: swarm}, session_messages ++ peer_messages}
+      {d, peer_messages} = delegate_message(d, remote_peer_id, msg)
+      {d, session_messages ++ peer_messages}
     else
       {:error, reason} -> {:error, reason}
     end
@@ -252,11 +282,39 @@ defmodule Effusion.BTP.Download do
 
   defp session_handle_message(d, _remote_peer_id, _msg), do: {d, []}
 
+  defp delegate_message(d, remote_peer_id, msg)
+       when is_peer_id(remote_peer_id) do
 
+    with {:ok, peer} <- get_connected_peer(d, remote_peer_id),
+         {peer, responses} <- Peer.recv(peer, msg),
+         d = Map.update(d, :peers, Map.new(), &Map.put(&1, peer.address, peer)) do
+      {d, Enum.map(responses, fn r -> {:btp_send, remote_peer_id, r} end)}
+    else
+      _ -> {d, []}
+    end
+  end
+
+  defp get_connected_peer(d, remote_peer_id)
+       when is_peer_id(remote_peer_id) do
+    with {:ok, address} <- Map.fetch(d.peer_addresses, remote_peer_id) do
+      Map.fetch(d.peers, address)
+    else
+      _ -> {:error, :peer_not_found}
+    end
+  end
+
+  defp peer(d, peer_id, peer_address)
+       when is_peer_id(peer_id) do
+    Peer.new(peer_address, d.peer_id, d.meta.info_hash, self())
+    |> Map.put(:remote_peer_id, peer_id)
+  end
 
   def handle_connect(d, peer_id, address)
       when is_peer_id(peer_id) do
-    Map.update!(d, :swarm, &Swarm.handle_connect(&1, peer_id, address))
+    _ = Logger.debug("Handling connection success to #{inspect(address)}")
+    d
+    |> Map.update(:peers, Map.new(), &Map.put(&1, address, peer(d, peer_id, address)))
+    |> Map.update(:peer_addresses, Map.new(), &Map.put(&1, peer_id, address))
   end
 
   @doc """
@@ -272,7 +330,7 @@ defmodule Effusion.BTP.Download do
   defp increment_connections(d) do
     selected = Effusion.BTP.PeerSelection.select_peer(
       d.peer_id,
-      d.swarm.peers,
+      d.peers,
       []
     )
 
