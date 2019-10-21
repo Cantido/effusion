@@ -101,7 +101,7 @@ defmodule Effusion.THP.HTTP do
     end)
   end
 
-  defp update_peers(peers) when is_map(peers) do
+  defp update_peers(peers) when is_list(peers) do
     Enum.map(peers, &update_peer/1)
   end
 
