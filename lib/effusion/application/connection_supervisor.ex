@@ -9,7 +9,7 @@ defmodule Effusion.Application.ConnectionSupervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  def start_child(peer) do
+  def start_child(peer) when is_map(peer) do
     spec = %{
       id: peer.peer_id,
       start: {Effusion.PWP.Connection, :start_link, [peer]},

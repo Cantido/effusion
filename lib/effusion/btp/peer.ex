@@ -69,10 +69,10 @@ defmodule Effusion.BTP.Peer do
         {:error, :local_peer_already_handshaken}
 
       p.info_hash != info_hash ->
-        {:error, :mismatched_info_hash, [expected: p.info_hash, actual: info_hash]}
+        {:error, {:mismatched_info_hash, [expected: p.info_hash, actual: info_hash]}}
 
       p.remote_peer_id != nil and p.remote_peer_id != remote_peer_id ->
-        {:error, :mismatched_peer_id, [expected: p.remote_peer_id, actual: remote_peer_id]}
+        {:error, {:mismatched_peer_id, [expected: p.remote_peer_id, actual: remote_peer_id]}}
 
       true ->
         {:ok, %{p | handshaken: true, remote_peer_id: remote_peer_id}}

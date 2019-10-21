@@ -60,7 +60,7 @@ defmodule Effusion.PWP.SocketTest do
 
       :ok = :gen_tcp.send(sock, bad_handshake)
 
-      {:error, :mismatched_info_hash, _info} = Task.await(task)
+      {:error, {:mismatched_info_hash, _info}} = Task.await(task)
     end
   end
 end

@@ -84,9 +84,8 @@ defmodule Effusion.THP.HTTP do
     end
   end
 
-  defp update_peers("") do
-    []
-  end
+  defp update_peers(""), do: []
+  defp update_peers([]), do: []
 
   defp update_peers(peers) when is_binary(peers) do
     peers
