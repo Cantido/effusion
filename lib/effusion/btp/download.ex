@@ -2,6 +2,7 @@ defmodule Effusion.BTP.Download do
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
+  alias Effusion.BTP.Swarm
   import Effusion.BTP.Peer
   require Logger
 
@@ -27,14 +28,7 @@ defmodule Effusion.BTP.Download do
       meta: meta,
       pieces: Pieces.new(meta.info_hash),
       local_address: local_address,
-      swarm: %{
-        peer_id: @local_peer_id,
-        info_hash: meta.info_hash,
-        peers: Map.new(),
-        peer_addresses: Map.new(),
-        connected_peers: Map.new(),
-        closed_connections: MapSet.new(),
-      },
+      swarm: Effusion.BTP.Swarm.new(@local_peer_id, meta.info_hash),
       peer_id: @local_peer_id,
       listeners: MapSet.new(),
       requested_pieces: MapSet.new(),
@@ -176,36 +170,6 @@ defmodule Effusion.BTP.Download do
         d.tracker_id
       )
 
-    known_addrs = Map.keys(d.swarm.peers)
-    {known_ids, _} = Map.split(d.swarm.peer_addresses, known_addrs)
-
-    new_peers =
-      res.peers
-      |> Enum.map(fn p ->
-        Peer.new({p.ip, p.port}, d.peer_id, d.meta.info_hash, self())
-        |> Peer.set_remote_peer_id(Map.get(p, :peer_id, nil))
-      end)
-      |> Enum.reject(&Enum.member?(known_ids, &1.remote_peer_id))
-      |> Enum.reject(&Enum.member?(known_addrs, &1.address))
-      |> Map.new(&({&1.address, &1}))
-
-    announced_addrs = res.peers
-    |> Enum.map(&({&1.ip, &1.port}))
-    |> Enum.uniq()
-    |> Enum.into([])
-
-    all_peers = Map.merge(new_peers, d.swarm.peers)
-    {dec_failcount, keep_failcount} = Map.split(all_peers, announced_addrs)
-
-    all_updated_peers = dec_failcount
-    |> Enum.map(fn {addr, p} -> {addr, Peer.dec_fail_count(p)} end)
-    |> Map.new()
-    |> Map.merge(keep_failcount)
-
-    peer_addresses = all_updated_peers
-    |> Enum.reject(fn {_addr, p} -> p.remote_peer_id == nil end)
-    |> Map.new(fn {addr, p} -> {p.remote_peer_id, addr} end)
-
     tracker_id =
       if Map.get(res, :tracker_id, "") != "" do
         res.tracker_id
@@ -213,10 +177,7 @@ defmodule Effusion.BTP.Download do
         d.tracker_id
       end
 
-
-    swarm = d.swarm
-    |> Map.put(:peers, all_updated_peers)
-    |> Map.put(:peer_addresses, peer_addresses)
+    swarm = Swarm.add(d.swarm, res.peers)
 
     d = d
     |> Map.put(:tracker_id, tracker_id)
@@ -292,37 +253,18 @@ defmodule Effusion.BTP.Download do
   defp delegate_message(d, remote_peer_id, msg)
        when is_peer_id(remote_peer_id) do
 
-    with {:ok, peer} <- get_connected_peer(d, remote_peer_id),
-         {peer, responses} <- Peer.recv(peer, msg),
-         swarm = Map.update(d.swarm, :peers, Map.new(), &Map.put(&1, peer.address, peer)),
-         d = Map.put(d, :swarm, swarm) do
-      {d, Enum.map(responses, fn r -> {:btp_send, remote_peer_id, r} end)}
-    else
-      _ -> {d, []}
-    end
-  end
-
-  defp get_connected_peer(d, remote_peer_id)
-       when is_peer_id(remote_peer_id) do
-    with {:ok, address} <- Map.fetch(d.swarm.peer_addresses, remote_peer_id) do
-      Map.fetch(d.swarm.peers, address)
-    else
-      _ -> {:error, :peer_not_found}
-    end
-  end
-
-  defp peer(d, peer_id, peer_address)
-       when is_peer_id(peer_id) do
-    Peer.new(peer_address, d.peer_id, d.meta.info_hash, self())
-    |> Map.put(:remote_peer_id, peer_id)
+    {swarm, messages} = Swarm.delegate_message(d.swarm, remote_peer_id, msg)
+    {
+      %{d | swarm: swarm},
+      messages
+    }
   end
 
   def handle_connect(d, peer_id, address)
       when is_peer_id(peer_id) do
     _ = Logger.debug("Handling connection success to #{inspect(address)}")
     swarm = d.swarm
-    |> Map.update(:peers, Map.new(), &Map.put(&1, address, peer(d, peer_id, address)))
-    |> Map.update(:peer_addresses, Map.new(), &Map.put(&1, peer_id, address))
+    |> Swarm.handle_connect(peer_id, address)
 
     %{d | swarm: swarm}
   end
@@ -332,23 +274,26 @@ defmodule Effusion.BTP.Download do
   """
   def handle_disconnect(d, peer_id, address)
       when is_peer_id(peer_id) do
-    swarm = d.swarm
-    |> Map.update(:peers, Map.new(), &Map.delete(&1, address))
+    {swarm, messages} = d.swarm
+    |> Swarm.handle_disconnect(address)
     |> increment_connections()
 
-    %{d | swarm: swarm}
+    {
+      %{d | swarm: swarm},
+      messages
+    }
   end
 
   defp increment_connections(d) do
     selected = Effusion.BTP.PeerSelection.select_peer(
-      d.peer_id,
+      d.swarm.peer_id,
       d.swarm.peers,
       []
     )
 
     case selected do
-      nil -> {d, []}
-      peer -> {d, [{:btp_connect, peer}]}
+      nil -> {d.swarm, []}
+      peer -> {d.swarm, [{:btp_connect, peer}]}
     end
   end
 end
