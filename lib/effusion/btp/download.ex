@@ -27,10 +27,14 @@ defmodule Effusion.BTP.Download do
       meta: meta,
       pieces: Pieces.new(meta.info_hash),
       local_address: local_address,
-      peers: Map.new(),
-      peer_addresses: Map.new(),
-      connected_peers: Map.new(),
-      closed_connections: MapSet.new(),
+      swarm: %{
+        peer_id: @local_peer_id,
+        info_hash: meta.info_hash,
+        peers: Map.new(),
+        peer_addresses: Map.new(),
+        connected_peers: Map.new(),
+        closed_connections: MapSet.new(),
+      },
       peer_id: @local_peer_id,
       listeners: MapSet.new(),
       requested_pieces: MapSet.new(),
@@ -131,7 +135,7 @@ defmodule Effusion.BTP.Download do
     next_block =
       Effusion.BTP.PieceSelection.next_block(
         d.pieces,
-        Map.values(d.peers),
+        Map.values(d.swarm.peers),
         # actual_connected_peers,
         @block_size
       )
@@ -172,8 +176,8 @@ defmodule Effusion.BTP.Download do
         d.tracker_id
       )
 
-    known_addrs = Map.keys(d.peers)
-    {known_ids, _} = Map.split(d.peer_addresses, known_addrs)
+    known_addrs = Map.keys(d.swarm.peers)
+    {known_ids, _} = Map.split(d.swarm.peer_addresses, known_addrs)
 
     new_peers =
       res.peers
@@ -190,7 +194,7 @@ defmodule Effusion.BTP.Download do
     |> Enum.uniq()
     |> Enum.into([])
 
-    all_peers = Map.merge(new_peers, d.peers)
+    all_peers = Map.merge(new_peers, d.swarm.peers)
     {dec_failcount, keep_failcount} = Map.split(all_peers, announced_addrs)
 
     all_updated_peers = dec_failcount
@@ -210,10 +214,13 @@ defmodule Effusion.BTP.Download do
       end
 
 
-    d = d
+    swarm = d.swarm
     |> Map.put(:peers, all_updated_peers)
     |> Map.put(:peer_addresses, peer_addresses)
+
+    d = d
     |> Map.put(:tracker_id, tracker_id)
+    |> Map.put(:swarm, swarm)
 
     {d, res}
   end
@@ -227,7 +234,7 @@ defmodule Effusion.BTP.Download do
   def start(session, thp_client) do
     _ = Logger.info "Starting download #{Effusion.Hash.inspect session.meta.info_hash}"
     {session, response} = announce(session, thp_client, :started)
-    messages = Enum.map(session.peers, fn {_addr, p} -> {:btp_connect, p} end)
+    messages = Enum.map(session.swarm.peers, fn {_addr, p} -> {:btp_connect, p} end)
     {session, response, messages}
   end
 
@@ -287,7 +294,8 @@ defmodule Effusion.BTP.Download do
 
     with {:ok, peer} <- get_connected_peer(d, remote_peer_id),
          {peer, responses} <- Peer.recv(peer, msg),
-         d = Map.update(d, :peers, Map.new(), &Map.put(&1, peer.address, peer)) do
+         swarm = Map.update(d.swarm, :peers, Map.new(), &Map.put(&1, peer.address, peer)),
+         d = Map.put(d, :swarm, swarm) do
       {d, Enum.map(responses, fn r -> {:btp_send, remote_peer_id, r} end)}
     else
       _ -> {d, []}
@@ -296,8 +304,8 @@ defmodule Effusion.BTP.Download do
 
   defp get_connected_peer(d, remote_peer_id)
        when is_peer_id(remote_peer_id) do
-    with {:ok, address} <- Map.fetch(d.peer_addresses, remote_peer_id) do
-      Map.fetch(d.peers, address)
+    with {:ok, address} <- Map.fetch(d.swarm.peer_addresses, remote_peer_id) do
+      Map.fetch(d.swarm.peers, address)
     else
       _ -> {:error, :peer_not_found}
     end
@@ -312,9 +320,11 @@ defmodule Effusion.BTP.Download do
   def handle_connect(d, peer_id, address)
       when is_peer_id(peer_id) do
     _ = Logger.debug("Handling connection success to #{inspect(address)}")
-    d
+    swarm = d.swarm
     |> Map.update(:peers, Map.new(), &Map.put(&1, address, peer(d, peer_id, address)))
     |> Map.update(:peer_addresses, Map.new(), &Map.put(&1, peer_id, address))
+
+    %{d | swarm: swarm}
   end
 
   @doc """
@@ -322,15 +332,17 @@ defmodule Effusion.BTP.Download do
   """
   def handle_disconnect(d, peer_id, address)
       when is_peer_id(peer_id) do
-    d
+    swarm = d.swarm
     |> Map.update(:peers, Map.new(), &Map.delete(&1, address))
     |> increment_connections()
+
+    %{d | swarm: swarm}
   end
 
   defp increment_connections(d) do
     selected = Effusion.BTP.PeerSelection.select_peer(
       d.peer_id,
-      d.peers,
+      d.swarm.peers,
       []
     )
 
