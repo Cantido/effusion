@@ -225,6 +225,7 @@ defmodule Effusion.BTP.Download do
   making connections.
   """
   def start(session, thp_client) do
+    _ = Logger.info "Starting download #{Effusion.Hash.inspect session.meta.info_hash}"
     {session, response} = announce(session, thp_client, :started)
     messages = Enum.map(session.peers, fn {_addr, p} -> {:btp_connect, p} end)
     {session, response, messages}
