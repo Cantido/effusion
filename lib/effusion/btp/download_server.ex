@@ -69,8 +69,8 @@ defmodule Effusion.BTP.DownloadServer do
     state
   end
 
-  defp handle_internal_message({remote_peer_id, outgoing_msg}, state) when is_map(state) do
-    Connection.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
+  defp handle_internal_message({:broadcast, outgoing_msg}, state) when is_map(state) do
+    Connection.btp_broadcast(state.meta.info_hash, outgoing_msg)
     state
   end
 

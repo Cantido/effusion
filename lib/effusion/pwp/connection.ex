@@ -2,6 +2,8 @@ defmodule Effusion.PWP.Connection do
   use GenServer, restart: :temporary
   alias Effusion.BTP.DownloadServer
   alias Effusion.PWP.Socket
+  import Effusion.Hash, only: [is_hash: 1]
+  import Effusion.BTP.Peer
   require Logger
 
   @moduledoc """
@@ -47,11 +49,7 @@ defmodule Effusion.PWP.Connection do
       end)
   end
 
-  def btp_send(info_hash, :broadcast, message) do
-    btp_broadcast(info_hash, message)
-  end
-
-  def btp_send(info_hash, peer_id, message) do
+  def btp_send(info_hash, peer_id, message) when is_hash(info_hash) and is_peer_id(peer_id) do
     connections = Registry.match(ConnectionRegistry, info_hash, peer_id)
 
     _ =
