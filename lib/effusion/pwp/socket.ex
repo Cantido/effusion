@@ -1,7 +1,6 @@
 defmodule Effusion.PWP.Socket do
   require Logger
   alias Effusion.PWP.Messages
-  alias Effusion.BTP.Peer
 
   @moduledoc """
   Interface to Peer Wire Protocol (PWP) sockets.
@@ -19,12 +18,8 @@ defmodule Effusion.PWP.Socket do
   """
   def connect(peer) do
     with {host, port} = peer.address,
-         {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false], 10_000),
-         :ok <- send_msg(socket, Peer.get_handshake(peer)),
-         {:ok, hs = {:handshake, _, _, _}} <- recv(socket, 68),
-         {:ok, peer} <- Peer.handshake(peer, hs),
-         :ok <- :inet.setopts(socket, packet: 4) do
-      {:ok, socket, peer}
+         {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false], 10_000) do
+      handshake(socket, peer)
     else
       err -> err
     end
@@ -35,14 +30,37 @@ defmodule Effusion.PWP.Socket do
   and performs a PWP handshake as the given `peer`.
   """
   def accept(lsock, peer) do
-    with {:ok, socket} <- :gen_tcp.accept(lsock, 1_000),
+    with {:ok, socket} <- :gen_tcp.accept(lsock, 1_000) do
+      handshake(socket, peer)
+    else
+      err -> err
+    end
+  end
+
+  defp handshake(socket, peer) do
+    with :ok <- send_msg(socket, {:handshake, peer.peer_id, peer.info_hash}),
          {:ok, hs = {:handshake, _, _, _}} <- recv(socket, 68),
-         {:ok, peer} <- Peer.handshake(peer, hs),
-         :ok <- send_msg(socket, Peer.get_handshake(peer)),
+         {:ok, peer} <- validate_handshake(peer, hs),
          :ok <- :inet.setopts(socket, packet: 4) do
       {:ok, socket, peer}
     else
       err -> err
+    end
+  end
+
+  def validate_handshake(p, {:handshake, remote_peer_id, info_hash, _reserved}) do
+    cond do
+      p.handshaken ->
+        {:error, :local_peer_already_handshaken}
+
+      p.info_hash != info_hash ->
+        {:error, {:mismatched_info_hash, [expected: p.info_hash, actual: info_hash]}}
+
+      p.remote_peer_id != nil and p.remote_peer_id != remote_peer_id ->
+        {:error, {:mismatched_peer_id, [expected: p.remote_peer_id, actual: remote_peer_id]}}
+
+      true ->
+        {:ok, %{p | handshaken: true, remote_peer_id: remote_peer_id}}
     end
   end
 

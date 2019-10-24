@@ -57,33 +57,6 @@ defmodule Effusion.BTP.Peer do
     Map.put(p, :remote_peer_id, remote_peer_id)
   end
 
-  @doc """
-  Get the handshake message that this peer would send to its remote.
-  """
-  def get_handshake(p = %__MODULE__{}) do
-    {:handshake, p.peer_id, p.info_hash}
-  end
-
-  @doc """
-  Accept a handshake message received by a remote peer, and validate it.
-  """
-  def handshake(p = %__MODULE__{}, {:handshake, remote_peer_id, info_hash, _reserved})
-      when is_peer_id(remote_peer_id) and is_hash(info_hash) do
-    cond do
-      p.handshaken ->
-        {:error, :local_peer_already_handshaken}
-
-      p.info_hash != info_hash ->
-        {:error, {:mismatched_info_hash, [expected: p.info_hash, actual: info_hash]}}
-
-      p.remote_peer_id != nil and p.remote_peer_id != remote_peer_id ->
-        {:error, {:mismatched_peer_id, [expected: p.remote_peer_id, actual: remote_peer_id]}}
-
-      true ->
-        {:ok, %{p | handshaken: true, remote_peer_id: remote_peer_id}}
-    end
-  end
-
   def inc_fail_count(peer = %__MODULE__{}) when is_map(peer) do
     Map.update(peer, :failcount, 0, &(&1+1))
   end
