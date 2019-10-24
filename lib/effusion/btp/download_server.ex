@@ -2,7 +2,7 @@ defmodule Effusion.BTP.DownloadServer do
   use GenServer, restart: :transient
   require Logger
   alias Effusion.BTP.Download
-  alias Effusion.PWP.Connection
+  alias Effusion.PWP.ConnectionRegistry
 
   @moduledoc """
   An API to manage a `Effusion.BTP.Download` object as it is connected to many peers simultaneously.
@@ -70,12 +70,12 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   defp handle_internal_message({:broadcast, outgoing_msg}, state = %Download{}) do
-    Connection.btp_broadcast(state.meta.info_hash, outgoing_msg)
+    ConnectionRegistry.btp_broadcast(state.meta.info_hash, outgoing_msg)
     state
   end
 
   defp handle_internal_message({:btp_send, remote_peer_id, outgoing_msg}, state = %Download{}) do
-    Connection.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
+    ConnectionRegistry.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
     state
   end
 
@@ -153,7 +153,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def terminate(:normal, state = %Download{}) do
-    Connection.disconnect_all(state.meta.info_hash)
+    ConnectionRegistry.disconnect_all(state.meta.info_hash)
 
     {state, _response} =
       if Download.done?(state) do
