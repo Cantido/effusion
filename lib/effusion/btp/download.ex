@@ -284,16 +284,16 @@ defmodule Effusion.BTP.Download do
     }
   end
 
-  defp increment_connections(d) do
+  defp increment_connections(swarm) do
     selected = Effusion.BTP.PeerSelection.select_peer(
-      d.swarm.peer_id,
-      d.swarm.peers,
+      swarm.peer_id,
+      swarm.peers,
       []
     )
 
     case selected do
-      nil -> {d.swarm, []}
-      peer -> {d.swarm, [{:btp_connect, peer}]}
+      nil -> {swarm, []}
+      peer -> {swarm, [{:btp_connect, peer}]}
     end
   end
 end
