@@ -64,22 +64,22 @@ defmodule Effusion.BTP.DownloadServer do
     )
   end
 
-  defp handle_internal_message({:btp_connect, peer}, state) when is_map(state) do
+  defp handle_internal_message({:btp_connect, peer}, state = %Download{}) do
     Effusion.PWP.Connection.connect(peer)
     state
   end
 
-  defp handle_internal_message({:broadcast, outgoing_msg}, state) when is_map(state) do
+  defp handle_internal_message({:broadcast, outgoing_msg}, state = %Download{}) do
     Connection.btp_broadcast(state.meta.info_hash, outgoing_msg)
     state
   end
 
-  defp handle_internal_message({:btp_send, remote_peer_id, outgoing_msg}, state) when is_map(state) do
+  defp handle_internal_message({:btp_send, remote_peer_id, outgoing_msg}, state = %Download{}) do
     Connection.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
     state
   end
 
-  defp handle_internal_message({:write_piece, info, destdir, block}, state) when is_map(state) do
+  defp handle_internal_message({:write_piece, info, destdir, block}, state = %Download{}) do
     Effusion.IO.write_piece(info, destdir, block)
     Download.mark_piece_written(state, block.index)
   end
@@ -92,7 +92,7 @@ defmodule Effusion.BTP.DownloadServer do
     {:ok, state, 0}
   end
 
-  def handle_call({:handle_msg, peer_id, msg}, _from, state) when is_map(state) do
+  def handle_call({:handle_msg, peer_id, msg}, _from, state = %Download{}) do
     _ = Logger.debug("Got a message!!! #{inspect(msg)}")
 
     case Download.handle_message(state, peer_id, msg) do
@@ -113,16 +113,16 @@ defmodule Effusion.BTP.DownloadServer do
     end
   end
 
-  def handle_call(:await, from, state) when is_map(state) do
+  def handle_call(:await, from, state = %Download{}) do
     state = Download.add_listener(state, from)
     {:noreply, state}
   end
 
-  def handle_cast({:connected, peer_id, address}, state) when is_map(state) do
+  def handle_cast({:connected, peer_id, address}, state = %Download{}) do
     {:noreply, Download.handle_connect(state, peer_id, address)}
   end
 
-  def handle_cast({:unregister_connection, peer_id, address}, state) when is_map(state) do
+  def handle_cast({:unregister_connection, peer_id, address}, state = %Download{}) do
     {session, messages} = Download.handle_disconnect(state, peer_id, address)
 
     Enum.each(messages, &handle_internal_message(&1, state))
@@ -130,7 +130,7 @@ defmodule Effusion.BTP.DownloadServer do
     {:noreply, session}
   end
 
-  def handle_info(:timeout, state) when is_map(state) do
+  def handle_info(:timeout, state = %Download{}) do
     {session, announce_response, messages} = Download.start(state, @thp_client)
 
     Process.send_after(self(), :interval_expired, announce_response.interval * 1_000)
@@ -140,7 +140,7 @@ defmodule Effusion.BTP.DownloadServer do
     {:noreply, session}
   end
 
-  def handle_info(:interval_expired, state) when is_map(state) do
+  def handle_info(:interval_expired, state = %Download{}) do
     {session, res} = Download.announce(state, @thp_client)
 
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
@@ -148,11 +148,11 @@ defmodule Effusion.BTP.DownloadServer do
     {:noreply, session}
   end
 
-  def handle_info(_, state) when is_map(state) do
+  def handle_info(_, state = %Download{}) do
     {:noreply, state}
   end
 
-  def terminate(:normal, state) when is_map(state) do
+  def terminate(:normal, state = %Download{}) do
     Connection.disconnect_all(state.meta.info_hash)
 
     {state, _response} =
@@ -165,14 +165,14 @@ defmodule Effusion.BTP.DownloadServer do
     reply_to_listeners(state, {:ok, Download.pieces(state)})
   end
 
-  def terminate(reason, state) when is_map(state) do
+  def terminate(reason, state = %Download{}) do
     Logger.debug "download server terminating with reason: #{inspect reason}"
 
     {state, _res} = Download.announce(state, @thp_client, :stopped)
     reply_to_listeners(state, {:error, :torrent_crashed, [reason: reason]})
   end
 
-  defp reply_to_listeners(state, msg) when is_map(state) do
+  defp reply_to_listeners(state = %Download{}, msg) do
     Download.each_listener(state, fn l -> GenServer.reply(l, msg) end)
   end
 end
