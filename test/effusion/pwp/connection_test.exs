@@ -37,7 +37,7 @@ defmodule Effusion.PWP.ConnectionTest do
   test "registers with ConnectionRegistry on successful handshake", %{lsock: lsock} do
     {:ok, cpid} = start_supervised({Connection, @remote_peer})
 
-    {:ok, _sock, _remote_peer} = Socket.accept(lsock, @remote_peer)
+    {:ok, _sock, _remote_peer} = Socket.accept(lsock, @remote_peer.info_hash, @remote_peer.peer_id, @remote_peer.remote_peer_id)
 
     :timer.sleep(10)
 

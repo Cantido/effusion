@@ -48,13 +48,13 @@ defmodule Effusion.PWP.Connection do
   defp handshake(peer) do
     _ = Logger.debug("Establishing connection to #{ntoa(peer.address)}")
 
-    case Socket.connect(peer) do
-      {:ok, socket, peer} ->
+    case Socket.connect(peer.address, peer.info_hash, peer.peer_id, peer.remote_peer_id) do
+      {:ok, socket, remote_peer_id} ->
         _ = Logger.debug("Successfully connected to #{ntoa(peer.address)}")
-        {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, peer.remote_peer_id)
-        :ok = DownloadServer.connected(peer.info_hash, peer.remote_peer_id, peer.address)
+        {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, remote_peer_id)
+        :ok = DownloadServer.connected(peer.info_hash, remote_peer_id, peer.address)
         :ok = :inet.setopts(socket, active: :once)
-        {:noreply, {socket, peer.info_hash, peer.remote_peer_id, peer.address}}
+        {:noreply, {socket, peer.info_hash, remote_peer_id, peer.address}}
 
       {:error, reason} ->
         Logger.debug "Handshake with #{ntoa peer.address} failed: #{inspect reason}"

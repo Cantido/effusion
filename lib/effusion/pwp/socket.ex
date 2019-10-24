@@ -16,10 +16,10 @@ defmodule Effusion.PWP.Socket do
   @doc """
   Connect to a server described by `peer`.
   """
-  def connect(peer) do
-    with {host, port} = peer.address,
+  def connect(address, local_info_hash, local_peer_id, expected_peer_id) do
+    with {host, port} = address,
          {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false], 10_000) do
-      handshake(socket, peer)
+      handshake(socket, local_peer_id, expected_peer_id, local_info_hash)
     else
       err -> err
     end
@@ -29,38 +29,35 @@ defmodule Effusion.PWP.Socket do
   Accepts an incoming connection a listening socket,
   and performs a PWP handshake as the given `peer`.
   """
-  def accept(lsock, peer) do
+  def accept(lsock, local_info_hash, local_peer_id, expected_peer_id) do
     with {:ok, socket} <- :gen_tcp.accept(lsock, 1_000) do
-      handshake(socket, peer)
+      handshake(socket, local_peer_id, expected_peer_id,local_info_hash)
     else
       err -> err
     end
   end
 
-  defp handshake(socket, peer) do
-    with :ok <- send_msg(socket, {:handshake, peer.peer_id, peer.info_hash}),
-         {:ok, hs = {:handshake, _, _, _}} <- recv(socket, 68),
-         {:ok, peer} <- validate_handshake(peer, hs),
+  defp handshake(socket, local_peer_id, expected_peer_id, local_info_hash) do
+    with :ok <- send_msg(socket, {:handshake, local_peer_id, local_info_hash}),
+         {:ok, hs = {:handshake, remote_peer_id, _, _}} <- recv(socket, 68),
+         :ok <- validate_handshake(expected_peer_id, local_info_hash, hs),
          :ok <- :inet.setopts(socket, packet: 4) do
-      {:ok, socket, peer}
+      {:ok, socket, remote_peer_id}
     else
       err -> err
     end
   end
 
-  def validate_handshake(p, {:handshake, remote_peer_id, info_hash, _reserved}) do
+  def validate_handshake(expected_peer_id, local_info_hash, {:handshake, remote_peer_id, remote_info_hash, _reserved}) do
     cond do
-      p.handshaken ->
-        {:error, :local_peer_already_handshaken}
+      local_info_hash != remote_info_hash ->
+        {:error, {:mismatched_info_hash, [expected: local_info_hash, actual: remote_info_hash]}}
 
-      p.info_hash != info_hash ->
-        {:error, {:mismatched_info_hash, [expected: p.info_hash, actual: info_hash]}}
-
-      p.remote_peer_id != nil and p.remote_peer_id != remote_peer_id ->
-        {:error, {:mismatched_peer_id, [expected: p.remote_peer_id, actual: remote_peer_id]}}
+      expected_peer_id != nil and expected_peer_id != remote_peer_id ->
+        {:error, {:mismatched_peer_id, [expected: expected_peer_id, actual: remote_peer_id]}}
 
       true ->
-        {:ok, %{p | handshaken: true, remote_peer_id: remote_peer_id}}
+        :ok
     end
   end
 

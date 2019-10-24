@@ -25,7 +25,6 @@ defmodule Effusion.BTP.Peer do
     :peer_id,
     :info_hash,
     remote_peer_id: nil,
-    handshaken: false,
     failcount: 0,
     peer_choking: true,
     peer_interested: false,
