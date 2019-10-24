@@ -20,6 +20,21 @@ defmodule Effusion.BTP.Peer do
   """
   defguard is_peer_id(term) when is_binary(term) and byte_size(term) == 20
 
+  defstruct [
+    :address,
+    :peer_id,
+    :info_hash,
+    :session,
+    remote_peer_id: nil,
+    handshaken: false,
+    failcount: 0,
+    peer_choking: true,
+    peer_interested: false,
+    am_choking: true,
+    am_interested: false,
+    has: IntSet.new()
+  ]
+
   @doc """
   Create a new peer data structure.
 
@@ -28,26 +43,18 @@ defmodule Effusion.BTP.Peer do
   """
   def new({_host, _port} = address, peer_id, info_hash, session)
       when is_peer_id(peer_id) and is_hash(info_hash) and is_pid(session) do
-    %{
+    %__MODULE__{
       address: address,
       peer_id: peer_id,
-      remote_peer_id: nil,
       info_hash: info_hash,
       session: session,
-      handshaken: false,
-      failcount: 0,
-      peer_choking: true,
-      peer_interested: false,
-      am_choking: true,
-      am_interested: false,
-      has: IntSet.new()
     }
   end
 
   @doc """
   Set the 20-byte peer ID value that identifies the remote peer.
   """
-  def set_remote_peer_id(p = %{peer_id: peer_id}, remote_peer_id)
+  def set_remote_peer_id(p = %__MODULE__{peer_id: peer_id}, remote_peer_id)
       when (is_peer_id(remote_peer_id) or remote_peer_id == nil) and peer_id != remote_peer_id do
     Map.put(p, :remote_peer_id, remote_peer_id)
   end
@@ -55,14 +62,14 @@ defmodule Effusion.BTP.Peer do
   @doc """
   Get the handshake message that this peer would send to its remote.
   """
-  def get_handshake(p) do
+  def get_handshake(p = %__MODULE__{}) do
     {:handshake, p.peer_id, p.info_hash}
   end
 
   @doc """
   Accept a handshake message received by a remote peer, and validate it.
   """
-  def handshake(p, {:handshake, remote_peer_id, info_hash, _reserved})
+  def handshake(p = %__MODULE__{}, {:handshake, remote_peer_id, info_hash, _reserved})
       when is_peer_id(remote_peer_id) and is_hash(info_hash) do
     cond do
       p.handshaken ->
@@ -79,11 +86,11 @@ defmodule Effusion.BTP.Peer do
     end
   end
 
-  def inc_fail_count(peer) when is_map(peer) do
+  def inc_fail_count(peer = %__MODULE__{}) when is_map(peer) do
     Map.update(peer, :failcount, 0, &(&1+1))
   end
 
-  def dec_fail_count(peer) when is_map(peer) do
+  def dec_fail_count(peer = %__MODULE__{}) when is_map(peer) do
     Map.update(peer, :failcount, 0, &(&1-1))
   end
 
@@ -93,7 +100,7 @@ defmodule Effusion.BTP.Peer do
   """
   def recv(peer, message)
 
-  def recv(p, {:bitfield, b}) when is_map(p) do
+  def recv(p = %__MODULE__{}, {:bitfield, b}) when is_map(p) do
     p =
       p
       |> Map.put(:has, IntSet.new(b))
@@ -103,21 +110,21 @@ defmodule Effusion.BTP.Peer do
     {p, [:interested, :unchoke]}
   end
 
-  def recv(p, :unchoke) when is_map(p) do
+  def recv(p = %__MODULE__{}, :unchoke) when is_map(p) do
     {
       Map.put(p, :peer_choking, false),
       []
     }
   end
 
-  def recv(p, {:have, i}) when is_map(p) do
+  def recv(p = %__MODULE__{}, {:have, i}) when is_map(p) do
     {
       Map.update!(p, :has, &IntSet.put(&1, i)),
       []
     }
   end
 
-  def recv(p, _) when is_map(p) do
+  def recv(p = %__MODULE__{}, _) when is_map(p) do
     {p, []}
   end
 end
