@@ -1,6 +1,5 @@
 defmodule Effusion.BTP.Download do
   alias Effusion.BTP.Pieces
-  alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
   alias Effusion.BTP.Swarm
   import Effusion.BTP.Peer
