@@ -33,8 +33,7 @@ defmodule EffusionTest do
   @remote_peer Peer.new(
                  {{127, 0, 0, 1}, 8001},
                  "Other peer 123456789",
-                 @torrent.info_hash,
-                 self()
+                 @torrent.info_hash
                )
 
   defp stub_tracker(_, _, _, _, _, _, _, _, _, _) do

@@ -24,7 +24,6 @@ defmodule Effusion.BTP.Peer do
     :address,
     :peer_id,
     :info_hash,
-    :session,
     remote_peer_id: nil,
     handshaken: false,
     failcount: 0,
@@ -41,13 +40,12 @@ defmodule Effusion.BTP.Peer do
   Note that the `peer_id` argument is our *local* peer ID.
   To set the ID of the remote peer, see `set_remote_peer_id/2`.
   """
-  def new({_host, _port} = address, peer_id, info_hash, session)
-      when is_peer_id(peer_id) and is_hash(info_hash) and is_pid(session) do
+  def new({_host, _port} = address, peer_id, info_hash)
+      when is_peer_id(peer_id) and is_hash(info_hash) do
     %__MODULE__{
       address: address,
       peer_id: peer_id,
-      info_hash: info_hash,
-      session: session,
+      info_hash: info_hash
     }
   end
 

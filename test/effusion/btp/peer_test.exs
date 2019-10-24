@@ -7,8 +7,7 @@ defmodule Effusion.BTP.PeerTest do
     Peer.new(
       {{192, 168, 1, 1}, 8000},
       "Fake Peer Id ~~~~~~~",
-      "Fake Info Hash ~~~~~",
-      self()
+      "Fake Info Hash ~~~~~"
     )
   end
 
@@ -56,8 +55,7 @@ defmodule Effusion.BTP.PeerTest do
       Peer.new(
         {{192, 168, 1, 1}, 8000},
         "Local Peer Id ~~~~~~",
-        "Fake Info Hash ~~~~~",
-        self()
+        "Fake Info Hash ~~~~~"
       )
       |> Peer.set_remote_peer_id("Expected Remote Id~~")
 

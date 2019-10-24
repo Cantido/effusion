@@ -21,7 +21,7 @@ defmodule Effusion.BTP.Swarm do
     new_peers =
       peers
       |> Enum.map(fn p ->
-        Peer.new({p.ip, p.port}, swarm.peer_id, swarm.info_hash, self())
+        Peer.new({p.ip, p.port}, swarm.peer_id, swarm.info_hash)
         |> Peer.set_remote_peer_id(Map.get(p, :peer_id, nil))
       end)
       |> Enum.reject(&Enum.member?(known_ids, &1.remote_peer_id))
@@ -82,7 +82,7 @@ defmodule Effusion.BTP.Swarm do
 
   defp peer(swarm, peer_id, peer_address)
        when is_peer_id(peer_id) do
-    Peer.new(peer_address, swarm.peer_id, swarm.info_hash, self())
+    Peer.new(peer_address, swarm.peer_id, swarm.info_hash)
     |> Map.put(:remote_peer_id, peer_id)
   end
 end

@@ -15,7 +15,7 @@ defmodule Effusion.PWP.SocketTest do
   setup do
     {:ok, lsock} = :gen_tcp.listen(@port, active: false, reuseaddr: true, send_timeout: 5_000)
 
-    peer = Peer.new({@host, @port}, @local_peer_id, @info_hash, self())
+    peer = Peer.new({@host, @port}, @local_peer_id, @info_hash)
 
     on_exit(fn ->
       :ok = :gen_tcp.close(lsock)
