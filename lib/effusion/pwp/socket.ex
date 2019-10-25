@@ -1,6 +1,7 @@
 defmodule Effusion.PWP.Socket do
   require Logger
   alias Effusion.PWP.Messages
+  alias Effusion.PWP.Messages.Handshake
 
   @moduledoc """
   Interface to Peer Wire Protocol (PWP) sockets.
@@ -19,7 +20,7 @@ defmodule Effusion.PWP.Socket do
   def connect(address, local_info_hash, local_peer_id, expected_peer_id) do
     with {host, port} = address,
          {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false], 10_000) do
-      handshake(socket, local_peer_id, expected_peer_id, local_info_hash)
+      Handshake.perform(socket, local_peer_id, expected_peer_id, local_info_hash)
     else
       err -> err
     end
@@ -31,33 +32,9 @@ defmodule Effusion.PWP.Socket do
   """
   def accept(lsock, local_info_hash, local_peer_id, expected_peer_id) do
     with {:ok, socket} <- :gen_tcp.accept(lsock, 1_000) do
-      handshake(socket, local_peer_id, expected_peer_id,local_info_hash)
+      Handshake.perform(socket, local_peer_id, expected_peer_id,local_info_hash)
     else
       err -> err
-    end
-  end
-
-  defp handshake(socket, local_peer_id, expected_peer_id, local_info_hash) do
-    with :ok <- send_msg(socket, {:handshake, local_peer_id, local_info_hash}),
-         {:ok, hs = {:handshake, remote_peer_id, _, _}} <- recv(socket, 68),
-         :ok <- validate_handshake(expected_peer_id, local_info_hash, hs),
-         :ok <- :inet.setopts(socket, packet: 4) do
-      {:ok, socket, remote_peer_id}
-    else
-      err -> err
-    end
-  end
-
-  def validate_handshake(expected_peer_id, local_info_hash, {:handshake, remote_peer_id, remote_info_hash, _reserved}) do
-    cond do
-      local_info_hash != remote_info_hash ->
-        {:error, {:mismatched_info_hash, [expected: local_info_hash, actual: remote_info_hash]}}
-
-      expected_peer_id != nil and expected_peer_id != remote_peer_id ->
-        {:error, {:mismatched_peer_id, [expected: expected_peer_id, actual: remote_peer_id]}}
-
-      true ->
-        :ok
     end
   end
 
