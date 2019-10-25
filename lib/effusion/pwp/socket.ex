@@ -1,7 +1,6 @@
 defmodule Effusion.PWP.Socket do
   require Logger
   alias Effusion.PWP.Messages
-  alias Effusion.BTP.Peer
 
   @moduledoc """
   Interface to Peer Wire Protocol (PWP) sockets.
@@ -17,14 +16,10 @@ defmodule Effusion.PWP.Socket do
   @doc """
   Connect to a server described by `peer`.
   """
-  def connect(peer) do
-    with {host, port} = peer.address,
-         {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false], 10_000),
-         :ok <- send_msg(socket, Peer.get_handshake(peer)),
-         {:ok, hs = {:handshake, _, _, _}} <- recv(socket, 68),
-         {:ok, peer} <- Peer.handshake(peer, hs),
-         :ok <- :inet.setopts(socket, packet: 4) do
-      {:ok, socket, peer}
+  def connect(address, local_info_hash, local_peer_id, expected_peer_id) do
+    with {host, port} = address,
+         {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false], 10_000) do
+      handshake(socket, local_peer_id, expected_peer_id, local_info_hash)
     else
       err -> err
     end
@@ -34,15 +29,35 @@ defmodule Effusion.PWP.Socket do
   Accepts an incoming connection a listening socket,
   and performs a PWP handshake as the given `peer`.
   """
-  def accept(lsock, peer) do
-    with {:ok, socket} <- :gen_tcp.accept(lsock, 1_000),
-         {:ok, hs = {:handshake, _, _, _}} <- recv(socket, 68),
-         {:ok, peer} <- Peer.handshake(peer, hs),
-         :ok <- send_msg(socket, Peer.get_handshake(peer)),
-         :ok <- :inet.setopts(socket, packet: 4) do
-      {:ok, socket, peer}
+  def accept(lsock, local_info_hash, local_peer_id, expected_peer_id) do
+    with {:ok, socket} <- :gen_tcp.accept(lsock, 1_000) do
+      handshake(socket, local_peer_id, expected_peer_id,local_info_hash)
     else
       err -> err
+    end
+  end
+
+  defp handshake(socket, local_peer_id, expected_peer_id, local_info_hash) do
+    with :ok <- send_msg(socket, {:handshake, local_peer_id, local_info_hash}),
+         {:ok, hs = {:handshake, remote_peer_id, _, _}} <- recv(socket, 68),
+         :ok <- validate_handshake(expected_peer_id, local_info_hash, hs),
+         :ok <- :inet.setopts(socket, packet: 4) do
+      {:ok, socket, remote_peer_id}
+    else
+      err -> err
+    end
+  end
+
+  def validate_handshake(expected_peer_id, local_info_hash, {:handshake, remote_peer_id, remote_info_hash, _reserved}) do
+    cond do
+      local_info_hash != remote_info_hash ->
+        {:error, {:mismatched_info_hash, [expected: local_info_hash, actual: remote_info_hash]}}
+
+      expected_peer_id != nil and expected_peer_id != remote_peer_id ->
+        {:error, {:mismatched_peer_id, [expected: expected_peer_id, actual: remote_peer_id]}}
+
+      true ->
+        :ok
     end
   end
 

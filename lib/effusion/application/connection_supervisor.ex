@@ -10,11 +10,7 @@ defmodule Effusion.Application.ConnectionSupervisor do
   end
 
   def start_child(peer) when is_map(peer) do
-    spec = %{
-      id: peer.peer_id,
-      start: {Effusion.PWP.Connection, :start_link, [peer]},
-      restart: :temporary
-    }
+    spec = {Effusion.PWP.Connection, peer}
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
 end

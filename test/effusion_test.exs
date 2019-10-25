@@ -33,8 +33,7 @@ defmodule EffusionTest do
   @remote_peer Peer.new(
                  {{127, 0, 0, 1}, 8001},
                  "Other peer 123456789",
-                 @torrent.info_hash,
-                 self()
+                 @torrent.info_hash
                )
 
   defp stub_tracker(_, _, _, _, _, _, _, _, _, _) do
@@ -82,7 +81,7 @@ defmodule EffusionTest do
 
     {:ok, _} = Effusion.start_download(@torrent, file)
 
-    {:ok, sock, _remote_peer} = Socket.accept(lsock, @remote_peer)
+    {:ok, sock, _remote_peer} = Socket.accept(lsock, @remote_peer.info_hash, @remote_peer.peer_id, @remote_peer.remote_peer_id)
     bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
     :ok = Socket.send_msg(sock, {:bitfield, bitfield})
     {:ok, :interested} = Socket.recv(sock)

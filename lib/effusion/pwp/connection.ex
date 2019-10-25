@@ -2,8 +2,6 @@ defmodule Effusion.PWP.Connection do
   use GenServer, restart: :temporary
   alias Effusion.BTP.DownloadServer
   alias Effusion.PWP.Socket
-  import Effusion.Hash, only: [is_hash: 1]
-  import Effusion.BTP.Peer
   require Logger
 
   @moduledoc """
@@ -33,32 +31,6 @@ defmodule Effusion.PWP.Connection do
     send(pid, :disconnect)
   end
 
-  def disconnect_all(info_hash) do
-    Registry.dispatch(ConnectionRegistry, info_hash, fn connections ->
-      connections
-      |> Enum.map(fn {c, _p} -> disconnect(c) end)
-    end)
-  end
-
-  def btp_broadcast(info_hash, message, peer_id_selector \\ fn _ -> true end) do
-    :ok =
-      Registry.dispatch(ConnectionRegistry, info_hash, fn connections ->
-        connections
-        |> Enum.filter(fn {_, peer_id} -> peer_id_selector.(peer_id) end)
-        |> Enum.each(fn {c, id} -> send(c, {:btp_send, id, message}) end)
-      end)
-  end
-
-  def btp_send(info_hash, peer_id, message) when is_hash(info_hash) and is_peer_id(peer_id) do
-    connections = Registry.match(ConnectionRegistry, info_hash, peer_id)
-
-    _ =
-      case connections do
-        [{conn_pid, ^peer_id}] -> send(conn_pid, {:btp_send, peer_id, message})
-        [] -> []
-      end
-  end
-
   ## Callbacks
 
   def init(peer) do
@@ -76,13 +48,13 @@ defmodule Effusion.PWP.Connection do
   defp handshake(peer) do
     _ = Logger.debug("Establishing connection to #{ntoa(peer.address)}")
 
-    case Socket.connect(peer) do
-      {:ok, socket, peer} ->
+    case Socket.connect(peer.address, peer.info_hash, peer.peer_id, peer.remote_peer_id) do
+      {:ok, socket, remote_peer_id} ->
         _ = Logger.debug("Successfully connected to #{ntoa(peer.address)}")
-        {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, peer.remote_peer_id)
-        :ok = DownloadServer.connected(peer.info_hash, peer.remote_peer_id, peer.address)
+        {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, remote_peer_id)
+        :ok = DownloadServer.connected(peer.info_hash, remote_peer_id, peer.address)
         :ok = :inet.setopts(socket, active: :once)
-        {:noreply, {socket, peer.info_hash, peer.remote_peer_id, peer.address}}
+        {:noreply, {socket, peer.info_hash, remote_peer_id, peer.address}}
 
       {:error, reason} ->
         Logger.debug "Handshake with #{ntoa peer.address} failed: #{inspect reason}"
