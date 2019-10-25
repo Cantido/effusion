@@ -260,13 +260,8 @@ defmodule Effusion.BTP.Download do
     }
   end
 
-  def handle_connect(d, peer_id, address)
-      when is_peer_id(peer_id) do
-    _ = Logger.debug("Handling connection success to #{inspect(address)}")
-    swarm = d.swarm
-    |> Swarm.handle_connect(peer_id, address)
-
-    %{d | swarm: swarm}
+  def handle_connect(d, peer_id, address) when is_peer_id(peer_id) do
+    Map.update!(d, :swarm, &Swarm.handle_connect(&1, peer_id, address))
   end
 
   @doc """
