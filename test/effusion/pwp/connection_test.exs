@@ -1,10 +1,10 @@
-defmodule Effusion.PWP.ConnectionTest do
+defmodule Effusion.PWP.OutgoingHandlerTest do
   use ExUnit.Case
-  alias Effusion.PWP.Connection
+  alias Effusion.PWP.OutgoingHandler
   alias Effusion.BTP.Peer
   alias Effusion.PWP.Socket
 
-  doctest Effusion.PWP.Connection
+  doctest Effusion.PWP.OutgoingHandler
 
   @torrent TestHelper.tiny_meta()
 
@@ -28,14 +28,14 @@ defmodule Effusion.PWP.ConnectionTest do
   test "replies stop when decode of a packet fails" do
     state = %{info_hash: "12345678901234567890", remote_peer_id: "12345678901234567890"}
 
-    actual_response = Connection.handle_packet(nil, <<"bad message!!!">>, state)
+    actual_response = OutgoingHandler.handle_packet(nil, <<"bad message!!!">>, state)
     expected_response = {:stop, {:bad_message, :invalid, <<"bad message!!!">>}, state}
 
     assert actual_response == expected_response
   end
 
   test "registers with ConnectionRegistry on successful handshake", %{lsock: lsock} do
-    {:ok, cpid} = start_supervised({Connection, @remote_peer})
+    {:ok, cpid} = start_supervised({OutgoingHandler, @remote_peer})
 
     {:ok, _sock, _remote_peer} = Socket.accept(lsock, @remote_peer.info_hash, @remote_peer.peer_id, @remote_peer.remote_peer_id)
 

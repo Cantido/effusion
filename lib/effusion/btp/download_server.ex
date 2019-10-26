@@ -65,7 +65,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   defp handle_internal_message({:btp_connect, peer}, state = %Download{}) do
-    Effusion.PWP.Connection.connect(peer)
+    Effusion.PWP.OutgoingHandler.connect(peer)
     state
   end
 

@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Connection do
+defmodule Effusion.PWP.OutgoingHandler do
   use GenServer, restart: :temporary
   alias Effusion.BTP.DownloadServer
   alias Effusion.PWP.Socket
