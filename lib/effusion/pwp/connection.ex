@@ -37,11 +37,11 @@ defmodule Effusion.PWP.Connection do
     {:ok, peer, 0}
   end
 
-  defp ntoa({host, port}) when is_binary(host) and port > 0 do
+  defp ntoa({host, port}) when is_binary(host) do
     "#{host}:#{port}"
   end
 
-  defp ntoa({host, port}) when port > 0 do
+  defp ntoa({host, port}) do
     "#{:inet.ntoa(host)}:#{port}"
   end
 
@@ -50,7 +50,7 @@ defmodule Effusion.PWP.Connection do
 
     case Socket.connect(peer.address, peer.info_hash, peer.peer_id, peer.remote_peer_id) do
       {:ok, socket, remote_peer_id} ->
-        _ = Logger.debug("Handshake with #{ntoa(peer.address)} successful")
+        _ = Logger.debug("Successfully connected to #{ntoa(peer.address)}")
         {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, remote_peer_id)
         :ok = DownloadServer.connected(peer.info_hash, remote_peer_id, peer.address)
         :ok = :inet.setopts(socket, active: :once)
@@ -90,7 +90,7 @@ defmodule Effusion.PWP.Connection do
     handle_info({:btp_send, msg}, state)
   end
 
-  def handle_info(:timeout, peer) when is_map(peer), do: handshake(peer)
+  def handle_info(:timeout, peer), do: handshake(peer)
   def handle_info({:tcp, socket, data}, state), do: handle_packet(socket, data, state)
   def handle_info({:tcp_closed, _socket}, state), do: {:stop, :normal, state}
   def handle_info(:disconnect, state), do: {:stop, :normal, state}
