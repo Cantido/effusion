@@ -9,7 +9,7 @@ defmodule Effusion.PWP.ConnectionTest do
   @torrent TestHelper.tiny_meta()
 
   @remote_peer Peer.new(
-                 {{127, 0, 0, 1}, 8001},
+                 {{127, 0, 0, 1}, 8002},
                  "Other peer 123456789",
                  @torrent.info_hash
                )
@@ -43,6 +43,6 @@ defmodule Effusion.PWP.ConnectionTest do
 
     connections = Registry.lookup(ConnectionRegistry, @torrent.info_hash)
 
-    assert connections == [{cpid, "Other peer 123456789"}]
+    assert Enum.member? connections,{cpid, "Other peer 123456789"}
   end
 end

@@ -256,7 +256,7 @@ defmodule Effusion.BTP.Download do
     {:ok, d, req}
   end
 
-  defp session_handle_message(d = %__MODULE__{}, _remote_peer_id, _msg), do: {d, []}
+  defp session_handle_message(d = %__MODULE__{}, _remote_peer_id, _msg), do: {:ok, d, []}
 
   defp delegate_message(d, remote_peer_id, msg)
        when is_peer_id(remote_peer_id) do

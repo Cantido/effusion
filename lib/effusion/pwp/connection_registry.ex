@@ -2,6 +2,7 @@ defmodule Effusion.PWP.ConnectionRegistry do
   alias Effusion.PWP.Connection
   import Effusion.Hash, only: [is_hash: 1]
   import Effusion.BTP.Peer
+  require Logger
 
   def disconnect_all(info_hash) do
     Registry.dispatch(ConnectionRegistry, info_hash, fn connections ->
@@ -21,6 +22,8 @@ defmodule Effusion.PWP.ConnectionRegistry do
 
   def btp_send(info_hash, peer_id, message) when is_hash(info_hash) and is_peer_id(peer_id) do
     connections = Registry.match(ConnectionRegistry, info_hash, peer_id)
+
+    Logger.debug("ConnectionRegistry matching ID #{peer_id} for #{Effusion.Hash.inspect info_hash} to process: #{inspect connections}")
 
     _ =
       case connections do

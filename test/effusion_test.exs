@@ -4,9 +4,13 @@ defmodule EffusionTest do
   alias Effusion.BTP.Peer
   alias Effusion.PWP.Socket
   import Mox
+  require Logger
 
   setup :verify_on_exit!
   setup :set_mox_global
+
+  @local_port 8001
+  @remote_port 8002
 
   @torrent %{
     announce: "http://localhost:6969/announce",
@@ -31,8 +35,8 @@ defmodule EffusionTest do
   }
 
   @remote_peer Peer.new(
-                 {{127, 0, 0, 1}, 8001},
-                 "Other peer 123456789",
+                 {{127, 0, 0, 1}, @remote_port},
+                 "Fake-Remote-Peer----",
                  @torrent.info_hash
                )
 
@@ -44,6 +48,18 @@ defmodule EffusionTest do
       %{
         interval: 9_000,
         peers: [%{ip: host, port: port, peer_id: @remote_peer.peer_id}]
+      }
+    }
+  end
+
+  defp stub_tracker_no_peers(_, _, _, _, _, _, _, _, _, _) do
+    {host, port} = @remote_peer.address
+
+    {
+      :ok,
+      %{
+        interval: 90_000,
+        peers: []
       }
     }
   end
@@ -72,7 +88,7 @@ defmodule EffusionTest do
   end
 
   setup do
-    Application.put_env(:effusion, :server_address, {{127, 0, 0, 1}, 8000})
+    Application.put_env(:effusion, :server_address, {{127, 0, 0, 1}, @local_port})
   end
 
   test "download a file", %{lsock: lsock, destfile: file} do
@@ -82,11 +98,55 @@ defmodule EffusionTest do
     {:ok, _} = Effusion.start_download(@torrent, file)
 
     {:ok, sock, _remote_peer} = Socket.accept(lsock, @remote_peer.info_hash, @remote_peer.peer_id, @remote_peer.remote_peer_id)
+    on_exit(fn ->
+      Socket.close(sock)
+    end)
+
     bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
     :ok = Socket.send_msg(sock, {:bitfield, bitfield})
+
     {:ok, :interested} = Socket.recv(sock)
     {:ok, :unchoke} = Socket.recv(sock)
     :ok = Socket.send_msg(sock, :unchoke)
+
+    {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
+
+    {i2, piece1, piece2} =
+      case i1 do
+        0 -> {1, {:piece, 0, 0, "tin"}, {:piece, 1, 0, "y\n"}}
+        1 -> {0, {:piece, 1, 0, "y\n"}, {:piece, 0, 0, "tin"}}
+      end
+
+    :ok = Socket.send_msg(sock, piece1)
+    {:ok, {:have, ^i1}} = Socket.recv(sock)
+    {:ok, {:request, %{index: ^i2}}} = Socket.recv(sock)
+
+    :ok = Socket.send_msg(sock, piece2)
+    {:ok, {:have, ^i2}} = Socket.recv(sock)
+
+    :timer.sleep(100)
+    :file.datasync(file)
+
+    {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
+
+    assert "tiny\n" == contents
+  end
+
+  test "receive a connection from a peer", %{lsock: lsock, destfile: file} do
+    Effusion.THP.Mock
+    |> expect(:announce, 2, &stub_tracker_no_peers/10)
+
+    {:ok, _} = Effusion.start_download(@torrent, file)
+
+    {:ok, sock, _remote_peer} = Socket.connect({{127, 0, 0, 1}, @local_port}, @remote_peer.info_hash, @remote_peer.peer_id, @remote_peer.remote_peer_id)
+
+    bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
+    :ok = Socket.send_msg(sock, {:bitfield, bitfield})
+    :ok = Socket.send_msg(sock, :interested)
+    :ok = Socket.send_msg(sock, :unchoke)
+
+    {:ok, :interested} = Socket.recv(sock)
+    {:ok, :unchoke} = Socket.recv(sock)
 
     {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
 

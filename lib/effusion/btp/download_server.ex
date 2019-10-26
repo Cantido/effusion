@@ -93,7 +93,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_call({:handle_msg, peer_id, msg}, _from, state = %Download{}) do
-    _ = Logger.debug("Got a message!!! #{inspect(msg)}")
+    _ = Logger.debug("DownloadServer handling message from #{peer_id}: #{inspect(msg)}")
 
     case Download.handle_message(state, peer_id, msg) do
       {:error, reason} ->
@@ -101,7 +101,7 @@ defmodule Effusion.BTP.DownloadServer do
         {:stop, reason, {:error, reason}, state}
 
       {state, messages} ->
-        _ = Logger.debug("replying: #{inspect(messages)}")
+        _ = Logger.debug("DownloadServer replying: #{inspect(messages)}")
 
         state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
 
