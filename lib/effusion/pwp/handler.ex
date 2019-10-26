@@ -92,17 +92,23 @@ defmodule Effusion.PWP.Handler do
   end
 
 
-  def terminate(_, %{socket: socket, info_hash: info_hash, peer_id: peer_id, address: address}) do
+  def terminate(reason, %{socket: socket, info_hash: info_hash, remote_peer_id: remote_peer_id, address: address}) do
+    Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
+
     Socket.close(socket)
-    DownloadServer.unregister_connection(info_hash, peer_id, address)
+    DownloadServer.unregister_connection(info_hash, remote_peer_id, address)
     :ok
   end
-  def terminate(_, {nil, info_hash, peer_id, address}) do
-    DownloadServer.unregister_connection(info_hash, peer_id, address)
+
+  def terminate(reason, %{info_hash: info_hash, remote_peer_id: remote_peer_id, address: address}) do
+    Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
+
+    DownloadServer.unregister_connection(info_hash, remote_peer_id, address)
   end
 
-  def terminate(reason, _peer) do
-    Logger.debug "Incoming connection handler terminating with reason #{inspect reason}"
+  def terminate(reason, %{info_hash: info_hash, remote_peer_id: remote_peer_id}) do
+    Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
+
     :ok
   end
 end
