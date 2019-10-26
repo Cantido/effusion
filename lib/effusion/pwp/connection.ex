@@ -54,28 +54,37 @@ defmodule Effusion.PWP.Connection do
         {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, remote_peer_id)
         :ok = DownloadServer.connected(peer.info_hash, remote_peer_id, peer.address)
         :ok = :inet.setopts(socket, active: :once)
-        {:noreply, {socket, peer.info_hash, remote_peer_id, peer.address}}
+        {:noreply, %{
+          socket: socket,
+          info_hash: peer.info_hash,
+          remote_peer_id: remote_peer_id,
+          address: peer.address
+        }}
 
       {:error, reason} ->
         Logger.debug "Handshake with #{ntoa peer.address} failed: #{inspect reason}"
         {:stop, :normal,
-         {nil, peer.info_hash, peer.remote_peer_id, peer.address}}
+          %{
+            info_hash: peer.info_hash,
+            remote_peer_id: peer.remote_peer_id,
+            address: peer.address
+          }}
     end
   end
 
-  def handle_packet(socket, data, {_socket, info_hash, peer_id, address}) do
+  def handle_packet(socket, data, state = %{info_hash: info_hash, remote_peer_id: peer_id}) do
     case Socket.decode(data) do
       {:ok, msg} ->
         :ok = DownloadServer.handle_message(info_hash, peer_id, msg)
         :ok = :inet.setopts(socket, active: :once)
-        {:noreply, {socket, info_hash, peer_id, address}}
+        {:noreply, state}
 
       {:error, reason} ->
-        {:stop, {:bad_message, reason, data}, {socket, info_hash, peer_id, address}}
+        {:stop, {:bad_message, reason, data}, state}
     end
   end
 
-  def handle_info({:btp_send, msg}, state = {socket, _, _, _}) do
+  def handle_info({:btp_send, msg}, state = %{socket: socket}) do
     case Socket.send_msg(socket, msg) do
       :ok -> {:noreply, state}
       {:error, reason} -> {:stop, {:send_failure, reason}, state}
@@ -84,7 +93,7 @@ defmodule Effusion.PWP.Connection do
 
   def handle_info(
         {:btp_send, dest_peer_id, msg},
-        state = {_socket, _info_hash, peer_id, _address}
+        state = %{remote_peer_id: peer_id}
       )
       when dest_peer_id == peer_id do
     handle_info({:btp_send, msg}, state)
@@ -96,17 +105,23 @@ defmodule Effusion.PWP.Connection do
   def handle_info(:disconnect, state), do: {:stop, :normal, state}
   def handle_info(_, state), do: {:noreply, state}
 
-  def terminate(_, {nil, info_hash, peer_id, address}) do
-    DownloadServer.unregister_connection(info_hash, peer_id, address)
-  end
+  def terminate(reason, %{socket: socket, info_hash: info_hash, remote_peer_id: remote_peer_id, address: address}) do
+    Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
 
-  def terminate(_, {socket, info_hash, peer_id, address}) do
     Socket.close(socket)
-    DownloadServer.unregister_connection(info_hash, peer_id, address)
+    DownloadServer.unregister_connection(info_hash, remote_peer_id, address)
     :ok
   end
 
-  def terminate(_, _peer) do
+  def terminate(reason, %{info_hash: info_hash, remote_peer_id: remote_peer_id, address: address}) do
+    Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
+
+    DownloadServer.unregister_connection(info_hash, remote_peer_id, address)
+  end
+
+  def terminate(reason, %{info_hash: info_hash, remote_peer_id: remote_peer_id}) do
+    Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
+
     :ok
   end
 end
