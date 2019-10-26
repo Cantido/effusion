@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Handler do
+defmodule Effusion.PWP.IncomingHandler do
   alias Effusion.PWP.Messages
   alias Effusion.PWP.Socket
   alias Effusion.BTP.DownloadServer
