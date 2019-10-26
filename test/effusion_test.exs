@@ -53,8 +53,6 @@ defmodule EffusionTest do
   end
 
   defp stub_tracker_no_peers(_, _, _, _, _, _, _, _, _, _) do
-    {host, port} = @remote_peer.address
-
     {
       :ok,
       %{
@@ -132,7 +130,7 @@ defmodule EffusionTest do
     assert "tiny\n" == contents
   end
 
-  test "receive a connection from a peer", %{lsock: lsock, destfile: file} do
+  test "receive a connection from a peer", %{destfile: file} do
     Effusion.THP.Mock
     |> expect(:announce, 2, &stub_tracker_no_peers/10)
 

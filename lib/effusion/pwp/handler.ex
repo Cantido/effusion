@@ -28,7 +28,7 @@ defmodule Effusion.PWP.Handler do
     :gen_server.enter_loop(__MODULE__, [], %{socket: socket, transport: transport})
   end
 
-  def handle_info({:tcp, tcp_socket, data}, state = %{socket: socket, transport: transport}) when is_binary(data) do
+  def handle_info({:tcp, _tcp_socket, data}, state) when is_binary(data) do
     # _ = Logger.debug("Handling incoming packet with data #{inspect data}")
     {:ok, msg} = Messages.decode(data)
 
@@ -56,7 +56,7 @@ defmodule Effusion.PWP.Handler do
     {:noreply, state}
   end
 
-  def handle_btp({:handshake, remote_peer_id, info_hash, _reserved}, state = %{socket: socket, transport: transport}) do
+  def handle_btp({:handshake, remote_peer_id, info_hash, _reserved}, state = %{socket: socket}) do
     {:ok, address} = :inet.peername(socket)
 
     case Registry.lookup(SessionRegistry, info_hash) do
@@ -106,7 +106,7 @@ defmodule Effusion.PWP.Handler do
     DownloadServer.unregister_connection(info_hash, remote_peer_id, address)
   end
 
-  def terminate(reason, %{info_hash: info_hash, remote_peer_id: remote_peer_id}) do
+  def terminate(reason, %{remote_peer_id: remote_peer_id}) do
     Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
 
     :ok
