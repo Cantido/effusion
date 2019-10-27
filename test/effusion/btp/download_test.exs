@@ -1,5 +1,5 @@
 defmodule Effusion.BTP.DownloadTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   alias Effusion.BTP.Download
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
