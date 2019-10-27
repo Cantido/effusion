@@ -67,7 +67,7 @@ defmodule Effusion.PWP.Connection do
 
         {:noreply, state}
       [] ->
-        {:stop, state}
+        {:stop, :info_hash_not_found, state}
     end
   end
 
