@@ -17,7 +17,7 @@ defmodule Effusion.PWP.Connection do
     "#{:inet.ntoa(host)}:#{port}"
   end
 
-  defp handshake(peer) do
+  defp connect(peer) do
     _ = Logger.debug("Establishing connection to #{ntoa(peer.address)}")
 
     case Socket.connect(peer.address, peer.info_hash, peer.peer_id, peer.remote_peer_id) do
@@ -98,7 +98,7 @@ defmodule Effusion.PWP.Connection do
     handle_btp(msg, state)
   end
 
-  def handle_info(:timeout, peer) when is_map(peer), do: handshake(peer)
+  def handle_info(:timeout, peer) when is_map(peer), do: connect(peer)
   def handle_info({:tcp_closed, _socket}, state), do: {:stop, :normal, state}
   def handle_info(:disconnect, state), do: {:stop, :normal, state}
 
