@@ -1,7 +1,5 @@
 defmodule Effusion.PWP.IncomingHandler do
-  alias Effusion.PWP.Messages
-  alias Effusion.PWP.Socket
-  alias Effusion.BTP.DownloadServer
+  alias Effusion.PWP.Connection
   use GenServer
   require Logger
 
@@ -28,87 +26,11 @@ defmodule Effusion.PWP.IncomingHandler do
     :gen_server.enter_loop(__MODULE__, [], %{socket: socket, transport: transport})
   end
 
-  def handle_info({:tcp, _tcp_socket, data}, state) when is_binary(data) do
-    # _ = Logger.debug("Handling incoming packet with data #{inspect data}")
-    {:ok, msg} = Messages.decode(data)
-
-    handle_btp(msg, state)
-  end
-
-  def handle_info(
-        {:btp_send, dest_peer_id, msg},
-        state = %{socket: socket, remote_peer_id: peer_id}
-      )
-      when dest_peer_id == peer_id do
-        Logger.debug "Sending message #{inspect msg} to peer #{peer_id}"
-    case Socket.send_msg(socket, msg) do
-      :ok -> {:noreply, state}
-      {:error, reason} -> {:stop, {:send_failure, reason}, state}
-    end
-  end
-
-  def handle_info({:tcp_closed, _socket}, state), do: {:stop, :normal, state}
-  def handle_info(:disconnect, state), do: {:stop, :normal, state}
-
-
   def handle_info(info, state) do
-    Logger.warn "Handler received unknown message: #{inspect info}"
-    {:noreply, state}
+    Connection.handle_info(info, state)
   end
 
-  def handle_btp({:handshake, remote_peer_id, info_hash, _reserved}, state = %{socket: socket}) do
-    {:ok, address} = :inet.peername(socket)
-
-    case Registry.lookup(SessionRegistry, info_hash) do
-      [{_pid, _hash}] ->
-        _ = Logger.debug("Successfully received connection from #{inspect address} for #{Effusion.Hash.inspect info_hash}")
-
-        {:ok, _pid} = Registry.register(ConnectionRegistry, info_hash, remote_peer_id)
-        :ok = DownloadServer.connected(info_hash, remote_peer_id, address)
-
-        local_peer_id = Application.get_env(:effusion, :peer_id)
-        _ = Logger.debug("Responding to #{remote_peer_id} with handshake")
-        :ok = Socket.send_msg(socket, {:handshake, local_peer_id, info_hash})
-
-        :ok = :inet.setopts(socket, active: :once, packet: 4)
-
-        state = state
-        |> Map.put(:socket, socket)
-        |> Map.put(:info_hash, info_hash)
-        |> Map.put(:remote_peer_id, remote_peer_id)
-
-        {:noreply, state}
-      [] ->
-        {:stop, state}
-    end
-  end
-
-  def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id, socket: socket}) do
-    Logger.debug "Handler received BTP message from peer: #{inspect msg}"
-
-    :ok = DownloadServer.handle_message(info_hash, peer_id, msg)
-    :ok = :inet.setopts(socket, active: :once)
-    {:noreply, state}
-  end
-
-
-  def terminate(reason, %{socket: socket, info_hash: info_hash, remote_peer_id: remote_peer_id, address: address}) do
-    Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
-
-    Socket.close(socket)
-    DownloadServer.unregister_connection(info_hash, remote_peer_id, address)
-    :ok
-  end
-
-  def terminate(reason, %{info_hash: info_hash, remote_peer_id: remote_peer_id, address: address}) do
-    Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
-
-    DownloadServer.unregister_connection(info_hash, remote_peer_id, address)
-  end
-
-  def terminate(reason, %{remote_peer_id: remote_peer_id}) do
-    Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
-
-    :ok
+  def terminate(reason, state) do
+    Connection.terminate(reason, state)
   end
 end

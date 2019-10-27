@@ -25,15 +25,6 @@ defmodule Effusion.PWP.OutgoingHandlerTest do
     %{lsock: lsock}
   end
 
-  test "replies stop when decode of a packet fails" do
-    state = %{info_hash: "12345678901234567890", remote_peer_id: "12345678901234567890"}
-
-    actual_response = OutgoingHandler.handle_packet(nil, <<"bad message!!!">>, state)
-    expected_response = {:stop, {:bad_message, :invalid, <<"bad message!!!">>}, state}
-
-    assert actual_response == expected_response
-  end
-
   test "registers with ConnectionRegistry on successful handshake", %{lsock: lsock} do
     {:ok, cpid} = start_supervised({OutgoingHandler, @remote_peer})
 
