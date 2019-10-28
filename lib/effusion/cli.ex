@@ -34,10 +34,11 @@ defmodule Effusion.CLI do
     output_loop(info_hash)
   end
 
-  @name_width 50
+  @name_width 40
+  @progress_width 20
   @percent_width 10
   @downloaded_width 14
-  @duration_width 80 - @name_width - @percent_width - @downloaded_width
+  @duration_width 20
 
   defp output_loop(info_hash) do
     download = Effusion.BTP.DownloadServer.get(info_hash)
@@ -47,22 +48,25 @@ defmodule Effusion.CLI do
     fraction_downloaded = downloaded / total_to_download
 
     name_formatted = download.meta.info.name
-    percent_downloaded = Float.round(fraction_downloaded * 100, 3) |> Float.to_string()
+    percent_downloaded = Float.round(fraction_downloaded * 100, 3)
+    progress_bar = Format.progress_bar(percent_downloaded, @progress_width - 2)
     downloaded_str = Format.bytes(downloaded)
     duration_formatted = Timex.format_duration(dur, :humanized)
 
     IO.write IO.ANSI.clear()
     IO.write IO.ANSI.cursor(0, 0)
 
-    IO.puts row("NAME", "PERCENT", "DOWNLOADED", "DURATION")
-    IO.puts row(name_formatted, percent_downloaded, downloaded_str, duration_formatted)
+    IO.puts row("NAME", "PROGRESS", "PERCENT", "DOWNLOADED", "DURATION")
+    IO.puts row(name_formatted, progress_bar, percent_downloaded, downloaded_str, duration_formatted)
 
     Process.sleep(100)
     output_loop(info_hash)
   end
 
-  defp row(name, percent, downloaded, duration) do
+
+  defp row(name, progress, percent, downloaded, duration) do
     String.pad_trailing(name, @name_width - 1) <> "|" <>
+      String.pad_trailing(" #{progress}", @progress_width - 1) <> "|" <>
       String.pad_trailing(" #{percent}", @percent_width - 1) <> "|" <>
       String.pad_trailing(" #{downloaded}", @downloaded_width - 1) <> "|" <>
       String.pad_trailing(" #{duration}", @duration_width - 1)
