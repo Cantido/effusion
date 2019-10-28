@@ -1,5 +1,7 @@
 defmodule Effusion.CLI do
   alias Effusion.BTP.Metainfo
+  alias Effusion.Format
+  alias Effusion.Stats
   use Timex
 
   @moduledoc """
@@ -32,36 +34,37 @@ defmodule Effusion.CLI do
     output_loop(info_hash)
   end
 
+  @name_width 50
+  @percent_width 10
+  @downloaded_width 14
+  @duration_width 80 - @name_width - @percent_width - @downloaded_width
+
   defp output_loop(info_hash) do
-    IO.write IO.ANSI.cursor(0, 0)
-    IO.write IO.ANSI.clear()
-
     download = Effusion.BTP.DownloadServer.get(info_hash)
-    dur = Timex.Interval.new(from: download.started_at, until: Timex.now()) |> Timex.Interval.duration(:duration)
+    dur = Stats.download_duration(download)
 
-    downloaded = Effusion.BTP.Pieces.bytes_completed(download.pieces)
-    total_to_download = Effusion.BTP.Metainfo.bytes_count(download.meta)
+    {downloaded, total_to_download} = Stats.downloaded_ratio(download)
     fraction_downloaded = downloaded / total_to_download
 
-    downloaded_str = format_bytes(downloaded)
+    name_formatted = download.meta.info.name
+    percent_downloaded = Float.round(fraction_downloaded * 100, 3) |> Float.to_string()
+    downloaded_str = Format.bytes(downloaded)
+    duration_formatted = Timex.format_duration(dur, :humanized)
 
-    IO.puts "NAME \t\t\t\t\t| PERCENT \t| DOWNLOADED \t| DURATION"
-    IO.write "#{download.meta.info.name} \t| #{Float.round(fraction_downloaded * 100, 3)}% \t| #{downloaded_str} \t| #{Timex.format_duration dur, :humanized} "
+    IO.write IO.ANSI.clear()
+    IO.write IO.ANSI.cursor(0, 0)
 
-    Process.sleep(1000)
+    IO.puts row("NAME", "PERCENT", "DOWNLOADED", "DURATION")
+    IO.puts row(name_formatted, percent_downloaded, downloaded_str, duration_formatted)
+
+    Process.sleep(100)
     output_loop(info_hash)
   end
 
-  @kibibyte 1024
-  @mebibyte 1024 * @kibibyte
-  @gibibyte 1024 * @mebibyte
-
-  defp format_bytes(n) do
-    cond do
-      n < @kibibyte -> "#{n} B"
-      n < @mebibyte -> "#{Float.round(n/@kibibyte, 1)} kiB"
-      n < @gibibyte -> "#{Float.round(n/@mebibyte, 1)} MiB"
-      true -> "#{Float.round(n/@mebibyte, 1)} GiB"
-    end
+  defp row(name, percent, downloaded, duration) do
+    String.pad_trailing(name, @name_width - 1) <> "|" <>
+      String.pad_trailing(" #{percent}", @percent_width - 1) <> "|" <>
+      String.pad_trailing(" #{downloaded}", @downloaded_width - 1) <> "|" <>
+      String.pad_trailing(" #{duration}", @duration_width - 1)
   end
 end
