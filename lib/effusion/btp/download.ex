@@ -4,6 +4,7 @@ defmodule Effusion.BTP.Download do
   alias Effusion.BTP.Swarm
   import Effusion.BTP.Peer
   require Logger
+  use Timex
 
   @moduledoc """
   The top-level data structure of a downloading file.
@@ -19,6 +20,7 @@ defmodule Effusion.BTP.Download do
     :pieces,
     :local_address,
     :swarm,
+    started_at: nil,
     listeners: MapSet.new,
     requested_pieces: MapSet.new(),
     tracker_id: ""
@@ -203,6 +205,7 @@ defmodule Effusion.BTP.Download do
   def start(session = %__MODULE__{}, thp_client) do
     _ = Logger.info "Starting download #{Effusion.Hash.inspect session.meta.info_hash}"
     {session, response} = announce(session, thp_client, :started)
+    session = Map.put(session, :started_at, Timex.now())
     messages = Enum.map(session.swarm.peers, fn {_addr, p} -> {:btp_connect, p} end)
     {session, response, messages}
   end

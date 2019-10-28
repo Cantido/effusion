@@ -6,10 +6,14 @@ defmodule Effusion.BTP.Metainfo.MultiFileInfo do
   """
 
   @enforce_keys [:files, :name, :piece_length, :pieces]
-  defstruct [:files, :name, :piece_length, :pieces, :length]
+  defstruct [:files, :name, :piece_length, :pieces]
 
   def new(fields) do
     struct(Effusion.BTP.Metainfo.MultiFileInfo, update_info(fields))
+  end
+
+  def bytes_count(info) do
+    Enum.count(info.pieces) * info.piece_length
   end
 
   defp update_info(info) when is_map(info) do

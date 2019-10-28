@@ -31,6 +31,14 @@ defmodule Effusion.BTP.Metainfo do
     end
   end
 
+  def bytes_count(meta) do
+    if Map.has_key?(meta.info, :files) do
+      MultiFileInfo.bytes_count(meta.info)
+    else
+      SingleFileInfo.bytes_count(meta.info)
+    end
+  end
+
   defp check_info_block(ours, bin)
        when is_binary(ours) and is_binary(bin) and byte_size(ours) < byte_size(bin) do
     case :binary.match(bin, ours) do

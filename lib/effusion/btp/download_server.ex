@@ -16,7 +16,11 @@ defmodule Effusion.BTP.DownloadServer do
   Start the Download Server in its own supervision tree.
   """
   def start(meta, {_host, _port} = local_server, file) when is_map(meta) do
-    Effusion.Application.DownloadServerSupervisor.start_child([meta, local_server, file])
+    with {:ok, _pid} <- Effusion.Application.DownloadServerSupervisor.start_child([meta, local_server, file]) do
+      {:ok, meta.info_hash}
+    else
+      err -> err
+    end
   end
 
   @doc """
@@ -28,6 +32,10 @@ defmodule Effusion.BTP.DownloadServer do
       [meta, local_peer, file],
       name: {:via, Registry, {SessionRegistry, meta.info_hash}}
     )
+  end
+
+  def get(info_hash) do
+    GenServer.call({:via, Registry, {SessionRegistry, info_hash}}, :get)
   end
 
   @doc """
@@ -111,6 +119,10 @@ defmodule Effusion.BTP.DownloadServer do
           {:reply, :ok, state}
         end
     end
+  end
+
+  def handle_call(:get, from, state = %Download{}) do
+    {:reply, state, state}
   end
 
   def handle_call(:await, from, state = %Download{}) do

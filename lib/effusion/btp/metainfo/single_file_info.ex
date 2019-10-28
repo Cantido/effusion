@@ -12,6 +12,10 @@ defmodule Effusion.BTP.Metainfo.SingleFileInfo do
     struct(Effusion.BTP.Metainfo.SingleFileInfo, update_info(fields))
   end
 
+  def bytes_count(info) do
+    info.length
+  end
+
   defp update_info(info) when is_map(info) do
     info
     |> Effusion.Map.rename_keys(info_tokens())

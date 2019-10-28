@@ -24,7 +24,7 @@ defmodule Effusion.Mixfile do
 
   def application do
     [
-      extra_applications: [:logger, :crypto, :ranch],
+      extra_applications: [:logger, :crypto, :ranch, :timex],
       mod: {Effusion.Application, []}
     ]
   end
@@ -36,6 +36,8 @@ defmodule Effusion.Mixfile do
       {:ranch, "~> 1.7"},
       {:httpotion, "~> 3.0.2"},
       {:gen_stage, "~> 0.14"},
+      {:timex, "~> 3.6"},
+      {:tzdata, "~> 0.1.7"},
       {:temp, "~> 0.4", only: :test},
       {:mox, "~> 0.3", only: :test},
       {:bypass, "~> 0.8", only: :test},
