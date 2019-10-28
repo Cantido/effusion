@@ -7,6 +7,7 @@ defmodule Effusion.Mixfile do
       version: "0.1.0",
       elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env()),
+      escript: escript(),
       start_permanent: Mix.env() == :prod,
       description: "A BitTorrent library.",
       # build with `mix escript.build`
@@ -40,6 +41,12 @@ defmodule Effusion.Mixfile do
       {:bypass, "~> 0.8", only: :test},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false}
+    ]
+  end
+
+  defp escript do
+    [
+      main_module: Effusion.CLI
     ]
   end
 
