@@ -6,6 +6,27 @@ defmodule Effusion.Format do
   @gibibyte 1024 * @mebibyte
   @tebibyte 1024 * @gibibyte
 
+
+  @doc """
+  Rounds an integer number of bytes into a higher unit.
+
+  ## Examples
+
+      iex> Effusion.Format.bytes(109)
+      "109 B"
+
+      iex> Effusion.Format.bytes(108_462)
+      "105.9 kiB"
+
+      iex> Effusion.Format.bytes(64_700_000)
+      "61.7 MiB"
+
+      iex> Effusion.Format.bytes(150_000_000_000)
+      "139.7 GiB"
+
+      iex> Effusion.Format.bytes(426_000_000_000_000)
+      "387.4 TiB"
+  """
   def bytes(n) when n >= 0 do
     cond do
       n < @kibibyte -> "#{n} B"
