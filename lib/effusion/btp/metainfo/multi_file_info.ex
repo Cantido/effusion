@@ -6,7 +6,7 @@ defmodule Effusion.BTP.Metainfo.MultiFileInfo do
   """
 
   @enforce_keys [:files, :name, :piece_length, :pieces]
-  defstruct [:files, :name, :piece_length, :pieces]
+  defstruct [:files, :name, :piece_length, :pieces, :length]
 
   def new(fields) do
     struct(Effusion.BTP.Metainfo.MultiFileInfo, update_info(fields))
