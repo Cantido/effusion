@@ -1,5 +1,6 @@
 defmodule Effusion.BTP.Download do
   alias Effusion.BTP.Pieces
+  alias Effusion.BTP.PeerSelection
   alias Effusion.BTP.Block
   alias Effusion.BTP.Swarm
   import Effusion.BTP.Peer
@@ -44,6 +45,21 @@ defmodule Effusion.BTP.Download do
       local_address: local_address,
       swarm: Effusion.BTP.Swarm.new(@local_peer_id, meta.info_hash)
     }
+  end
+
+  @doc """
+  Start a download.
+
+  This means the session will make an announcement to the tracker and begin
+  making connections.
+  """
+  def start(session = %__MODULE__{}, thp_client) do
+    _ = Logger.info "Starting download #{Effusion.Hash.inspect session.meta.info_hash}"
+    session = Map.put(session, :started_at, Timex.now())
+    params = announce_params(session, :started)
+
+    messages = [{:announce, params}]
+    {session, messages}
   end
 
   @doc """
@@ -159,27 +175,24 @@ defmodule Effusion.BTP.Download do
     end
   end
 
-  @doc """
-  Announce an event to this download's tracker,
-  using the given Tracker HTTP Protocol (THP) client.
-  """
-  def announce(d = %__MODULE__{}, client, event \\ :interval) do
-    {local_host, local_port} = Map.fetch!(d, :local_address)
+  def announce_params(d, event) do
+    {local_host, local_port} = d.local_address
 
-    {:ok, res} =
-      client.announce(
-        d.meta.announce,
-        local_host,
-        local_port,
-        d.peer_id,
-        d.meta.info_hash,
-        0,
-        Pieces.bytes_completed(d.pieces),
-        Pieces.bytes_left(d.pieces),
-        event,
-        d.tracker_id
-      )
+    [
+      d.meta.announce,
+      local_host,
+      local_port,
+      d.peer_id,
+      d.meta.info_hash,
+      0,
+      Pieces.bytes_completed(d.pieces),
+      Pieces.bytes_left(d.pieces),
+      event,
+      d.tracker_id
+    ]
+  end
 
+  def handle_tracker_response(d, res) do
     tracker_id =
       if Map.get(res, :tracker_id, "") != "" do
         res.tracker_id
@@ -192,22 +205,7 @@ defmodule Effusion.BTP.Download do
     d = d
     |> Map.put(:tracker_id, tracker_id)
     |> Map.put(:swarm, swarm)
-
-    {d, res}
-  end
-
-  @doc """
-  Start a download.
-
-  This means the session will make an announcement to the tracker and begin
-  making connections.
-  """
-  def start(session = %__MODULE__{}, thp_client) do
-    _ = Logger.info "Starting download #{Effusion.Hash.inspect session.meta.info_hash}"
-    {session, response} = announce(session, thp_client, :started)
-    session = Map.put(session, :started_at, Timex.now())
-    messages = Enum.map(session.swarm.peers, fn {_addr, p} -> {:btp_connect, p} end)
-    {session, response, messages}
+    d
   end
 
   @doc """
@@ -269,6 +267,12 @@ defmodule Effusion.BTP.Download do
       %{d | swarm: swarm},
       messages
     }
+  end
+
+  def connect_all_eligible(d) do
+    eligible_peers = PeerSelection.get_eligible_peers(d.peer_id, d.swarm.peers, [])
+    messages = Enum.map(eligible_peers, fn p -> {:btp_connect, p} end)
+    {d, messages}
   end
 
   def handle_connect(d, peer_id, address) when is_peer_id(peer_id) do

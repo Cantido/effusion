@@ -43,8 +43,10 @@ defmodule Effusion.BTP.DownloadTest do
     |> Map.put(:swarm, swarm)
   end
 
+  def stub_tracker_response, do: %{interval: 9_000, peers: []}
+
   def stub_tracker(_, _, _, _, _, _, _, _, _, _) do
-    {:ok, %{interval: 9_000, peers: []}}
+    {:ok, stub_tracker_response()}
   end
 
   test "expresses interest and unchokes after we send a bitfield", %{destfile: file} do
@@ -107,15 +109,6 @@ defmodule Effusion.BTP.DownloadTest do
   end
 
   test "sends torrent's download progress in announce", %{destfile: file} do
-    stub_tracker = fn _, _, _, _, _, _, downloaded, left, _, _ ->
-      assert downloaded == 3
-      assert left == 2
-      {:ok, %{interval: 9_000, peers: []}}
-    end
-
-    Effusion.THP.Mock
-    |> expect(:announce, stub_tracker)
-
     peer = peer()
 
     {session, _msg} =
@@ -127,37 +120,19 @@ defmodule Effusion.BTP.DownloadTest do
 
     assert Pieces.bytes_completed(session.pieces) == 3
 
-    Download.announce(session, Effusion.THP.Mock)
+    params = Download.announce_params(session, :interval)
+    assert [_, _, _, _, _, _, 3, 2, _, _] = params
   end
 
   test "includes peer_id in successive announcements", %{destfile: file} do
-    stub_tracker_1 = fn _, _, _, _, _, _, _, _, _, _ ->
-      {:ok, %{tracker_id: "this is my tracker id", interval: 9_000, peers: []}}
-    end
-
-    stub_tracker_2 = fn _, _, _, _, _, _, _, _, _, tracker_id ->
-      assert tracker_id == "this is my tracker id"
-      {:ok, %{interval: 9_000, peers: []}}
-    end
-
-    Effusion.THP.Mock
-    |> expect(:announce, stub_tracker_1)
-    |> expect(:announce, 2, stub_tracker_2)
-
     session = new(file)
-    {session, _res} = Download.announce(session, Effusion.THP.Mock, :started)
-    {session, _res} = Download.announce(session, Effusion.THP.Mock, :interval)
-    {_session, _res} = Download.announce(session, Effusion.THP.Mock, :completed)
+    session = Download.handle_tracker_response(session, %{tracker_id: "this is my tracker id", interval: 90_000, peers: []})
+    response = Download.announce_params(session, :interval)
+
+    assert [_, _, _, _, _, _, _, _, _, "this is my tracker id"] = response
   end
 
   test "sends HAVE messages once it finishes a piece", %{destfile: file} do
-    stub_tracker = fn _, _, _, _, _, _, _, _, _, _ ->
-      {:ok, %{interval: 9_000, peers: []}}
-    end
-
-    Effusion.THP.Mock
-    |> stub(:announce, stub_tracker)
-
     peer = peer()
 
     {_session, msgs} =
@@ -170,22 +145,12 @@ defmodule Effusion.BTP.DownloadTest do
     assert Enum.member?(msgs, {:broadcast, {:have, 0}})
   end
 
-  test "sends STARTED message to tracker on start", %{destfile: file} do
-    stub_tracker = fn _, _, _, _, _, _, _, _, event, _ ->
-      assert event == :started
-      {:ok, %{interval: 9_000, peers: []}}
-    end
-
-    Effusion.THP.Mock
-    |> expect(:announce, stub_tracker)
-
-    Download.start(new(file), Effusion.THP.Mock)
+  test "returns :announce message on start", %{destfile: file} do
+    {_dl, messages} = Download.start(new(file), Effusion.THP.Mock)
+    assert [{:announce, _params}] = messages
   end
 
   test "sends CANCEL messages to peers it sent requests to", %{destfile: file} do
-    Effusion.THP.Mock
-    |> stub(:announce, &stub_tracker/10)
-
     info_hash = @torrent.info_hash
 
     piece_sender_id = "Fake Peer Id ~~~~~~~"
@@ -212,24 +177,16 @@ defmodule Effusion.BTP.DownloadTest do
   end
 
   test "saves peers that result from announce", %{destfile: file} do
-    stub_tracker = fn _, _, _, _, _, _, _, _, _, _ ->
-      {
-        :ok,
-        %{
+    tracker_response = %{
           interval: 9_000,
           peers: [
             %{ip: {127, 0, 0, 1}, port: 8001, peer_id: "remote peer id~~~~~~"}
           ]
         }
-      }
-    end
 
-    Effusion.THP.Mock
-    |> expect(:announce, stub_tracker)
-
-    {session, _res} =
+    session =
       Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
-      |> Download.announce(Effusion.THP.Mock, :started)
+      |> Download.handle_tracker_response(tracker_response)
 
     peer = Map.get(session.swarm.peers, {{127, 0, 0, 1}, 8001})
 
@@ -238,73 +195,47 @@ defmodule Effusion.BTP.DownloadTest do
 
 
   test "does not save the same peer ID twice", %{destfile: file} do
-    stub_tracker = fn _, _, _, _, _, _, _, _, _, _ ->
-      {
-        :ok,
-        %{
+    tracker_response = %{
           interval: 9_000,
           peers: [
             %{ip: {127, 0, 0, 1}, port: 8001, peer_id: "remote peer id~~~~~~"}
           ]
         }
-      }
-    end
 
-    Effusion.THP.Mock
-    |> stub(:announce, stub_tracker)
-
-    {session, _res} =
+    session =
       Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
-      |> Download.announce(Effusion.THP.Mock, :started)
-    {session, _res} = Download.announce(session, Effusion.THP.Mock)
+      |> Download.handle_tracker_response(tracker_response)
+      |> Download.handle_tracker_response(tracker_response)
 
     assert Enum.count(session.swarm.peers) == 1
   end
 
   test "compact peer response", %{destfile: file} do
-    stub_tracker = fn _, _, _, _, _, _, _, _, _, _ ->
-      {
-        :ok,
-        %{
+    tracker_response = %{
           interval: 9_000,
           peers: [
             %{ip: {127, 0, 0, 1}, port: 8001}
           ]
         }
-      }
-    end
 
-    Effusion.THP.Mock
-    |> stub(:announce, stub_tracker)
-
-    {session, _res} =
+    session =
       Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
-      |> Download.announce(Effusion.THP.Mock, :started)
-    {session, _res} = Download.announce(session, Effusion.THP.Mock)
+      |> Download.handle_tracker_response(tracker_response)
 
     assert Enum.count(session.swarm.peers) == 1
   end
 
   test "rejects the same ip", %{destfile: file} do
-    stub_tracker = fn _, _, _, _, _, _, _, _, _, _ ->
-      {
-        :ok,
-        %{
+    tracker_response = %{
           interval: 9_000,
           peers: [
             %{ip: {127, 0, 0, 1}, port: 8001}
           ]
         }
-      }
-    end
 
-    Effusion.THP.Mock
-    |> stub(:announce, stub_tracker)
-
-    {session, _res} =
+    session =
       Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
-      |> Download.announce(Effusion.THP.Mock, :started)
-    {session, _res} = Download.announce(session, Effusion.THP.Mock)
+      |> Download.handle_tracker_response(tracker_response)
 
     assert Enum.count(session.swarm.peers) == 1
   end
