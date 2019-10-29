@@ -146,7 +146,7 @@ defmodule Effusion.BTP.DownloadTest do
   end
 
   test "returns :announce message on start", %{destfile: file} do
-    {_dl, messages} = Download.start(new(file), Effusion.THP.Mock)
+    {_dl, messages} = Download.start(new(file))
     assert [{:announce, _params}] = messages
   end
 

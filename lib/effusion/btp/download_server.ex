@@ -132,7 +132,7 @@ defmodule Effusion.BTP.DownloadServer do
     end
   end
 
-  def handle_call(:get, from, state = %Download{}) do
+  def handle_call(:get, _from, state = %Download{}) do
     {:reply, state, state}
   end
 
@@ -154,7 +154,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_info(:timeout, state = %Download{}) do
-    {session, messages} = Download.start(state, @thp_client)
+    {session, messages} = Download.start(state)
 
     Enum.each(messages, &handle_internal_message(&1, state))
 

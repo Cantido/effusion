@@ -6,7 +6,7 @@ defmodule Effusion.BTP.PeerSelection do
       Enum.map(closed_connections, fn c -> c.remote_peer_id end) |> MapSet.new()
 
     peers
-    |> Enum.reject(fn {id, p} ->
+    |> Enum.reject(fn {_id, p} ->
       peer_id = Map.get(p, :remote_peer_id)
 
       reject_peer_id? =

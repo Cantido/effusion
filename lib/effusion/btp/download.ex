@@ -53,7 +53,7 @@ defmodule Effusion.BTP.Download do
   This means the session will make an announcement to the tracker and begin
   making connections.
   """
-  def start(session = %__MODULE__{}, thp_client) do
+  def start(session = %__MODULE__{}) do
     _ = Logger.info "Starting download #{Effusion.Hash.inspect session.meta.info_hash}"
     session = Map.put(session, :started_at, Timex.now())
     params = announce_params(session, :started)
