@@ -2,6 +2,7 @@ defmodule Effusion.CLI do
   alias Effusion.BTP.Metainfo
   alias Effusion.Format
   alias Effusion.Stats
+  alias Effusion.Statistics.Net, as: NetStats
   use Timex
 
   @moduledoc """
@@ -40,7 +41,7 @@ defmodule Effusion.CLI do
   @downloaded_width 14
   @duration_width 20
 
-  defp output_loop(info_hash) do
+  defp output_loop(info_hash, last_uploaded_bytes \\ 0, last_downloaded_bytes \\ 0, last_timestamp \\ System.monotonic_time(:millisecond)) do
     download = Effusion.BTP.DownloadServer.get(info_hash)
     dur = Stats.download_duration(download)
 
@@ -53,14 +54,30 @@ defmodule Effusion.CLI do
     downloaded_str = Format.bytes(downloaded)
     duration_formatted = Timex.format_duration(dur, :humanized)
 
+    this_loop_time = System.monotonic_time(:millisecond)
+    time_since_last_loop = max(this_loop_time - last_timestamp, 1)
+
+    downloaded_bytes = NetStats.recv_bytes()
+    uploaded_bytes = NetStats.sent_bytes()
+    dl_speed = ((downloaded_bytes - last_downloaded_bytes) / time_since_last_loop) * 1_000
+    ul_speed = ((uploaded_bytes - last_uploaded_bytes) / time_since_last_loop) * 1_000
+
+    dl_speed_formatted = dl_speed |> trunc() |> Format.bytes()
+    ul_speed_formatted = ul_speed |> trunc() |> Format.bytes()
+
+    dl_bytes_formatted = downloaded_bytes |> Format.bytes()
+    ul_bytes_formatted = uploaded_bytes |> Format.bytes()
+
     IO.write IO.ANSI.clear()
     IO.write IO.ANSI.cursor(0, 0)
 
     IO.puts row("NAME", "PROGRESS", "PERCENT", "DOWNLOADED", "DURATION")
     IO.puts row(name_formatted, progress_bar, percent_downloaded, downloaded_str, duration_formatted)
+    IO.puts ""
+    IO.puts "Down: #{dl_speed_formatted}/s (#{dl_bytes_formatted}); Up: #{ul_speed_formatted}/s (#{ul_bytes_formatted})"
 
     Process.sleep(100)
-    output_loop(info_hash)
+    output_loop(info_hash, uploaded_bytes, downloaded_bytes, this_loop_time)
   end
 
 
