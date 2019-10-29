@@ -92,6 +92,17 @@ defmodule Effusion.BTP.DownloadServer do
     Download.mark_piece_written(state, block.index)
   end
 
+  defp handle_internal_message({:announce, announce_params}, state = %Download{}) do
+    {:ok, res} = apply(@thp_client, :announce, announce_params)
+
+    state = Download.handle_tracker_response(state, res)
+    Process.send_after(self(), :interval_expired, res.interval * 1_000)
+
+    {state, messages} = Download.connect_all_eligible(state)
+
+    Enum.each(messages, &handle_internal_message(&1, state))
+  end
+
   ## Callbacks
 
   def init([meta, local_peer, file]) do
@@ -143,9 +154,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_info(:timeout, state = %Download{}) do
-    {session, announce_response, messages} = Download.start(state, @thp_client)
-
-    Process.send_after(self(), :interval_expired, announce_response.interval * 1_000)
+    {session, messages} = Download.start(state, @thp_client)
 
     Enum.each(messages, &handle_internal_message(&1, state))
 
@@ -153,11 +162,13 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_info(:interval_expired, state = %Download{}) do
-    {session, res} = Download.announce(state, @thp_client)
+    announce_params = Download.announce_params(state, :interval)
+    {:ok, res} = apply(@thp_client, :announce, announce_params)
+    state = Download.handle_tracker_response(state, res)
 
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
 
-    {:noreply, session}
+    {:noreply, state}
   end
 
   def handle_info(_, state = %Download{}) do
@@ -167,12 +178,14 @@ defmodule Effusion.BTP.DownloadServer do
   def terminate(:normal, state = %Download{}) do
     ConnectionRegistry.disconnect_all(state.meta.info_hash)
 
-    {state, _response} =
+    announce_params =
       if Download.done?(state) do
-        Download.announce(state, @thp_client, :completed)
+        Download.announce_params(state, :completed)
       else
-        Download.announce(state, @thp_client, :stopped)
+        Download.announce_params(state, :stopped)
       end
+
+    {:ok, _res} = apply(@thp_client, :announce, announce_params)
 
     reply_to_listeners(state, {:ok, Download.pieces(state)})
   end
@@ -180,7 +193,9 @@ defmodule Effusion.BTP.DownloadServer do
   def terminate(reason, state = %Download{}) do
     Logger.debug "download server terminating with reason: #{inspect reason}"
 
-    {state, _res} = Download.announce(state, @thp_client, :stopped)
+    announce_params = Download.announce_params(state, :stopped)
+    {:ok, _res} = apply(@thp_client, :announce, announce_params)
+
     reply_to_listeners(state, {:error, :torrent_crashed, [reason: reason]})
   end
 
