@@ -1,4 +1,5 @@
 defmodule Effusion.THP.HTTP do
+  alias Effusion.Statistics.Net, as: NetStats
   @behaviour Effusion.THP
   @moduledoc """
   An HTTP implementation of the Tracker HTTP Protocol.
@@ -29,7 +30,13 @@ defmodule Effusion.THP.HTTP do
 
     with {:ok, event} <- build_event_param(event),
          tracker_request = Map.put(tracker_request, :event, event),
-         http_res = HTTPotion.get(tracker_url <> "?" <> URI.encode_query(tracker_request)) do
+         query = URI.encode_query(tracker_request),
+         http_res = HTTPotion.get(tracker_url <> "?" <> query) do
+           byte_size(query) |> NetStats.add_sent_bytes
+           byte_size(query) |> NetStats.add_sent_tracker_bytes
+           {length, ""} = http_res.headers["content-length"] |> Integer.parse
+           length |> NetStats.add_recv_bytes()
+           length |> NetStats.add_recv_tracker_bytes()
       decode_response(http_res)
     else
       err -> err

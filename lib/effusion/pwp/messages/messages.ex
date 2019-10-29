@@ -98,6 +98,10 @@ defmodule Effusion.PWP.Messages do
     {:error, :invalid}
   end
 
+
+  def payload_bytes_count(<<7, _index::32, _offset::32, data::binary>>), do: byte_size(data)
+  def payload_bytes_count(_msg), do: 0
+
   @doc """
   Encode a peer wire protocol message into a binary.
 

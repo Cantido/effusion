@@ -6,6 +6,7 @@ defmodule Effusion.Application do
 
   def start(_type, _args) do
     :ets.new(MetadataTable, [:set, :public, :named_table, read_concurrency: true])
+    :ets.new(NetStatsTable, [:set, :public, :named_table, read_concurrency: false, write_concurrency: true])
 
     children = [
       Effusion.Application.DownloadServerSupervisor,

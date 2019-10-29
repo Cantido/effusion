@@ -3,6 +3,7 @@ defmodule Effusion.PWP.Connection do
   alias Effusion.PWP.Socket
   alias Effusion.PWP.Connection
   alias Effusion.BTP.DownloadServer
+  alias Effusion.Statistics.Net, as: NetStats
   require Logger
 
   def disconnect(pid) do
@@ -93,6 +94,8 @@ defmodule Effusion.PWP.Connection do
 
   def handle_info({:tcp, _tcp_socket, data}, state) when is_binary(data) do
     # _ = Logger.debug("Handling incoming packet with data #{inspect data}")
+    Messages.payload_bytes_count(data) |> NetStats.add_recv_payload_bytes()
+    byte_size(data) |> NetStats.add_recv_bytes()
     {:ok, msg} = Messages.decode(data)
 
     handle_btp(msg, state)
