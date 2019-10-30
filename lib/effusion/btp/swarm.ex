@@ -20,6 +20,7 @@ defmodule Effusion.BTP.Swarm do
 
     new_peers =
       peers
+      |> Enum.filter(&valid_peer?/1)
       |> Enum.map(fn p ->
         Peer.new({p.ip, p.port}, swarm.peer_id, swarm.info_hash)
         |> Peer.set_remote_peer_id(Map.get(p, :peer_id, nil))
@@ -49,6 +50,9 @@ defmodule Effusion.BTP.Swarm do
     |> Map.put(:peers, all_updated_peers)
     |> Map.put(:peer_addresses, peer_addresses)
   end
+
+  def valid_peer?(%{port: port}) when port in 1..65535, do: true
+  def valid_peer?(_), do: false
 
   def delegate_message(swarm, remote_peer_id, msg) do
     with {:ok, peer} <- get_connected_peer(swarm, remote_peer_id),
