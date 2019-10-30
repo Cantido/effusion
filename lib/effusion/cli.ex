@@ -52,7 +52,7 @@ defmodule Effusion.CLI do
     percent_downloaded = Float.round(fraction_downloaded * 100, 3)
     progress_bar = Format.progress_bar(percent_downloaded, @progress_width - 2)
     downloaded_str = Format.bytes(downloaded)
-    duration_formatted = Timex.format_duration(dur, :humanized)
+    duration_formatted = Timex.format_duration(dur)
 
     this_loop_time = System.monotonic_time(:millisecond)
     time_since_last_loop = max(this_loop_time - last_timestamp, 1)
@@ -82,10 +82,17 @@ defmodule Effusion.CLI do
 
 
   defp row(name, progress, percent, downloaded, duration) do
-    String.pad_trailing(name, @name_width - 1) <> "|" <>
-      String.pad_trailing(" #{progress}", @progress_width - 1) <> "|" <>
-      String.pad_trailing(" #{percent}", @percent_width - 1) <> "|" <>
-      String.pad_trailing(" #{downloaded}", @downloaded_width - 1) <> "|" <>
-      String.pad_trailing(" #{duration}", @duration_width - 1)
+    constrain_text(name, @name_width)
+    <> "| " <> constrain_text(progress, @progress_width)
+    <> "| " <> constrain_text(percent, @percent_width)
+    <> "| " <> constrain_text(downloaded, @downloaded_width)
+    <> "| " <> constrain_text(duration, @duration_width)
+  end
+
+  defp constrain_text(string, length) do
+    string
+    |> to_string()
+    |> String.slice(0, length)
+    |> String.pad_trailing(length)
   end
 end
