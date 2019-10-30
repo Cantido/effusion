@@ -156,7 +156,6 @@ defmodule Effusion.BTP.Download do
       Effusion.BTP.PieceSelection.next_block(
         d.pieces,
         Map.values(d.swarm.peers),
-        # actual_connected_peers,
         @block_size
       )
 
