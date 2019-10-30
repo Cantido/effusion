@@ -1,5 +1,7 @@
 defmodule Effusion.THP.HTTP do
   alias Effusion.Statistics.Net, as: NetStats
+  import Effusion.BTP.Peer
+  import Effusion.Hash
   @behaviour Effusion.THP
   @moduledoc """
   An HTTP implementation of the Tracker HTTP Protocol.
@@ -16,7 +18,13 @@ defmodule Effusion.THP.HTTP do
         left,
         event \\ :interval,
         tracker_id \\ ""
-      ) do
+      ) when is_hash(info_hash)
+         and is_peer_id(peer_id)
+         and is_integer(peer_port)
+         and peer_port in 1..65535
+         and uploaded >= 0
+         and downloaded >= 0
+         and left >= 0 do
     tracker_request = %{
       info_hash: info_hash,
       peer_id: peer_id,
