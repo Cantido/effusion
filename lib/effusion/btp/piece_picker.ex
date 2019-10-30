@@ -1,4 +1,4 @@
-defmodule Effusion.BTP.PieceSelection do
+defmodule Effusion.BTP.PiecePicker do
   require Logger
   alias Effusion.BTP.Block
   alias Effusion.BTP.Pieces

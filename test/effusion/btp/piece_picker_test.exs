@@ -1,9 +1,9 @@
-defmodule Effusion.BTP.PieceSelectionTest do
+defmodule Effusion.BTP.PiecePickerTest do
   use ExUnit.Case, async: true
-  alias Effusion.BTP.PieceSelection
+  alias Effusion.BTP.PiecePicker
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Peer
-  doctest Effusion.BTP.PieceSelection
+  doctest Effusion.BTP.PiecePicker
 
   @meta TestHelper.tiny_meta()
   @info_hash @meta.info_hash
@@ -18,7 +18,7 @@ defmodule Effusion.BTP.PieceSelectionTest do
     peers = []
     block_size = 1
 
-    possible = PieceSelection.blocks_available(torrent, peers, block_size)
+    possible = PiecePicker.blocks_available(torrent, peers, block_size)
 
     assert Enum.empty?(possible)
   end
@@ -35,7 +35,7 @@ defmodule Effusion.BTP.PieceSelectionTest do
     peers = [peer]
     block_size = 1
 
-    possible = PieceSelection.blocks_available(torrent, peers, block_size)
+    possible = PiecePicker.blocks_available(torrent, peers, block_size)
 
     # assert possible == []
 
@@ -63,7 +63,7 @@ defmodule Effusion.BTP.PieceSelectionTest do
     peers = [peer]
     block_size = 16_384
 
-    possible = PieceSelection.blocks_available(torrent, peers, block_size)
+    possible = PiecePicker.blocks_available(torrent, peers, block_size)
 
     # assert possible == []
 

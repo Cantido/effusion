@@ -153,7 +153,7 @@ defmodule Effusion.BTP.Download do
   """
   def next_request(d = %__MODULE__{}) do
     next_block =
-      Effusion.BTP.PieceSelection.next_block(
+      Effusion.BTP.PiecePicker.next_block(
         d.pieces,
         Map.values(d.swarm.peers),
         @block_size
