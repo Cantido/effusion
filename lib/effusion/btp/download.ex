@@ -116,14 +116,22 @@ defmodule Effusion.BTP.Download do
 
     messages =
       d
-      |> Map.get(:requested_pieces, MapSet.new())
+      |> requested_blocks()
       |> Map.get(block_id, MapSet.new())
       |> Enum.filter(&(&1 != from))
       |> Enum.map(&({:btp_send, &1, {:cancel, block_id}}))
 
-    d = Map.update(d, :requested_pieces, Map.new(), &Map.delete(&1, block_id))
+    d = remove_requested_block(d, block_id)
 
     {d, messages}
+  end
+
+  defp requested_blocks(d) do
+    Map.get(d, :requested_pieces, MapSet.new())
+  end
+
+  defp remove_requested_block(d, block_id) do
+    Map.update(d, :requested_pieces, Map.new(), &Map.delete(&1, block_id))
   end
 
   @doc """
@@ -162,9 +170,13 @@ defmodule Effusion.BTP.Download do
     case next_block do
       nil -> {nil, d}
       _ ->
-        s1 = Map.update(d, :requested_pieces, MapSet.new(), &MapSet.put(&1, next_block))
+        s1 = mark_block_requested(d, next_block)
         {next_block, s1}
     end
+  end
+
+  defp mark_block_requested(d, block) do
+    Map.update(d, :requested_pieces, MapSet.new(), &MapSet.put(&1, block))
   end
 
   defp next_request_msg(session = %__MODULE__{}) do

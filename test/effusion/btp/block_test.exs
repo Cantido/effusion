@@ -24,8 +24,8 @@ defmodule Effusion.BTP.BlockTest do
 
     merged2 = Block.merge(%{index: 0, offset: 0, data: "h"}, %{index: 0, offset: 1, data: "i"})
 
-    assert merged1 == %{index: 0, offset: 0, data: "hi"}
-    assert merged2 == %{index: 0, offset: 0, data: "hi"}
+    assert merged1 == %Block{index: 0, offset: 0, data: "hi", size: 2}
+    assert merged2 == %Block{index: 0, offset: 0, data: "hi", size: 2}
   end
 
   test "knows its size if it contains data" do

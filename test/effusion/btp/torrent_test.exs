@@ -10,35 +10,35 @@ defmodule Effusion.BTP.TorrentTest do
   test "keeps track of blocks" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "t"})
+      |> Pieces.add_block(%Block{index: 0, offset: 0, data: "t", size: 1})
 
-    assert %{index: 0, offset: 0, data: "t"} in Pieces.unfinished(torrent)
+    assert %Block{index: 0, offset: 0, data: "t", size: 1} in Pieces.unfinished(torrent)
   end
 
   test "compacts blocks" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "t"})
-      |> Pieces.add_block(%{index: 0, offset: 1, data: "i"})
+      |> Pieces.add_block(%Block{index: 0, offset: 0, data: "t", size: 1})
+      |> Pieces.add_block(%Block{index: 0, offset: 1, data: "i", size: 1})
 
-    assert %{index: 0, offset: 0, data: "ti"} in Pieces.unfinished(torrent)
+    assert %Block{index: 0, offset: 0, data: "ti", size: 2} in Pieces.unfinished(torrent)
   end
 
   test "compacts blocks even if they are out of order" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 1, data: "i"})
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "t"})
+      |> Pieces.add_block(%Block{index: 0, offset: 1, data: "i", size: 1})
+      |> Pieces.add_block(%Block{index: 0, offset: 0, data: "t", size: 1})
 
-    assert %{index: 0, offset: 0, data: "ti"} in Pieces.unfinished(torrent)
+    assert %Block{index: 0, offset: 0, data: "ti", size: 2} in Pieces.unfinished(torrent)
   end
 
   test "verifies complete pieces once we have enough blocks" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "t"})
-      |> Pieces.add_block(%{index: 0, offset: 1, data: "i"})
-      |> Pieces.add_block(%{index: 0, offset: 2, data: "n"})
+      |> Pieces.add_block(%Block{index: 0, offset: 0, data: "t", size: 1})
+      |> Pieces.add_block(%Block{index: 0, offset: 1, data: "i", size: 1})
+      |> Pieces.add_block(%Block{index: 0, offset: 2, data: "n", size: 1})
 
     assert %{index: 0, data: "tin"} in Pieces.verified(torrent)
     assert Pieces.unfinished(torrent) |> Enum.empty?()
@@ -47,8 +47,8 @@ defmodule Effusion.BTP.TorrentTest do
   test "verifies shorter ending pieces once we have enough blocks" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 1, offset: 0, data: "y"})
-      |> Pieces.add_block(%{index: 1, offset: 1, data: "\n"})
+      |> Pieces.add_block(%{index: 1, offset: 0, data: "y", size: 1})
+      |> Pieces.add_block(%{index: 1, offset: 1, data: "\n", size: 1})
 
     assert %{index: 1, data: "y\n"} in Pieces.verified(torrent)
   end
@@ -56,11 +56,11 @@ defmodule Effusion.BTP.TorrentTest do
   test "finished pieces get accumulated" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "t"})
-      |> Pieces.add_block(%{index: 0, offset: 1, data: "i"})
-      |> Pieces.add_block(%{index: 0, offset: 2, data: "n"})
-      |> Pieces.add_block(%{index: 1, offset: 0, data: "y"})
-      |> Pieces.add_block(%{index: 1, offset: 1, data: "\n"})
+      |> Pieces.add_block(%{index: 0, offset: 0, data: "t", size: 1})
+      |> Pieces.add_block(%{index: 0, offset: 1, data: "i", size: 1})
+      |> Pieces.add_block(%{index: 0, offset: 2, data: "n", size: 1})
+      |> Pieces.add_block(%{index: 1, offset: 0, data: "y", size: 1})
+      |> Pieces.add_block(%{index: 1, offset: 1, data: "\n", size: 1})
 
     assert %{index: 0, data: "tin"} in Pieces.verified(torrent)
     assert %{index: 1, data: "y\n"} in Pieces.verified(torrent)
@@ -69,9 +69,9 @@ defmodule Effusion.BTP.TorrentTest do
   test "when a piece fails to verify, the piece is removed" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "t"})
-      |> Pieces.add_block(%{index: 0, offset: 1, data: "i"})
-      |> Pieces.add_block(%{index: 0, offset: 2, data: "x"})
+      |> Pieces.add_block(%{index: 0, offset: 0, data: "t", size: 1})
+      |> Pieces.add_block(%{index: 0, offset: 1, data: "i", size: 1})
+      |> Pieces.add_block(%{index: 0, offset: 2, data: "x", size: 1})
 
     assert Enum.count(Pieces.verified(torrent)) == 0
     assert Enum.count(Pieces.unfinished(torrent)) == 0
@@ -81,7 +81,7 @@ defmodule Effusion.BTP.TorrentTest do
     torrent = Pieces.new(@meta.info_hash)
 
     {verified, torrent} =
-      Pieces.add_block_and_take_verified(torrent, %{index: 0, offset: 0, data: "tin"})
+      Pieces.add_block_and_take_verified(torrent, %{index: 0, offset: 0, data: "tin", size: 3})
 
     assert %{index: 0, data: "tin"} in verified
     assert Pieces.verified(torrent) |> Enum.empty?()
@@ -91,7 +91,7 @@ defmodule Effusion.BTP.TorrentTest do
   test "take_verified removes verified pieces from torrent" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin"})
+      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin", size: 3})
 
     assert {verified, torrent} = Pieces.take_verified(torrent)
     assert %{index: 0, data: "tin"} in verified
@@ -102,7 +102,7 @@ defmodule Effusion.BTP.TorrentTest do
   test "all_present? is false when the part of the file is provided" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin"})
+      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin", size: 3})
 
     refute Pieces.all_present?(torrent)
   end
@@ -110,8 +110,8 @@ defmodule Effusion.BTP.TorrentTest do
   test "all_present? is true when the entire file is provided" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin"})
-      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n"})
+      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin", size: 3})
+      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n", size: 2})
 
     assert Pieces.all_present?(torrent)
   end
@@ -126,15 +126,15 @@ defmodule Effusion.BTP.TorrentTest do
     assert Pieces.bytes_completed(torrent) == 0
     assert Pieces.bytes_left(torrent) == 5
 
-    torrent = Pieces.add_block(torrent, %{index: 0, offset: 0, data: "t"})
+    torrent = Pieces.add_block(torrent, %{index: 0, offset: 0, data: "t", size: 1})
 
-    assert Pieces.unfinished(torrent) == MapSet.new([%{index: 0, offset: 0, data: "t"}])
+    assert Pieces.unfinished(torrent) == MapSet.new([%{index: 0, offset: 0, data: "t", size: 1}])
     assert Pieces.verified(torrent) |> Enum.empty?()
     assert Pieces.written(torrent) |> Enum.empty?()
     assert Pieces.bytes_completed(torrent) == 1
     assert Pieces.bytes_left(torrent) == 4
 
-    torrent = Pieces.add_block(torrent, %{index: 0, offset: 1, data: "in"})
+    torrent = Pieces.add_block(torrent, %Block{index: 0, offset: 1, data: "in", size: 2})
 
     assert Pieces.unfinished(torrent) |> Enum.empty?()
     assert Pieces.verified(torrent) == MapSet.new([%{index: 0, data: "tin"}])
@@ -160,8 +160,8 @@ defmodule Effusion.BTP.TorrentTest do
   test "bytes_completed returns torrent size if the torrent is complete" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin"})
-      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n"})
+      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin", size: 3})
+      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n", size: 2})
 
     assert Pieces.bytes_completed(torrent) == 5
   end
@@ -169,7 +169,7 @@ defmodule Effusion.BTP.TorrentTest do
   test "bytes_completed returns a value if the torrent is incomplete" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin"})
+      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin", size: 3})
 
     assert Pieces.bytes_completed(torrent) == 3
   end
@@ -177,8 +177,8 @@ defmodule Effusion.BTP.TorrentTest do
   test "bytes_completed returns a value if the torrent is incomplete and has unfinished pieces" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin"})
-      |> Pieces.add_block(%{index: 1, offset: 0, data: "y"})
+      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin", size: 3})
+      |> Pieces.add_block(%{index: 1, offset: 0, data: "y", size: 1})
 
     assert Pieces.bytes_left(torrent) == 1
   end
@@ -186,7 +186,7 @@ defmodule Effusion.BTP.TorrentTest do
   test "bytes_completed returns a value if the torrent is incomplete, and we have the last odd-sized piece" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n"})
+      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n", size: 2})
 
     assert Pieces.bytes_completed(torrent) == 2
   end
@@ -210,8 +210,8 @@ defmodule Effusion.BTP.TorrentTest do
   test "bytes_left returns zero if the torrent is complete" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin"})
-      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n"})
+      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin", size: 3})
+      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n", size: 2})
 
     assert Pieces.bytes_left(torrent) == 0
   end
@@ -219,7 +219,7 @@ defmodule Effusion.BTP.TorrentTest do
   test "bytes_left returns a value if the torrent is incomplete" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin"})
+      |> Pieces.add_block(%{index: 0, offset: 0, data: "tin", size: 3})
 
     assert Pieces.bytes_left(torrent) == 2
   end
@@ -227,7 +227,7 @@ defmodule Effusion.BTP.TorrentTest do
   test "bytes_left returns a value if the torrent is incomplete and has unfinished pieces" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 0, offset: 0, data: "t"})
+      |> Pieces.add_block(%{index: 0, offset: 0, data: "t", size: 1})
 
     assert Pieces.bytes_left(torrent) == 4
   end
@@ -235,7 +235,7 @@ defmodule Effusion.BTP.TorrentTest do
   test "bytes_left returns a value if the torrent is incomplete, and we have the last odd-sized piece" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n"})
+      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n", size: 2})
 
     assert Pieces.bytes_left(torrent) == 3
   end
@@ -282,7 +282,7 @@ defmodule Effusion.BTP.TorrentTest do
   test "a torrent with a piece in memory has that piece in its bitfield" do
     torrent =
       Pieces.new(@meta.info_hash)
-      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n"})
+      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n", size: 2})
 
     assert Pieces.bitfield(torrent) |> Enum.member?(1)
   end
@@ -291,7 +291,7 @@ defmodule Effusion.BTP.TorrentTest do
     torrent =
       Pieces.new(@meta.info_hash)
       |> Pieces.mark_piece_written(%{index: 0})
-      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n"})
+      |> Pieces.add_block(%{index: 1, offset: 0, data: "y\n", size: 2})
 
     assert 0 in Pieces.bitfield(torrent)
     assert 1 in Pieces.bitfield(torrent)

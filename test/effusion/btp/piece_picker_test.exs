@@ -2,6 +2,7 @@ defmodule Effusion.BTP.PiecePickerTest do
   use ExUnit.Case, async: true
   alias Effusion.BTP.PiecePicker
   alias Effusion.BTP.Pieces
+  alias Effusion.BTP.Block
   alias Effusion.BTP.Peer
   doctest Effusion.BTP.PiecePicker
 
@@ -40,15 +41,15 @@ defmodule Effusion.BTP.PiecePickerTest do
     # assert possible == []
 
     # t
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 0, offset: 0, size: 1}})
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %Block{index: 0, offset: 0, size: 1}})
     # i
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 0, offset: 1, size: 1}})
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %Block{index: 0, offset: 1, size: 1}})
     # n
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 0, offset: 2, size: 1}})
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %Block{index: 0, offset: 2, size: 1}})
     # y
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 1, offset: 0, size: 1}})
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %Block{index: 1, offset: 0, size: 1}})
     # \n
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 1, offset: 1, size: 1}})
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %Block{index: 1, offset: 1, size: 1}})
   end
 
   test "doesn't act wierd with a huge block size" do
@@ -68,8 +69,8 @@ defmodule Effusion.BTP.PiecePickerTest do
     # assert possible == []
 
     # tin
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 0, offset: 0, size: 3}})
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %Block{index: 0, offset: 0, size: 3}})
     # y\n
-    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %{index: 1, offset: 0, size: 2}})
+    assert Enum.member?(possible, {"Remote peer ID ~~~~~", %Block{index: 1, offset: 0, size: 2}})
   end
 end

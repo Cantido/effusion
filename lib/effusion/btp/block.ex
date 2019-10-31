@@ -13,6 +13,9 @@ defmodule Effusion.BTP.Block do
   indicating the data's offset from the start of the piece with index `:index`.
   """
 
+  @enforce_keys [:index, :offset, :size]
+  defstruct [:index, :offset, :size, data: <<>>]
+
   defguardp is_index(i) when is_integer(i) and i >= 0
   defguardp is_size(x) when is_integer(x) and x > 0
 
@@ -22,18 +25,18 @@ defmodule Effusion.BTP.Block do
   This object carries no download data.
   """
   def id(i, o, s) when is_index(i) and is_index(o) and is_size(s) do
-    %{index: i, offset: o, size: s}
+    %__MODULE__{index: i, offset: o, size: s}
   end
 
   def id(%{index: i, offset: o, data: d}) do
-    %{index: i, offset: o, size: byte_size(d)}
+    %__MODULE__{index: i, offset: o, size: byte_size(d)}
   end
 
   @doc """
   Make a data structure for a block containing some data.
   """
   def new(i, o, d) when is_index(i) and is_index(o) and is_binary(d) do
-    %{index: i, offset: o, data: d}
+    %__MODULE__{index: i, offset: o, size: byte_size(d), data: d}
   end
 
   @doc """
@@ -57,16 +60,18 @@ defmodule Effusion.BTP.Block do
   def merge(b1 = %{index: i1, offset: o1, data: d1}, b2 = %{index: i2, offset: o2, data: d2}) do
     cond do
       sequential?(b1, b2) ->
-        %{
+        %__MODULE__{
           index: i1,
           offset: o1,
+          size: byte_size(d1 <> d2),
           data: d1 <> d2
         }
 
       sequential?(b2, b1) ->
-        %{
+        %__MODULE__{
           index: i2,
           offset: o2,
+          size: byte_size(d2 <> d1),
           data: d2 <> d1
         }
     end
