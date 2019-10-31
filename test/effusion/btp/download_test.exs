@@ -164,13 +164,8 @@ defmodule Effusion.BTP.DownloadTest do
     block_id = Block.id(0, 0, 1)
     block_data = Block.new(0, 0, "t")
 
-    requested_pieces =
-      Map.new([
-        {block_id, MapSet.new([piece_sender_id, piece_requestee_id])}
-      ])
-
     {_s, messages} = new(file)
-    |> Map.put(:requested_pieces, requested_pieces)
+    |> Download.mark_block_requested({piece_requestee_id, block_id})
     |> Download.handle_message(piece_sender_id, {:piece, block_data})
 
     assert messages == [{:btp_send, piece_requestee_id, {:cancel, block_id}}]

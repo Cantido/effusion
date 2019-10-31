@@ -117,8 +117,10 @@ defmodule Effusion.BTP.Download do
     messages =
       d
       |> requested_blocks()
-      |> Map.get(block_id, MapSet.new())
-      |> Enum.filter(&(&1 != from))
+      |> Enum.filter(fn {peer_id, %{index: i, offset: o, size: s}} ->
+          peer_id != from && block_id.index == i && block_id.offset == o && block_id.size == s
+      end)
+      |> Enum.map(fn {peer_id, _blk} -> peer_id end)
       |> Enum.map(&({:btp_send, &1, {:cancel, block_id}}))
 
     d = remove_requested_block(d, block_id)
@@ -131,7 +133,15 @@ defmodule Effusion.BTP.Download do
   end
 
   defp remove_requested_block(d, block_id) do
-    Map.update(d, :requested_pieces, Map.new(), &Map.delete(&1, block_id))
+    Map.update(d, :requested_pieces, MapSet.new(), &remove_requested_block_from_set(&1, block_id))
+  end
+
+  defp remove_requested_block_from_set(set, %{index: id_i, offset: id_o, size: id_s}) do
+    set
+    |> Enum.filter(fn {peer, %{index: i, offset: o, size: s}} ->
+      i == id_i && o == id_o && s == id_s
+    end)
+    |> MapSet.new()
   end
 
   @doc """
@@ -175,7 +185,7 @@ defmodule Effusion.BTP.Download do
     end
   end
 
-  defp mark_block_requested(d, block) do
+  def mark_block_requested(d, block = {_peer_id, _block}) do
     Map.update(d, :requested_pieces, MapSet.new(), &MapSet.put(&1, block))
   end
 
