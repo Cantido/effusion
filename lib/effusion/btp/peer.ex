@@ -30,7 +30,8 @@ defmodule Effusion.BTP.Peer do
     peer_interested: false,
     am_choking: true,
     am_interested: false,
-    has: IntSet.new()
+    has: IntSet.new(),
+    blocks_we_requested: MapSet.new()
   ]
 
   @doc """
@@ -62,6 +63,23 @@ defmodule Effusion.BTP.Peer do
 
   def dec_fail_count(peer = %__MODULE__{}) when is_map(peer) do
     Map.update(peer, :failcount, 0, &(&1-1))
+  end
+
+  def blocks_we_requested(peer) do
+    peer.blocks_we_requested
+  end
+
+  def request_block(peer, block_id) do
+    Map.update!(peer, :blocks_we_requested, &MapSet.put(&1, block_id))
+  end
+
+  def remove_requested_block(peer, %{index: id_i, offset: id_o, size: id_s}) do
+    requested = peer.blocks_we_requested
+      |> Enum.filter(fn {_peer, %{index: i, offset: o, size: s}} ->
+        i == id_i && o == id_o && s == id_s
+      end)
+      |> MapSet.new()
+    %{peer | blocks_we_requested: requested}
   end
 
   @doc """

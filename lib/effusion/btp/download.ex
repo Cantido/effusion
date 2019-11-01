@@ -3,7 +3,7 @@ defmodule Effusion.BTP.Download do
   alias Effusion.BTP.PeerSelection
   alias Effusion.BTP.Block
   alias Effusion.BTP.Swarm
-  import Effusion.BTP.Peer
+  import Effusion.BTP.Peer, only: [is_peer_id: 1]
   require Logger
   use Timex
 

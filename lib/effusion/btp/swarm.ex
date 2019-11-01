@@ -66,7 +66,12 @@ defmodule Effusion.BTP.Swarm do
   def valid_peer?(_), do: false
 
   def requested_blocks(swarm) do
-    swarm.requested_pieces
+    swarm.peers
+    |> Enum.flat_map(fn {_addr, p} ->
+      Enum.map(p.blocks_we_requested, fn b ->
+        {p.remote_peer_id, b}
+      end)
+    end)
   end
 
   def remove_requested_block(swarm, block_id) do
@@ -82,7 +87,9 @@ defmodule Effusion.BTP.Swarm do
   end
 
   def mark_block_requested(swarm = %__MODULE__{}, peer_id, block_id) do
-    Map.update!(swarm, :requested_pieces, &MapSet.put(&1, {peer_id, block_id}))
+    addr = Map.get(swarm.peer_addresses, peer_id)
+    peers = Map.update!(swarm.peers, addr, &Peer.request_block(&1, block_id))
+    %{swarm | peers: peers}
   end
 
   def delegate_message(swarm = %__MODULE__{}, remote_peer_id, msg) do

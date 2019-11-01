@@ -152,8 +152,8 @@ defmodule Effusion.BTP.DownloadTest do
   test "sends CANCEL messages to peers it sent requests to", %{destfile: file} do
     info_hash = @torrent.info_hash
 
-    piece_sender_id = "Fake Peer Id ~~~~~~~"
-    piece_requestee_id = "123456789012345678~2"
+    piece_requestee_id = "Fake Peer Id ~~~~~~~"
+    piece_sender_id = "123456789012345678~2"
     bystander_id = "123456789012345678~3"
 
     {:ok, _pid} = Registry.register(ConnectionRegistry, info_hash, piece_sender_id)
