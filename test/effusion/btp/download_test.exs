@@ -1,5 +1,5 @@
 defmodule Effusion.BTP.DownloadTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   alias Effusion.BTP.Download
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
@@ -10,6 +10,10 @@ defmodule Effusion.BTP.DownloadTest do
   setup :verify_on_exit!
 
   @torrent TestHelper.tiny_meta()
+
+  setup do
+    Effusion.BTP.Metainfo.Directory.insert(@torrent)
+  end
 
   def peer do
     Peer.new(
