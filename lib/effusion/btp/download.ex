@@ -23,7 +23,6 @@ defmodule Effusion.BTP.Download do
     :swarm,
     started_at: nil,
     listeners: MapSet.new,
-    requested_pieces: MapSet.new(),
     tracker_id: ""
   ]
 
@@ -115,8 +114,7 @@ defmodule Effusion.BTP.Download do
     block_id = Block.id(block)
 
     messages =
-      d
-      |> requested_blocks()
+      Swarm.requested_blocks(d.swarm)
       |> Enum.filter(fn {peer_id, %{index: i, offset: o, size: s}} ->
           peer_id != from && block_id.index == i && block_id.offset == o && block_id.size == s
       end)
@@ -128,20 +126,8 @@ defmodule Effusion.BTP.Download do
     {d, messages}
   end
 
-  defp requested_blocks(d) do
-    Map.get(d, :requested_pieces, MapSet.new())
-  end
-
   defp remove_requested_block(d, block_id) do
-    Map.update(d, :requested_pieces, MapSet.new(), &remove_requested_block_from_set(&1, block_id))
-  end
-
-  defp remove_requested_block_from_set(set, %{index: id_i, offset: id_o, size: id_s}) do
-    set
-    |> Enum.filter(fn {peer, %{index: i, offset: o, size: s}} ->
-      i == id_i && o == id_o && s == id_s
-    end)
-    |> MapSet.new()
+    Map.update!(d, :swarm, &Swarm.remove_requested_block(&1, block_id))
   end
 
   @doc """
@@ -186,7 +172,7 @@ defmodule Effusion.BTP.Download do
   end
 
   def mark_block_requested(d, block = {_peer_id, _block}) do
-    Map.update(d, :requested_pieces, MapSet.new(), &MapSet.put(&1, block))
+    Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, block))
   end
 
   defp next_request_msg(session = %__MODULE__{}) do

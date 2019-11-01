@@ -3,18 +3,29 @@ defmodule Effusion.BTP.Swarm do
   import Effusion.BTP.Peer
   require Logger
 
+  defstruct [
+    :peer_id,
+    :info_hash,
+    :peers,
+    :peer_addresses,
+    :connected_peers,
+    :closed_connections,
+    :requested_pieces
+  ]
+
   def new(peer_id, info_hash) do
-    %{
+    %__MODULE__{
       peer_id: peer_id,
       info_hash: info_hash,
       peers: Map.new(),
       peer_addresses: Map.new(),
       connected_peers: Map.new(),
       closed_connections: MapSet.new(),
+      requested_pieces: MapSet.new()
     }
   end
 
-  def add(swarm, peers) do
+  def add(swarm = %__MODULE__{}, peers) do
     known_addrs = Map.keys(swarm.peers)
     {known_ids, _} = Map.split(swarm.peer_addresses, known_addrs)
 
@@ -54,7 +65,27 @@ defmodule Effusion.BTP.Swarm do
   def valid_peer?(%{port: port}) when port in 1..65535, do: true
   def valid_peer?(_), do: false
 
-  def delegate_message(swarm, remote_peer_id, msg) do
+  def requested_blocks(swarm) do
+    swarm.requested_pieces
+  end
+
+  def remove_requested_block(swarm, block_id) do
+    Map.update!(swarm, :requested_pieces, &remove_requested_block_from_set(&1, block_id))
+  end
+
+  defp remove_requested_block_from_set(set, %{index: id_i, offset: id_o, size: id_s}) do
+    set
+    |> Enum.filter(fn {_peer, %{index: i, offset: o, size: s}} ->
+      i == id_i && o == id_o && s == id_s
+    end)
+    |> MapSet.new()
+  end
+
+  def mark_block_requested(swarm = %__MODULE__{}, block = {_peer_id, _block}) do
+    Map.update!(swarm, :requested_pieces, &MapSet.put(&1, block))
+  end
+
+  def delegate_message(swarm = %__MODULE__{}, remote_peer_id, msg) do
     with {:ok, peer} <- get_connected_peer(swarm, remote_peer_id),
          {peer, responses} <- Peer.recv(peer, msg),
          swarm = Map.update(swarm, :peers, Map.new(), &Map.put(&1, peer.address, peer)) do
@@ -64,7 +95,7 @@ defmodule Effusion.BTP.Swarm do
     end
   end
 
-  def get_connected_peer(swarm, remote_peer_id)
+  def get_connected_peer(swarm = %__MODULE__{}, remote_peer_id)
        when is_peer_id(remote_peer_id) do
     with {:ok, address} <- Map.fetch(swarm.peer_addresses, remote_peer_id) do
       Map.fetch(swarm.peers, address)
@@ -73,18 +104,18 @@ defmodule Effusion.BTP.Swarm do
     end
   end
 
-  def handle_connect(swarm, peer_id, address) do
+  def handle_connect(swarm = %__MODULE__{}, peer_id, address) do
     swarm
     |> Map.update(:peers, Map.new(), &Map.put(&1, address, peer(swarm, peer_id, address)))
     |> Map.update(:peer_addresses, Map.new(), &Map.put(&1, peer_id, address))
   end
 
-  def handle_disconnect(swarm, address) do
+  def handle_disconnect(swarm = %__MODULE__{}, address) do
     swarm
     |> Map.update!(:peers, &Map.delete(&1, address))
   end
 
-  defp peer(swarm, peer_id, peer_address)
+  defp peer(swarm = %__MODULE__{}, peer_id, peer_address)
        when is_peer_id(peer_id) do
     Peer.new(peer_address, swarm.peer_id, swarm.info_hash)
     |> Map.put(:remote_peer_id, peer_id)

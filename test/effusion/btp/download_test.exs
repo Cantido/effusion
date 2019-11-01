@@ -34,10 +34,9 @@ defmodule Effusion.BTP.DownloadTest do
 
   def new(destfile) do
     peer = peer()
-    swarm = %{
-      peers: Map.put(%{}, peer.address, peer),
-      peer_addresses: Map.put(%{}, "Fake Peer Id ~~~~~~~", {{192, 168, 1, 2}, 8000})
-    }
+    swarm = Effusion.BTP.Swarm.new("Effusion Experiment!", "Effusion Experiment!")
+    |> Map.update!(:peers, &Map.put(&1, peer.address, peer))
+    |> Map.update!(:peer_addresses, &Map.put(&1, "Fake Peer Id ~~~~~~~", {{192, 168, 1, 2}, 8000}))
 
     Download.new(@torrent, {{192, 168, 1, 1}, 8080}, destfile)
     |> Map.put(:swarm, swarm)
