@@ -171,15 +171,40 @@ defmodule Effusion.BTP.Download do
     end
   end
 
+  def mark_blocks_requested(d, blocks) do
+    Enum.reduce(blocks, d, fn block, d_acc ->
+      mark_block_requested(d_acc, block)
+    end)
+  end
+
   def mark_block_requested(d, {peer_id, block_id}) do
     Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer_id, block_id))
   end
 
   defp next_request_msg(session = %__MODULE__{}) do
-    case next_request(session) do
-      {{peer_id, %{index: i, offset: o, size: sz}}, session} -> {session, [{:btp_send, peer_id, {:request, i, o, sz}}]}
-      {nil, session} -> {session, []}
+    {reqs, download} = next_requests(session, 20)
+    {download, Enum.map(reqs, &block_into_request/1)}
+  end
+
+  def next_requests(d = %__MODULE__{}, count) do
+    next_blocks =
+      Effusion.BTP.PiecePicker.next_blocks(
+        d.pieces,
+        Map.values(d.swarm.peers),
+        @block_size,
+        count
+      )
+
+    case next_blocks do
+      [] -> {[], d}
+      _ ->
+        s1 = mark_blocks_requested(d, next_blocks)
+        {next_blocks, s1}
     end
+  end
+
+  defp block_into_request({peer_id, %{index: i, offset: o, size: sz}}) do
+    {:btp_send, peer_id, {:request, i, o, sz}}
   end
 
   def announce_params(d, event) do

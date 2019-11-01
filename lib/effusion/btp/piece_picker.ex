@@ -25,6 +25,20 @@ defmodule Effusion.BTP.PiecePicker do
     end
   end
 
+  def next_blocks(torrent, peers, block_size, count_to_take) do
+    if Pieces.all_present?(torrent) do
+      []
+    else
+      poss = blocks_available(torrent, peers, block_size)
+
+      if Enum.any?(poss) do
+        Enum.take_random(poss, count_to_take)
+      else
+        []
+      end
+    end
+  end
+
   @doc """
   Returns a set of ID-block pairs, of all blocks that can be requested, and from what peers
   """
@@ -37,6 +51,7 @@ defmodule Effusion.BTP.PiecePicker do
     |> expand_piece_sets()
     |> pieces_to_blocks(info, block_size)
     |> reject_blocks_present_in_torrent(torrent)
+    |> reject_blocks_already_requested(peers)
   end
 
   @doc """
@@ -78,6 +93,27 @@ defmodule Effusion.BTP.PiecePicker do
   defp reject_blocks_present_in_torrent(blocks, torrent) do
     blocks
     |> Enum.reject(fn {_id, b} -> Pieces.has_block?(torrent, b) end)
+  end
+
+  defp reject_blocks_already_requested(blocks, peers) do
+    requested_blocks = peers
+    |> Enum.flat_map(fn p ->
+      Enum.map(p.blocks_we_requested, fn b ->
+        {p.remote_peer_id, b}
+      end)
+    end)
+
+    Logger.debug "peers: #{inspect peers}"
+    Logger.debug "Rejecting blocks already requested"
+    Logger.debug "Requested_blocks: #{inspect requested_blocks}"
+    Logger.debug "Blocks, pre-reject: #{inspect blocks}"
+
+    blocks
+    |> Enum.reject(fn {peer_id, %{index: i_a, offset: o_a, size: s_a}} ->
+      Enum.any?(requested_blocks, fn {peer_id_b, %{index: i_b, offset: o_b, size: s_b}} ->
+        peer_id == peer_id_b && i_a == i_b && o_a == o_b && s_a == s_b
+      end)
+    end)
   end
 
   defp piece_size(index, info) do

@@ -108,19 +108,15 @@ defmodule EffusionTest do
     :ok = Socket.send_msg(sock, :unchoke)
 
     {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
+    {:ok, {:request, %{index: i2}}} = Socket.recv(sock)
 
-    {i2, piece1, piece2} =
-      case i1 do
-        0 -> {1, {:piece, 0, 0, "tin"}, {:piece, 1, 0, "y\n"}}
-        1 -> {0, {:piece, 1, 0, "y\n"}, {:piece, 0, 0, "tin"}}
-      end
+    :ok = Socket.send_msg(sock, {:piece, 0, 0, "tin"})
+    :ok = Socket.send_msg(sock, {:piece, 1, 0, "y\n"})
 
-    :ok = Socket.send_msg(sock, piece1)
-    {:ok, {:have, ^i1}} = Socket.recv(sock)
-    {:ok, {:request, %{index: ^i2}}} = Socket.recv(sock)
+    {:ok, {:have, r1}} = Socket.recv(sock)
+    {:ok, {:have, r2}} = Socket.recv(sock)
 
-    :ok = Socket.send_msg(sock, piece2)
-    {:ok, {:have, ^i2}} = Socket.recv(sock)
+    assert (r1 == 0 && r2 == 1) or (r1 == 1 && r2 == 0)
 
     :timer.sleep(100)
     :file.datasync(file)
@@ -147,20 +143,15 @@ defmodule EffusionTest do
     {:ok, :unchoke} = Socket.recv(sock)
 
     {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
+    {:ok, {:request, %{index: i2}}} = Socket.recv(sock)
 
-    {i2, piece1, piece2} =
-      case i1 do
-        0 -> {1, {:piece, 0, 0, "tin"}, {:piece, 1, 0, "y\n"}}
-        1 -> {0, {:piece, 1, 0, "y\n"}, {:piece, 0, 0, "tin"}}
-      end
+    :ok = Socket.send_msg(sock, {:piece, 0, 0, "tin"})
+    :ok = Socket.send_msg(sock, {:piece, 1, 0, "y\n"})
 
-    :ok = Socket.send_msg(sock, piece1)
-    {:ok, {:have, ^i1}} = Socket.recv(sock)
-    {:ok, {:request, %{index: ^i2}}} = Socket.recv(sock)
+    {:ok, {:have, r1}} = Socket.recv(sock)
+    {:ok, {:have, r2}} = Socket.recv(sock)
 
-    :ok = Socket.send_msg(sock, piece2)
-    {:ok, {:have, ^i2}} = Socket.recv(sock)
-
+    assert (r1 == 0 && r2 == 1) or (r1 == 1 && r2 == 0)
     :timer.sleep(100)
     :file.datasync(file)
 
