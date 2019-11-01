@@ -6,8 +6,7 @@ defmodule Effusion.IOTest do
   doctest Effusion.IO
 
   setup do
-    :ets.insert(MetadataTable, {TestHelper.tiny_meta().info_hash, TestHelper.tiny_meta()})
-    :ok
+    Effusion.BTP.Metainfo.Directory.insert(TestHelper.tiny_meta())
   end
 
   test "writes the contents of the torrent out to a file" do

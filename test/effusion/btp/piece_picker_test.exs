@@ -10,8 +10,7 @@ defmodule Effusion.BTP.PiecePickerTest do
   @info_hash @meta.info_hash
 
   setup do
-    :ets.insert(MetadataTable, {@info_hash, @meta})
-    :ok
+    Effusion.BTP.Metainfo.Directory.insert(@meta)
   end
 
   test "set of possible requests is empty when we have no peers" do
