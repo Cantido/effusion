@@ -106,6 +106,7 @@ defmodule Effusion.BTP.DownloadServer do
   ## Callbacks
 
   def init([meta, local_peer, file]) do
+    :ok = Effusion.BTP.Metainfo.Directory.insert(meta)
     state = Download.new(meta, local_peer, file)
 
     {:ok, state, 0}

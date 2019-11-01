@@ -82,11 +82,11 @@ defmodule Effusion.BTP.Metainfo do
   end
 
   def put_meta(meta) do
-    :ets.insert(MetadataTable, {meta.info_hash, meta})
+    Effusion.BTP.Metainfo.Directory.insert(meta)
   end
 
   def get_meta(info_hash) do
-    :ets.lookup_element(MetadataTable, info_hash, 2)
+    Effusion.BTP.Metainfo.Directory.lookup(info_hash)
   end
 
   defimpl Inspect, for: Effusion.BTP.Metainfo.SingleFileInfo do

@@ -7,6 +7,10 @@ defmodule Effusion.BTP.TorrentTest do
 
   @meta TestHelper.tiny_meta()
 
+  setup do
+    Effusion.BTP.Metainfo.Directory.insert(@meta)
+  end
+
   test "keeps track of blocks" do
     torrent =
       Pieces.new(@meta.info_hash)

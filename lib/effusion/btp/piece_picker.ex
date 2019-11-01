@@ -54,42 +54,32 @@ defmodule Effusion.BTP.PiecePicker do
     |> reject_blocks_already_requested(peers)
   end
 
-  @doc """
-  """
   defp available_pieces_by_peer(peers) do
     peers
     |> Enum.map(fn p -> {p.remote_peer_id, p.has} end)
   end
 
-  @doc """
-  Selects peers that have pieces in the we_have set
-  """
+  # Selects peers that have pieces in the we_have set
   defp select_required_pieces(pieces, we_have) do
     pieces
     |> Enum.map(fn {id, has} -> {id, IntSet.difference(has, we_have)} end)
     |> Enum.reject(fn {_id, has} -> Enum.empty?(has) end)
   end
 
-  @doc """
-  Expands `{peer_id, pieces}` into many `{peer_id, piece}` enums
-  """
+  # Expands `{peer_id, pieces}` into many `{peer_id, piece}` enums
   defp expand_piece_sets(peers) do
     peers
     |> Enum.flat_map(fn {id, has} -> for p <- has, do: {id, p} end)
   end
 
-  @doc """
-  Splits `{peer_id, piece}` into many `{peer_id, block}` enums
-  """
+  # Splits `{peer_id, piece}` into many `{peer_id, block}` enums
   defp pieces_to_blocks(pieces, info, block_size) do
     pieces
     |> Enum.map(fn {id, p} -> {id, Block.id(p, 0, piece_size(p, info))} end)
     |> Enum.flat_map(fn {id, p} -> for b <- Block.split(p, block_size), do: {id, b} end)
   end
 
-  @doc """
-  Filters out blocks that already exist in `torrent`
-  """
+  # Filters out blocks that already exist in `torrent`
   defp reject_blocks_present_in_torrent(blocks, torrent) do
     blocks
     |> Enum.reject(fn {_id, b} -> Pieces.has_block?(torrent, b) end)
