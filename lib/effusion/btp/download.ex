@@ -171,8 +171,8 @@ defmodule Effusion.BTP.Download do
     end
   end
 
-  def mark_block_requested(d, block = {_peer_id, _block}) do
-    Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, block))
+  def mark_block_requested(d, {peer_id, block_id}) do
+    Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer_id, block_id))
   end
 
   defp next_request_msg(session = %__MODULE__{}) do

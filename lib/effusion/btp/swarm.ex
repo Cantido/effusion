@@ -81,8 +81,8 @@ defmodule Effusion.BTP.Swarm do
     |> MapSet.new()
   end
 
-  def mark_block_requested(swarm = %__MODULE__{}, block = {_peer_id, _block}) do
-    Map.update!(swarm, :requested_pieces, &MapSet.put(&1, block))
+  def mark_block_requested(swarm = %__MODULE__{}, peer_id, block_id) do
+    Map.update!(swarm, :requested_pieces, &MapSet.put(&1, {peer_id, block_id}))
   end
 
   def delegate_message(swarm = %__MODULE__{}, remote_peer_id, msg) do
