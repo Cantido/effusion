@@ -103,11 +103,6 @@ defmodule Effusion.BTP.PiecePicker do
       end)
     end)
 
-    Logger.debug "peers: #{inspect peers}"
-    Logger.debug "Rejecting blocks already requested"
-    Logger.debug "Requested_blocks: #{inspect requested_blocks}"
-    Logger.debug "Blocks, pre-reject: #{inspect blocks}"
-
     blocks
     |> Enum.reject(fn {peer_id, %{index: i_a, offset: o_a, size: s_a}} ->
       Enum.any?(requested_blocks, fn {peer_id_b, %{index: i_b, offset: o_b, size: s_b}} ->
