@@ -30,7 +30,7 @@ defmodule Effusion.BTP.Download do
 
   @block_size Application.get_env(:effusion, :block_size)
 
-  @max_active_piece_requests 10_000
+  @max_active_piece_requests 1_000
 
   @doc """
   Create a new download.
@@ -103,8 +103,8 @@ defmodule Effusion.BTP.Download do
     |> Enum.map(fn p -> {:write_piece, pieces.info, d.file, p} end)
 
     # request more pieces since we finished some
-    finished_pieces_count = Enum.count(have_messages)
-    {request_messages, d} = next_requests(d, finished_pieces_count)
+    cancel_messages_count = Enum.count(cancel_messages)
+    {request_messages, d} = next_requests(d, cancel_messages_count)
 
     {
       %{d | pieces: pieces},
