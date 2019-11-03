@@ -35,7 +35,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def get(info_hash) do
-    GenServer.call({:via, Registry, {SessionRegistry, info_hash}}, :get)
+    GenServer.call({:via, Registry, {SessionRegistry, info_hash}}, :get, 10_000)
   end
 
   @doc """
