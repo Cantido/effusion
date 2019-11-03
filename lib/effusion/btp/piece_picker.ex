@@ -25,7 +25,8 @@ defmodule Effusion.BTP.PiecePicker do
     end
   end
 
-  @max_requests_per_peer 10
+  # General rule: 10 requests per 5 Mbps download speed
+  @max_requests_per_peer 200
 
   def next_blocks(torrent, peers, block_size) do
     if Pieces.all_present?(torrent) do
