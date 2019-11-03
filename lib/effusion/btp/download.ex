@@ -164,7 +164,7 @@ defmodule Effusion.BTP.Download do
     next_block =
       Effusion.BTP.PiecePicker.next_block(
         d.pieces,
-        Map.values(d.swarm.peers),
+        Map.values(Swarm.peers(d.swarm)),
         @block_size
       )
 
@@ -195,7 +195,7 @@ defmodule Effusion.BTP.Download do
     next_blocks =
       Effusion.BTP.PiecePicker.next_blocks(
         d.pieces,
-        Map.values(d.swarm.peers),
+        Map.values(Swarm.peers(d.swarm)),
         @block_size
       )
 
@@ -295,7 +295,7 @@ defmodule Effusion.BTP.Download do
   end
 
   def connect_all_eligible(d) do
-    eligible_peers = PeerSelection.get_eligible_peers(d.peer_id, d.swarm.peers, [])
+    eligible_peers = PeerSelection.get_eligible_peers(d.peer_id, Swarm.peers(d.swarm), [])
     messages = Enum.map(eligible_peers, fn p -> {:btp_connect, p} end)
     {d, messages}
   end
@@ -322,8 +322,8 @@ defmodule Effusion.BTP.Download do
   defp increment_connections(swarm) do
     selected = Effusion.BTP.PeerSelection.select_peer(
       swarm.peer_id,
-      swarm.peers,
-      swarm.closed_connections |> Enum.to_list
+      Swarm.peers(swarm),
+      []
     )
 
     case selected do

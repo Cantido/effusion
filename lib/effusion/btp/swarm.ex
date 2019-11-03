@@ -8,8 +8,6 @@ defmodule Effusion.BTP.Swarm do
     :info_hash,
     :peers,
     :peer_addresses,
-    :connected_peers,
-    :closed_connections,
     :requested_pieces
   ]
 
@@ -17,12 +15,18 @@ defmodule Effusion.BTP.Swarm do
     %__MODULE__{
       peer_id: peer_id,
       info_hash: info_hash,
-      peers: Map.new(),
-      peer_addresses: Map.new(),
-      connected_peers: Map.new(),
-      closed_connections: MapSet.new(),
+      peers: Map.new(), # {peer_address, peer}
+      peer_addresses: Map.new(), # {peer_address, peer_id}
       requested_pieces: MapSet.new()
     }
+  end
+
+  def peers(swarm = %__MODULE__{}) do
+    swarm.peers
+  end
+
+  def peer_for_address(swarm = %__MODULE__{}, address) do
+    Map.get(swarm.peers, address)
   end
 
   def add(swarm = %__MODULE__{}, peers) do
