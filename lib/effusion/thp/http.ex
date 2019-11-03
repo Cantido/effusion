@@ -2,6 +2,7 @@ defmodule Effusion.THP.HTTP do
   alias Effusion.Statistics.Net, as: NetStats
   import Effusion.BTP.Peer
   import Effusion.Hash
+  require Logger
   @behaviour Effusion.THP
   @moduledoc """
   An HTTP implementation of the Tracker HTTP Protocol.
@@ -35,7 +36,7 @@ defmodule Effusion.THP.HTTP do
       trackerid: tracker_id,
       ip: to_string(:inet.ntoa(peer_host))
     }
-
+    Logger.debug "Making announce to #{tracker_url}"
     with {:ok, event} <- build_event_param(event),
          tracker_request = Map.put(tracker_request, :event, event),
          query = URI.encode_query(tracker_request),
