@@ -38,6 +38,7 @@ defmodule Effusion.Mixfile do
       {:gen_stage, "~> 0.14"},
       {:timex, "~> 3.6"},
       {:tzdata, "~> 0.1.7"},
+      {:logger_file_backend, "~> 0.0.10"},
       {:temp, "~> 0.4", only: :test},
       {:mox, "~> 0.3", only: :test},
       {:bypass, "~> 0.8", only: :test},

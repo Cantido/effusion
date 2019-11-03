@@ -21,3 +21,7 @@ erl_crash.dump
 
 # Ignore the compiled CLI
 /effusion
+
+
+# Logs, etc
+/tmp
