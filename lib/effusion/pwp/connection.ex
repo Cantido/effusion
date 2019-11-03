@@ -4,6 +4,7 @@ defmodule Effusion.PWP.Connection do
   alias Effusion.PWP.Connection
   alias Effusion.BTP.DownloadServer
   alias Effusion.Statistics.Net, as: NetStats
+  alias Effusion.Statistics.Peer, as: PeerStats
   require Logger
 
   def disconnect(pid) do
@@ -20,6 +21,7 @@ defmodule Effusion.PWP.Connection do
 
   defp connect(peer) do
     _ = Logger.debug("Establishing connection to #{ntoa(peer.address)}")
+    PeerStats.inc_num_tcp_peers() # must do it here in case we terminate later
 
     case Socket.connect(peer.address, peer.info_hash, peer.peer_id, peer.remote_peer_id) do
       {:ok, socket, remote_peer_id} ->
@@ -46,6 +48,7 @@ defmodule Effusion.PWP.Connection do
   end
 
   def handle_btp({:handshake, remote_peer_id, info_hash, _reserved}, state = %{socket: socket}) do
+    PeerStats.inc_num_tcp_peers()
     {:ok, address} = :inet.peername(socket)
 
     case Registry.lookup(SessionRegistry, info_hash) do
@@ -111,6 +114,7 @@ defmodule Effusion.PWP.Connection do
   end
 
   def terminate(reason, %{socket: socket, info_hash: info_hash, remote_peer_id: remote_peer_id, address: address}) do
+    PeerStats.dec_num_tcp_peers()
     Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
 
     Socket.close(socket)
@@ -119,18 +123,21 @@ defmodule Effusion.PWP.Connection do
   end
 
   def terminate(reason, %{info_hash: info_hash, remote_peer_id: remote_peer_id, address: address}) do
+    PeerStats.dec_num_tcp_peers()
     Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
 
     DownloadServer.unregister_connection(info_hash, remote_peer_id, address)
   end
 
   def terminate(reason, %{remote_peer_id: remote_peer_id}) do
+    PeerStats.dec_num_tcp_peers()
     Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
 
     :ok
   end
 
   def terminate(reason, state) do
+    PeerStats.dec_num_tcp_peers()
     Logger.debug "Connection handler terminating with reason #{inspect reason}"
 
     :ok

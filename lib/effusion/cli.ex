@@ -82,6 +82,8 @@ defmodule Effusion.CLI do
       IO.puts "No incoming connections!"
     end
 
+    IO.puts "Total TCP connections: #{Effusion.Statistics.Peer.num_tcp_peers()}"
+
     Process.sleep(100)
     output_loop(info_hash, uploaded_bytes, downloaded_bytes, this_loop_time)
   end

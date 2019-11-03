@@ -6,6 +6,7 @@ defmodule Effusion.Application do
 
   def start(_type, _args) do
     Effusion.Statistics.Net.init()
+    Effusion.Statistics.Peer.init()
 
     children = [
       Effusion.Application.DownloadServerSupervisor,
