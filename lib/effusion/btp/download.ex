@@ -102,9 +102,7 @@ defmodule Effusion.BTP.Download do
     |> Pieces.verified()
     |> Enum.map(fn p -> {:write_piece, pieces.info, d.file, p} end)
 
-    # request more pieces since we finished some
-    cancel_messages_count = Enum.count(cancel_messages)
-    {request_messages, d} = next_requests(d, cancel_messages_count)
+    {request_messages, d} = next_requests(d)
 
     {
       %{d | pieces: pieces},
@@ -188,17 +186,16 @@ defmodule Effusion.BTP.Download do
   end
 
   defp next_request_msg(session = %__MODULE__{}) do
-    {reqs, download} = next_requests(session, @max_active_piece_requests)
+    {reqs, download} = next_requests(session)
     {download, Enum.map(reqs, &block_into_request/1)}
   end
 
-  def next_requests(d = %__MODULE__{}, count) do
+  def next_requests(d = %__MODULE__{}) do
     next_blocks =
       Effusion.BTP.PiecePicker.next_blocks(
         d.pieces,
         Map.values(d.swarm.peers),
-        @block_size,
-        count
+        @block_size
       )
 
     case next_blocks do
