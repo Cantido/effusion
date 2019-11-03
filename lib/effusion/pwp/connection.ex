@@ -5,6 +5,7 @@ defmodule Effusion.PWP.Connection do
   alias Effusion.BTP.DownloadServer
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
+  alias Effusion.Statistics.Session, as: SessionStats
   require Logger
 
   def disconnect(pid) do
@@ -78,6 +79,7 @@ defmodule Effusion.PWP.Connection do
   def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id, socket: socket}) do
     Logger.debug "Handler received BTP message from peer: #{inspect msg}"
 
+    SessionStats.inc_incoming_message(msg)
     :ok = DownloadServer.handle_message(info_hash, peer_id, msg)
     :ok = :inet.setopts(socket, active: :once)
     {:noreply, state}
@@ -89,6 +91,7 @@ defmodule Effusion.PWP.Connection do
       )
       when dest_peer_id == peer_id do
         Logger.debug "Sending message #{inspect msg} to peer #{peer_id}"
+    SessionStats.inc_outgoing_message(msg)
     case Socket.send_msg(socket, msg) do
       :ok -> {:noreply, state}
       {:error, reason} -> {:stop, {:send_failure, reason}, state}
