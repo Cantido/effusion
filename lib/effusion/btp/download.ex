@@ -333,7 +333,7 @@ defmodule Effusion.BTP.Download do
     selected = Effusion.BTP.PeerSelection.select_peer(
       swarm.peer_id,
       swarm.peers,
-      []
+      swarm.closed_connections |> Enum.to_list
     )
 
     case selected do
