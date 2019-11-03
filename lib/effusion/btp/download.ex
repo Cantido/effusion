@@ -102,7 +102,7 @@ defmodule Effusion.BTP.Download do
     |> Pieces.verified()
     |> Enum.map(fn p -> {:write_piece, pieces.info, d.file, p} end)
 
-    {request_messages, d} = next_requests(d)
+    {request_messages, d} = next_requests(d) |> Enum.map(&block_into_request/1)
 
     {
       %{d | pieces: pieces},
