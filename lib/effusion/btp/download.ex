@@ -305,8 +305,7 @@ defmodule Effusion.BTP.Download do
   @doc """
   Perform actions necessary when a peer at a given address disconnects.
   """
-  def handle_disconnect(d = %__MODULE__{}, peer_id, address, reason \\ :normal)
-      when is_peer_id(peer_id) do
+  def handle_disconnect(d = %__MODULE__{}, address, reason \\ :normal) do
     {swarm, messages} = d.swarm
     |> Swarm.handle_disconnect(address, reason)
     |> increment_connections()

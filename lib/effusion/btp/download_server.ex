@@ -58,10 +58,10 @@ defmodule Effusion.BTP.DownloadServer do
   @doc """
   Handle a peer disconnection.
   """
-  def unregister_connection(info_hash, peer_id, address, reason) do
+  def unregister_connection(info_hash, address, reason) do
     GenServer.cast(
       {:via, Registry, {SessionRegistry, info_hash}},
-      {:unregister_connection, peer_id, address, reason}
+      {:unregister_connection, address, reason}
     )
   end
 
@@ -146,8 +146,8 @@ defmodule Effusion.BTP.DownloadServer do
     {:noreply, Download.handle_connect(state, peer_id, address)}
   end
 
-  def handle_cast({:unregister_connection, peer_id, address, reason}, state = %Download{}) do
-    {session, messages} = Download.handle_disconnect(state, peer_id, address, reason)
+  def handle_cast({:unregister_connection, address, reason}, state = %Download{}) do
+    {session, messages} = Download.handle_disconnect(state, address, reason)
 
     Enum.each(messages, &handle_internal_message(&1, state))
 

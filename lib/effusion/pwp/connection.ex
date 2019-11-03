@@ -1,7 +1,6 @@
 defmodule Effusion.PWP.Connection do
   alias Effusion.PWP.Messages
   alias Effusion.PWP.Socket
-  alias Effusion.PWP.Connection
   alias Effusion.BTP.DownloadServer
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
@@ -121,7 +120,7 @@ defmodule Effusion.PWP.Connection do
     Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
 
     Socket.close(socket)
-    DownloadServer.unregister_connection(info_hash, remote_peer_id, address, reason)
+    DownloadServer.unregister_connection(info_hash, address, reason)
     :ok
   end
 
@@ -129,7 +128,7 @@ defmodule Effusion.PWP.Connection do
     PeerStats.dec_num_tcp_peers()
     Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
 
-    DownloadServer.unregister_connection(info_hash, remote_peer_id, address, reason)
+    DownloadServer.unregister_connection(info_hash, address, reason)
   end
 
   def terminate(reason, %{remote_peer_id: remote_peer_id}) do
@@ -139,7 +138,7 @@ defmodule Effusion.PWP.Connection do
     :ok
   end
 
-  def terminate(reason, state) do
+  def terminate(reason, _state) do
     PeerStats.dec_num_tcp_peers()
     Logger.debug "Connection handler terminating with reason #{inspect reason}"
 
