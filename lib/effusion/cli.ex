@@ -76,6 +76,12 @@ defmodule Effusion.CLI do
     IO.puts ""
     IO.puts "Down: #{dl_speed_formatted}/s (#{dl_bytes_formatted}); Up: #{ul_speed_formatted}/s (#{ul_bytes_formatted})"
 
+    if NetStats.has_incoming_connections?() do
+      IO.puts "Receiving connections"
+    else
+      IO.puts "No incoming connections!"
+    end
+
     Process.sleep(100)
     output_loop(info_hash, uploaded_bytes, downloaded_bytes, this_loop_time)
   end
