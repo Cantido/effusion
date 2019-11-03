@@ -164,7 +164,7 @@ defmodule Effusion.BTP.Download do
     next_block =
       Effusion.BTP.PiecePicker.next_block(
         d.pieces,
-        Map.values(Swarm.peers(d.swarm)),
+        Swarm.peers(d.swarm),
         @block_size
       )
 
@@ -195,7 +195,7 @@ defmodule Effusion.BTP.Download do
     next_blocks =
       Effusion.BTP.PiecePicker.next_blocks(
         d.pieces,
-        Map.values(Swarm.peers(d.swarm)),
+        Swarm.peers(d.swarm),
         @block_size
       )
 

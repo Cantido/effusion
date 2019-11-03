@@ -22,7 +22,7 @@ defmodule Effusion.BTP.Swarm do
   end
 
   def peers(swarm = %__MODULE__{}) do
-    swarm.peers
+    Map.values(swarm.peers)
   end
 
   def peer_for_address(swarm = %__MODULE__{}, address) do
