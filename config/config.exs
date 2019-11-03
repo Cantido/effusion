@@ -5,7 +5,8 @@ config :logger,
 
 config :logger, :debug_log,
   path: "tmp/debug.log",
-  level: :debug
+  level: :debug,
+  metadata: :all
 
 config :effusion,
   block_size: 16384,
