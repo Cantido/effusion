@@ -133,13 +133,15 @@ defmodule Effusion.BTP.Swarm do
 
   def handle_disconnect(swarm = %__MODULE__{}, address, reason \\ :normal) do
     swarm
-    |> Map.update!(:peers, &Map.update!(&1, address, fn peer ->
-      if reason != :normal do
-        Peer.inc_fail_count(peer)
-      else
-        peer
-      end
-    end))
+    |> Map.update!(
+        :peers,
+        &Map.update(&1, address, Peer.new(address, swarm.peer_id, swarm.info_hash), fn peer ->
+          if reason != :normal do
+            Peer.inc_fail_count(peer)
+          else
+            peer
+          end
+        end))
   end
 
   defp peer(swarm = %__MODULE__{}, peer_id, peer_address)
