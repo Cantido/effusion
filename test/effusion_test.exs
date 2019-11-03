@@ -110,13 +110,25 @@ defmodule EffusionTest do
     {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
     {:ok, {:request, %{index: i2}}} = Socket.recv(sock)
 
+    if i1 == 0 do
+      assert i2 == 1
+    else
+      assert i1 == 1
+      assert i2 == 0
+    end
+
     :ok = Socket.send_msg(sock, {:piece, 0, 0, "tin"})
     :ok = Socket.send_msg(sock, {:piece, 1, 0, "y\n"})
 
     {:ok, {:have, r1}} = Socket.recv(sock)
     {:ok, {:have, r2}} = Socket.recv(sock)
 
-    assert (r1 == 0 && r2 == 1) or (r1 == 1 && r2 == 0)
+    if r1 == 0 do
+      assert r2 == 1
+    else
+      assert r1 == 1
+      assert r2 == 0
+    end
 
     :timer.sleep(100)
     :file.datasync(file)
@@ -145,13 +157,26 @@ defmodule EffusionTest do
     {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
     {:ok, {:request, %{index: i2}}} = Socket.recv(sock)
 
+    if i1 == 0 do
+      assert i2 == 1
+    else
+      assert i1 == 1
+      assert i2 == 0
+    end
+
     :ok = Socket.send_msg(sock, {:piece, 0, 0, "tin"})
     :ok = Socket.send_msg(sock, {:piece, 1, 0, "y\n"})
 
     {:ok, {:have, r1}} = Socket.recv(sock)
     {:ok, {:have, r2}} = Socket.recv(sock)
 
-    assert (r1 == 0 && r2 == 1) or (r1 == 1 && r2 == 0)
+    if r1 == 0 do
+      assert r2 == 1
+    else
+      assert r1 == 1
+      assert r2 == 0
+    end
+
     :timer.sleep(100)
     :file.datasync(file)
 
