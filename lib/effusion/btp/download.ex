@@ -30,8 +30,6 @@ defmodule Effusion.BTP.Download do
 
   @block_size Application.get_env(:effusion, :block_size)
 
-  @max_active_piece_requests 1_000
-
   @doc """
   Create a new download.
 
@@ -295,7 +293,7 @@ defmodule Effusion.BTP.Download do
   end
 
   def connect_all_eligible(d) do
-    eligible_peers = PeerSelection.get_eligible_peers(d.peer_id, Swarm.peers(d.swarm), [])
+    eligible_peers = Swarm.peers(d.swarm)
     messages = Enum.map(eligible_peers, fn p -> {:btp_connect, p} end)
     {d, messages}
   end
@@ -320,11 +318,7 @@ defmodule Effusion.BTP.Download do
   end
 
   defp increment_connections(swarm) do
-    selected = Effusion.BTP.PeerSelection.select_peer(
-      swarm.peer_id,
-      Swarm.peers(swarm),
-      []
-    )
+    selected = PeerSelection.select_peer(Swarm.peers(swarm))
 
     case selected do
       nil -> {swarm, []}
