@@ -88,7 +88,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   defp handle_internal_message({:write_piece, info, destdir, block}, state = %Download{}) do
-    Effusion.IO.write_piece(info, destdir, block)
+    Effusion.IOServer.write_piece(info, destdir, block)
     Download.mark_piece_written(state, block.index)
   end
 

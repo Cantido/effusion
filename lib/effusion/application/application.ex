@@ -12,6 +12,7 @@ defmodule Effusion.Application do
       Effusion.Application.DownloadServerSupervisor,
       Effusion.Application.ConnectionSupervisor,
       Effusion.BTP.Metainfo.Directory,
+      Effusion.IOServer,
       {Registry, keys: :duplicate, name: ConnectionRegistry},
       {Registry, keys: :unique, name: SessionRegistry}
     ]
