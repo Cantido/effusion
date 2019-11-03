@@ -260,17 +260,6 @@ defmodule Effusion.BTP.Download do
     end
   end
 
-  defp session_handle_message(d = %__MODULE__{}, _remote_peer_id, {:bitfield, b}) do
-    pieces_count = Enum.count(d.meta.info.pieces)
-    max_i = Enum.max(IntSet.new(b), fn -> 0 end)
-
-    if max_i in 0..(pieces_count - 1) do
-      {:ok, d, []}
-    else
-      {:error, :index_out_of_bounds}
-    end
-  end
-
   defp session_handle_message(d = %__MODULE__{}, _remote_peer_id, {:have, i}) do
     pieces_count = Enum.count(d.meta.info.pieces)
 
