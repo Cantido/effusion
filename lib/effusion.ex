@@ -32,4 +32,12 @@ defmodule Effusion do
       err -> err
     end
   end
+
+  def download_file(torrent_file) do
+    {:ok, metabin} = torrent_file |> Path.expand() |> File.read()
+    {:ok, meta} = Effusion.BTP.Metainfo.decode(metabin)
+    dest = meta.info.name |> Path.expand
+
+    {:ok, info_hash} = Effusion.start_download(meta, dest)
+  end
 end
