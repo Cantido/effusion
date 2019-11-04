@@ -15,7 +15,7 @@ defmodule Effusion.Mixfile do
       package: package(),
       deps: deps(),
       source_url: "https://github.com/Cantido/effusion",
-      dialyzer: [flags: ["-Wunmatched_returns", :error_handling, :race_conditions, :underspecs]]
+      dialyzer: [flags: [:error_handling, :race_conditions, :underspecs]]
     ]
   end
 
