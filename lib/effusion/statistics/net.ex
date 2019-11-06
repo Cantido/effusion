@@ -1,7 +1,16 @@
 defmodule Effusion.Statistics.Net do
   def init() do
     :ets.new(NetStatsTable, [:set, :public, :named_table, read_concurrency: false, write_concurrency: true])
-    Effusion.Statistics.Net.set_has_incoming_connections(false)
+    :ets.insert(NetStatsTable, [
+      {:sent_payload_bytes, 0},
+      {:sent_bytes, 0},
+      {:sent_ip_overhead_bytes, 0},
+      {:sent_tracker_bytes, 0},
+      {:recv_payload_bytes, 0},
+      {:recv_bytes, 0},
+      {:recv_ip_overhead_bytes, 0},
+      {:recv_tracker_bytes, 0},
+      {:has_incoming_connections, false}])
   end
 
 

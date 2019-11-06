@@ -1,6 +1,27 @@
 defmodule Effusion.Statistics.Session do
   def init do
     :ets.new(SessionStatsTable, [:set, :public, :named_table, read_concurrency: false, write_concurrency: true])
+    :ets.insert(SessionStatsTable, [
+      {:num_incoming_choke, 0},
+      {:num_incoming_unchoke, 0},
+      {:num_incoming_interested, 0},
+      {:num_incoming_not_interested, 0},
+      {:num_incoming_have, 0},
+      {:num_incoming_bitfield, 0},
+      {:num_incoming_request, 0},
+      {:num_incoming_piece, 0},
+      {:num_incoming_cancel, 0},
+      {:num_incoming_unknown, 0},
+      {:num_outgoing_choke, 0},
+      {:num_outgoing_unchoke, 0},
+      {:num_outgoing_interested, 0},
+      {:num_outgoing_not_interested, 0},
+      {:num_outgoing_have, 0},
+      {:num_outgoing_bitfield, 0},
+      {:num_outgoing_request, 0},
+      {:num_outgoing_piece, 0},
+      {:num_outgoing_cancel, 0},
+      {:num_outgoing_unknown, 0}])
   end
 
   def inc_incoming_message(:choke), do: :ets.update_counter(SessionStatsTable, :num_incoming_choke, 1, {:k, 0})

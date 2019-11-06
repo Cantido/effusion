@@ -1,6 +1,7 @@
 defmodule Effusion.Statistics.Peer do
   def init do
     :ets.new(PeerStatsTable, [:set, :public, :named_table, read_concurrency: false, write_concurrency: true])
+    :ets.insert(PeerStatsTable, [{:num_tcp_peers, 0}])
   end
 
   def inc_num_tcp_peers do
