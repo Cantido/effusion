@@ -1,6 +1,7 @@
 defmodule Effusion.PWP.Connection do
   alias Effusion.PWP.Messages
   alias Effusion.PWP.Socket
+  alias Effusion.PWP.ConnectionRegistry
   alias Effusion.BTP.DownloadServer
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
@@ -26,7 +27,7 @@ defmodule Effusion.PWP.Connection do
     case Socket.connect(peer.address, peer.info_hash, peer.peer_id, peer.remote_peer_id) do
       {:ok, socket, remote_peer_id} ->
         _ = Logger.debug("Handshake with #{ntoa(peer.address)} successful")
-        {:ok, _pid} = Registry.register(ConnectionRegistry, peer.info_hash, remote_peer_id)
+        {:ok, _pid} = ConnectionRegistry.register(peer.info_hash, remote_peer_id)
         :ok = DownloadServer.connected(peer.info_hash, remote_peer_id, peer.address)
         :ok = :inet.setopts(socket, active: :once)
         {:noreply, %{
@@ -55,7 +56,7 @@ defmodule Effusion.PWP.Connection do
       [{_pid, _hash}] ->
         _ = Logger.debug("Successfully received connection from #{inspect address} for #{Effusion.Hash.inspect info_hash}")
 
-        {:ok, _pid} = Registry.register(ConnectionRegistry, info_hash, remote_peer_id)
+        {:ok, _pid} = ConnectionRegistry.register(info_hash, remote_peer_id)
         :ok = DownloadServer.connected(info_hash, remote_peer_id, address)
 
         local_peer_id = Application.get_env(:effusion, :peer_id)

@@ -4,6 +4,10 @@ defmodule Effusion.PWP.ConnectionRegistry do
   import Effusion.BTP.Peer
   require Logger
 
+  def register(info_hash, peer_id) do
+    Registry.register(ConnectionRegistry, info_hash, peer_id)
+  end
+
   def disconnect_all(info_hash) do
     Registry.dispatch(ConnectionRegistry, info_hash, fn connections ->
       connections
