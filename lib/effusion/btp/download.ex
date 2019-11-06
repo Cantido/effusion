@@ -239,7 +239,7 @@ defmodule Effusion.BTP.Download do
     d = d
     |> Map.put(:tracker_id, tracker_id)
     |> Map.put(:swarm, swarm)
-    d
+    {d, []}
   end
 
   @doc """

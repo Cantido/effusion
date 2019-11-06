@@ -117,7 +117,7 @@ defmodule Effusion.BTP.DownloadTest do
 
   test "includes peer_id in successive announcements", %{destfile: file} do
     session = new(file)
-    session = Download.handle_tracker_response(session, %{tracker_id: "this is my tracker id", interval: 90_000, peers: []})
+    {session, _messages} = Download.handle_tracker_response(session, %{tracker_id: "this is my tracker id", interval: 90_000, peers: []})
     response = Download.announce_params(session, :interval)
 
     assert [_, _, _, _, _, _, _, _, _, "this is my tracker id"] = response
@@ -170,7 +170,7 @@ defmodule Effusion.BTP.DownloadTest do
           ]
         }
 
-    session =
+    {session, _messages} =
       Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
       |> Download.handle_tracker_response(tracker_response)
 
@@ -188,10 +188,11 @@ defmodule Effusion.BTP.DownloadTest do
           ]
         }
 
-    session =
+    {session, _messages} =
       Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
       |> Download.handle_tracker_response(tracker_response)
-      |> Download.handle_tracker_response(tracker_response)
+
+    {session, _messages} = Download.handle_tracker_response(session, tracker_response)
 
     assert Enum.count(Swarm.peers(session.swarm)) == 1
   end
@@ -204,7 +205,7 @@ defmodule Effusion.BTP.DownloadTest do
           ]
         }
 
-    session =
+    {session, _messages} =
       Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
       |> Download.handle_tracker_response(tracker_response)
 
@@ -219,7 +220,7 @@ defmodule Effusion.BTP.DownloadTest do
           ]
         }
 
-    session =
+    {session, _messages} =
       Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
       |> Download.handle_tracker_response(tracker_response)
 
