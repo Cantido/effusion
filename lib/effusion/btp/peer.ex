@@ -26,10 +26,10 @@ defmodule Effusion.BTP.Peer do
     :info_hash,
     remote_peer_id: nil,
     failcount: 0,
-    peer_choking: true,
-    peer_interested: false,
-    am_choking: true,
-    am_interested: false,
+    peer_choking: true, # peer is choking this client
+    peer_interested: false, # peer is interested in this client
+    am_choking: true, # this client is choking the peer
+    am_interested: false, # this client is interested in the peer
     has: IntSet.new(),
     blocks_we_requested: MapSet.new()
   ]
