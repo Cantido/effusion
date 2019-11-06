@@ -239,7 +239,11 @@ defmodule Effusion.BTP.Download do
     d = d
     |> Map.put(:tracker_id, tracker_id)
     |> Map.put(:swarm, swarm)
-    {d, []}
+
+    eligible_peers = PeerSelection.select_lowest_failcount(Swarm.peers(swarm), 5)
+
+    messages = Enum.map(eligible_peers, fn p -> {:btp_connect, p} end)
+    {d, messages}
   end
 
   @doc """
@@ -292,12 +296,6 @@ defmodule Effusion.BTP.Download do
     }
   end
 
-  def connect_all_eligible(d) do
-    eligible_peers = Swarm.peers(d.swarm)
-    messages = Enum.map(eligible_peers, fn p -> {:btp_connect, p} end)
-    {d, messages}
-  end
-
   def handle_connect(d, peer_id, address) when is_peer_id(peer_id) do
     Map.update!(d, :swarm, &Swarm.handle_connect(&1, peer_id, address))
   end
@@ -317,7 +315,7 @@ defmodule Effusion.BTP.Download do
   end
 
   defp increment_connections(swarm) do
-    selected = PeerSelection.select_peer(Swarm.peers(swarm))
+    [selected] = PeerSelection.select_lowest_failcount(Swarm.peers(swarm), 1)
 
     case selected do
       nil -> {swarm, []}

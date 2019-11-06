@@ -95,12 +95,8 @@ defmodule Effusion.BTP.DownloadServer do
   defp handle_internal_message({:announce, announce_params}, state = %Download{}) do
     {:ok, res} = apply(@thp_client, :announce, announce_params)
 
-    {state, tracker_response_messages} = Download.handle_tracker_response(state, res)
+    {state, messages} = Download.handle_tracker_response(state, res)
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
-
-    {state, connect_messages} = Download.connect_all_eligible(state)
-
-    messages = tracker_response_messages ++ connect_messages
 
     Enum.each(messages, &handle_internal_message(&1, state))
   end
