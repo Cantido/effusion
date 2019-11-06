@@ -41,14 +41,17 @@ defmodule Effusion.THP.HTTP do
          tracker_request = Map.put(tracker_request, :event, event),
          query = URI.encode_query(tracker_request),
          http_res = HTTPotion.get(tracker_url <> "?" <> query) do
-           byte_size(query) |> NetStats.add_sent_bytes
-           byte_size(query) |> NetStats.add_sent_tracker_bytes
-           {length, ""} = http_res.headers["content-length"] |> Integer.parse
-           length |> NetStats.add_recv_bytes()
-           length |> NetStats.add_recv_tracker_bytes()
+      byte_size(query) |> NetStats.add_sent_bytes
+      byte_size(query) |> NetStats.add_sent_tracker_bytes
+      {length, ""} = http_res.headers["content-length"] |> Integer.parse
+      length |> NetStats.add_recv_bytes()
+      length |> NetStats.add_recv_tracker_bytes()
+      Logger.debug "Announce to #{tracker_url} successful."
       decode_response(http_res)
     else
-      err -> err
+      err ->
+        Logger.warn("Failed to announce: #{err}")
+        err
     end
   end
 
