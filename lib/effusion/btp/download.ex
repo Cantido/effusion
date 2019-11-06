@@ -254,22 +254,14 @@ defmodule Effusion.BTP.Download do
   def handle_message(session, peer_id, message)
 
   def handle_message(d = %__MODULE__{peer_id: peer_id}, remote_peer_id, msg)
-      when is_peer_id(peer_id) and is_peer_id(peer_id) and peer_id != remote_peer_id do
-    with {:ok, d, session_messages} <- session_handle_message(d, remote_peer_id, msg) do
-      {d, peer_messages} = delegate_message(d, remote_peer_id, msg)
+      when is_peer_id(peer_id)
+       and is_peer_id(remote_peer_id)
+       and peer_id != remote_peer_id do
+    with {d, peer_messages} = delegate_message(d, remote_peer_id, msg),
+         {:ok, d, session_messages} <- session_handle_message(d, remote_peer_id, msg) do
       {d, session_messages ++ peer_messages}
     else
       {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp session_handle_message(d = %__MODULE__{}, _remote_peer_id, {:have, i}) do
-    pieces_count = Enum.count(d.meta.info.pieces)
-
-    if i in 0..(pieces_count - 1) do
-      {:ok, d, []}
-    else
-      {:error, :index_out_of_bounds}
     end
   end
 
@@ -279,21 +271,11 @@ defmodule Effusion.BTP.Download do
     {:ok, d, block_messages ++ request_messages}
   end
 
-  defp session_handle_message(d = %__MODULE__{}, _remote_peer_id, :unchoke) do
-    {d, req} = next_request_msg(d)
-    {:ok, d, req}
-  end
-
   defp session_handle_message(d = %__MODULE__{}, _remote_peer_id, _msg), do: {:ok, d, []}
 
-  defp delegate_message(d, remote_peer_id, msg)
-       when is_peer_id(remote_peer_id) do
-
+  defp delegate_message(d, remote_peer_id, msg) when is_peer_id(remote_peer_id) do
     {swarm, messages} = Swarm.delegate_message(d.swarm, remote_peer_id, msg)
-    {
-      %{d | swarm: swarm},
-      messages
-    }
+    {%{d | swarm: swarm}, messages}
   end
 
   def handle_connect(d, peer_id, address) when is_peer_id(peer_id) do
