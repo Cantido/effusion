@@ -167,42 +167,27 @@ defmodule Effusion.BTP.Download do
     end
   end
 
-  @doc """
-  Add a block of data to this download.
+  defp session_handle_message(d = %__MODULE__{}, from, {:piece, block})
+       when is_peer_id(from) do
+     {swarm, cancel_messages} = Swarm.cancel_block_requests(d.swarm, block, from)
+     d = %{d | swarm: swarm}
 
-  This may trigger messages to be sent to any connections associated with this download's torrent.
-  """
-  def add_block(d = %__MODULE__{}, block, from) when is_peer_id(from) do
-    {swarm, cancel_messages} = Swarm.cancel_block_requests(d.swarm, block, from)
-    d = %{d | swarm: swarm}
+     d = Map.update!(d, :pieces, &Pieces.add_block(&1, block))
+     verified = Pieces.verified(d.pieces)
 
-    pieces = Pieces.add_block(d.pieces, block)
-    verified = Pieces.verified(pieces)
+     have_messages =
+       verified
+       |> Enum.map(verified, &{:broadcast, {:have, &1.index}})
 
-    have_messages =
-      verified
-      |> Enum.map(&{:broadcast, {:have, &1.index}})
+     write_messages =
+       d.pieces
+       |> Pieces.verified()
+       |> Enum.map(fn p -> {:write_piece, d.meta.info, d.file, p} end)
 
-    write_messages =
-      pieces
-      |> Pieces.verified()
-      |> Enum.map(fn p -> {:write_piece, pieces.info, d.file, p} end)
-
-    {
-      %{d | pieces: pieces},
-      write_messages ++ have_messages ++ cancel_messages
-    }
-  end
-
-  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:piece, b})
-       when is_peer_id(remote_peer_id) do
-    {d, block_messages} = add_block(d, b, remote_peer_id)
-
-    # request more pieces from that peer
-    peer = Swarm.select_peer(d.swarm, remote_peer_id)
+    peer = Swarm.select_peer(d.swarm, from)
     {d, request_messages} = next_requests(d, [peer])
 
-    {:ok, d, block_messages ++ request_messages}
+    {:ok, d, write_messages ++ have_messages ++ cancel_messages ++ request_messages}
   end
 
   defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:bitfield, b}) do
