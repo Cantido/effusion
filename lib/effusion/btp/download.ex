@@ -192,10 +192,10 @@ defmodule Effusion.BTP.Download do
 
   defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:bitfield, b}) do
     interest_message =
-      if need_any_pieces?(d, b) do
-        [{:btp_send, remote_peer_id, :interested}]
-      else
+      if Pieces.has_pieces?(d.pieces, bitfield) do
         []
+      else
+        [{:btp_send, remote_peer_id, :interested}]
       end
 
     {:ok, d, interest_message}
@@ -203,10 +203,10 @@ defmodule Effusion.BTP.Download do
 
   defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:have, b}) do
     interest_message =
-      if need_piece?(d, b) do
-        [{:btp_send, remote_peer_id, :interested}]
-      else
+      if Pieces.has_piece?(d.pieces, i) do
         []
+      else
+        [{:btp_send, remote_peer_id, :interested}]
       end
 
     {:ok, d, interest_message}
@@ -229,15 +229,7 @@ defmodule Effusion.BTP.Download do
     Map.update!(d, :swarm, &Swarm.handle_connect(&1, peer_id, address))
   end
 
-  def need_piece?(d, i) do
-    !Pieces.has_piece?(d.pieces, i)
-  end
-
-  def need_any_pieces?(d, bitfield) do
-    !Pieces.has_pieces?(d.pieces, bitfield)
-  end
-
-  def next_requests(d = %__MODULE__{}, peers) do
+  defp next_requests(d = %__MODULE__{}, peers) do
     next_blocks =
       PiecePicker.next_blocks(
         d.pieces,
