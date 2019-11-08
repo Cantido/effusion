@@ -59,23 +59,6 @@ defmodule Effusion.BTP.DownloadTest do
     {:ok, stub_tracker_response()}
   end
 
-  test "expresses interest and unchokes after we send a bitfield", %{destfile: file} do
-    peer = peer()
-    session = new(file)
-
-    {session, msgs} = Download.handle_message(session, peer.remote_peer_id, {:bitfield, <<0>>})
-
-    assert msgs == [
-      {:btp_send, "Fake Peer Id ~~~~~~~", :interested},
-      {:btp_send, "Fake Peer Id ~~~~~~~", :unchoke}
-    ]
-
-    peer = Swarm.peer_for_address(session.swarm, peer.address)
-
-    assert peer.am_interested
-    refute peer.am_choking
-  end
-
   test "is not done when we don't have all the pieces", %{destfile: file} do
     peer = peer()
     session = new(file)
@@ -139,27 +122,6 @@ defmodule Effusion.BTP.DownloadTest do
   test "returns :announce message on start", %{destfile: file} do
     {_dl, messages} = Download.start(new(file))
     assert [{:announce, _params}] = messages
-  end
-
-  test "sends CANCEL messages to peers it sent requests to", %{destfile: file} do
-    info_hash = @torrent.info_hash
-
-    piece_requestee_id = "Fake Peer Id ~~~~~~~"
-    piece_sender_id = "123456789012345678~2"
-    bystander_id = "123456789012345678~3"
-
-    {:ok, _pid} = Registry.register(ConnectionRegistry, info_hash, piece_sender_id)
-    {:ok, _pid} = Registry.register(ConnectionRegistry, info_hash, piece_requestee_id)
-    {:ok, _pid} = Registry.register(ConnectionRegistry, info_hash, bystander_id)
-
-    block_id = Block.id(0, 0, 1)
-    block_data = Block.new(0, 0, "t")
-
-    {_s, messages} = new(file)
-    |> Download.mark_block_requested({piece_requestee_id, block_id})
-    |> Download.handle_message(piece_sender_id, {:piece, block_data})
-
-    assert messages == [{:btp_send, piece_requestee_id, {:cancel, block_id}}]
   end
 
   test "saves peers that result from announce", %{destfile: file} do

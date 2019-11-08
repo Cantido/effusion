@@ -40,6 +40,17 @@ defmodule Effusion.BTP.Pieces do
     |> Enum.any?()
   end
 
+  def has_piece?(torrent, index) when is_integer(index) and index > 0 do
+    bitfield(torrent) |> Enum.member?(index)
+  end
+
+  def has_pieces?(torrent, bits) do
+    we_have = bitfield(torrent)
+    do_we_have = IntSet.new(bits)
+    IntSet.difference(do_we_have, we_have)
+    |> Enum.empty?()
+  end
+
   @doc """
   Add a block of data to `torrent`.
 

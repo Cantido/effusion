@@ -18,7 +18,7 @@ defmodule Effusion.BTP.Peer do
       iex> Effusion.BTP.Peer.is_peer_id("1234567890")
       false
   """
-  defguard is_peer_id(term) when is_binary(term) and byte_size(term) == 20
+  defguard is_peer_id(term) when not is_nil(term) and is_binary(term) and byte_size(term) == 20
 
   defstruct [
     :address,
@@ -75,11 +75,25 @@ defmodule Effusion.BTP.Peer do
 
   def remove_requested_block(peer, %{index: id_i, offset: id_o, size: id_s}) do
     requested = peer.blocks_we_requested
-      |> Enum.filter(fn {_peer, %{index: i, offset: o, size: s}} ->
-        i == id_i && o == id_o && s == id_s
+      |> Enum.reject(fn %{index: i, offset: o, size: s} ->
+        (i == id_i) && (o == id_o) && (s == id_s)
       end)
       |> MapSet.new()
     %{peer | blocks_we_requested: requested}
+  end
+
+  def unchoke(peer) do
+    {
+      Map.put(peer, :am_choking, false),
+      [:unchoke]
+    }
+  end
+
+  def interested(peer) do
+    {
+      Map.put(peer, :am_interested, true),
+      [:interested]
+    }
   end
 
   @doc """
@@ -89,13 +103,7 @@ defmodule Effusion.BTP.Peer do
   def recv(peer, message)
 
   def recv(p = %__MODULE__{}, {:bitfield, b}) when is_map(p) do
-    p =
-      p
-      |> Map.put(:has, IntSet.new(b))
-      |> Map.put(:am_choking, false)
-      |> Map.put(:am_interested, true)
-
-    {p, [:interested, :unchoke]}
+    {Map.put(p, :has, IntSet.new(b)), []}
   end
 
   def recv(p = %__MODULE__{}, :unchoke) when is_map(p) do

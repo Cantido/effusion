@@ -3,6 +3,7 @@ defmodule Effusion.BTP.PiecePicker do
   alias Effusion.BTP.Block
   alias Effusion.BTP.Pieces
   import Effusion.Math
+  require Logger
 
   @moduledoc """
   Strategies for selecting which pieces of a torrent to download.
@@ -82,29 +83,39 @@ defmodule Effusion.BTP.PiecePicker do
   defp pieces_to_blocks(pieces, info, block_size) do
     pieces
     |> Enum.map(fn {id, p} -> {id, Block.id(p, 0, piece_size(p, info))} end)
-    |> Enum.flat_map(fn {id, p} -> for b <- Block.split(p, block_size), do: {id, b} end)
+    |> Enum.flat_map(fn {id, p} -> for b <- Block.split(p, block_size), do: {id, Block.id(b)} end)
   end
 
   # Filters out blocks that already exist in `torrent`
   defp reject_blocks_present_in_torrent(blocks, torrent) do
-    blocks
+    Logger.debug "Blocks before filtering out pieces we have: #{inspect blocks}"
+    blocks = blocks
     |> Enum.reject(fn {_id, b} -> Pieces.has_block?(torrent, b) end)
+
+    Logger.debug "Blocks after filtering out pieces we have: #{inspect blocks}"
+    blocks
   end
 
   defp reject_blocks_already_requested(blocks, peers) do
+    Logger.debug "peers with requests: #{inspect peers}"
     requested_blocks = peers
     |> Enum.flat_map(fn p ->
       Enum.map(p.blocks_we_requested, fn b ->
-        {p.remote_peer_id, b}
+        {p.remote_peer_id, Block.id(b)}
       end)
     end)
+    |> MapSet.new()
 
-    blocks
-    |> Enum.reject(fn {peer_id, %{index: i_a, offset: o_a, size: s_a}} ->
-      Enum.any?(requested_blocks, fn {peer_id_b, %{index: i_b, offset: o_b, size: s_b}} ->
-        peer_id == peer_id_b && i_a == i_b && o_a == o_b && s_a == s_b
-      end)
-    end)
+    Logger.debug "Blocks we've already requested (from the peers above): #{inspect requested_blocks}"
+    Logger.debug "possible blocks to request: #{inspect blocks}"
+
+    new_blocks = blocks
+    |> MapSet.new()
+    |> MapSet.difference(requested_blocks)
+
+    Logger.debug "new requests to make: #{inspect new_blocks}"
+
+    new_blocks
   end
 
   defp piece_size(index, info) do

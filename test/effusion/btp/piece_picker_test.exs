@@ -65,8 +65,6 @@ defmodule Effusion.BTP.PiecePickerTest do
 
     possible = PiecePicker.blocks_available(torrent, peers, block_size)
 
-    # assert possible == []
-
     # tin
     assert Enum.member?(possible, {"Remote peer ID ~~~~~", %Block{index: 0, offset: 0, size: 3}})
     # y\n

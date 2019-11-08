@@ -28,6 +28,10 @@ defmodule Effusion.BTP.Block do
     %__MODULE__{index: i, offset: o, size: s}
   end
 
+  def id(%{index: i, offset: o, size: s}) do
+    %__MODULE__{index: i, offset: o, size: s}
+  end
+
   def id(%{index: i, offset: o, data: d}) do
     %__MODULE__{index: i, offset: o, size: byte_size(d)}
   end

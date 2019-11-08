@@ -165,6 +165,9 @@ defmodule Effusion.PWP.Messages do
   def encode({:cancel, i, o, s}) when is_all_uint32(i, o, s),
     do: {:ok, <<8, i::32, o::32, s::32>>}
 
+  def encode({:cancel, %{index: i, offset: o, size: s}}) when is_all_uint32(i, o, s),
+    do: encode({:cancel, i, o, s})
+
   def encode({:handshake, peer_id, info_hash}) do
     {:ok, Handshake.encode(peer_id, info_hash)}
   end

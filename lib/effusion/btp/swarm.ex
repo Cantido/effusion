@@ -1,14 +1,14 @@
 defmodule Effusion.BTP.Swarm do
   alias Effusion.BTP.Peer
-  import Effusion.BTP.Peer
+  alias Effusion.BTP.Block
+  import Effusion.BTP.Peer, only: [is_peer_id: 1]
   require Logger
 
   defstruct [
     :peer_id,
     :info_hash,
     :peers,
-    :peer_addresses,
-    :requested_pieces
+    :peer_addresses
   ]
 
   def new(peer_id, info_hash) do
@@ -17,8 +17,17 @@ defmodule Effusion.BTP.Swarm do
       info_hash: info_hash,
       peers: Map.new(), # {peer_address, peer}
       peer_addresses: Map.new(), # {peer_address, peer_id}
-      requested_pieces: MapSet.new()
     }
+  end
+
+  def select_peer(swarm, peer_id) when is_peer_id(peer_id) do
+    peer = Enum.find(swarm.peers, fn {_addr, peer} ->
+      peer.remote_peer_id == peer_id
+    end)
+    case peer do
+      nil -> nil
+      {_addr, peer} -> peer
+    end
   end
 
   def peers(swarm = %__MODULE__{}) do
@@ -79,21 +88,55 @@ defmodule Effusion.BTP.Swarm do
   end
 
   def remove_requested_block(swarm, block_id) do
-    Map.update!(swarm, :requested_pieces, &remove_requested_block_from_set(&1, block_id))
+    Logger.debug("removing requested block #{inspect block_id} from all peers")
+    peers = swarm.peers
+    |> Enum.map(fn {addr, p} ->
+      p = Peer.remove_requested_block(p, block_id)
+      {addr, p}
+    end)
+    |> Map.new()
+    Logger.debug("peers after removing the requested block #{inspect swarm.peers}")
+
+    %{swarm | peers: peers}
   end
 
-  defp remove_requested_block_from_set(set, %{index: id_i, offset: id_o, size: id_s}) do
+  defp remove_requested_block_from_set(set, %Block{index: id_i, offset: id_o, size: id_s}) do
     set
-    |> Enum.filter(fn {_peer, %{index: i, offset: o, size: s}} ->
+    |> Enum.filter(fn %Block{index: i, offset: o, size: s} ->
       i == id_i && o == id_o && s == id_s
     end)
     |> MapSet.new()
   end
 
+  def mark_blocks_requested(swarm, blocks) do
+    Enum.reduce(blocks, swarm, fn {peer_id, block_id}, swarm_acc ->
+      mark_block_requested(swarm_acc, peer_id, block_id)
+    end)
+  end
+
   def mark_block_requested(swarm = %__MODULE__{}, peer_id, block_id) do
+    Logger.debug "Marking block #{inspect block_id} as requested from #{inspect peer_id}"
     addr = Map.get(swarm.peer_addresses, peer_id)
     peers = Map.update!(swarm.peers, addr, &Peer.request_block(&1, block_id))
+    Logger.debug "Peers after marking above block as requested: #{inspect peers}"
     %{swarm | peers: peers}
+  end
+
+  def cancel_block_requests(swarm, block, from) when is_peer_id(from) do
+    block_id = Block.id(block)
+
+    cancel_messages =
+      requested_blocks(swarm)
+      |> Enum.reject(fn {peer_id, %{index: i, offset: o, size: s}} ->
+          (peer_id == from) || ((block_id.index == i) && (block_id.offset == o) && (block_id.size == s))
+      end)
+      |> Enum.map(fn {peer_id, _blk} -> peer_id end)
+      |> Enum.map(&({:btp_send, &1, {:cancel, block_id}}))
+
+    Logger.debug "Swarm preparing cancel messages: #{inspect cancel_messages}"
+    swarm = remove_requested_block(swarm, block_id)
+
+    {swarm, cancel_messages}
   end
 
   def delegate_message(swarm = %__MODULE__{}, remote_peer_id, msg) do

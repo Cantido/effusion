@@ -1,6 +1,7 @@
 defmodule Effusion.BTP.Download do
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.PeerSelection
+  alias Effusion.BTP.PiecePicker
   alias Effusion.BTP.Block
   alias Effusion.BTP.Swarm
   import Effusion.BTP.Peer, only: [is_peer_id: 1]
@@ -88,7 +89,8 @@ defmodule Effusion.BTP.Download do
   This may trigger messages to be sent to any connections associated with this download's torrent.
   """
   def add_block(d = %__MODULE__{}, block, from) when is_peer_id(from) do
-    {d, cancel_messages} = cancel_block_requests(d, block, from)
+    {swarm, cancel_messages} = Swarm.cancel_block_requests(d.swarm, block, from)
+    d = %{d | swarm: swarm}
 
     pieces = Pieces.add_block(d.pieces, block)
     verified = Pieces.verified(pieces)
@@ -100,37 +102,14 @@ defmodule Effusion.BTP.Download do
     |> Pieces.verified()
     |> Enum.map(fn p -> {:write_piece, pieces.info, d.file, p} end)
 
-    {request_messages, d} = next_requests(d)
-    request_messages = request_messages |> Enum.map(&block_into_request/1)
-
     {
       %{d | pieces: pieces},
-      write_messages ++ have_messages ++ cancel_messages ++ request_messages
+      write_messages ++ have_messages ++ cancel_messages
     }
   end
 
   def mark_piece_written(d = %__MODULE__{}, i) do
     Map.update(d, :pieces, Pieces.new(d.meta.info_hash), &Pieces.mark_piece_written(&1, i))
-  end
-
-  defp cancel_block_requests(d, block, from) do
-    block_id = Block.id(block)
-
-    messages =
-      Swarm.requested_blocks(d.swarm)
-      |> Enum.filter(fn {peer_id, %{index: i, offset: o, size: s}} ->
-          peer_id != from && block_id.index == i && block_id.offset == o && block_id.size == s
-      end)
-      |> Enum.map(fn {peer_id, _blk} -> peer_id end)
-      |> Enum.map(&({:btp_send, &1, {:cancel, block_id}}))
-
-    d = remove_requested_block(d, block_id)
-
-    {d, messages}
-  end
-
-  defp remove_requested_block(d, block_id) do
-    Map.update!(d, :swarm, &Swarm.remove_requested_block(&1, block_id))
   end
 
   @doc """
@@ -155,53 +134,20 @@ defmodule Effusion.BTP.Download do
     Pieces.all_present?(d.pieces)
   end
 
-  @doc """
-  Get the next piece that this download should ask for.
-  """
-  def next_request(d = %__MODULE__{}) do
-    next_block =
-      Effusion.BTP.PiecePicker.next_block(
-        d.pieces,
-        Swarm.peers(d.swarm),
-        @block_size
-      )
-
-    case next_block do
-      nil -> {nil, d}
-      _ ->
-        s1 = mark_block_requested(d, next_block)
-        {next_block, s1}
-    end
-  end
-
-  def mark_blocks_requested(d, blocks) do
-    Enum.reduce(blocks, d, fn block, d_acc ->
-      mark_block_requested(d_acc, block)
-    end)
-  end
-
-  def mark_block_requested(d, {peer_id, block_id}) do
-    Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer_id, block_id))
-  end
-
-  defp next_request_msg(session = %__MODULE__{}) do
-    {reqs, download} = next_requests(session)
-    {download, Enum.map(reqs, &block_into_request/1)}
-  end
-
-  def next_requests(d = %__MODULE__{}) do
+  def next_requests(d = %__MODULE__{}, peers) do
     next_blocks =
       Effusion.BTP.PiecePicker.next_blocks(
         d.pieces,
-        Swarm.peers(d.swarm),
+        peers,
         @block_size
       )
 
     case next_blocks do
-      [] -> {[], d}
+      [] -> {d, []}
       _ ->
-        s1 = mark_blocks_requested(d, next_blocks)
-        {next_blocks, s1}
+        d = Map.update!(d, :swarm, &Swarm.mark_blocks_requested(&1, next_blocks))
+        next_requests = next_blocks |> Enum.map(&block_into_request/1)
+        {d, next_requests}
     end
   end
 
@@ -259,27 +205,65 @@ defmodule Effusion.BTP.Download do
        and peer_id != remote_peer_id do
     with {d, peer_messages} = delegate_message(d, remote_peer_id, msg),
          {:ok, d, session_messages} <- session_handle_message(d, remote_peer_id, msg) do
+      Logger.debug("session messages: #{inspect session_messages}")
       {d, session_messages ++ peer_messages}
     else
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:piece, b}) do
+  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:piece, b}) when is_peer_id(remote_peer_id) do
     {d, block_messages} = add_block(d, b, remote_peer_id)
-    {d, request_messages} = next_request_msg(d)
+    peer = Swarm.select_peer(d.swarm, remote_peer_id)
+    Logger.debug "Got piece from peer: #{inspect peer}"
+    {d, request_messages} = next_requests(d, [peer])
+
+    Logger.debug "request messages: #{inspect request_messages}"
     {:ok, d, block_messages ++ request_messages}
+  end
+
+  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:bitfield, b}) do
+    interest_message = if need_any_pieces?(d, b) do
+      [{:btp_send, remote_peer_id, :interested}]
+    else
+      []
+    end
+    {:ok, d, interest_message}
+  end
+
+  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:have, b}) do
+    interest_message = if need_piece?(d, b) do
+      [{:btp_send, remote_peer_id, :interested}]
+    else
+      []
+    end
+    {:ok, d, interest_message}
+  end
+
+  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, :unchoke) do
+    peer = Swarm.select_peer(d.swarm, remote_peer_id)
+    {d, request_messages} = next_requests(d, [peer])
+    {:ok, d, request_messages}
   end
 
   defp session_handle_message(d = %__MODULE__{}, _remote_peer_id, _msg), do: {:ok, d, []}
 
   defp delegate_message(d, remote_peer_id, msg) when is_peer_id(remote_peer_id) do
     {swarm, messages} = Swarm.delegate_message(d.swarm, remote_peer_id, msg)
+    Logger.debug("messages from delegation to swarm: #{inspect messages}")
     {%{d | swarm: swarm}, messages}
   end
 
   def handle_connect(d, peer_id, address) when is_peer_id(peer_id) do
     Map.update!(d, :swarm, &Swarm.handle_connect(&1, peer_id, address))
+  end
+
+  def need_piece?(d, i) do
+    !Pieces.has_piece?(d.pieces, i)
+  end
+
+  def need_any_pieces?(d, bitfield) do
+    !Pieces.has_pieces?(d.pieces, bitfield)
   end
 
   @doc """

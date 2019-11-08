@@ -102,11 +102,9 @@ defmodule EffusionTest do
 
     bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
     :ok = Socket.send_msg(sock, {:bitfield, bitfield})
-
     {:ok, :interested} = Socket.recv(sock)
-    {:ok, :unchoke} = Socket.recv(sock)
-    :ok = Socket.send_msg(sock, :unchoke)
 
+    :ok = Socket.send_msg(sock, :unchoke)
     {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
     {:ok, {:request, %{index: i2}}} = Socket.recv(sock)
 
@@ -148,12 +146,9 @@ defmodule EffusionTest do
 
     bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
     :ok = Socket.send_msg(sock, {:bitfield, bitfield})
-    :ok = Socket.send_msg(sock, :interested)
-    :ok = Socket.send_msg(sock, :unchoke)
-
     {:ok, :interested} = Socket.recv(sock)
-    {:ok, :unchoke} = Socket.recv(sock)
 
+    :ok = Socket.send_msg(sock, :unchoke)
     {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
     {:ok, {:request, %{index: i2}}} = Socket.recv(sock)
 
