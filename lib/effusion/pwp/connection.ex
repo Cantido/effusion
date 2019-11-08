@@ -27,70 +27,91 @@ defmodule Effusion.PWP.Connection do
     "#{:inet.ntoa(host)}:#{port}"
   end
 
+  defp validate_info_hash(local_info_hash, remote_info_hash) do
+    if local_info_hash == remote_info_hash do
+      :ok
+    else
+      {:error, {:mismatched_info_hash, [expected: local_info_hash, actual: remote_info_hash]}}
+    end
+  end
+
+  defp validate_peer_id(expected_peer_id, remote_peer_id) do
+    if expected_peer_id == nil or expected_peer_id == remote_peer_id do
+      :ok
+    else
+      {:error, {:mismatched_peer_id, [expected: expected_peer_id, actual: remote_peer_id]}}
+    end
+  end
+
+  defp successful_handshake(socket, info_hash, peer_id) do
+    {:ok, address} = :inet.peername(socket)
+    _ = Logger.debug("Handshake with #{ntoa(address)} successful")
+
+    {:ok, _pid} = ConnectionRegistry.register(info_hash, peer_id)
+    :ok = DownloadServer.connected(info_hash, peer_id, address)
+    :ok = :inet.setopts(socket, active: :once, packet: 4)
+
+    :ok
+  end
+
   defp connect(peer) do
-    _ = Logger.debug("Establishing connection to #{ntoa(peer.address)}")
+    address = peer.address
+    local_info_hash = peer.info_hash
+    local_peer_id = peer.peer_id
+    expected_peer_id = peer.remote_peer_id
+
+    connect(address, local_info_hash, local_peer_id, expected_peer_id)
+  end
+
+  defp connect(address = {host, port}, info_hash, local_peer_id, expected_peer_id) do
+    _ = Logger.debug("Establishing connection to #{ntoa(address)}")
     # must do it here in case we terminate later
     PeerStats.inc_num_tcp_peers()
 
-    case Socket.connect(peer.address, peer.info_hash, peer.peer_id, peer.remote_peer_id) do
-      {:ok, socket, remote_peer_id} ->
-        _ = Logger.debug("Handshake with #{ntoa(peer.address)} successful")
-        {:ok, _pid} = ConnectionRegistry.register(peer.info_hash, remote_peer_id)
-        :ok = DownloadServer.connected(peer.info_hash, remote_peer_id, peer.address)
-        :ok = :inet.setopts(socket, active: :once)
+    state = %{
+      address: address,
+      info_hash: info_hash,
+      remote_peer_id: expected_peer_id
+    }
 
-        {:noreply,
-         %{
-           socket: socket,
-           info_hash: peer.info_hash,
-           remote_peer_id: remote_peer_id,
-           address: peer.address
-         }}
+    with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false], 10_000),
+         :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, info_hash}),
+         {:ok, {:handshake, remote_peer_id, remote_info_hash, _}} <- Socket.recv(socket, 68),
+         :ok <- validate_info_hash(info_hash, remote_info_hash),
+         :ok <- validate_peer_id(expected_peer_id, remote_peer_id) do
+      :ok = successful_handshake(socket, info_hash, remote_peer_id)
+
+      {:noreply, Map.put(state, :socket, socket)}
+    else
+      {:error, :closed} ->
+        {:stop, :normal, state}
 
       {:error, reason} ->
-        Logger.debug("Handshake with #{ntoa(peer.address)} failed: #{inspect(reason)}")
-
-        {:stop, :normal,
-         %{
-           info_hash: peer.info_hash,
-           remote_peer_id: peer.remote_peer_id,
-           address: peer.address
-         }}
+        {:stop, reason, state}
     end
   end
 
   def handle_btp({:handshake, remote_peer_id, info_hash, _reserved}, state = %{socket: socket}) do
     PeerStats.inc_num_tcp_peers()
-    {:ok, address} = :inet.peername(socket)
 
-    case Registry.lookup(SessionRegistry, info_hash) do
-      [{_pid, _hash}] ->
-        _ =
-          Logger.debug(
-            "Successfully received connection from #{inspect(address)} for #{
-              Effusion.Hash.inspect(info_hash)
-            }"
-          )
-
-        {:ok, _pid} = ConnectionRegistry.register(info_hash, remote_peer_id)
-        :ok = DownloadServer.connected(info_hash, remote_peer_id, address)
-
-        local_peer_id = Application.get_env(:effusion, :peer_id)
-        _ = Logger.debug("Responding to #{remote_peer_id} with handshake")
-        :ok = Socket.send_msg(socket, {:handshake, local_peer_id, info_hash})
-
-        :ok = :inet.setopts(socket, active: :once, packet: 4)
-
-        state =
-          state
-          |> Map.put(:socket, socket)
-          |> Map.put(:info_hash, info_hash)
-          |> Map.put(:remote_peer_id, remote_peer_id)
-
-        {:noreply, state}
-
+    with [{_pid, _hash}] <- Registry.lookup(SessionRegistry, info_hash),
+         local_peer_id = Application.get_env(:effusion, :peer_id),
+         _ = Logger.debug("Responding to #{remote_peer_id} with handshake"),
+         :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, info_hash}),
+         :ok <- successful_handshake(socket, info_hash, remote_peer_id) do
+      {:noreply,
+       %{
+         socket: socket,
+         info_hash: info_hash,
+         remote_peer_id: remote_peer_id,
+         address: :inet.peername(socket)
+       }}
+    else
       [] ->
-        {:stop, :info_hash_not_found, state}
+        {:stop, :normal, state}
+
+      {:error, reason} ->
+        {:stop, reason, state}
     end
   end
 
@@ -126,7 +147,7 @@ defmodule Effusion.PWP.Connection do
     handle_btp(msg, state)
   end
 
-  def handle_info(:timeout, peer) when is_map(peer), do: connect(peer)
+  def handle_info(:timeout, state), do: connect(state)
   def handle_info({:tcp_closed, _socket}, state), do: {:stop, :normal, state}
   def handle_info(:disconnect, state), do: {:stop, :normal, state}
 
