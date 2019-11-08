@@ -1,12 +1,19 @@
 defmodule Effusion.PWP.Connection do
+  alias Effusion.BTP.DownloadServer
+  alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.Messages
   alias Effusion.PWP.Socket
-  alias Effusion.PWP.ConnectionRegistry
-  alias Effusion.BTP.DownloadServer
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
   alias Effusion.Statistics.Session, as: SessionStats
   require Logger
+
+  @moduledoc """
+  Protocol handler for the Peer Wire Protocol.
+
+  This amounts to performing the handshake, and then forwarding any messages
+  to the associated download.
+  """
 
   def disconnect(pid) do
     send(pid, :disconnect)

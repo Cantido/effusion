@@ -1,8 +1,11 @@
 defmodule Effusion.BTP.DownloadServer do
   use GenServer, restart: :transient
-  require Logger
+  alias Effusion.Application.DownloadServerSupervisor
   alias Effusion.BTP.Download
+  alias Effusion.BTP.Metainfo.Directory
   alias Effusion.PWP.ConnectionRegistry
+  alias Effusion.PWP.OutgoingHandler
+  require Logger
 
   @moduledoc """
   An API to manage a `Effusion.BTP.Download` object as it is connected to many peers simultaneously.
@@ -16,9 +19,8 @@ defmodule Effusion.BTP.DownloadServer do
   Start the Download Server in its own supervision tree.
   """
   def start(meta, {_host, _port} = local_server, file) when is_map(meta) do
-    with {:ok, _pid} <- Effusion.Application.DownloadServerSupervisor.start_child([meta, local_server, file]) do
-      {:ok, meta.info_hash}
-    else
+    case DownloadServerSupervisor.start_child([meta, local_server, file]) do
+      {:ok, _pid} -> {:ok, meta.info_hash}
       err -> err
     end
   end
@@ -73,7 +75,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   defp handle_internal_message({:btp_connect, peer}, state = %Download{}) do
-    Effusion.PWP.OutgoingHandler.connect(peer)
+    OutgoingHandler.connect(peer)
     state
   end
 
@@ -104,7 +106,7 @@ defmodule Effusion.BTP.DownloadServer do
   ## Callbacks
 
   def init([meta, local_peer, file]) do
-    :ok = Effusion.BTP.Metainfo.Directory.insert(meta)
+    :ok = Directory.insert(meta)
     state = Download.new(meta, local_peer, file)
 
     {:ok, state, 0}

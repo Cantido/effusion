@@ -18,11 +18,9 @@ defmodule Effusion.PWP.Socket do
   @doc """
   Connect to a server described by `peer`.
   """
-  def connect(address, local_info_hash, local_peer_id, expected_peer_id) do
-    with {host, port} = address,
-         {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false], 10_000) do
-      Handshake.perform(socket, local_peer_id, expected_peer_id, local_info_hash)
-    else
+  def connect({host, port}, local_info_hash, local_peer_id, expected_peer_id) do
+    case :gen_tcp.connect(host, port, [:binary, active: false], 10_000) do
+      {:ok, socket} -> Handshake.perform(socket, local_peer_id, expected_peer_id, local_info_hash)
       err -> err
     end
   end
@@ -32,9 +30,8 @@ defmodule Effusion.PWP.Socket do
   and performs a PWP handshake as the given `peer`.
   """
   def accept(lsock, local_info_hash, local_peer_id, expected_peer_id) do
-    with {:ok, socket} <- :gen_tcp.accept(lsock, 1_000) do
-      Handshake.perform(socket, local_peer_id, expected_peer_id,local_info_hash)
-    else
+    case :gen_tcp.accept(lsock, 1_000) do
+      {:ok, socket} -> Handshake.perform(socket, local_peer_id, expected_peer_id, local_info_hash)
       err -> err
     end
   end

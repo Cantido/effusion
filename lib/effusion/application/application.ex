@@ -1,13 +1,15 @@
 defmodule Effusion.Application do
   @moduledoc false
+  alias Effusion.Statistics.Net, as: NetStats
+  alias Effusion.Statistics.Peer, as: PeerStats
+  alias Effusion.Statistics.Session, as: SessionStats
 
   use Application
 
-
   def start(_type, _args) do
-    Effusion.Statistics.Net.init()
-    Effusion.Statistics.Peer.init()
-    Effusion.Statistics.Session.init()
+    NetStats.init()
+    PeerStats.init()
+    SessionStats.init()
 
     children = [
       Effusion.Application.DownloadServerSupervisor,

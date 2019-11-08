@@ -1,11 +1,14 @@
 defmodule Effusion.Format do
   import Effusion.Hash
 
+  @moduledoc """
+  Functions for presenting values as strings.
+  """
+
   @kibibyte 1024
   @mebibyte 1024 * @kibibyte
   @gibibyte 1024 * @mebibyte
   @tebibyte 1024 * @gibibyte
-
 
   @doc """
   Rounds an integer number of bytes into a higher unit.
@@ -41,6 +44,9 @@ defmodule Effusion.Format do
     Effusion.Hash.inspect(hash)
   end
 
+  defguardp is_percentage(percent) when is_float(percent) and percent >= 0.0 and percent <= 100.0
+  defguardp is_width(width) when is_integer(width) and width > 0
+
   @doc """
   Creates a string progress bar with a progressively shaded fractional portion
 
@@ -71,7 +77,7 @@ defmodule Effusion.Format do
       "██████████"
 
   """
-  def progress_bar(percent, width) when is_float(percent) and is_integer(width) and percent >= 0.0 and percent <= 100.0 and width > 0 do
+  def progress_bar(percent, width) when is_percentage(percent) and is_width(width) do
     fraction = (percent / 100)
     characters_shaded_float = fraction * width
 
@@ -82,16 +88,26 @@ defmodule Effusion.Format do
     characters_empty = width - characters_filled
 
     cond do
-      characters_filled == 0 -> "├" <> String.duplicate("─", width - 2) <> "┤"
-      characters_solid == 0 -> fractional_shaded_box(shade_amount, "├")<> String.duplicate("─", width - 2) <> "┤"
-      characters_filled < width && shade_amount > 0 -> String.duplicate("█", characters_solid) <> fractional_shaded_box(shade_amount, "─") <> String.duplicate("─", characters_empty - 1) <> "┤"
-      characters_filled < width -> String.duplicate("█", characters_solid) <> String.duplicate("─", characters_empty - 1) <> "┤"
-      characters_solid < width -> String.duplicate("█", characters_solid) <> fractional_shaded_box(shade_amount, "┤")
+      characters_filled == 0 ->
+        "├" <> String.duplicate("─", width - 2) <> "┤"
+      characters_solid == 0 ->
+        fractional_shaded_box(shade_amount, "├") <>
+        String.duplicate("─", width - 2) <> "┤"
+      characters_filled < width && shade_amount > 0 ->
+        String.duplicate("█", characters_solid) <>
+        fractional_shaded_box(shade_amount, "─") <>
+        String.duplicate("─", characters_empty - 1) <> "┤"
+      characters_filled < width ->
+        String.duplicate("█", characters_solid) <>
+        String.duplicate("─", characters_empty - 1) <> "┤"
+      characters_solid < width ->
+        String.duplicate("█", characters_solid) <>
+        fractional_shaded_box(shade_amount, "┤")
       true -> String.duplicate("█", width)
     end
   end
 
-  def fractional_shaded_box(fraction, empty_char) when fraction >= 0 and fraction <= 1 do
+  defp fractional_shaded_box(fraction, empty_char) when fraction >= 0 and fraction <= 1 do
     cond do
       fraction >= 1 -> "█"
       fraction >= 0.75 -> "▓"

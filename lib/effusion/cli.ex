@@ -1,8 +1,10 @@
 defmodule Effusion.CLI do
+  alias Effusion.BTP.DownloadServer
   alias Effusion.BTP.Metainfo
   alias Effusion.Format
-  alias Effusion.Stats
   alias Effusion.Statistics.Net, as: NetStats
+  alias Effusion.Statistics.Peer, as: PeerStats
+  alias Effusion.Stats
   use Timex
 
   @moduledoc """
@@ -31,7 +33,6 @@ defmodule Effusion.CLI do
 
     {:ok, info_hash} = Effusion.start_download(meta, dest)
 
-
     output_loop(info_hash)
   end
 
@@ -42,7 +43,7 @@ defmodule Effusion.CLI do
   @duration_width 20
 
   defp output_loop(info_hash, last_uploaded_bytes \\ 0, last_downloaded_bytes \\ 0, last_timestamp \\ System.monotonic_time(:millisecond)) do
-    download = Effusion.BTP.DownloadServer.get(info_hash)
+    download = DownloadServer.get(info_hash)
     dur = Stats.download_duration(download)
 
     {downloaded, total_to_download} = Stats.downloaded_ratio(download)
@@ -82,12 +83,11 @@ defmodule Effusion.CLI do
       IO.puts "No incoming connections!"
     end
 
-    IO.puts "Total TCP connections: #{Effusion.Statistics.Peer.num_tcp_peers()}"
+    IO.puts "Total TCP connections: #{PeerStats.num_tcp_peers()}"
 
     Process.sleep(100)
     output_loop(info_hash, uploaded_bytes, downloaded_bytes, this_loop_time)
   end
-
 
   defp row(name, progress, percent, downloaded, duration) do
     constrain_text(name, @name_width)

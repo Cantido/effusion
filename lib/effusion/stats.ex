@@ -1,10 +1,15 @@
 defmodule Effusion.Stats do
+  alias Effusion.BTP.{Metainfo, Pieces}
+  @moduledoc """
+  Utility functions for calculating statistics on a Download.
+  """
+
   def bytes_completed(download) do
-    Effusion.BTP.Pieces.bytes_completed(download.pieces)
+    Pieces.bytes_completed(download.pieces)
   end
 
   def download_size(download) do
-    Effusion.BTP.Metainfo.bytes_count(download.meta)
+    Metainfo.bytes_count(download.meta)
   end
 
   def downloaded_ratio(download) do

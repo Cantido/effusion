@@ -1,6 +1,10 @@
 defmodule Effusion.BTP.Metainfo.Directory do
   use GenServer
 
+  @moduledoc """
+  A lookup table of a torrent's metainfo.
+  """
+
   def start_link(_args) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end

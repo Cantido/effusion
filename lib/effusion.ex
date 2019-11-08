@@ -1,10 +1,11 @@
-alias Effusion.BTP.DownloadServer
-
 defmodule Effusion do
+  alias Effusion.BTP.DownloadServer
+  alias Effusion.BTP.Metainfo
+
   @moduledoc """
   A BitTorrent library.
   """
-  @typep hash :: <<_::20, _::_*8>>
+  @typep hash :: <<_::20, _::_ * 8>>
   @type info_hash :: hash()
   @type peer_id :: hash()
 
@@ -33,11 +34,14 @@ defmodule Effusion do
     end
   end
 
+  @doc """
+  Start downloading the torrent with a metadata file located at `torrent_file`.
+  """
   def download_file(torrent_file) do
     {:ok, metabin} = torrent_file |> Path.expand() |> File.read()
-    {:ok, meta} = Effusion.BTP.Metainfo.decode(metabin)
+    {:ok, meta} = Metainfo.decode(metabin)
     dest = meta.info.name |> Path.expand
 
-    {:ok, info_hash} = Effusion.start_download(meta, dest)
+    {:ok, _info_hash} = Effusion.start_download(meta, dest)
   end
 end

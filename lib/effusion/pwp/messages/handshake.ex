@@ -32,7 +32,6 @@ defmodule Effusion.PWP.Messages.Handshake do
       peer_id::bytes-size(20)>>
   end
 
-
   def perform(socket, local_peer_id, expected_peer_id, local_info_hash) do
     with :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, local_info_hash}),
          {:ok, hs = {:handshake, remote_peer_id, _, _}} <- Socket.recv(socket, 68),

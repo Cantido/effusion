@@ -34,6 +34,6 @@ defmodule Effusion.PWP.OutgoingHandlerTest do
 
     connections = Registry.lookup(ConnectionRegistry, @torrent.info_hash)
 
-    assert Enum.member? connections,{cpid, "Other peer 123456789"}
+    assert Enum.member? connections, {cpid, "Other peer 123456789"}
   end
 end

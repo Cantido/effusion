@@ -1,8 +1,14 @@
 defmodule Effusion.BTP.Swarm do
-  alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
+  alias Effusion.BTP.Peer
   import Effusion.BTP.Peer, only: [is_peer_id: 1]
   require Logger
+
+  @moduledoc """
+  A collection of peers.
+
+  Functions that manipulate or query the peers as a whole are located here.
+  """
 
   defstruct [
     :peer_id,
@@ -75,7 +81,7 @@ defmodule Effusion.BTP.Swarm do
     |> Map.put(:peer_addresses, peer_addresses)
   end
 
-  def valid_peer?(%{port: port}) when port in 1..65535, do: true
+  def valid_peer?(%{port: port}) when port in 1..65_535, do: true
   def valid_peer?(_), do: false
 
   def requested_blocks(swarm) do
@@ -98,14 +104,6 @@ defmodule Effusion.BTP.Swarm do
     Logger.debug("peers after removing the requested block #{inspect swarm.peers}")
 
     %{swarm | peers: peers}
-  end
-
-  defp remove_requested_block_from_set(set, %Block{index: id_i, offset: id_o, size: id_s}) do
-    set
-    |> Enum.filter(fn %Block{index: i, offset: o, size: s} ->
-      i == id_i && o == id_o && s == id_s
-    end)
-    |> MapSet.new()
   end
 
   def mark_blocks_requested(swarm, blocks) do
@@ -140,20 +138,19 @@ defmodule Effusion.BTP.Swarm do
   end
 
   def delegate_message(swarm = %__MODULE__{}, remote_peer_id, msg) do
-    with {:ok, peer} <- get_connected_peer(swarm, remote_peer_id),
-         {peer, responses} <- Peer.recv(peer, msg),
-         swarm = Map.update(swarm, :peers, Map.new(), &Map.put(&1, peer.address, peer)) do
-      {swarm, Enum.map(responses, fn r -> {:btp_send, remote_peer_id, r} end)}
-    else
+    case get_connected_peer(swarm, remote_peer_id) do
+      {:ok, peer} ->
+        {peer, responses} = Peer.recv(peer, msg)
+        swarm = Map.update(swarm, :peers, Map.new(), &Map.put(&1, peer.address, peer))
+        {swarm, Enum.map(responses, fn r -> {:btp_send, remote_peer_id, r} end)}
       _ -> {swarm, []}
     end
   end
 
   def get_connected_peer(swarm = %__MODULE__{}, remote_peer_id)
        when is_peer_id(remote_peer_id) do
-    with {:ok, address} <- Map.fetch(swarm.peer_addresses, remote_peer_id) do
-      Map.fetch(swarm.peers, address)
-    else
+    case Map.fetch(swarm.peer_addresses, remote_peer_id) do
+      {:ok, address} -> Map.fetch(swarm.peers, address)
       _ -> {:error, :peer_not_found}
     end
   end

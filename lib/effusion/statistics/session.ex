@@ -1,4 +1,8 @@
 defmodule Effusion.Statistics.Session do
+  @moduledoc """
+  Tracks message statistics, across all downloads.
+  """
+
   def init do
     :ets.new(SessionStatsTable, [:set, :public, :named_table, read_concurrency: false, write_concurrency: true])
     :ets.insert(SessionStatsTable, [

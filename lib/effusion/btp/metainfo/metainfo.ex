@@ -1,7 +1,8 @@
 defmodule Effusion.BTP.Metainfo do
-  alias Effusion.Hash
-  alias Effusion.BTP.Metainfo.SingleFileInfo
+  alias Effusion.BTP.Metainfo.Directory
   alias Effusion.BTP.Metainfo.MultiFileInfo
+  alias Effusion.BTP.Metainfo.SingleFileInfo
+  alias Effusion.Hash
 
   @moduledoc """
   Functions for working with a BitTorrent metadata file, AKA a torrent file.
@@ -16,13 +17,13 @@ defmodule Effusion.BTP.Metainfo do
   def decode(bin) do
     with {:ok, decoded} <- ExBencode.decode(bin),
          {:ok, info} <- ExBencode.encode(decoded["info"]),
-         :ok <- check_info_block(info, bin),
-         info_hash = Hash.calc(info),
+         :ok <- check_info_block(info, bin) do
+         info_hash = Hash.calc(info)
          result =
            decoded
            |> Map.put(:info_hash, info_hash)
            |> Effusion.Map.rename_keys(key_tokens())
-           |> Map.update!(:info, &update_info/1) do
+           |> Map.update!(:info, &update_info/1)
       meta = struct(Effusion.BTP.Metainfo, result)
       put_meta(meta)
       {:ok, meta}
@@ -82,11 +83,11 @@ defmodule Effusion.BTP.Metainfo do
   end
 
   def put_meta(meta) do
-    Effusion.BTP.Metainfo.Directory.insert(meta)
+    Directory.insert(meta)
   end
 
   def get_meta(info_hash) do
-    Effusion.BTP.Metainfo.Directory.lookup(info_hash)
+    Directory.lookup(info_hash)
   end
 
   defimpl Inspect, for: Effusion.BTP.Metainfo.SingleFileInfo do

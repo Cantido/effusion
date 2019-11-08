@@ -1,5 +1,8 @@
 defmodule Effusion.Statistics.Net do
-  def init() do
+  @moduledoc """
+  Tracks network statistics.
+  """
+  def init do
     :ets.new(NetStatsTable, [:set, :public, :named_table, read_concurrency: false, write_concurrency: true])
     :ets.insert(NetStatsTable, [
       {:sent_payload_bytes, 0},
@@ -12,7 +15,6 @@ defmodule Effusion.Statistics.Net do
       {:recv_tracker_bytes, 0},
       {:has_incoming_connections, false}])
   end
-
 
   def add_sent_payload_bytes(n) when is_integer(n) and n >= 0 do
     :ets.update_counter(NetStatsTable, :sent_payload_bytes, n, {:k, 0})
@@ -46,8 +48,6 @@ defmodule Effusion.Statistics.Net do
     :ets.lookup_element(NetStatsTable, :sent_tracker_bytes, 2)
   end
 
-
-
   def add_recv_payload_bytes(n) when is_integer(n) and n >= 0 do
     :ets.update_counter(NetStatsTable, :recv_payload_bytes, n, {:k, 0})
   end
@@ -79,7 +79,6 @@ defmodule Effusion.Statistics.Net do
   def recv_tracker_bytes do
     :ets.lookup_element(NetStatsTable, :recv_tracker_bytes, 2)
   end
-
 
   def set_has_incoming_connections(n) when is_boolean(n) do
     :ets.insert(NetStatsTable, {:has_incoming_connections, n})

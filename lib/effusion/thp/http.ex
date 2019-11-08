@@ -22,7 +22,7 @@ defmodule Effusion.THP.HTTP do
       ) when is_hash(info_hash)
          and is_peer_id(peer_id)
          and is_integer(peer_port)
-         and peer_port in 1..65535
+         and peer_port in 1..65_535
          and uploaded >= 0
          and downloaded >= 0
          and left >= 0 do
@@ -37,22 +37,26 @@ defmodule Effusion.THP.HTTP do
       ip: to_string(:inet.ntoa(peer_host))
     }
     Logger.debug "Making announce to #{tracker_url}"
-    with {:ok, event} <- build_event_param(event),
-         tracker_request = Map.put(tracker_request, :event, event),
-         query = URI.encode_query(tracker_request),
-         http_res = HTTPotion.get(tracker_url <> "?" <> query) do
-      byte_size(query) |> NetStats.add_sent_bytes
-      byte_size(query) |> NetStats.add_sent_tracker_bytes
-      {length, ""} = http_res.headers["content-length"] |> Integer.parse
-      length |> NetStats.add_recv_bytes()
-      length |> NetStats.add_recv_tracker_bytes()
-      Logger.debug "Announce to #{tracker_url} successful."
-      decode_response(http_res)
-    else
+    case build_event_param(event) do
+      {:ok, event} ->
+        tracker_request = Map.put(tracker_request, :event, event)
+        query = URI.encode_query(tracker_request)
+        http_res = HTTPotion.get(tracker_url <> "?" <> query)
+        record_request_stats(query, http_res)
+        Logger.debug "Announce to #{tracker_url} successful."
+        decode_response(http_res)
       err ->
         Logger.warn("Failed to announce: #{err}")
         err
     end
+  end
+
+  def record_request_stats(query, response) do
+    byte_size(query) |> NetStats.add_sent_bytes
+    byte_size(query) |> NetStats.add_sent_tracker_bytes
+    {length, ""} = response.headers["content-length"] |> Integer.parse
+    length |> NetStats.add_recv_bytes()
+    length |> NetStats.add_recv_tracker_bytes()
   end
 
   defp build_event_param(event) do

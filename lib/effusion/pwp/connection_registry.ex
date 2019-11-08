@@ -4,6 +4,10 @@ defmodule Effusion.PWP.ConnectionRegistry do
   import Effusion.BTP.Peer
   require Logger
 
+  @moduledoc """
+  A registry of connected peers and the processes handling them.
+  """
+
   def register(info_hash, peer_id) do
     Registry.register(ConnectionRegistry, info_hash, peer_id)
   end

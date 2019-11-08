@@ -88,7 +88,7 @@ defmodule Effusion.PWP.Messages do
     {:ok, {:cancel, %{index: index, offset: offset, size: size}}}
   end
 
-  def decode(<<19, "BitTorrent protocol", _rest::binary>> = msg), do: Handshake.decode(msg)
+  def decode(msg = <<19, "BitTorrent protocol", _rest::binary>>), do: Handshake.decode(msg)
 
   def decode(<<id, rest::binary>>) when id in 0..3 and bit_size(rest) > 0 do
     {:error, :no_payload_allowed}
@@ -97,7 +97,6 @@ defmodule Effusion.PWP.Messages do
   def decode(<<_, _rest::binary>>) do
     {:error, :invalid}
   end
-
 
   def payload_bytes_count(<<7, _index::32, _offset::32, data::binary>>), do: byte_size(data)
   def payload_bytes_count(_msg), do: 0

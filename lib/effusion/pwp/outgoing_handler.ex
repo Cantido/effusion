@@ -1,7 +1,6 @@
 defmodule Effusion.PWP.OutgoingHandler do
   use GenServer, restart: :temporary
-  alias Effusion.BTP.DownloadServer
-  alias Effusion.PWP.Socket
+  alias Effusion.Application.ConnectionSupervisor
   alias Effusion.PWP.Connection
   require Logger
 
@@ -18,7 +17,7 @@ defmodule Effusion.PWP.OutgoingHandler do
   Start a connection to a `peer` in the Connection supervision hierarchy.
   """
   def connect(peer) do
-    Effusion.Application.ConnectionSupervisor.start_child(peer)
+    ConnectionSupervisor.start_child(peer)
   end
 
   @doc """
@@ -42,7 +41,7 @@ defmodule Effusion.PWP.OutgoingHandler do
     Connection.handle_info(info, state)
   end
 
-  def terminate(reason,state) do
+  def terminate(reason, state) do
     Connection.terminate(reason, state)
   end
 end

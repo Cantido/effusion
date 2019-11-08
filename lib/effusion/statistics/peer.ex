@@ -1,4 +1,9 @@
 defmodule Effusion.Statistics.Peer do
+  @moduledoc """
+  Statistics about peers.
+
+  For example, `num_tcp_peers/0` returns the number of peers we are currently connected to.
+  """
   def init do
     :ets.new(PeerStatsTable, [:set, :public, :named_table, read_concurrency: false, write_concurrency: true])
     :ets.insert(PeerStatsTable, [{:num_tcp_peers, 0}])

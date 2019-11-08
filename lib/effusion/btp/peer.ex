@@ -58,11 +58,11 @@ defmodule Effusion.BTP.Peer do
   end
 
   def inc_fail_count(peer = %__MODULE__{}) when is_map(peer) do
-    Map.update(peer, :failcount, 0, &(&1+1))
+    Map.update(peer, :failcount, 0, &(&1 + 1))
   end
 
   def dec_fail_count(peer = %__MODULE__{}) when is_map(peer) do
-    Map.update(peer, :failcount, 0, &(&1-1))
+    Map.update(peer, :failcount, 0, &(&1 - 1))
   end
 
   def blocks_we_requested(peer) do

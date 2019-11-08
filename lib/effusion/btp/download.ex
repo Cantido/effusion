@@ -1,8 +1,7 @@
 defmodule Effusion.BTP.Download do
-  alias Effusion.BTP.Pieces
   alias Effusion.BTP.PeerSelection
   alias Effusion.BTP.PiecePicker
-  alias Effusion.BTP.Block
+  alias Effusion.BTP.Pieces
   alias Effusion.BTP.Swarm
   import Effusion.BTP.Peer, only: [is_peer_id: 1]
   require Logger
@@ -43,7 +42,7 @@ defmodule Effusion.BTP.Download do
       peer_id: @local_peer_id,
       pieces: Pieces.new(meta.info_hash),
       local_address: local_address,
-      swarm: Effusion.BTP.Swarm.new(@local_peer_id, meta.info_hash)
+      swarm: Swarm.new(@local_peer_id, meta.info_hash)
     }
   end
 
@@ -157,11 +156,12 @@ defmodule Effusion.BTP.Download do
       when is_peer_id(peer_id)
        and is_peer_id(remote_peer_id)
        and peer_id != remote_peer_id do
-    with {d, peer_messages} = delegate_message(d, remote_peer_id, msg),
-         {:ok, d, session_messages} <- session_handle_message(d, remote_peer_id, msg) do
-      {d, session_messages ++ peer_messages}
-    else
-      {:error, reason} -> {:error, reason}
+    case session_handle_message(d, remote_peer_id, msg) do
+      {:ok, d, session_messages} ->
+        {d, peer_messages} = delegate_message(d, remote_peer_id, msg)
+        {d, session_messages ++ peer_messages}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -245,7 +245,7 @@ defmodule Effusion.BTP.Download do
 
   def next_requests(d = %__MODULE__{}, peers) do
     next_blocks =
-      Effusion.BTP.PiecePicker.next_blocks(
+      PiecePicker.next_blocks(
         d.pieces,
         peers,
         @block_size

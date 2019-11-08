@@ -1,6 +1,10 @@
 defmodule Effusion.Application.ConnectionSupervisor do
   use DynamicSupervisor
 
+  @moduledoc """
+  Supervises a dynamic number of `Effusion.PWP.Connection` processes.
+  """
+
   def start_link([]) do
     DynamicSupervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end
