@@ -1,5 +1,6 @@
 defmodule Effusion.Stats do
   alias Effusion.BTP.{Metainfo, Pieces}
+
   @moduledoc """
   Utility functions for calculating statistics on a Download.
   """
@@ -20,6 +21,7 @@ defmodule Effusion.Stats do
   end
 
   def download_duration(download) do
-    Timex.Interval.new(from: download.started_at, until: Timex.now()) |> Timex.Interval.duration(:duration)
+    Timex.Interval.new(from: download.started_at, until: Timex.now())
+    |> Timex.Interval.duration(:duration)
   end
 end

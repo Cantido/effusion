@@ -47,6 +47,7 @@ defmodule Effusion.BTP.Pieces do
   def has_pieces?(torrent, bits) do
     we_have = bitfield(torrent)
     do_we_have = IntSet.new(bits)
+
     IntSet.difference(do_we_have, we_have)
     |> Enum.empty?()
   end

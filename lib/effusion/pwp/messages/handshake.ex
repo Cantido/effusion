@@ -43,7 +43,11 @@ defmodule Effusion.PWP.Messages.Handshake do
     end
   end
 
-  defp validate(expected_peer_id, local_info_hash, {:handshake, remote_peer_id, remote_info_hash, _reserved}) do
+  defp validate(
+         expected_peer_id,
+         local_info_hash,
+         {:handshake, remote_peer_id, remote_info_hash, _reserved}
+       ) do
     cond do
       local_info_hash != remote_info_hash ->
         {:error, {:mismatched_info_hash, [expected: local_info_hash, actual: remote_info_hash]}}

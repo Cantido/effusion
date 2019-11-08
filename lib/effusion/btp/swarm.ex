@@ -21,15 +21,19 @@ defmodule Effusion.BTP.Swarm do
     %__MODULE__{
       peer_id: peer_id,
       info_hash: info_hash,
-      peers: Map.new(), # {peer_address, peer}
-      peer_addresses: Map.new(), # {peer_address, peer_id}
+      # {peer_address, peer}
+      peers: Map.new(),
+      # {peer_address, peer_id}
+      peer_addresses: Map.new()
     }
   end
 
   def select_peer(swarm, peer_id) when is_peer_id(peer_id) do
-    peer = Enum.find(swarm.peers, fn {_addr, peer} ->
-      peer.remote_peer_id == peer_id
-    end)
+    peer =
+      Enum.find(swarm.peers, fn {_addr, peer} ->
+        peer.remote_peer_id == peer_id
+      end)
+
     case peer do
       nil -> nil
       {_addr, peer} -> peer
@@ -57,24 +61,27 @@ defmodule Effusion.BTP.Swarm do
       end)
       |> Enum.reject(&Enum.member?(known_ids, &1.remote_peer_id))
       |> Enum.reject(&Enum.member?(known_addrs, &1.address))
-      |> Map.new(&({&1.address, &1}))
+      |> Map.new(&{&1.address, &1})
 
-    announced_addrs = peers
-    |> Enum.map(&({&1.ip, &1.port}))
-    |> Enum.uniq()
-    |> Enum.into([])
+    announced_addrs =
+      peers
+      |> Enum.map(&{&1.ip, &1.port})
+      |> Enum.uniq()
+      |> Enum.into([])
 
     all_peers = Map.merge(new_peers, swarm.peers)
     {dec_failcount, keep_failcount} = Map.split(all_peers, announced_addrs)
 
-    all_updated_peers = dec_failcount
-    |> Enum.map(fn {addr, p} -> {addr, Peer.dec_fail_count(p)} end)
-    |> Map.new()
-    |> Map.merge(keep_failcount)
+    all_updated_peers =
+      dec_failcount
+      |> Enum.map(fn {addr, p} -> {addr, Peer.dec_fail_count(p)} end)
+      |> Map.new()
+      |> Map.merge(keep_failcount)
 
-    peer_addresses = all_updated_peers
-    |> Enum.reject(fn {_addr, p} -> p.remote_peer_id == nil end)
-    |> Map.new(fn {addr, p} -> {p.remote_peer_id, addr} end)
+    peer_addresses =
+      all_updated_peers
+      |> Enum.reject(fn {_addr, p} -> p.remote_peer_id == nil end)
+      |> Map.new(fn {addr, p} -> {p.remote_peer_id, addr} end)
 
     swarm
     |> Map.put(:peers, all_updated_peers)
@@ -94,14 +101,17 @@ defmodule Effusion.BTP.Swarm do
   end
 
   def remove_requested_block(swarm, block_id) do
-    Logger.debug("removing requested block #{inspect block_id} from all peers")
-    peers = swarm.peers
-    |> Enum.map(fn {addr, p} ->
-      p = Peer.remove_requested_block(p, block_id)
-      {addr, p}
-    end)
-    |> Map.new()
-    Logger.debug("peers after removing the requested block #{inspect swarm.peers}")
+    Logger.debug("removing requested block #{inspect(block_id)} from all peers")
+
+    peers =
+      swarm.peers
+      |> Enum.map(fn {addr, p} ->
+        p = Peer.remove_requested_block(p, block_id)
+        {addr, p}
+      end)
+      |> Map.new()
+
+    Logger.debug("peers after removing the requested block #{inspect(swarm.peers)}")
 
     %{swarm | peers: peers}
   end
@@ -113,10 +123,10 @@ defmodule Effusion.BTP.Swarm do
   end
 
   def mark_block_requested(swarm = %__MODULE__{}, peer_id, block_id) do
-    Logger.debug "Marking block #{inspect block_id} as requested from #{inspect peer_id}"
+    Logger.debug("Marking block #{inspect(block_id)} as requested from #{inspect(peer_id)}")
     addr = Map.get(swarm.peer_addresses, peer_id)
     peers = Map.update!(swarm.peers, addr, &Peer.request_block(&1, block_id))
-    Logger.debug "Peers after marking above block as requested: #{inspect peers}"
+    Logger.debug("Peers after marking above block as requested: #{inspect(peers)}")
     %{swarm | peers: peers}
   end
 
@@ -126,12 +136,12 @@ defmodule Effusion.BTP.Swarm do
     cancel_messages =
       requested_blocks(swarm)
       |> Enum.reject(fn {peer_id, %{index: i, offset: o, size: s}} ->
-          (peer_id == from) || ((block_id.index == i) && (block_id.offset == o) && (block_id.size == s))
+        peer_id == from || (block_id.index == i && block_id.offset == o && block_id.size == s)
       end)
       |> Enum.map(fn {peer_id, _blk} -> peer_id end)
-      |> Enum.map(&({:btp_send, &1, {:cancel, block_id}}))
+      |> Enum.map(&{:btp_send, &1, {:cancel, block_id}})
 
-    Logger.debug "Swarm preparing cancel messages: #{inspect cancel_messages}"
+    Logger.debug("Swarm preparing cancel messages: #{inspect(cancel_messages)}")
     swarm = remove_requested_block(swarm, block_id)
 
     {swarm, cancel_messages}
@@ -143,12 +153,14 @@ defmodule Effusion.BTP.Swarm do
         {peer, responses} = Peer.recv(peer, msg)
         swarm = Map.update(swarm, :peers, Map.new(), &Map.put(&1, peer.address, peer))
         {swarm, Enum.map(responses, fn r -> {:btp_send, remote_peer_id, r} end)}
-      _ -> {swarm, []}
+
+      _ ->
+        {swarm, []}
     end
   end
 
   def get_connected_peer(swarm = %__MODULE__{}, remote_peer_id)
-       when is_peer_id(remote_peer_id) do
+      when is_peer_id(remote_peer_id) do
     case Map.fetch(swarm.peer_addresses, remote_peer_id) do
       {:ok, address} -> Map.fetch(swarm.peers, address)
       _ -> {:error, :peer_not_found}
@@ -163,7 +175,7 @@ defmodule Effusion.BTP.Swarm do
 
   defp update_connected_peer(peers, swarm, peer_id, address) do
     peers
-    |> Map.put_new(address,  peer(swarm, peer_id, address))
+    |> Map.put_new(address, peer(swarm, peer_id, address))
     |> Map.update!(address, fn peer ->
       peer
       |> Peer.dec_fail_count()
@@ -174,14 +186,15 @@ defmodule Effusion.BTP.Swarm do
   def handle_disconnect(swarm = %__MODULE__{}, address, reason \\ :normal) do
     swarm
     |> Map.update!(
-        :peers,
-        &Map.update(&1, address, Peer.new(address, swarm.peer_id, swarm.info_hash), fn peer ->
-          if reason != :normal do
-            Peer.inc_fail_count(peer)
-          else
-            peer
-          end
-        end))
+      :peers,
+      &Map.update(&1, address, Peer.new(address, swarm.peer_id, swarm.info_hash), fn peer ->
+        if reason != :normal do
+          Peer.inc_fail_count(peer)
+        else
+          peer
+        end
+      end)
+    )
   end
 
   defp peer(swarm = %__MODULE__{}, peer_id, peer_address)

@@ -3,7 +3,14 @@ defmodule Effusion.Statistics.Net do
   Tracks network statistics.
   """
   def init do
-    :ets.new(NetStatsTable, [:set, :public, :named_table, read_concurrency: false, write_concurrency: true])
+    :ets.new(NetStatsTable, [
+      :set,
+      :public,
+      :named_table,
+      read_concurrency: false,
+      write_concurrency: true
+    ])
+
     :ets.insert(NetStatsTable, [
       {:sent_payload_bytes, 0},
       {:sent_bytes, 0},
@@ -13,7 +20,8 @@ defmodule Effusion.Statistics.Net do
       {:recv_bytes, 0},
       {:recv_ip_overhead_bytes, 0},
       {:recv_tracker_bytes, 0},
-      {:has_incoming_connections, false}])
+      {:has_incoming_connections, false}
+    ])
   end
 
   def add_sent_payload_bytes(n) when is_integer(n) and n >= 0 do
@@ -25,7 +33,7 @@ defmodule Effusion.Statistics.Net do
   end
 
   def add_sent_bytes(n) when is_integer(n) and n >= 0 do
-      :ets.update_counter(NetStatsTable, :sent_bytes, n, {:k, 0})
+    :ets.update_counter(NetStatsTable, :sent_bytes, n, {:k, 0})
   end
 
   def sent_bytes do

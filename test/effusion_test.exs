@@ -95,7 +95,14 @@ defmodule EffusionTest do
 
     {:ok, _} = Effusion.start_download(@torrent, file)
 
-    {:ok, sock, _remote_peer} = Socket.accept(lsock, @remote_peer.info_hash, @remote_peer.peer_id, @remote_peer.remote_peer_id)
+    {:ok, sock, _remote_peer} =
+      Socket.accept(
+        lsock,
+        @remote_peer.info_hash,
+        @remote_peer.peer_id,
+        @remote_peer.remote_peer_id
+      )
+
     on_exit(fn ->
       Socket.close(sock)
     end)
@@ -142,7 +149,13 @@ defmodule EffusionTest do
 
     {:ok, _} = Effusion.start_download(@torrent, file)
 
-    {:ok, sock, _remote_peer} = Socket.connect({{127, 0, 0, 1}, @local_port}, @remote_peer.info_hash, @remote_peer.peer_id, @remote_peer.remote_peer_id)
+    {:ok, sock, _remote_peer} =
+      Socket.connect(
+        {{127, 0, 0, 1}, @local_port},
+        @remote_peer.info_hash,
+        @remote_peer.peer_id,
+        @remote_peer.remote_peer_id
+      )
 
     bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
     :ok = Socket.send_msg(sock, {:bitfield, bitfield})

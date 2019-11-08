@@ -78,6 +78,7 @@ defmodule Effusion.BTP.Block do
           size: byte_size(d2 <> d1),
           data: d2 <> d1
         }
+
       true ->
         {:error, :blocks_not_contiguous}
     end

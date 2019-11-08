@@ -33,10 +33,10 @@ defmodule Effusion.Format do
   def bytes(n) when n >= 0 do
     cond do
       n < @kibibyte -> "#{n} B"
-      n < @mebibyte -> "#{Float.round(n/@kibibyte, 1)} kiB"
-      n < @gibibyte -> "#{Float.round(n/@mebibyte, 1)} MiB"
-      n < @tebibyte -> "#{Float.round(n/@gibibyte, 1)} GiB"
-      true -> "#{Float.round(n/@tebibyte, 1)} TiB"
+      n < @mebibyte -> "#{Float.round(n / @kibibyte, 1)} kiB"
+      n < @gibibyte -> "#{Float.round(n / @mebibyte, 1)} MiB"
+      n < @tebibyte -> "#{Float.round(n / @gibibyte, 1)} GiB"
+      true -> "#{Float.round(n / @tebibyte, 1)} TiB"
     end
   end
 
@@ -78,7 +78,7 @@ defmodule Effusion.Format do
 
   """
   def progress_bar(percent, width) when is_percentage(percent) and is_width(width) do
-    fraction = (percent / 100)
+    fraction = percent / 100
     characters_shaded_float = fraction * width
 
     characters_solid = trunc(characters_shaded_float)
@@ -90,20 +90,26 @@ defmodule Effusion.Format do
     cond do
       characters_filled == 0 ->
         "├" <> String.duplicate("─", width - 2) <> "┤"
+
       characters_solid == 0 ->
         fractional_shaded_box(shade_amount, "├") <>
-        String.duplicate("─", width - 2) <> "┤"
+          String.duplicate("─", width - 2) <> "┤"
+
       characters_filled < width && shade_amount > 0 ->
         String.duplicate("█", characters_solid) <>
-        fractional_shaded_box(shade_amount, "─") <>
-        String.duplicate("─", characters_empty - 1) <> "┤"
+          fractional_shaded_box(shade_amount, "─") <>
+          String.duplicate("─", characters_empty - 1) <> "┤"
+
       characters_filled < width ->
         String.duplicate("█", characters_solid) <>
-        String.duplicate("─", characters_empty - 1) <> "┤"
+          String.duplicate("─", characters_empty - 1) <> "┤"
+
       characters_solid < width ->
         String.duplicate("█", characters_solid) <>
-        fractional_shaded_box(shade_amount, "┤")
-      true -> String.duplicate("█", width)
+          fractional_shaded_box(shade_amount, "┤")
+
+      true ->
+        String.duplicate("█", width)
     end
   end
 
@@ -111,7 +117,7 @@ defmodule Effusion.Format do
     cond do
       fraction >= 1 -> "█"
       fraction >= 0.75 -> "▓"
-      fraction >= 0.5 -> "▒" #
+      fraction >= 0.5 -> "▒"
       fraction >= 0.25 -> "░"
       true -> empty_char
     end

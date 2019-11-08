@@ -29,7 +29,8 @@ defmodule Effusion.PWP.Connection do
 
   defp connect(peer) do
     _ = Logger.debug("Establishing connection to #{ntoa(peer.address)}")
-    PeerStats.inc_num_tcp_peers() # must do it here in case we terminate later
+    # must do it here in case we terminate later
+    PeerStats.inc_num_tcp_peers()
 
     case Socket.connect(peer.address, peer.info_hash, peer.peer_id, peer.remote_peer_id) do
       {:ok, socket, remote_peer_id} ->
@@ -37,21 +38,24 @@ defmodule Effusion.PWP.Connection do
         {:ok, _pid} = ConnectionRegistry.register(peer.info_hash, remote_peer_id)
         :ok = DownloadServer.connected(peer.info_hash, remote_peer_id, peer.address)
         :ok = :inet.setopts(socket, active: :once)
-        {:noreply, %{
-          socket: socket,
-          info_hash: peer.info_hash,
-          remote_peer_id: remote_peer_id,
-          address: peer.address
-        }}
+
+        {:noreply,
+         %{
+           socket: socket,
+           info_hash: peer.info_hash,
+           remote_peer_id: remote_peer_id,
+           address: peer.address
+         }}
 
       {:error, reason} ->
-        Logger.debug "Handshake with #{ntoa peer.address} failed: #{inspect reason}"
+        Logger.debug("Handshake with #{ntoa(peer.address)} failed: #{inspect(reason)}")
+
         {:stop, :normal,
-          %{
-            info_hash: peer.info_hash,
-            remote_peer_id: peer.remote_peer_id,
-            address: peer.address
-          }}
+         %{
+           info_hash: peer.info_hash,
+           remote_peer_id: peer.remote_peer_id,
+           address: peer.address
+         }}
     end
   end
 
@@ -61,7 +65,12 @@ defmodule Effusion.PWP.Connection do
 
     case Registry.lookup(SessionRegistry, info_hash) do
       [{_pid, _hash}] ->
-        _ = Logger.debug("Successfully received connection from #{inspect address} for #{Effusion.Hash.inspect info_hash}")
+        _ =
+          Logger.debug(
+            "Successfully received connection from #{inspect(address)} for #{
+              Effusion.Hash.inspect(info_hash)
+            }"
+          )
 
         {:ok, _pid} = ConnectionRegistry.register(info_hash, remote_peer_id)
         :ok = DownloadServer.connected(info_hash, remote_peer_id, address)
@@ -72,19 +81,21 @@ defmodule Effusion.PWP.Connection do
 
         :ok = :inet.setopts(socket, active: :once, packet: 4)
 
-        state = state
-        |> Map.put(:socket, socket)
-        |> Map.put(:info_hash, info_hash)
-        |> Map.put(:remote_peer_id, remote_peer_id)
+        state =
+          state
+          |> Map.put(:socket, socket)
+          |> Map.put(:info_hash, info_hash)
+          |> Map.put(:remote_peer_id, remote_peer_id)
 
         {:noreply, state}
+
       [] ->
         {:stop, :info_hash_not_found, state}
     end
   end
 
   def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id, socket: socket}) do
-    Logger.debug "Handler received BTP message from peer: #{inspect msg}"
+    Logger.debug("Handler received BTP message from peer: #{inspect(msg)}")
 
     SessionStats.inc_incoming_message(msg)
     :ok = DownloadServer.handle_message(info_hash, peer_id, msg)
@@ -97,8 +108,9 @@ defmodule Effusion.PWP.Connection do
         state = %{socket: socket, remote_peer_id: peer_id}
       )
       when dest_peer_id == peer_id do
-        Logger.debug "Sending message #{inspect msg} to peer #{peer_id}"
+    Logger.debug("Sending message #{inspect(msg)} to peer #{peer_id}")
     SessionStats.inc_outgoing_message(msg)
+
     case Socket.send_msg(socket, msg) do
       :ok -> {:noreply, state}
       {:error, reason} -> {:stop, {:send_failure, reason}, state}
@@ -119,13 +131,21 @@ defmodule Effusion.PWP.Connection do
   def handle_info(:disconnect, state), do: {:stop, :normal, state}
 
   def handle_info(info, state) do
-    Logger.warn "Handler received unknown message: #{inspect info}"
+    Logger.warn("Handler received unknown message: #{inspect(info)}")
     {:noreply, state}
   end
 
-  def terminate(reason, %{socket: socket, info_hash: info_hash, remote_peer_id: remote_peer_id, address: address}) do
+  def terminate(reason, %{
+        socket: socket,
+        info_hash: info_hash,
+        remote_peer_id: remote_peer_id,
+        address: address
+      }) do
     PeerStats.dec_num_tcp_peers()
-    Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
+
+    Logger.debug(
+      "Connection handler for #{remote_peer_id} terminating with reason #{inspect(reason)}"
+    )
 
     Socket.close(socket)
     DownloadServer.unregister_connection(info_hash, address, reason)
@@ -134,21 +154,27 @@ defmodule Effusion.PWP.Connection do
 
   def terminate(reason, %{info_hash: info_hash, remote_peer_id: remote_peer_id, address: address}) do
     PeerStats.dec_num_tcp_peers()
-    Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
+
+    Logger.debug(
+      "Connection handler for #{remote_peer_id} terminating with reason #{inspect(reason)}"
+    )
 
     DownloadServer.unregister_connection(info_hash, address, reason)
   end
 
   def terminate(reason, %{remote_peer_id: remote_peer_id}) do
     PeerStats.dec_num_tcp_peers()
-    Logger.debug "Connection handler for #{remote_peer_id} terminating with reason #{inspect reason}"
+
+    Logger.debug(
+      "Connection handler for #{remote_peer_id} terminating with reason #{inspect(reason)}"
+    )
 
     :ok
   end
 
   def terminate(reason, _state) do
     PeerStats.dec_num_tcp_peers()
-    Logger.debug "Connection handler terminating with reason #{inspect reason}"
+    Logger.debug("Connection handler terminating with reason #{inspect(reason)}")
 
     :ok
   end

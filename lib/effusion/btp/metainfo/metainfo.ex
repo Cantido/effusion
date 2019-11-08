@@ -18,12 +18,14 @@ defmodule Effusion.BTP.Metainfo do
     with {:ok, decoded} <- ExBencode.decode(bin),
          {:ok, info} <- ExBencode.encode(decoded["info"]),
          :ok <- check_info_block(info, bin) do
-         info_hash = Hash.calc(info)
-         result =
-           decoded
-           |> Map.put(:info_hash, info_hash)
-           |> Effusion.Map.rename_keys(key_tokens())
-           |> Map.update!(:info, &update_info/1)
+      info_hash = Hash.calc(info)
+
+      result =
+        decoded
+        |> Map.put(:info_hash, info_hash)
+        |> Effusion.Map.rename_keys(key_tokens())
+        |> Map.update!(:info, &update_info/1)
+
       meta = struct(Effusion.BTP.Metainfo, result)
       put_meta(meta)
       {:ok, meta}

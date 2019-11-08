@@ -22,7 +22,7 @@ defmodule Effusion.BTP.Download do
     :local_address,
     :swarm,
     started_at: nil,
-    listeners: MapSet.new,
+    listeners: MapSet.new(),
     tracker_id: ""
   ]
 
@@ -53,7 +53,7 @@ defmodule Effusion.BTP.Download do
   making connections.
   """
   def start(session = %__MODULE__{}) do
-    _ = Logger.info "Starting download #{Effusion.Hash.inspect session.meta.info_hash}"
+    _ = Logger.info("Starting download #{Effusion.Hash.inspect(session.meta.info_hash)}")
     session = Map.put(session, :started_at, Timex.now())
     params = announce_params(session, :started)
 
@@ -135,9 +135,10 @@ defmodule Effusion.BTP.Download do
 
     swarm = Swarm.add(d.swarm, res.peers)
 
-    d = d
-    |> Map.put(:tracker_id, tracker_id)
-    |> Map.put(:swarm, swarm)
+    d =
+      d
+      |> Map.put(:tracker_id, tracker_id)
+      |> Map.put(:swarm, swarm)
 
     eligible_peers = PeerSelection.select_lowest_failcount(Swarm.peers(swarm), 5)
 
@@ -153,13 +154,14 @@ defmodule Effusion.BTP.Download do
   def handle_message(session, peer_id, message)
 
   def handle_message(d = %__MODULE__{peer_id: peer_id}, remote_peer_id, msg)
-      when is_peer_id(peer_id)
-       and is_peer_id(remote_peer_id)
-       and peer_id != remote_peer_id do
+      when is_peer_id(peer_id) and
+             is_peer_id(remote_peer_id) and
+             peer_id != remote_peer_id do
     case session_handle_message(d, remote_peer_id, msg) do
       {:ok, d, session_messages} ->
         {d, peer_messages} = delegate_message(d, remote_peer_id, msg)
         {d, session_messages ++ peer_messages}
+
       {:error, reason} ->
         {:error, reason}
     end
@@ -177,12 +179,14 @@ defmodule Effusion.BTP.Download do
     pieces = Pieces.add_block(d.pieces, block)
     verified = Pieces.verified(pieces)
 
-    have_messages = verified
-    |> Enum.map(&({:broadcast, {:have, &1.index}}))
+    have_messages =
+      verified
+      |> Enum.map(&{:broadcast, {:have, &1.index}})
 
-    write_messages = pieces
-    |> Pieces.verified()
-    |> Enum.map(fn p -> {:write_piece, pieces.info, d.file, p} end)
+    write_messages =
+      pieces
+      |> Pieces.verified()
+      |> Enum.map(fn p -> {:write_piece, pieces.info, d.file, p} end)
 
     {
       %{d | pieces: pieces},
@@ -190,7 +194,8 @@ defmodule Effusion.BTP.Download do
     }
   end
 
-  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:piece, b}) when is_peer_id(remote_peer_id) do
+  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:piece, b})
+       when is_peer_id(remote_peer_id) do
     {d, block_messages} = add_block(d, b, remote_peer_id)
 
     # request more pieces from that peer
@@ -201,20 +206,24 @@ defmodule Effusion.BTP.Download do
   end
 
   defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:bitfield, b}) do
-    interest_message = if need_any_pieces?(d, b) do
-      [{:btp_send, remote_peer_id, :interested}]
-    else
-      []
-    end
+    interest_message =
+      if need_any_pieces?(d, b) do
+        [{:btp_send, remote_peer_id, :interested}]
+      else
+        []
+      end
+
     {:ok, d, interest_message}
   end
 
   defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:have, b}) do
-    interest_message = if need_piece?(d, b) do
-      [{:btp_send, remote_peer_id, :interested}]
-    else
-      []
-    end
+    interest_message =
+      if need_piece?(d, b) do
+        [{:btp_send, remote_peer_id, :interested}]
+      else
+        []
+      end
+
     {:ok, d, interest_message}
   end
 
@@ -252,7 +261,9 @@ defmodule Effusion.BTP.Download do
       )
 
     case next_blocks do
-      [] -> {d, []}
+      [] ->
+        {d, []}
+
       _ ->
         d = Map.update!(d, :swarm, &Swarm.mark_blocks_requested(&1, next_blocks))
         next_requests = next_blocks |> Enum.map(&block_into_request/1)
@@ -268,9 +279,10 @@ defmodule Effusion.BTP.Download do
   Perform actions necessary when a peer at a given address disconnects.
   """
   def handle_disconnect(d = %__MODULE__{}, address, reason \\ :normal) do
-    {swarm, messages} = d.swarm
-    |> Swarm.handle_disconnect(address, reason)
-    |> increment_connections()
+    {swarm, messages} =
+      d.swarm
+      |> Swarm.handle_disconnect(address, reason)
+      |> increment_connections()
 
     {
       %{d | swarm: swarm},

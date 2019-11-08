@@ -45,7 +45,9 @@ defmodule Effusion.PWP.Socket do
         Messages.payload_bytes_count(request) |> NetStats.add_sent_payload_bytes()
         byte_size(request) |> NetStats.add_sent_bytes()
         :gen_tcp.send(socket, request)
-      err -> err
+
+      err ->
+        err
     end
   end
 
@@ -58,7 +60,9 @@ defmodule Effusion.PWP.Socket do
         Messages.payload_bytes_count(packet) |> NetStats.add_recv_payload_bytes()
         byte_size(packet) |> NetStats.add_recv_bytes()
         decode(packet)
-      err -> err
+
+      err ->
+        err
     end
   end
 

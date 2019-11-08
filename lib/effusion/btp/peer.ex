@@ -26,10 +26,14 @@ defmodule Effusion.BTP.Peer do
     :info_hash,
     remote_peer_id: nil,
     failcount: 0,
-    peer_choking: true, # peer is choking this client
-    peer_interested: false, # peer is interested in this client
-    am_choking: true, # this client is choking the peer
-    am_interested: false, # this client is interested in the peer
+    # peer is choking this client
+    peer_choking: true,
+    # peer is interested in this client
+    peer_interested: false,
+    # this client is choking the peer
+    am_choking: true,
+    # this client is interested in the peer
+    am_interested: false,
     has: IntSet.new(),
     blocks_we_requested: MapSet.new()
   ]
@@ -74,11 +78,13 @@ defmodule Effusion.BTP.Peer do
   end
 
   def remove_requested_block(peer, %{index: id_i, offset: id_o, size: id_s}) do
-    requested = peer.blocks_we_requested
+    requested =
+      peer.blocks_we_requested
       |> Enum.reject(fn %{index: i, offset: o, size: s} ->
-        (i == id_i) && (o == id_o) && (s == id_s)
+        i == id_i && o == id_o && s == id_s
       end)
       |> MapSet.new()
+
     %{peer | blocks_we_requested: requested}
   end
 

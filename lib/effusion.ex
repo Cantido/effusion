@@ -5,7 +5,9 @@ defmodule Effusion do
   @moduledoc """
   A BitTorrent library.
   """
-  @typep hash :: <<_::20, _::_ * 8>>
+
+  # credo:disable-for-next-line 
+  @typep hash :: <<_::20, _::_*8>>
   @type info_hash :: hash()
   @type peer_id :: hash()
 
@@ -40,7 +42,7 @@ defmodule Effusion do
   def download_file(torrent_file) do
     {:ok, metabin} = torrent_file |> Path.expand() |> File.read()
     {:ok, meta} = Metainfo.decode(metabin)
-    dest = meta.info.name |> Path.expand
+    dest = meta.info.name |> Path.expand()
 
     {:ok, _info_hash} = Effusion.start_download(meta, dest)
   end

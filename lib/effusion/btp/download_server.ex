@@ -117,7 +117,7 @@ defmodule Effusion.BTP.DownloadServer do
 
     case Download.handle_message(state, peer_id, msg) do
       {:error, reason} ->
-        _ = Logger.error "Download encountered error: #{inspect reason}"
+        _ = Logger.error("Download encountered error: #{inspect(reason)}")
         {:stop, reason, {:error, reason}, state}
 
       {state, messages} ->
@@ -192,7 +192,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def terminate(reason, state = %Download{}) do
-    Logger.debug "download server terminating with reason: #{inspect reason}"
+    Logger.debug("download server terminating with reason: #{inspect(reason)}")
 
     announce_params = Download.announce_params(state, :stopped)
     {:ok, _res} = apply(@thp_client, :announce, announce_params)

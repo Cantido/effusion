@@ -38,16 +38,15 @@ defmodule Effusion.BTP.DownloadTest do
   end
 
   def new(destfile) do
-    swarm = Effusion.BTP.Swarm.new("Effusion Experiment!", "Effusion Experiment!")
-    |> Swarm.add(
-      [
+    swarm =
+      Effusion.BTP.Swarm.new("Effusion Experiment!", "Effusion Experiment!")
+      |> Swarm.add([
         %{
           ip: {192, 168, 1, 2},
           port: 8000,
           peer_id: "Fake Peer Id ~~~~~~~"
         }
-      ]
-    )
+      ])
 
     Download.new(@torrent, {{192, 168, 1, 1}, 8080}, destfile)
     |> Map.put(:swarm, swarm)
@@ -100,7 +99,14 @@ defmodule Effusion.BTP.DownloadTest do
 
   test "includes peer_id in successive announcements", %{destfile: file} do
     session = new(file)
-    {session, _messages} = Download.handle_tracker_response(session, %{tracker_id: "this is my tracker id", interval: 90_000, peers: []})
+
+    {session, _messages} =
+      Download.handle_tracker_response(session, %{
+        tracker_id: "this is my tracker id",
+        interval: 90_000,
+        peers: []
+      })
+
     response = Download.announce_params(session, :interval)
 
     assert [_, _, _, _, _, _, _, _, _, "this is my tracker id"] = response
@@ -126,11 +132,11 @@ defmodule Effusion.BTP.DownloadTest do
 
   test "saves peers that result from announce", %{destfile: file} do
     tracker_response = %{
-          interval: 9_000,
-          peers: [
-            %{ip: {127, 0, 0, 1}, port: 8001, peer_id: "remote peer id~~~~~~"}
-          ]
-        }
+      interval: 9_000,
+      peers: [
+        %{ip: {127, 0, 0, 1}, port: 8001, peer_id: "remote peer id~~~~~~"}
+      ]
+    }
 
     {session, _messages} =
       Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
@@ -141,14 +147,13 @@ defmodule Effusion.BTP.DownloadTest do
     assert peer.remote_peer_id == "remote peer id~~~~~~"
   end
 
-
   test "does not save the same peer ID twice", %{destfile: file} do
     tracker_response = %{
-          interval: 9_000,
-          peers: [
-            %{ip: {127, 0, 0, 1}, port: 8001, peer_id: "remote peer id~~~~~~"}
-          ]
-        }
+      interval: 9_000,
+      peers: [
+        %{ip: {127, 0, 0, 1}, port: 8001, peer_id: "remote peer id~~~~~~"}
+      ]
+    }
 
     {session, _messages} =
       Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
@@ -161,11 +166,11 @@ defmodule Effusion.BTP.DownloadTest do
 
   test "compact peer response", %{destfile: file} do
     tracker_response = %{
-          interval: 9_000,
-          peers: [
-            %{ip: {127, 0, 0, 1}, port: 8001}
-          ]
-        }
+      interval: 9_000,
+      peers: [
+        %{ip: {127, 0, 0, 1}, port: 8001}
+      ]
+    }
 
     {session, _messages} =
       Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)
@@ -176,11 +181,11 @@ defmodule Effusion.BTP.DownloadTest do
 
   test "rejects the same ip", %{destfile: file} do
     tracker_response = %{
-          interval: 9_000,
-          peers: [
-            %{ip: {127, 0, 0, 1}, port: 8001}
-          ]
-        }
+      interval: 9_000,
+      peers: [
+        %{ip: {127, 0, 0, 1}, port: 8001}
+      ]
+    }
 
     {session, _messages} =
       Download.new(@torrent, {{192, 168, 1, 1}, 8080}, file)

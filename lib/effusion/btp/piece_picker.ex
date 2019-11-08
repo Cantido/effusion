@@ -52,6 +52,7 @@ defmodule Effusion.BTP.PiecePicker do
   def blocks_available(torrent, peers, block_size) do
     we_have = Pieces.bitfield(torrent)
     info = torrent.info
+
     peers
     |> available_pieces_by_peer()
     |> select_required_pieces(we_have)
@@ -88,32 +89,40 @@ defmodule Effusion.BTP.PiecePicker do
 
   # Filters out blocks that already exist in `torrent`
   defp reject_blocks_present_in_torrent(blocks, torrent) do
-    Logger.debug "Blocks before filtering out pieces we have: #{inspect blocks}"
-    blocks = blocks
-    |> Enum.reject(fn {_id, b} -> Pieces.has_block?(torrent, b) end)
+    Logger.debug("Blocks before filtering out pieces we have: #{inspect(blocks)}")
 
-    Logger.debug "Blocks after filtering out pieces we have: #{inspect blocks}"
+    blocks =
+      blocks
+      |> Enum.reject(fn {_id, b} -> Pieces.has_block?(torrent, b) end)
+
+    Logger.debug("Blocks after filtering out pieces we have: #{inspect(blocks)}")
     blocks
   end
 
   defp reject_blocks_already_requested(blocks, peers) do
-    Logger.debug "peers with requests: #{inspect peers}"
-    requested_blocks = peers
-    |> Enum.flat_map(fn p ->
-      Enum.map(p.blocks_we_requested, fn b ->
-        {p.remote_peer_id, Block.id(b)}
+    Logger.debug("peers with requests: #{inspect(peers)}")
+
+    requested_blocks =
+      peers
+      |> Enum.flat_map(fn p ->
+        Enum.map(p.blocks_we_requested, fn b ->
+          {p.remote_peer_id, Block.id(b)}
+        end)
       end)
-    end)
-    |> MapSet.new()
+      |> MapSet.new()
 
-    Logger.debug "Blocks we've already requested (from the peers above): #{inspect requested_blocks}"
-    Logger.debug "possible blocks to request: #{inspect blocks}"
+    Logger.debug(
+      "Blocks we've already requested (from the peers above): #{inspect(requested_blocks)}"
+    )
 
-    new_blocks = blocks
-    |> MapSet.new()
-    |> MapSet.difference(requested_blocks)
+    Logger.debug("possible blocks to request: #{inspect(blocks)}")
 
-    Logger.debug "new requests to make: #{inspect new_blocks}"
+    new_blocks =
+      blocks
+      |> MapSet.new()
+      |> MapSet.difference(requested_blocks)
+
+    Logger.debug("new requests to make: #{inspect(new_blocks)}")
 
     new_blocks
   end
