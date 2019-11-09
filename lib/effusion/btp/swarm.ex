@@ -31,7 +31,7 @@ defmodule Effusion.BTP.Swarm do
   def select_peer(swarm, peer_id) when is_peer_id(peer_id) do
     peer =
       Enum.find(swarm.peers, fn {_addr, peer} ->
-        peer.remote_peer_id == peer_id
+        peer.peer_id == peer_id
       end)
 
     case peer do
@@ -42,7 +42,7 @@ defmodule Effusion.BTP.Swarm do
 
   def put_peer(swarm, peer) do
     peers = Map.put(swarm.peers, peer.address, peer)
-    addresses = Map.put(swarm.peer_addresses, peer.address, peer.remote_peer_id)
+    addresses = Map.put(swarm.peer_addresses, peer.address, peer.peer_id)
 
     %{swarm | peers: peers, peer_addresses: addresses}
   end
@@ -65,7 +65,7 @@ defmodule Effusion.BTP.Swarm do
       |> Enum.map(fn p ->
         Peer.new({p.ip, p.port}, Map.get(p, :peer_id, nil))
       end)
-      |> Enum.reject(&Enum.member?(known_ids, &1.remote_peer_id))
+      |> Enum.reject(&Enum.member?(known_ids, &1.peer_id))
       |> Enum.reject(&Enum.member?(known_addrs, &1.address))
       |> Map.new(&{&1.address, &1})
 
@@ -86,8 +86,8 @@ defmodule Effusion.BTP.Swarm do
 
     peer_addresses =
       all_updated_peers
-      |> Enum.reject(fn {_addr, p} -> p.remote_peer_id == nil end)
-      |> Map.new(fn {addr, p} -> {p.remote_peer_id, addr} end)
+      |> Enum.reject(fn {_addr, p} -> p.peer_id == nil end)
+      |> Map.new(fn {addr, p} -> {p.peer_id, addr} end)
 
     swarm
     |> Map.put(:peers, all_updated_peers)
@@ -101,7 +101,7 @@ defmodule Effusion.BTP.Swarm do
     swarm.peers
     |> Enum.flat_map(fn {_addr, p} ->
       Enum.map(p.blocks_we_requested, fn b ->
-        {p.remote_peer_id, b}
+        {p.peer_id, b}
       end)
     end)
   end

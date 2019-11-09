@@ -17,8 +17,7 @@ defmodule Effusion.BTP.DownloadTest do
   end
 
   def peer do
-    Peer.new({{192, 168, 1, 2}, 8000})
-    |> Map.put(:remote_peer_id, "Fake Peer Id ~~~~~~~")
+    Peer.new({{192, 168, 1, 2}, 8000}, "Fake Peer Id ~~~~~~~")
   end
 
   setup do
@@ -59,7 +58,7 @@ defmodule Effusion.BTP.DownloadTest do
     session = new(file)
 
     {session, _msgs} =
-      Download.handle_message(session, peer.remote_peer_id, {:piece, Block.new(0, 0, "tin")})
+      Download.handle_message(session, peer.peer_id, {:piece, Block.new(0, 0, "tin")})
 
     refute Download.done?(session)
   end
@@ -69,10 +68,10 @@ defmodule Effusion.BTP.DownloadTest do
     session = new(file)
 
     {session, _msgs} =
-      Download.handle_message(session, peer.remote_peer_id, {:piece, Block.new(0, 0, "tin")})
+      Download.handle_message(session, peer.peer_id, {:piece, Block.new(0, 0, "tin")})
 
     {session, _msgs} =
-      Download.handle_message(session, peer.remote_peer_id, {:piece, Block.new(1, 0, "y\n")})
+      Download.handle_message(session, peer.peer_id, {:piece, Block.new(1, 0, "y\n")})
 
     assert Download.done?(session)
   end
@@ -83,7 +82,7 @@ defmodule Effusion.BTP.DownloadTest do
     {session, _msg} =
       new(file)
       |> Download.handle_message(
-        peer.remote_peer_id,
+        peer.peer_id,
         {:piece, %{index: 0, offset: 0, data: "tin"}}
       )
 
@@ -114,7 +113,7 @@ defmodule Effusion.BTP.DownloadTest do
     {_session, msgs} =
       new(file)
       |> Download.handle_message(
-        peer.remote_peer_id,
+        peer.peer_id,
         {:piece, %{index: 0, offset: 0, data: "tin"}}
       )
 
@@ -140,7 +139,7 @@ defmodule Effusion.BTP.DownloadTest do
 
     peer = Swarm.peer_for_address(session.swarm, {{127, 0, 0, 1}, 8001})
 
-    assert peer.remote_peer_id == "remote peer id~~~~~~"
+    assert peer.peer_id == "remote peer id~~~~~~"
   end
 
   test "does not save the same peer ID twice", %{destfile: file} do

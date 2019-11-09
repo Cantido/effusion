@@ -98,7 +98,7 @@ defmodule EffusionTest do
         lsock,
         @info_hash,
         @local_peer_id,
-        @remote_peer.remote_peer_id
+        @remote_peer.peer_id
       )
 
     on_exit(fn ->
@@ -152,7 +152,7 @@ defmodule EffusionTest do
         {{127, 0, 0, 1}, @local_port},
         @info_hash,
         @local_peer_id,
-        @remote_peer.remote_peer_id
+        @remote_peer.peer_id
       )
 
     bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()

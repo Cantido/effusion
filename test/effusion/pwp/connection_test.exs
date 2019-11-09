@@ -26,7 +26,7 @@ defmodule Effusion.PWP.OutgoingHandlerTest do
     address = @remote_peer.address
     local_info_hash = @torrent.info_hash
     local_peer_id = @local_peer_id
-    expected_peer_id = @remote_peer.remote_peer_id
+    expected_peer_id = @remote_peer.peer_id
 
     {:ok, cpid} = start_supervised({OutgoingHandler, {address, local_info_hash, local_peer_id, expected_peer_id}})
 
@@ -35,7 +35,7 @@ defmodule Effusion.PWP.OutgoingHandlerTest do
         lsock,
         @torrent.info_hash,
         @local_peer_id,
-        @remote_peer.remote_peer_id
+        @remote_peer.peer_id
       )
 
     :timer.sleep(10)

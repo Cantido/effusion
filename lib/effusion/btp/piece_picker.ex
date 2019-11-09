@@ -26,7 +26,6 @@ defmodule Effusion.BTP.PiecePicker do
     end
   end
 
-  # General rule: 10 requests per 5 Mbps download speed
   @max_requests_per_peer 200
 
   def next_blocks(torrent, peers, block_size) do
@@ -37,7 +36,7 @@ defmodule Effusion.BTP.PiecePicker do
       |> Enum.chunk_by(&elem(&1, 0))
       |> Enum.flat_map(fn blocks_for_peer ->
         peer_id = Enum.at(blocks_for_peer, 0) |> elem(0)
-        peer = Enum.find(peers, &(&1.remote_peer_id == peer_id))
+        peer = Enum.find(peers, &(&1.peer_id == peer_id))
         count_already_requested = peer.blocks_we_requested |> Enum.count()
         count_to_request = max(@max_requests_per_peer - count_already_requested, 0)
 
@@ -64,7 +63,7 @@ defmodule Effusion.BTP.PiecePicker do
 
   defp available_pieces_by_peer(peers) do
     peers
-    |> Enum.map(fn p -> {p.remote_peer_id, p.has} end)
+    |> Enum.map(fn p -> {p.peer_id, p.has} end)
   end
 
   # Selects peers that have pieces in the we_have set
@@ -106,7 +105,7 @@ defmodule Effusion.BTP.PiecePicker do
       peers
       |> Enum.flat_map(fn p ->
         Enum.map(p.blocks_we_requested, fn b ->
-          {p.remote_peer_id, Block.id(b)}
+          {p.peer_id, Block.id(b)}
         end)
       end)
       |> MapSet.new()
