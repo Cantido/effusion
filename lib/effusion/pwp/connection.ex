@@ -54,16 +54,9 @@ defmodule Effusion.PWP.Connection do
     :ok
   end
 
-  defp connect(peer) do
-    address = peer.address
-    local_info_hash = peer.info_hash
-    local_peer_id = peer.local_peer_id
-    expected_peer_id = peer.remote_peer_id
 
-    connect(address, local_info_hash, local_peer_id, expected_peer_id)
-  end
 
-  defp connect(address = {host, port}, info_hash, local_peer_id, expected_peer_id) do
+  defp connect({address = {host, port}, info_hash, local_peer_id, expected_peer_id}) do
     _ = Logger.debug("Establishing connection to #{ntoa(address)}")
     # must do it here in case we terminate later
     PeerStats.inc_num_tcp_peers()

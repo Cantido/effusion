@@ -76,8 +76,8 @@ defmodule Effusion.BTP.DownloadServer do
     )
   end
 
-  defp handle_internal_message({:btp_connect, peer}, state = %Download{}) do
-    OutgoingHandler.connect(peer)
+  defp handle_internal_message({:btp_connect, address, local_info_hash, local_peer_id, expected_peer_id}, state = %Download{}) do
+    OutgoingHandler.connect({address, local_info_hash, local_peer_id, expected_peer_id})
     state
   end
 

@@ -142,7 +142,15 @@ defmodule Effusion.BTP.Download do
 
     eligible_peers = PeerSelection.select_lowest_failcount(Swarm.peers(swarm), 5)
 
-    messages = Enum.map(eligible_peers, fn p -> {:btp_connect, p} end)
+    messages = Enum.map(eligible_peers, fn p ->
+      {
+        :btp_connect,
+        p.address,
+        d.meta.info_hash,
+        d.peer_id,
+        p.remote_peer_id
+      }
+    end)
     {d, messages}
   end
 
@@ -277,7 +285,13 @@ defmodule Effusion.BTP.Download do
 
     case selected do
       nil -> {swarm, []}
-      peer -> {swarm, [{:btp_connect, peer}]}
+      peer -> {swarm, [{
+                        :btp_connect,
+                        peer.address,
+                        swarm.info_hash,
+                        swarm.peer_id,
+                        peer.remote_peer_id
+                      }]}
     end
   end
 end
