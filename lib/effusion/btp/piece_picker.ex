@@ -26,19 +26,18 @@ defmodule Effusion.BTP.PiecePicker do
     end
   end
 
-  @max_requests_per_peer 200
-
   def next_blocks(torrent, peers, block_size) do
     if Pieces.all_present?(torrent) do
       []
     else
+      max_requests_per_peer = Application.get_env(:effusion, :max_requests_per_peer)
       blocks_available(torrent, peers, block_size)
       |> Enum.chunk_by(&elem(&1, 0))
       |> Enum.flat_map(fn blocks_for_peer ->
         peer_id = Enum.at(blocks_for_peer, 0) |> elem(0)
         peer = Enum.find(peers, &(&1.peer_id == peer_id))
         count_already_requested = peer.blocks_we_requested |> Enum.count()
-        count_to_request = max(@max_requests_per_peer - count_already_requested, 0)
+        count_to_request = max(max_requests_per_peer - count_already_requested, 0)
 
         Enum.take_random(blocks_for_peer, count_to_request)
       end)

@@ -26,7 +26,7 @@ defmodule Effusion.BTP.Download do
     tracker_id: ""
   ]
 
-  @max_peers 20
+
   @local_peer_id Application.get_env(:effusion, :peer_id)
   @block_size Application.get_env(:effusion, :block_size)
 
@@ -140,7 +140,8 @@ defmodule Effusion.BTP.Download do
       |> Map.put(:tracker_id, tracker_id)
       |> Map.put(:swarm, swarm)
 
-    eligible_peers = PeerSelection.select_lowest_failcount(Swarm.peers(swarm), @max_peers)
+    max_peers = Application.get_env(:effusion, :max_peers)
+    eligible_peers = PeerSelection.select_lowest_failcount(Swarm.peers(swarm), max_peers)
 
     messages = Enum.map(eligible_peers, fn p ->
       {
