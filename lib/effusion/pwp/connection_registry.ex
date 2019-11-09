@@ -9,7 +9,14 @@ defmodule Effusion.PWP.ConnectionRegistry do
   """
 
   def register(info_hash, peer_id) do
-    Registry.register(ConnectionRegistry, info_hash, peer_id)
+    connections = Registry.match(ConnectionRegistry, info_hash, peer_id)
+
+    _ =
+      case connections do
+        [{conn_pid, ^peer_id}] -> {:error, :already_connected}
+        [] -> Registry.register(ConnectionRegistry, info_hash, peer_id)
+      end
+
   end
 
   def disconnect_all(info_hash) do
