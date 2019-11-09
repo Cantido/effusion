@@ -1,5 +1,4 @@
 defmodule Effusion.BTP.PiecePicker do
-  require Logger
   alias Effusion.BTP.Block
   alias Effusion.BTP.Pieces
   import Effusion.Math
@@ -48,7 +47,7 @@ defmodule Effusion.BTP.PiecePicker do
   @doc """
   Returns a set of ID-block pairs, of all blocks that can be requested, and from what peers
   """
-  def blocks_available(torrent, peers, block_size) do
+  defp blocks_available(torrent, peers, block_size) do
     we_have = Pieces.bitfield(torrent)
     info = torrent.info
 
