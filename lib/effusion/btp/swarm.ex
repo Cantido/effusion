@@ -202,11 +202,7 @@ defmodule Effusion.BTP.Swarm do
     |> Map.update!(
       :peers,
       &Map.update(&1, address, Peer.new(address), fn peer ->
-        if reason != :normal do
-          Peer.inc_fail_count(peer)
-        else
-          peer
-        end
+        Peer.inc_fail_count(peer)
       end)
     )
   end
