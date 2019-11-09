@@ -27,8 +27,7 @@ defmodule Effusion.BTP.PiecePickerTest do
     torrent = Pieces.new(@info_hash)
 
     peer =
-      Peer.new({nil, nil})
-      |> Peer.set_remote_peer_id("Remote peer ID ~~~~~")
+      Peer.new({nil, nil}, "Remote peer ID ~~~~~")
 
     {peer, _} = Peer.recv(peer, {:have, 0})
     {peer, _} = Peer.recv(peer, {:have, 1})
@@ -55,8 +54,7 @@ defmodule Effusion.BTP.PiecePickerTest do
     torrent = Pieces.new(@info_hash)
 
     peer =
-      Peer.new({nil, nil})
-      |> Peer.set_remote_peer_id("Remote peer ID ~~~~~")
+      Peer.new({nil, nil}, "Remote peer ID ~~~~~")
 
     {peer, _} = Peer.recv(peer, {:have, 0})
     {peer, _} = Peer.recv(peer, {:have, 1})
