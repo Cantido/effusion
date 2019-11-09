@@ -8,7 +8,7 @@ config :logger, :debug_log,
   level: :debug
 
 config :effusion,
-  block_size: 16384,
+  block_size: 32768,
   peer_id: "Effusion Experiment!"
 
 import_config "#{Mix.env()}.exs"
