@@ -22,7 +22,7 @@ defmodule Effusion.BTP.Peer do
 
   defstruct [
     :address,
-    :peer_id,
+    :local_peer_id,
     :info_hash,
     remote_peer_id: nil,
     failcount: 0,
@@ -48,7 +48,7 @@ defmodule Effusion.BTP.Peer do
       when is_peer_id(peer_id) and is_hash(info_hash) and port > 0 do
     %__MODULE__{
       address: address,
-      peer_id: peer_id,
+      local_peer_id: peer_id,
       info_hash: info_hash
     }
   end
@@ -56,7 +56,7 @@ defmodule Effusion.BTP.Peer do
   @doc """
   Set the 20-byte peer ID value that identifies the remote peer.
   """
-  def set_remote_peer_id(p = %__MODULE__{peer_id: peer_id}, remote_peer_id)
+  def set_remote_peer_id(p = %__MODULE__{local_peer_id: peer_id}, remote_peer_id)
       when (is_peer_id(remote_peer_id) or remote_peer_id == nil) and peer_id != remote_peer_id do
     Map.put(p, :remote_peer_id, remote_peer_id)
   end

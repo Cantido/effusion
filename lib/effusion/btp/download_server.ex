@@ -5,6 +5,8 @@ defmodule Effusion.BTP.DownloadServer do
   alias Effusion.BTP.Metainfo.Directory
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.OutgoingHandler
+  import Effusion.BTP.Peer
+  import Effusion.Hash, only: [is_hash: 1]
   require Logger
 
   @moduledoc """
@@ -50,7 +52,7 @@ defmodule Effusion.BTP.DownloadServer do
   @doc """
   Handle a Peer Wire Protocol (PWP) message sent by a remote peer.
   """
-  def handle_message(info_hash, peer_id, message) do
+  def handle_message(info_hash, peer_id, message) when is_hash(info_hash) and is_peer_id(peer_id) do
     GenServer.call(
       {:via, Registry, {SessionRegistry, info_hash}},
       {:handle_msg, peer_id, message}
@@ -112,7 +114,7 @@ defmodule Effusion.BTP.DownloadServer do
     {:ok, state, 0}
   end
 
-  def handle_call({:handle_msg, peer_id, msg}, _from, state = %Download{}) do
+  def handle_call({:handle_msg, peer_id, msg}, _from, state = %Download{}) when is_peer_id(peer_id) do
     _ = Logger.debug("DownloadServer handling message from #{peer_id}: #{inspect(msg)}")
 
     case Download.handle_message(state, peer_id, msg) do

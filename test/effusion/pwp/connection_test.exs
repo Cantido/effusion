@@ -32,7 +32,7 @@ defmodule Effusion.PWP.OutgoingHandlerTest do
       Socket.accept(
         lsock,
         @remote_peer.info_hash,
-        @remote_peer.peer_id,
+        @remote_peer.local_peer_id,
         @remote_peer.remote_peer_id
       )
 

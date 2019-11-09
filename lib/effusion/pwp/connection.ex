@@ -57,7 +57,7 @@ defmodule Effusion.PWP.Connection do
   defp connect(peer) do
     address = peer.address
     local_info_hash = peer.info_hash
-    local_peer_id = peer.peer_id
+    local_peer_id = peer.local_peer_id
     expected_peer_id = peer.remote_peer_id
 
     connect(address, local_info_hash, local_peer_id, expected_peer_id)

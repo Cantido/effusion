@@ -47,7 +47,7 @@ defmodule EffusionTest do
       :ok,
       %{
         interval: 9_000,
-        peers: [%{ip: host, port: port, peer_id: @remote_peer.peer_id}]
+        peers: [%{ip: host, port: port, peer_id: @remote_peer.local_peer_id}]
       }
     }
   end
@@ -99,7 +99,7 @@ defmodule EffusionTest do
       Socket.accept(
         lsock,
         @remote_peer.info_hash,
-        @remote_peer.peer_id,
+        @remote_peer.local_peer_id,
         @remote_peer.remote_peer_id
       )
 
@@ -153,7 +153,7 @@ defmodule EffusionTest do
       Socket.connect(
         {{127, 0, 0, 1}, @local_port},
         @remote_peer.info_hash,
-        @remote_peer.peer_id,
+        @remote_peer.local_peer_id,
         @remote_peer.remote_peer_id
       )
 
