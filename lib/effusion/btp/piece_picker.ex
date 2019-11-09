@@ -1,6 +1,7 @@
 defmodule Effusion.BTP.PiecePicker do
   alias Effusion.BTP.Block
   alias Effusion.BTP.Pieces
+  alias Effusion.BTP.Swarm
   import Effusion.Math
   require Logger
 
@@ -52,7 +53,7 @@ defmodule Effusion.BTP.PiecePicker do
     info = torrent.info
 
     peers
-    |> available_pieces_by_peer()
+    |> Swarm.availability_map()
     |> select_required_pieces(we_have)
     |> expand_piece_sets()
     |> pieces_to_blocks(info, block_size)
@@ -60,22 +61,19 @@ defmodule Effusion.BTP.PiecePicker do
     |> reject_blocks_already_requested(peers)
   end
 
-  defp available_pieces_by_peer(peers) do
-    peers
-    |> Enum.map(fn p -> {p.peer_id, p.has} end)
-  end
-
   # Selects peers that have pieces in the we_have set
   defp select_required_pieces(pieces, we_have) do
     pieces
-    |> Enum.map(fn {id, has} -> {id, IntSet.difference(has, we_have)} end)
-    |> Enum.reject(fn {_id, has} -> Enum.empty?(has) end)
+    |> Enum.reject(fn {piece, _eers} -> Enum.member?(we_have, piece) end)
   end
 
   # Expands `{peer_id, pieces}` into many `{peer_id, piece}` enums
-  defp expand_piece_sets(peers) do
-    peers
-    |> Enum.flat_map(fn {id, has} -> for p <- has, do: {id, p} end)
+  defp expand_piece_sets(pieces) do
+    Enum.flat_map(pieces, fn {piece, peers} ->
+      Enum.map(peers, fn peer ->
+        {peer, piece}
+      end)
+    end)
   end
 
   # Splits `{peer_id, piece}` into many `{peer_id, block}` enums
