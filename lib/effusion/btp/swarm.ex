@@ -40,6 +40,13 @@ defmodule Effusion.BTP.Swarm do
     end
   end
 
+  def put_peer(swarm, peer) do
+    peers = Map.put(swarm.peers, peer.address, peer)
+    addresses = Map.put(swarm.peer_addresses, peer.address, peer.remote_peer_id)
+
+    %{swarm | peers: peers, peer_addresses: addresses}
+  end
+
   def peers(swarm = %__MODULE__{}) do
     Map.values(swarm.peers)
   end
@@ -145,6 +152,14 @@ defmodule Effusion.BTP.Swarm do
     swarm = remove_requested_block(swarm, block_id)
 
     {swarm, cancel_messages}
+  end
+
+  def drop_requests(swarm, from) when is_peer_id(from) do
+    peer = swarm
+    |> select_peer(from)
+    |> Peer.drop_requests()
+
+    put_peer(swarm, peer)
   end
 
   def delegate_message(swarm = %__MODULE__{}, remote_peer_id, msg) do

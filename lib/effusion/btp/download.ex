@@ -212,6 +212,11 @@ defmodule Effusion.BTP.Download do
     {:ok, d, interest_message}
   end
 
+  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, :choke) do
+    d = Map.update!(d, :swarm, &Swarm.drop_requests(&1, remote_peer_id))
+    {:ok, d, []}
+  end
+
   defp session_handle_message(d = %__MODULE__{}, remote_peer_id, :unchoke) do
     peer = Swarm.select_peer(d.swarm, remote_peer_id)
     {d, request_messages} = next_requests(d, [peer])

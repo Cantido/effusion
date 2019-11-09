@@ -88,6 +88,10 @@ defmodule Effusion.BTP.Peer do
     %{peer | blocks_we_requested: requested}
   end
 
+  def drop_requests(peer) do
+    %{peer | blocks_we_requested: MapSet.new()}
+  end
+
   def unchoke(peer) do
     {
       Map.put(peer, :am_choking, false),
