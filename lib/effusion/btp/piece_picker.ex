@@ -64,7 +64,7 @@ defmodule Effusion.BTP.PiecePicker do
   # Selects peers that have pieces in the we_have set
   defp select_required_pieces(pieces, we_have) do
     pieces
-    |> Enum.reject(fn {piece, _eers} -> Enum.member?(we_have, piece) end)
+    |> Enum.reject(fn {piece, _peers} -> Enum.member?(we_have, piece) end)
   end
 
   # Expands `{peer_id, pieces}` into many `{peer_id, piece}` enums
