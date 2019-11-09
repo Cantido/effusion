@@ -146,6 +146,7 @@ defmodule Effusion.BTP.Swarm do
       end)
       |> Enum.map(fn {peer_id, _blk} -> peer_id end)
       |> Enum.map(&{:btp_send, &1, {:cancel, block_id}})
+      |> Enum.uniq()
 
     Logger.debug("Swarm preparing cancel messages: #{inspect(cancel_messages)}")
     swarm = remove_requested_block(swarm, block_id)
