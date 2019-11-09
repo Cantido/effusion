@@ -177,7 +177,7 @@ defmodule Effusion.BTP.Download do
 
      have_messages =
        verified
-       |> Enum.map(verified, &{:broadcast, {:have, &1.index}})
+       |> Enum.map(&{:broadcast, {:have, &1.index}})
 
      write_messages =
        d.pieces
@@ -190,7 +190,7 @@ defmodule Effusion.BTP.Download do
     {:ok, d, write_messages ++ have_messages ++ cancel_messages ++ request_messages}
   end
 
-  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:bitfield, b}) do
+  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:bitfield, bitfield}) do
     interest_message =
       if Pieces.has_pieces?(d.pieces, bitfield) do
         []
@@ -201,7 +201,7 @@ defmodule Effusion.BTP.Download do
     {:ok, d, interest_message}
   end
 
-  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:have, b}) do
+  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:have, i}) do
     interest_message =
       if Pieces.has_piece?(d.pieces, i) do
         []
