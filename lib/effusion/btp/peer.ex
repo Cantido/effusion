@@ -22,8 +22,6 @@ defmodule Effusion.BTP.Peer do
 
   defstruct [
     :address,
-    :local_peer_id,
-    :info_hash,
     remote_peer_id: nil,
     failcount: 0,
     # peer is choking this client
@@ -40,24 +38,15 @@ defmodule Effusion.BTP.Peer do
 
   @doc """
   Create a new peer data structure.
-
-  Note that the `peer_id` argument is our *local* peer ID.
-  To set the ID of the remote peer, see `set_remote_peer_id/2`.
   """
-  def new({_host, port} = address, peer_id, info_hash)
-      when is_peer_id(peer_id) and is_hash(info_hash) and port > 0 do
-    %__MODULE__{
-      address: address,
-      local_peer_id: peer_id,
-      info_hash: info_hash
-    }
+  def new({_host, port} = address) when port > 0 do
+    %__MODULE__{address: address}
   end
 
   @doc """
   Set the 20-byte peer ID value that identifies the remote peer.
   """
-  def set_remote_peer_id(p = %__MODULE__{local_peer_id: peer_id}, remote_peer_id)
-      when (is_peer_id(remote_peer_id) or remote_peer_id == nil) and peer_id != remote_peer_id do
+  def set_remote_peer_id(p = %__MODULE__{}, remote_peer_id) do
     Map.put(p, :remote_peer_id, remote_peer_id)
   end
 

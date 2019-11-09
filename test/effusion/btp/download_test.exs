@@ -17,11 +17,7 @@ defmodule Effusion.BTP.DownloadTest do
   end
 
   def peer do
-    Peer.new(
-      {{192, 168, 1, 2}, 8000},
-      "local peer id ~~~~~~",
-      @torrent.info_hash
-    )
+    Peer.new({{192, 168, 1, 2}, 8000})
     |> Map.put(:remote_peer_id, "Fake Peer Id ~~~~~~~")
   end
 

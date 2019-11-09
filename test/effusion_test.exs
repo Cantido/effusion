@@ -34,11 +34,9 @@ defmodule EffusionTest do
       <<95, 189, 143, 1, 37, 56, 146, 40, 140, 78, 2, 250, 208, 144, 217, 10, 49, 7, 64, 28>>
   }
 
-  @remote_peer Peer.new(
-                 {{127, 0, 0, 1}, @remote_port},
-                 "Fake-Remote-Peer----",
-                 @torrent.info_hash
-               )
+  @remote_peer Peer.new({{127, 0, 0, 1}, @remote_port})
+  @local_peer_id "Fake-Remote-Peer----"
+  @info_hash @torrent.info_hash
 
   defp stub_tracker(_, _, _, _, _, _, _, _, _, _) do
     {host, port} = @remote_peer.address
@@ -47,7 +45,7 @@ defmodule EffusionTest do
       :ok,
       %{
         interval: 9_000,
-        peers: [%{ip: host, port: port, peer_id: @remote_peer.local_peer_id}]
+        peers: [%{ip: host, port: port, peer_id: @local_peer_id}]
       }
     }
   end
@@ -98,8 +96,8 @@ defmodule EffusionTest do
     {:ok, sock, _remote_peer} =
       Socket.accept(
         lsock,
-        @remote_peer.info_hash,
-        @remote_peer.local_peer_id,
+        @info_hash,
+        @local_peer_id,
         @remote_peer.remote_peer_id
       )
 
@@ -152,8 +150,8 @@ defmodule EffusionTest do
     {:ok, sock, _remote_peer} =
       Socket.connect(
         {{127, 0, 0, 1}, @local_port},
-        @remote_peer.info_hash,
-        @remote_peer.local_peer_id,
+        @info_hash,
+        @local_peer_id,
         @remote_peer.remote_peer_id
       )
 

@@ -7,12 +7,9 @@ defmodule Effusion.PWP.OutgoingHandlerTest do
   doctest Effusion.PWP.OutgoingHandler
 
   @torrent TestHelper.tiny_meta()
+  @local_peer_id "Other peer 123456789"
 
-  @remote_peer Peer.new(
-                 {{127, 0, 0, 1}, 8002},
-                 "Other peer 123456789",
-                 @torrent.info_hash
-               )
+  @remote_peer Peer.new({{127, 0, 0, 1}, 8002})
 
   setup do
     {_host, port} = @remote_peer.address
@@ -27,8 +24,8 @@ defmodule Effusion.PWP.OutgoingHandlerTest do
 
   test "registers with ConnectionRegistry on successful handshake", %{lsock: lsock} do
     address = @remote_peer.address
-    local_info_hash = @remote_peer.info_hash
-    local_peer_id = @remote_peer.local_peer_id
+    local_info_hash = @torrent.info_hash
+    local_peer_id = @local_peer_id
     expected_peer_id = @remote_peer.remote_peer_id
 
     {:ok, cpid} = start_supervised({OutgoingHandler, {address, local_info_hash, local_peer_id, expected_peer_id}})
@@ -36,8 +33,8 @@ defmodule Effusion.PWP.OutgoingHandlerTest do
     {:ok, _sock, _remote_peer} =
       Socket.accept(
         lsock,
-        @remote_peer.info_hash,
-        @remote_peer.local_peer_id,
+        @torrent.info_hash,
+        @local_peer_id,
         @remote_peer.remote_peer_id
       )
 
