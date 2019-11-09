@@ -55,6 +55,14 @@ defmodule Effusion.BTP.Swarm do
     Map.get(swarm.peers, address)
   end
 
+  def availability_map(peers) do
+    peers
+    |> Enum.map(&Peer.availability_map/1)
+    |> Enum.reduce(Map.new(), fn peer_availability_map, accumulator ->
+      Map.merge(accumulator, peer_availability_map)
+    end)
+  end
+
   def add(swarm = %__MODULE__{}, peers) do
     known_addrs = Map.keys(swarm.peers)
     {known_ids, _} = Map.split(swarm.peer_addresses, known_addrs)

@@ -71,6 +71,13 @@ defmodule Effusion.BTP.Peer do
     %{peer | blocks_we_requested: requested}
   end
 
+  def availability_map(peer) do
+    peer.has
+    |> Enum.reduce(Map.new(), fn p, map ->
+      Map.update(map, p, [peer.peer_id], &[peer.peer_id | &1])
+    end)
+  end
+
   def drop_requests(peer) do
     %{peer | blocks_we_requested: MapSet.new()}
   end
