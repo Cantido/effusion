@@ -137,10 +137,8 @@ defmodule Effusion.BTP.Swarm do
   end
 
   def mark_block_requested(swarm = %__MODULE__{}, peer_id, block_id) do
-    Logger.debug("Marking block #{inspect(block_id)} as requested from #{inspect(peer_id)}")
     addr = Map.get(swarm.peer_addresses, peer_id)
     peers = Map.update!(swarm.peers, addr, &Peer.request_block(&1, block_id))
-    Logger.debug("Peers after marking above block as requested: #{inspect(peers)}")
     %{swarm | peers: peers}
   end
 

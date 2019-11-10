@@ -84,19 +84,13 @@ defmodule Effusion.BTP.PiecePicker do
 
   # Filters out blocks that already exist in `torrent`
   defp reject_blocks_present_in_torrent(blocks, torrent) do
-    Logger.debug("Blocks before filtering out pieces we have: #{inspect(blocks)}")
-
     blocks =
       blocks
       |> Enum.reject(fn {_id, b} -> Pieces.has_block?(torrent, b) end)
-
-    Logger.debug("Blocks after filtering out pieces we have: #{inspect(blocks)}")
     blocks
   end
 
   defp reject_blocks_already_requested(blocks, peers) do
-    Logger.debug("peers with requests: #{inspect(peers)}")
-
     requested_blocks =
       peers
       |> Enum.flat_map(fn p ->
@@ -106,18 +100,10 @@ defmodule Effusion.BTP.PiecePicker do
       end)
       |> MapSet.new()
 
-    Logger.debug(
-      "Blocks we've already requested (from the peers above): #{inspect(requested_blocks)}"
-    )
-
-    Logger.debug("possible blocks to request: #{inspect(blocks)}")
-
     new_blocks =
       blocks
       |> MapSet.new()
       |> MapSet.difference(requested_blocks)
-
-    Logger.debug("new requests to make: #{inspect(new_blocks)}")
 
     new_blocks
   end
