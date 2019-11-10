@@ -4,6 +4,8 @@ defmodule Effusion.CLI do
   alias Effusion.Format
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
+  alias Effusion.Statistics.PeerDownloadAverage
+  alias Effusion.Statistics.SessionDownloadAverage
   alias Effusion.Stats
   use Timex
 
@@ -64,7 +66,7 @@ defmodule Effusion.CLI do
 
     downloaded_bytes = NetStats.recv_bytes()
     uploaded_bytes = NetStats.sent_bytes()
-    dl_speed = (downloaded_bytes - last_downloaded_bytes) / time_since_last_loop * 1_000
+    dl_speed = SessionDownloadAverage.session_20sec_download_avg()
     ul_speed = (uploaded_bytes - last_uploaded_bytes) / time_since_last_loop * 1_000
 
     dl_speed_formatted = dl_speed |> trunc() |> Format.bytes()
@@ -97,6 +99,13 @@ defmodule Effusion.CLI do
     end
 
     IO.puts("Total TCP connections: #{PeerStats.num_tcp_peers()}")
+
+    IO.puts("Peers:")
+    Enum.each(download.swarm.peers, fn {_addr, peer} ->
+      if peer.peer_id != nil do
+        IO.puts "#{inspect peer.peer_id} -- #{PeerDownloadAverage.peer_20sec_download_avg(peer.peer_id) |> trunc() |> Format.bytes()}/s"
+      end
+    end)
 
     Process.sleep(100)
     output_loop(info_hash, uploaded_bytes, downloaded_bytes, this_loop_time)

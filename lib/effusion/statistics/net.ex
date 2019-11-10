@@ -11,6 +11,14 @@ defmodule Effusion.Statistics.Net do
       write_concurrency: true
     ])
 
+    :ets.new(PeerDownloadStatsTable, [
+      :set,
+      :public,
+      :named_table,
+      read_concurrency: false,
+      write_concurrency: true
+    ])
+
     :ets.insert(NetStatsTable, [
       {:sent_payload_bytes, 0},
       {:sent_bytes, 0},
@@ -68,8 +76,16 @@ defmodule Effusion.Statistics.Net do
     :ets.update_counter(NetStatsTable, :recv_bytes, n, {:k, 0})
   end
 
+  def add_recv_bytes(peer_id, n) when is_integer(n) and n >= 0 do
+    :ets.update_counter(PeerDownloadStatsTable, peer_id, n, {:k, 0})
+  end
+
   def recv_bytes do
     :ets.lookup_element(NetStatsTable, :recv_bytes, 2)
+  end
+
+  def recv_bytes(peer_id) do
+    :ets.lookup_element(PeerDownloadStatsTable, peer_id, 2)
   end
 
   def add_recv_ip_overhead_bytes(n) when is_integer(n) and n >= 0 do

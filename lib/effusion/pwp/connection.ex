@@ -109,8 +109,6 @@ defmodule Effusion.PWP.Connection do
   end
 
   def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id, socket: socket}) do
-    Logger.debug("Handler received BTP message from peer: #{inspect(msg)}")
-
     SessionStats.inc_incoming_message(msg)
     :ok = DownloadServer.handle_message(info_hash, peer_id, msg)
     :ok = :inet.setopts(socket, active: :once)
@@ -134,7 +132,10 @@ defmodule Effusion.PWP.Connection do
   def handle_info({:tcp, _tcp_socket, data}, state) when is_binary(data) do
     # _ = Logger.debug("Handling incoming packet with data #{inspect data}")
     Messages.payload_bytes_count(data) |> NetStats.add_recv_payload_bytes()
-    byte_size(data) |> NetStats.add_recv_bytes()
+    NetStats.add_recv_bytes(byte_size(data))
+    if Map.has_key?(state, :remote_peer_id) do
+      NetStats.add_recv_bytes(state.remote_peer_id, byte_size(data))
+    end
     {:ok, msg} = Messages.decode(data)
 
     handle_btp(msg, state)

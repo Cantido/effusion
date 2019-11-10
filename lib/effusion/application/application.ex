@@ -16,6 +16,8 @@ defmodule Effusion.Application do
       Effusion.Application.ConnectionSupervisor,
       Effusion.BTP.Metainfo.Directory,
       Effusion.IOServer,
+      Effusion.Statistics.PeerDownloadAverage,
+      Effusion.Statistics.SessionDownloadAverage,
       {Registry, keys: :duplicate, name: ConnectionRegistry},
       {Registry, keys: :unique, name: SessionRegistry}
     ]
