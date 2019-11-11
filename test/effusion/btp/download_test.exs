@@ -89,7 +89,8 @@ defmodule Effusion.BTP.DownloadTest do
     assert Pieces.bytes_completed(session.pieces) == 3
 
     params = Download.announce_params(session, :interval)
-    assert [_, _, _, _, _, _, 3, 2, [event: :interval]] = params
+    assert [_, _, _, _, _, _, 3, 2, opts] = params
+    assert Keyword.get(opts, :event) == :interval
   end
 
   test "includes peer_id in successive announcements", %{destfile: file} do
@@ -104,7 +105,9 @@ defmodule Effusion.BTP.DownloadTest do
 
     response = Download.announce_params(session, :interval)
 
-    assert [_, _, _, _, _, _, _, _, [event: :interval, trackerid: "this is my tracker id"]] = response
+    assert [_, _, _, _, _, _, _, _, opts] = response
+    assert Keyword.get(opts, :event) == :interval
+    assert Keyword.get(opts, :trackerid) == "this is my tracker id"
   end
 
   test "sends HAVE messages once it finishes a piece", %{destfile: file} do

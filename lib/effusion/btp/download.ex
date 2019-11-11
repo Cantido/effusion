@@ -111,9 +111,11 @@ defmodule Effusion.BTP.Download do
   def announce_params(d, event) do
     {local_host, local_port} = d.local_address
 
+    opts = [event: event, numwant: 100]
+
     opts = case d.trackerid do
-      "" -> [event: event]
-      str -> [event: event, trackerid: d.trackerid]
+      "" -> opts
+      str -> opts |> Keyword.merge([trackerid: d.trackerid])
     end
 
     [
