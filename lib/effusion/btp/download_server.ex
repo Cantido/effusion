@@ -102,7 +102,7 @@ defmodule Effusion.BTP.DownloadServer do
     {state, messages} = Download.handle_tracker_response(state, res)
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
 
-    Enum.each(messages, &handle_internal_message(&1, state))
+    state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
   end
 
   ## Callbacks
@@ -149,19 +149,19 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_cast({:unregister_connection, address, reason}, state = %Download{}) do
-    {session, messages} = Download.handle_disconnect(state, address, reason)
+    {state, messages} = Download.handle_disconnect(state, address, reason)
 
-    Enum.each(messages, &handle_internal_message(&1, state))
+    state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
 
-    {:noreply, session}
+    {:noreply, state}
   end
 
   def handle_info(:timeout, state = %Download{}) do
-    {session, messages} = Download.start(state)
+    {state, messages} = Download.start(state)
 
-    Enum.each(messages, &handle_internal_message(&1, state))
+    state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
 
-    {:noreply, session}
+    {:noreply, state}
   end
 
   def handle_info(:interval_expired, state = %Download{}) do
