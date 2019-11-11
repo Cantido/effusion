@@ -44,17 +44,16 @@ defmodule Effusion.PWP.Connection do
   end
 
   defp successful_handshake(socket, info_hash, peer_id) do
-    {:ok, address} = :inet.peername(socket)
-    _ = Logger.debug("Handshake with #{ntoa(address)} successful")
-
-    {:ok, _pid} = ConnectionRegistry.register(info_hash, peer_id)
-    :ok = DownloadServer.connected(info_hash, peer_id, address)
-    :ok = :inet.setopts(socket, active: :once, packet: 4)
-
-    :ok
+    with {:ok, address} <- :inet.peername(socket),
+         _ = Logger.debug("Handshake with #{ntoa(address)} successful"),
+         {:ok, _pid} <- ConnectionRegistry.register(info_hash, peer_id),
+         :ok <- DownloadServer.connected(info_hash, peer_id, address),
+         :ok <- :inet.setopts(socket, active: :once, packet: 4) do
+      :ok
+    else
+      err -> err
+    end
   end
-
-
 
   defp connect({address = {host, port}, info_hash, local_peer_id, expected_peer_id}) do
     _ = Logger.debug("Establishing connection to #{ntoa(address)}")
@@ -71,9 +70,8 @@ defmodule Effusion.PWP.Connection do
          :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, info_hash}),
          {:ok, {:handshake, remote_peer_id, remote_info_hash, _}} <- Socket.recv(socket, 68),
          :ok <- validate_info_hash(info_hash, remote_info_hash),
-         :ok <- validate_peer_id(expected_peer_id, remote_peer_id) do
-      :ok = successful_handshake(socket, info_hash, remote_peer_id)
-
+         :ok <- validate_peer_id(expected_peer_id, remote_peer_id),
+         :ok <- successful_handshake(socket, info_hash, remote_peer_id) do
       {:noreply, Map.put(state, :socket, socket)}
     else
       {:error, :closed} ->
@@ -167,21 +165,21 @@ defmodule Effusion.PWP.Connection do
     :ok
   end
 
-  def terminate(reason, %{info_hash: info_hash, remote_peer_id: remote_peer_id, address: address}) do
+  def terminate(reason, %{info_hash: info_hash, remote_peer_id: remote_peer_id, address: address}) when not is_nil(remote_peer_id) and not is_nil(address) do
     PeerStats.dec_num_tcp_peers()
 
     Logger.debug(
-      "Connection handler for #{remote_peer_id} terminating with reason #{inspect(reason)}"
+      "Connection handler for #{inspect address} (#{inspect remote_peer_id}) terminating with reason #{inspect(reason)}"
     )
 
     DownloadServer.unregister_connection(info_hash, address, reason)
   end
 
-  def terminate(reason, %{remote_peer_id: remote_peer_id}) do
+  def terminate(reason, %{address: address}) when not is_nil(address) do
     PeerStats.dec_num_tcp_peers()
 
     Logger.debug(
-      "Connection handler for #{remote_peer_id} terminating with reason #{inspect(reason)}"
+      "Connection handler for #{inspect address} terminating with reason #{inspect(reason)}"
     )
 
     :ok
