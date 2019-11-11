@@ -123,8 +123,6 @@ defmodule Effusion.BTP.DownloadServer do
         {:stop, reason, {:error, reason}, state}
 
       {state, messages} ->
-        _ = Logger.debug("DownloadServer replying: #{inspect(messages)}")
-
         state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
 
         if Download.done?(state) do

@@ -115,8 +115,6 @@ defmodule Effusion.BTP.Swarm do
   end
 
   def remove_requested_block(swarm, block_id) do
-    Logger.debug("removing requested block #{inspect(block_id)} from all peers")
-
     peers =
       swarm.peers
       |> Enum.map(fn {addr, p} ->
@@ -124,8 +122,6 @@ defmodule Effusion.BTP.Swarm do
         {addr, p}
       end)
       |> Map.new()
-
-    Logger.debug("peers after removing the requested block #{inspect(swarm.peers)}")
 
     %{swarm | peers: peers}
   end
