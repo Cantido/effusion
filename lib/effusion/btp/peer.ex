@@ -1,4 +1,5 @@
 defmodule Effusion.BTP.Peer do
+  alias Effusion.PWP.ConnectionRegistry
   import Effusion.Hash
 
   @moduledoc """
@@ -43,6 +44,9 @@ defmodule Effusion.BTP.Peer do
     %__MODULE__{address: address, peer_id: peer_id}
   end
 
+  def connected?(peer, info_hash) do
+    ConnectionRegistry.connected?(info_hash, peer.peer_id)
+  end
 
   def inc_fail_count(peer = %__MODULE__{}) when is_map(peer) do
     Map.update(peer, :failcount, 0, &(&1 + 1))

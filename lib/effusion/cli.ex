@@ -1,6 +1,7 @@
 defmodule Effusion.CLI do
   alias Effusion.BTP.DownloadServer
   alias Effusion.BTP.Metainfo
+  alias Effusion.BTP.Peer
   alias Effusion.Format
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
@@ -102,8 +103,8 @@ defmodule Effusion.CLI do
 
     IO.puts("Peers:")
     Enum.each(download.swarm.peers, fn {_addr, peer} ->
-      if peer.peer_id != nil do
-        IO.puts "#{inspect peer.peer_id} -- #{PeerDownloadAverage.peer_20sec_download_avg(peer.peer_id) |> trunc() |> Format.bytes()}/s"
+      if Peer.connected?(peer, info_hash) do
+        IO.puts "#{inspect peer.peer_id} -- #{PeerDownloadAverage.peer_20sec_download_avg(peer.peer_id) |> trunc() |> Format.bytes()}/s --- Requested #{peer.blocks_we_requested |> Enum.count} blocks"
       end
     end)
 
