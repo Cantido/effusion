@@ -10,7 +10,7 @@ config :logger, :debug_log,
 config :effusion,
   block_size: 32768,
   peer_id: "Effusion Experiment!",
-  max_requests_per_peer: 10,
-  max_peers: 50
+  max_requests_per_peer: 1,
+  max_peers: 1
 
 import_config "#{Mix.env()}.exs"
