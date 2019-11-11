@@ -8,7 +8,7 @@ config :logger, :debug_log,
   level: :debug
 
 config :effusion,
-  block_size: 32768,
+  block_size: 16384,
   peer_id: "Effusion Experiment!",
   max_requests_per_peer: 1,
   max_peers: 1
