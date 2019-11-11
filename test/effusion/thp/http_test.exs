@@ -87,8 +87,8 @@ defmodule Effusion.THP.HTTPTest do
         0,
         0,
         0,
-        :started,
-        "this is my tracker id"
+        event: :started,
+        trackerid: "this is my tracker id"
       )
   end
 end

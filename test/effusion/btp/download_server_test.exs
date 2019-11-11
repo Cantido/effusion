@@ -7,23 +7,23 @@ defmodule Effusion.BTP.DownloadServerTest do
   setup :verify_on_exit!
   setup :set_mox_global
 
-  defp stub_started(_, _, _, _, _, _, _, _, event, _) do
-    assert event == :started
+  defp stub_started(_, _, _, _, _, _, _, _, opts) do
+    assert opts == [event: :started]
     {:ok, %{interval: 1, peers: []}}
   end
 
-  defp stub_interval(_, _, _, _, _, _, _, _, event, _) do
-    assert event == :interval
+  defp stub_interval(_, _, _, _, _, _, _, _, opts) do
+    assert opts == [event: :interval]
     {:ok, %{interval: 9_000, peers: []}}
   end
 
-  defp stub_stopped(_, _, _, _, _, _, _, _, event, _) do
-    assert event == :stopped
+  defp stub_stopped(_, _, _, _, _, _, _, _, opts) do
+    assert opts == [event: :stopped]
     {:ok, %{interval: 9_000, peers: []}}
   end
 
-  defp stub_completed(_, _, _, _, _, _, _, _, event, _) do
-    assert event == :completed
+  defp stub_completed(_, _, _, _, _, _, _, _, opts) do
+    assert opts == [event: :completed]
     {:ok, %{interval: 9_000, peers: []}}
   end
 
@@ -41,8 +41,8 @@ defmodule Effusion.BTP.DownloadServerTest do
 
   test "announces again after interval", %{destfile: file} do
     Effusion.THP.Mock
-    |> expect(:announce, &stub_started/10)
-    |> expect(:announce, &stub_interval/10)
+    |> expect(:announce, &stub_started/9)
+    |> expect(:announce, &stub_interval/9)
 
     {:ok, _} =
       start_supervised({
@@ -55,8 +55,8 @@ defmodule Effusion.BTP.DownloadServerTest do
 
   test "sends STOPPED event on termination", %{destfile: file} do
     Effusion.THP.Mock
-    |> expect(:announce, &stub_started/10)
-    |> expect(:announce, &stub_stopped/10)
+    |> expect(:announce, &stub_started/9)
+    |> expect(:announce, &stub_stopped/9)
 
     {:ok, spid} =
       start_supervised({
@@ -71,8 +71,8 @@ defmodule Effusion.BTP.DownloadServerTest do
 
   test "sends COMPLETED event and terminates when finished", %{destfile: file} do
     Effusion.THP.Mock
-    |> expect(:announce, &stub_started/10)
-    |> expect(:announce, &stub_completed/10)
+    |> expect(:announce, &stub_started/9)
+    |> expect(:announce, &stub_completed/9)
 
     {:ok, spid} =
       start_supervised({

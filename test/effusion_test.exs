@@ -38,7 +38,7 @@ defmodule EffusionTest do
   @local_peer_id "Fake-Remote-Peer----"
   @info_hash @torrent.info_hash
 
-  defp stub_tracker(_, _, _, _, _, _, _, _, _, _) do
+  defp stub_tracker(_, _, _, _, _, _, _, _, _) do
     {host, port} = @remote_peer.address
 
     {
@@ -50,7 +50,7 @@ defmodule EffusionTest do
     }
   end
 
-  defp stub_tracker_no_peers(_, _, _, _, _, _, _, _, _, _) do
+  defp stub_tracker_no_peers(_, _, _, _, _, _, _, _, _) do
     {
       :ok,
       %{
@@ -89,7 +89,7 @@ defmodule EffusionTest do
 
   test "download a file", %{lsock: lsock, destfile: file} do
     Effusion.THP.Mock
-    |> expect(:announce, 2, &stub_tracker/10)
+    |> expect(:announce, 2, &stub_tracker/9)
 
     {:ok, _} = Effusion.start_download(@torrent, file)
 
@@ -143,7 +143,7 @@ defmodule EffusionTest do
 
   test "receive a connection from a peer", %{destfile: file} do
     Effusion.THP.Mock
-    |> expect(:announce, 2, &stub_tracker_no_peers/10)
+    |> expect(:announce, 2, &stub_tracker_no_peers/9)
 
     {:ok, _} = Effusion.start_download(@torrent, file)
 

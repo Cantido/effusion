@@ -26,8 +26,16 @@ defmodule Effusion.THP do
   @type tracker_response :: %{
           interval: pos_integer(),
           peers: [peer] | [compact_peer],
-          tracker_id: String.t()
+          trackerid: String.t()
         }
+
+  @typedoc """
+  Optional tracker parameters
+  """
+  @type tracker_opts :: [
+    event: (:started | :stopped | :completed | :interval),
+    trackerid: String.t()
+  ]
 
   @doc """
   Announce an event to the given tracker.
@@ -41,7 +49,6 @@ defmodule Effusion.THP do
               uploaded :: non_neg_integer(),
               downloaded :: non_neg_integer(),
               left :: non_neg_integer(),
-              event :: :started | :stopped | :completed | :interval,
-              tracker_id :: String.t()
+              opts :: tracker_opts()
             ) :: {:ok, tracker_response()} | {:error, any()}
 end

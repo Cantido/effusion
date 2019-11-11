@@ -23,7 +23,7 @@ defmodule Effusion.BTP.Download do
     :swarm,
     started_at: nil,
     listeners: MapSet.new(),
-    tracker_id: ""
+    trackerid: ""
   ]
 
 
@@ -111,6 +111,11 @@ defmodule Effusion.BTP.Download do
   def announce_params(d, event) do
     {local_host, local_port} = d.local_address
 
+    opts = case d.trackerid do
+      "" -> [event: event]
+      str -> [event: event, trackerid: d.trackerid]
+    end
+
     [
       d.meta.announce,
       local_host,
@@ -120,24 +125,23 @@ defmodule Effusion.BTP.Download do
       0,
       Pieces.bytes_completed(d.pieces),
       Pieces.bytes_left(d.pieces),
-      event,
-      d.tracker_id
+      opts
     ]
   end
 
   def handle_tracker_response(d, res) do
-    tracker_id =
-      if Map.get(res, :tracker_id, "") != "" do
-        res.tracker_id
+    trackerid =
+      if Map.get(res, :trackerid, "") != "" do
+        res.trackerid
       else
-        d.tracker_id
+        d.trackerid
       end
 
     swarm = Swarm.add(d.swarm, res.peers)
 
     d =
       d
-      |> Map.put(:tracker_id, tracker_id)
+      |> Map.put(:trackerid, trackerid)
       |> Map.put(:swarm, swarm)
 
     max_peers = Application.get_env(:effusion, :max_peers)

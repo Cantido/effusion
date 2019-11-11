@@ -8,6 +8,10 @@ defmodule Effusion.THP.HTTP do
   An HTTP implementation of the Tracker HTTP Protocol.
   """
 
+  @default_opts %{
+    event: :interval
+  }
+
   def announce(
         tracker_url,
         peer_host,
@@ -17,8 +21,7 @@ defmodule Effusion.THP.HTTP do
         uploaded,
         downloaded,
         left,
-        event \\ :interval,
-        tracker_id \\ ""
+        opts \\ []
       )
       when is_hash(info_hash) and
              is_peer_id(peer_id) and
@@ -27,32 +30,28 @@ defmodule Effusion.THP.HTTP do
              uploaded >= 0 and
              downloaded >= 0 and
              left >= 0 do
-    tracker_request = %{
-      info_hash: info_hash,
-      peer_id: peer_id,
-      port: peer_port,
-      uploaded: uploaded,
-      downloaded: downloaded,
-      left: left,
-      trackerid: tracker_id,
-      ip: to_string(:inet.ntoa(peer_host))
-    }
+    sanitized_opts = Keyword.take(opts, [:trackerid, :event]) |> Map.new()
+
+    tracker_request =
+      @default_opts
+      |> Map.merge(%{
+        info_hash: info_hash,
+        peer_id: peer_id,
+        port: peer_port,
+        uploaded: uploaded,
+        downloaded: downloaded,
+        left: left,
+        ip: to_string(:inet.ntoa(peer_host))
+      })
+      |> Map.merge(sanitized_opts)
 
     Logger.debug("Making announce to #{tracker_url}")
 
-    case build_event_param(event) do
-      {:ok, event} ->
-        tracker_request = Map.put(tracker_request, :event, event)
-        query = URI.encode_query(tracker_request)
-        http_res = HTTPotion.get(tracker_url <> "?" <> query)
-        record_request_stats(query, http_res)
-        Logger.debug("Announce to #{tracker_url} successful.")
-        decode_response(http_res)
-
-      err ->
-        Logger.warn("Failed to announce: #{err}")
-        err
-    end
+    query = URI.encode_query(tracker_request)
+    http_res = HTTPotion.get(tracker_url <> "?" <> query)
+    record_request_stats(query, http_res)
+    Logger.debug("Announce to #{tracker_url} successful.")
+    decode_response(http_res)
   end
 
   def record_request_stats(query, response) do
@@ -61,16 +60,6 @@ defmodule Effusion.THP.HTTP do
     {length, ""} = response.headers["content-length"] |> Integer.parse()
     length |> NetStats.add_recv_bytes()
     length |> NetStats.add_recv_tracker_bytes()
-  end
-
-  defp build_event_param(event) do
-    case event do
-      :started -> {:ok, "started"}
-      :stopped -> {:ok, "stopped"}
-      :completed -> {:ok, "completed"}
-      :interval -> {:ok, ""}
-      _ -> {:error, {:bad_event, event}}
-    end
   end
 
   defp decode_response(http_res) do
@@ -84,7 +73,7 @@ defmodule Effusion.THP.HTTP do
   @body_names %{
     "interval" => :interval,
     "peers" => :peers,
-    "tracker id" => :tracker_id
+    "tracker id" => :trackerid
   }
 
   @peer_names %{
