@@ -111,7 +111,8 @@ defmodule Effusion.BTP.Download do
   def announce_params(d, event) do
     {local_host, local_port} = d.local_address
 
-    opts = [event: event, numwant: 100]
+    tracker_numwant = Application.get_env(:effusion, :tracker_numwant)
+    opts = [event: event, numwant: tracker_numwant]
 
     opts = case d.trackerid do
       "" -> opts
