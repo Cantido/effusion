@@ -1,6 +1,6 @@
 defmodule Effusion.PWP.IncomingHandler do
   alias Effusion.PWP.Connection
-  use GenServer
+  use GenServer, restart: :temporary
   require Logger
 
   @behaviour :ranch_protocol
