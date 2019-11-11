@@ -109,7 +109,6 @@ defmodule Effusion.PWP.Connection do
   def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id, socket: socket}) do
     SessionStats.inc_incoming_message(msg)
     :ok = DownloadServer.handle_message(info_hash, peer_id, msg)
-    :ok = :inet.setopts(socket, active: :once)
     {:noreply, state}
   end
 
@@ -136,7 +135,9 @@ defmodule Effusion.PWP.Connection do
     end
     {:ok, msg} = Messages.decode(data)
 
-    handle_btp(msg, state)
+    ret = handle_btp(msg, state)
+    :ok = :inet.setopts(state.socket, active: :once)
+    ret
   end
 
   def handle_info(:timeout, state), do: connect(state)
