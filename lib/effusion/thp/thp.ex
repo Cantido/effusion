@@ -33,7 +33,12 @@ defmodule Effusion.THP do
   Optional tracker parameters
   """
   @type tracker_opts :: [
+    compact: (0 | 1),
     event: (:started | :stopped | :completed | :interval),
+    ip: :inet.ip_address(),
+    key: String.t(),
+    no_peer_id: (0 | 1),
+    numwant: non_neg_integer(),
     trackerid: String.t()
   ]
 

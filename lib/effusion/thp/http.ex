@@ -8,9 +8,15 @@ defmodule Effusion.THP.HTTP do
   An HTTP implementation of the Tracker HTTP Protocol.
   """
 
-  @default_opts %{
-    event: :interval
-  }
+  @allowed_opts [
+    :compact,
+    :event,
+    :ip,
+    :key,
+    :no_peer_id,
+    :numwant,
+    :trackerid
+  ]
 
   def announce(
         tracker_url,
@@ -30,11 +36,9 @@ defmodule Effusion.THP.HTTP do
              uploaded >= 0 and
              downloaded >= 0 and
              left >= 0 do
-    sanitized_opts = Keyword.take(opts, [:trackerid, :event]) |> Map.new()
+    sanitized_opts = Keyword.take(opts, @allowed_opts) |> Map.new()
 
-    tracker_request =
-      @default_opts
-      |> Map.merge(%{
+    tracker_request = %{
         info_hash: info_hash,
         peer_id: peer_id,
         port: peer_port,
@@ -42,7 +46,7 @@ defmodule Effusion.THP.HTTP do
         downloaded: downloaded,
         left: left,
         ip: to_string(:inet.ntoa(peer_host))
-      })
+      }
       |> Map.merge(sanitized_opts)
 
     Logger.debug("Making announce to #{tracker_url}")
