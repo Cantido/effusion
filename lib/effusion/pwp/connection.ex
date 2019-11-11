@@ -67,7 +67,7 @@ defmodule Effusion.PWP.Connection do
       remote_peer_id: expected_peer_id
     }
 
-    with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false], 10_000),
+    with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 10_000),
          :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, info_hash}),
          {:ok, {:handshake, remote_peer_id, remote_info_hash, _}} <- Socket.recv(socket, 68),
          :ok <- validate_info_hash(info_hash, remote_info_hash),
