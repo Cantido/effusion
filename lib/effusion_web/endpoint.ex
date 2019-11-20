@@ -18,8 +18,6 @@ defmodule EffusionWeb.Endpoint do
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do
-    socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
-    plug Phoenix.LiveReloader
     plug Phoenix.CodeReloader
   end
 
@@ -29,7 +27,7 @@ defmodule EffusionWeb.Endpoint do
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
-    json_decoder: Phoenix.json_library()
+    json_decoder: Jason
 
   plug Plug.MethodOverride
   plug Plug.Head
@@ -40,7 +38,7 @@ defmodule EffusionWeb.Endpoint do
   plug Plug.Session,
     store: :cookie,
     key: "_effusion_key",
-    signing_salt: "KrXGnk90"
+    signing_salt: "f0XVVGWb"
 
   plug EffusionWeb.Router
 end

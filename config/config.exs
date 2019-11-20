@@ -23,8 +23,8 @@ config :effusion,
 # Configures the endpoint
 config :effusion, EffusionWeb.Endpoint,
   url: [host: "localhost"],
-  secret_key_base: "rGR67f75Zu4KMY37XnjIZdtzCcmIIe2ocpx2mCoSVlSELTZ2WalB2GdSGaLwq4W1",
-  render_errors: [view: EffusionWeb.ErrorView, accepts: ~w(html json)],
+  secret_key_base: "MthtN4P5iyPai9u+Unl04vOhNnflrEL8haKx+g4Sik2SZqWIy7nM9U1RnQjUpyx/",
+  render_errors: [view: EffusionWeb.ErrorView, accepts: ~w(json)],
   pubsub: [name: Effusion.PubSub, adapter: Phoenix.PubSub.PG2]
 
 # Configures Elixir's Logger
