@@ -41,6 +41,8 @@ defmodule Effusion.Mixfile do
       {:jason, "~> 1.0"},
       {:logger_file_backend, "~> 0.0.10"},
       {:phoenix, "~> 1.4.11"},
+      {:phoenix_html, "~> 2.11"},
+      {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_pubsub, "~> 1.1"},
       {:plug_cowboy, "~> 2.0"},
       {:ranch, "~> 1.7"},
