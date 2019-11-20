@@ -36,6 +36,7 @@ defmodule Effusion.THP.HTTP do
              uploaded >= 0 and
              downloaded >= 0 and
              left >= 0 do
+    http_client = Keyword.get(opts, :http_client, HTTPotion)
     sanitized_opts = Keyword.take(opts, @allowed_opts) |> Map.new()
 
     tracker_request = %{
@@ -52,7 +53,7 @@ defmodule Effusion.THP.HTTP do
     Logger.debug("Making announce to #{tracker_url}")
 
     query = URI.encode_query(tracker_request)
-    http_res = HTTPotion.get(tracker_url <> "?" <> query)
+    {:ok, http_res} = http_client.get(tracker_url <> "?" <> query)
     record_request_stats(query, http_res)
     Logger.debug("Announce to #{tracker_url} successful.")
     decode_response(http_res)
@@ -67,7 +68,7 @@ defmodule Effusion.THP.HTTP do
   end
 
   defp decode_response(http_res) do
-    if HTTPotion.Response.success?(http_res) do
+    if http_res.status_code == 200 do
       decode(http_res.body)
     else
       {:error, {:http_request_failed, http_res.status_code, http_res}}

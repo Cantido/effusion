@@ -1,6 +1,5 @@
 ExUnit.start(capture_log: true)
 ExUnit.configure(timeout: 2_000)
-Application.ensure_all_started(:bypass)
 
 defmodule TestHelper do
   def mint_info_hash do

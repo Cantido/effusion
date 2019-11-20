@@ -9,6 +9,7 @@ defmodule Effusion.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env()),
       escript: escript(),
       start_permanent: Mix.env() == :prod,
+      compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       description: "A BitTorrent library.",
       # build with `mix escript.build`
       escript: [main_module: Effusion.CLI],
@@ -24,7 +25,7 @@ defmodule Effusion.Mixfile do
 
   def application do
     [
-      extra_applications: [:logger, :crypto, :ranch, :timex],
+      extra_applications: [:logger, :crypto, :ranch, :runtime_tools, :timex],
       mod: {Effusion.Application, []}
     ]
   end
@@ -33,15 +34,20 @@ defmodule Effusion.Mixfile do
     [
       {:ex_bencode, "~> 2.0"},
       {:int_set, "~> 1.3"},
-      {:ranch, "~> 1.7"},
       {:httpotion, "~> 3.0.2"},
+      {:httpoison, "~> 1.6"},
       {:gen_stage, "~> 0.14"},
+      {:gettext, "~> 0.11"},
+      {:jason, "~> 1.0"},
+      {:logger_file_backend, "~> 0.0.10"},
+      {:phoenix, "~> 1.4.11"},
+      {:phoenix_pubsub, "~> 1.1"},
+      {:plug_cowboy, "~> 2.0"},
+      {:ranch, "~> 1.7"},
       {:timex, "~> 3.6"},
       {:tzdata, "~> 0.1.7"},
-      {:logger_file_backend, "~> 0.0.10"},
       {:temp, "~> 0.4", only: :test},
       {:mox, "~> 0.3", only: :test},
-      {:bypass, "~> 0.8", only: :test},
       {:credo, "~> 1.1.0", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false}

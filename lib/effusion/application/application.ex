@@ -19,7 +19,8 @@ defmodule Effusion.Application do
       Effusion.Statistics.PeerDownloadAverage,
       Effusion.Statistics.SessionDownloadAverage,
       {Registry, keys: :duplicate, name: ConnectionRegistry},
-      {Registry, keys: :unique, name: SessionRegistry}
+      {Registry, keys: :unique, name: SessionRegistry},
+      EffusionWeb.Endpoint
     ]
 
     {:ok, _listener} =
@@ -27,5 +28,12 @@ defmodule Effusion.Application do
 
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  # Tell Phoenix to update the endpoint configuration
+  # whenever the application is updated.
+  def config_change(changed, _new, removed) do
+    EffusionWeb.Endpoint.config_change(changed, removed)
+    :ok
   end
 end
