@@ -26,7 +26,7 @@ defmodule Effusion.THP.HTTP do
     "tracker id" => :trackerid
   }
 
-
+  @impl true
   def announce(
         tracker_url,
         peer_host,
@@ -71,6 +71,7 @@ defmodule Effusion.THP.HTTP do
     end
   end
 
+  @impl true
   def process_request_url(url) do
     byte_size(url) |> NetStats.add_sent_bytes()
     byte_size(url) |> NetStats.add_sent_tracker_bytes()
@@ -85,6 +86,7 @@ defmodule Effusion.THP.HTTP do
       iex> Effusion.THP.HTTP.process_response_body("d8:intervali1800ee")
       %{interval: 1800, peers: []}
   """
+  @impl true
   def process_response_body(body) do
     case ExBencode.decode(body) do
       {:ok, bterm} ->
@@ -96,6 +98,7 @@ defmodule Effusion.THP.HTTP do
     end
   end
 
+  @impl true
   def process_response_headers(headers) do
     {length, ""} = headers["content-length"] |> Integer.parse()
     length |> NetStats.add_recv_bytes()
