@@ -32,6 +32,9 @@ defmodule Effusion.Mixfile do
 
   defp deps do
     [
+      {:absinthe, "~> 1.4"},
+      {:absinthe_plug, "~> 1.4"},
+      {:absinthe_phoenix, "~> 1.4"},
       {:ex_bencode, "~> 2.0"},
       {:int_set, "~> 1.3"},
       {:httpotion, "~> 3.0.2"},
