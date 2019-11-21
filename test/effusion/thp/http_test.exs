@@ -71,9 +71,7 @@ defmodule Effusion.THP.HTTPTest do
       assert query["ip"] == "192.168.1.1"
       assert query["trackerid"] == "this is my tracker id"
 
-      {:ok,
-        %{body: @body, status_code: 200, headers: %{"content-length" => (byte_size(@body) |> to_string())}}
-      }
+      %{body: @body, status_code: 200, headers: %{"content-length" => (byte_size(@body) |> to_string())}}
     end)
 
     {:ok, res} =

@@ -53,7 +53,7 @@ defmodule Effusion.THP.HTTP do
     Logger.debug("Making announce to #{tracker_url}")
 
     query = URI.encode_query(tracker_request)
-    {:ok, http_res} = http_client.get(tracker_url <> "?" <> query)
+    http_res = http_client.get(tracker_url <> "?" <> query)
     record_request_stats(query, http_res)
     Logger.debug("Announce to #{tracker_url} successful.")
     decode_response(http_res)
