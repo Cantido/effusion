@@ -1,8 +1,10 @@
 defmodule Effusion.THP.HTTP do
   alias Effusion.Statistics.Net, as: NetStats
+  alias Effusion.THP.Decode
   import Effusion.BTP.Peer
   import Effusion.Hash
   require Logger
+  use HTTPoison.Base
   @behaviour Effusion.THP
   @moduledoc """
   An HTTP implementation of the Tracker HTTP Protocol.
@@ -17,6 +19,13 @@ defmodule Effusion.THP.HTTP do
     :numwant,
     :trackerid
   ]
+
+  @body_names %{
+    "interval" => :interval,
+    "peers" => :peers,
+    "tracker id" => :trackerid
+  }
+
 
   def announce(
         tracker_url,
@@ -56,7 +65,23 @@ defmodule Effusion.THP.HTTP do
     http_res = http_client.get(tracker_url <> "?" <> query)
     record_request_stats(query, http_res)
     Logger.debug("Announce to #{tracker_url} successful.")
-    decode_response(http_res)
+
+    if http_res.status_code == 200 do
+      case ExBencode.decode(http_res.body) do
+        {:ok, bterm} ->
+          tokenized =
+            bterm
+            |> Effusion.Map.rename_keys(@body_names)
+            |> Map.update(:peers, [], &Decode.decode_peers/1)
+
+          {:ok, tokenized}
+
+        err ->
+          err
+      end
+    else
+      {:error, {:http_request_failed, http_res.status_code, http_res}}
+    end
   end
 
   def record_request_stats(query, response) do
@@ -65,77 +90,5 @@ defmodule Effusion.THP.HTTP do
     {length, ""} = response.headers["content-length"] |> Integer.parse()
     length |> NetStats.add_recv_bytes()
     length |> NetStats.add_recv_tracker_bytes()
-  end
-
-  defp decode_response(http_res) do
-    if http_res.status_code == 200 do
-      decode(http_res.body)
-    else
-      {:error, {:http_request_failed, http_res.status_code, http_res}}
-    end
-  end
-
-  @body_names %{
-    "interval" => :interval,
-    "peers" => :peers,
-    "tracker id" => :trackerid
-  }
-
-  @peer_names %{
-    "ip" => :ip,
-    "port" => :port,
-    "peer id" => :peer_id
-  }
-
-  @doc """
-  Decode a tracker response.
-  """
-  def decode(body) do
-    case ExBencode.decode(body) do
-      {:ok, bterm} ->
-        tokenized =
-          bterm
-          |> Effusion.Map.rename_keys(@body_names)
-          |> Map.update(:peers, [], &update_peers/1)
-
-        {:ok, tokenized}
-
-      err ->
-        err
-    end
-  end
-
-  defp update_peers(""), do: []
-  defp update_peers([]), do: []
-
-  defp update_peers(peers) when is_binary(peers) do
-    peers
-    |> :binary.bin_to_list()
-    |> Enum.chunk_every(6)
-    |> Enum.map(fn [ip0, ip1, ip2, ip3, p0, p1] ->
-      <<port::16>> = <<p0, p1>>
-
-      %{
-        ip: {ip0, ip1, ip2, ip3},
-        port: port
-      }
-    end)
-  end
-
-  defp update_peers(peers) when is_list(peers) do
-    Enum.map(peers, &update_peer/1)
-  end
-
-  defp update_peer(peer) do
-    peer
-    |> Effusion.Map.rename_keys(@peer_names)
-    |> Map.update!(:ip, &parse_address/1)
-  end
-
-  defp parse_address(addr) do
-    with addr_charlist <- to_charlist(addr),
-         {:ok, ip} <- :inet.parse_address(addr_charlist) do
-      ip
-    end
   end
 end
