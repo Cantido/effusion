@@ -77,32 +77,50 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   defp handle_internal_message({:btp_connect, address, local_info_hash, local_peer_id, expected_peer_id}, state = %Download{}) do
+    start = System.monotonic_time(:microsecond)
     OutgoingHandler.connect({address, local_info_hash, local_peer_id, expected_peer_id})
+    stop = System.monotonic_time(:microsecond)
+    Logger.debug(":btp_connect latency: #{stop - start} μs")
+
     state
   end
 
   defp handle_internal_message({:broadcast, outgoing_msg}, state = %Download{}) do
+    start = System.monotonic_time(:microsecond)
     ConnectionRegistry.btp_broadcast(state.meta.info_hash, outgoing_msg)
+    stop = System.monotonic_time(:microsecond)
+    Logger.debug(":broadcast latency: #{stop - start} μs")
     state
   end
 
   defp handle_internal_message({:btp_send, remote_peer_id, outgoing_msg}, state = %Download{}) do
+    start = System.monotonic_time(:microsecond)
     ConnectionRegistry.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
+    stop = System.monotonic_time(:microsecond)
+    Logger.debug(":btp_send latency: #{stop - start} μs")
     state
   end
 
   defp handle_internal_message({:write_piece, info, destdir, block}, state = %Download{}) do
+    start = System.monotonic_time(:microsecond)
     Effusion.IOServer.write_piece(info, destdir, block)
-    Download.mark_piece_written(state, block.index)
+    state = Download.mark_piece_written(state, block.index)
+    stop = System.monotonic_time(:microsecond)
+    Logger.debug(":write_piece latency: #{stop - start} μs")
+    state
   end
 
   defp handle_internal_message({:announce, announce_params}, state = %Download{}) do
+    start = System.monotonic_time(:microsecond)
     {:ok, res} = apply(@thp_client, :announce, announce_params)
 
     {state, messages} = Download.handle_tracker_response(state, res)
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
 
     state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
+    stop = System.monotonic_time(:microsecond)
+    Logger.debug(":write_piece latency: #{stop - start} μs")
+    state
   end
 
   ## Callbacks
@@ -115,6 +133,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_call({:handle_msg, peer_id, msg}, _from, state = %Download{}) when is_peer_id(peer_id) do
+    handle_msg_start = System.monotonic_time(:microsecond)
     _ = Logger.debug("DownloadServer handling message from #{peer_id}: #{inspect(msg)}")
 
     case Download.handle_message(state, peer_id, msg) do
@@ -123,11 +142,18 @@ defmodule Effusion.BTP.DownloadServer do
         {:stop, reason, {:error, reason}, state}
 
       {state, messages} ->
+        download_handle_message_stop = System.monotonic_time(:microsecond)
+        Logger.debug("Download.handle_message #{inspect msg} latency: #{download_handle_message_stop - handle_msg_start} μs")
+
         state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
 
         if Download.done?(state) do
+          handle_msg_stop = System.monotonic_time(:microsecond)
+          Logger.debug(":handle_msg #{inspect msg} (download done) latency: #{handle_msg_stop - handle_msg_start} μs")
           {:stop, :normal, :ok, state}
         else
+          handle_msg_stop = System.monotonic_time(:microsecond)
+          Logger.debug(":handle_msg #{inspect msg} (download not done) latency : #{handle_msg_stop - handle_msg_start} μs")
           {:reply, :ok, state}
         end
     end
@@ -143,13 +169,21 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_cast({:connected, peer_id, address}, state = %Download{}) do
-    {:noreply, Download.handle_connect(state, peer_id, address)}
+    start = System.monotonic_time(:microsecond)
+    reply = {:noreply, Download.handle_connect(state, peer_id, address)}
+    stop = System.monotonic_time(:microsecond)
+    Logger.debug(":connected latency: #{stop - start} μs")
+    reply
   end
 
   def handle_cast({:unregister_connection, address, reason}, state = %Download{}) do
+    start = System.monotonic_time(:microsecond)
     {state, messages} = Download.handle_disconnect(state, address, reason)
 
     state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
+
+    stop = System.monotonic_time(:microsecond)
+    Logger.debug(":unregister_connection latency: #{stop - start} μs")
 
     {:noreply, state}
   end

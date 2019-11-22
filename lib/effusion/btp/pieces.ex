@@ -35,8 +35,8 @@ defmodule Effusion.BTP.Pieces do
     o = block.offset
 
     unfinished(torrent)
-    |> Enum.filter(fn b -> b.index == i end)
-    |> Enum.filter(fn b -> b.offset == o end)
+    |> Stream.filter(fn b -> b.index == i end)
+    |> Stream.filter(fn b -> b.offset == o end)
     |> Enum.any?()
   end
 

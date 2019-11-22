@@ -194,9 +194,17 @@ defmodule Effusion.BTP.Download do
       when is_peer_id(peer_id) and
              is_peer_id(remote_peer_id) and
              peer_id != remote_peer_id do
+    session_start = System.monotonic_time(:microsecond)
     case session_handle_message(d, remote_peer_id, msg) do
       {:ok, d, session_messages} ->
+        session_stop = System.monotonic_time(:microsecond)
+        Logger.debug("Download.session_handle_message #{inspect msg} latency: #{session_stop - session_start} μs")
+
+        delegate_start = System.monotonic_time(:microsecond)
         {d, peer_messages} = delegate_message(d, remote_peer_id, msg)
+        delegate_stop = System.monotonic_time(:microsecond)
+        Logger.debug("Download.delegate_message #{inspect msg} latency: #{delegate_stop - delegate_start} μs")
+
         {d, session_messages ++ peer_messages}
 
       {:error, reason} ->
@@ -272,12 +280,15 @@ defmodule Effusion.BTP.Download do
   end
 
   defp next_requests(d = %__MODULE__{}, peers) do
+    start = System.monotonic_time(:microsecond)
     next_blocks =
       PiecePicker.next_blocks(
         d.pieces,
         peers,
         @block_size
       )
+    stop = System.monotonic_time(:microsecond)
+    Logger.debug("PiecePicker.next_blocks latency: #{stop - start} μs")
 
     case next_blocks do
       [] ->
