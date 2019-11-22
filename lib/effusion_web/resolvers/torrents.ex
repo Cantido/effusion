@@ -1,6 +1,7 @@
 defmodule EffusionWeb.Resolvers.Torrents do
   alias Effusion.BTP.TorrentRegistry
   alias Effusion.BTP.DownloadServer
+  alias Effusion.BTP.Download
   def all_torrents(_root, _args, _info) do
     info_hashes = TorrentRegistry.all_torrents
 
@@ -20,9 +21,13 @@ defmodule EffusionWeb.Resolvers.Torrents do
   end
 
   defp build(download) do
+    {downloaded, total_to_download} = Download.downloaded_ratio(download)
     %{
       id: download.meta.info_hash,
-      name: download.meta.info.name
+      name: download.meta.info.name,
+      downloaded: downloaded,
+      left: total_to_download,
+      started_at: download.started_at
     }
   end
 end
