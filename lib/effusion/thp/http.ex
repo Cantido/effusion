@@ -100,7 +100,8 @@ defmodule Effusion.THP.HTTP do
 
   @impl true
   def process_response_headers(headers) do
-    {length, ""} = headers["content-length"] |> Integer.parse()
+    val = List.keyfind(headers, "Content-Length", 1, "0")
+    {length, ""} = Integer.parse(val)
     length |> NetStats.add_recv_bytes()
     length |> NetStats.add_recv_tracker_bytes()
     headers
