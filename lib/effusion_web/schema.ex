@@ -1,6 +1,6 @@
 defmodule EffusionWeb.Schema do
   use Absinthe.Schema
-  alias EffusionWeb.Resolvers.Torrents
+  alias EffusionWeb.Resolvers
 
   import_types Absinthe.Type.Custom
 
@@ -16,13 +16,13 @@ defmodule EffusionWeb.Schema do
   query do
     @desc "Get all torrents"
     field :torrents, list_of(:torrent) do
-      resolve &Torrents.all_torrents/3
+      resolve &Resolvers.Torrents.all_torrents/3
     end
 
     @desc "Get a torrent"
     field :torrent, :torrent do
       arg :id, non_null(:id)
-      resolve &Torrents.find_torrent/3
+      resolve &Resolvers.Torrents.find_torrent/3
     end
   end
 end
