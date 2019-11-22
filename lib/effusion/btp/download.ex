@@ -3,6 +3,7 @@ defmodule Effusion.BTP.Download do
   alias Effusion.BTP.PiecePicker
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Swarm
+  alias Effusion.BTP.Metainfo
   import Effusion.BTP.Peer, only: [is_peer_id: 1]
   require Logger
   use Timex
@@ -80,6 +81,26 @@ defmodule Effusion.BTP.Download do
   """
   def pieces(d = %__MODULE__{}) do
     d.pieces
+  end
+
+  def bytes_completed(download) do
+    Pieces.bytes_completed(download.pieces)
+  end
+
+  def download_size(download) do
+    Metainfo.bytes_count(download.meta)
+  end
+
+  def downloaded_ratio(download) do
+    {
+      bytes_completed(download),
+      download_size(download)
+    }
+  end
+
+  def download_duration(download) do
+    Timex.Interval.new(from: download.started_at, until: Timex.now())
+    |> Timex.Interval.duration(:duration)
   end
 
   def mark_piece_written(d = %__MODULE__{}, i) do

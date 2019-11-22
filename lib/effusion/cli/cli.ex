@@ -1,5 +1,6 @@
 defmodule Effusion.CLI do
   alias Effusion.BTP.DownloadServer
+  alias Effusion.BTP.Download
   alias Effusion.BTP.Metainfo
   alias Effusion.BTP.Peer
   alias Effusion.Format
@@ -7,7 +8,6 @@ defmodule Effusion.CLI do
   alias Effusion.Statistics.Peer, as: PeerStats
   alias Effusion.Statistics.PeerDownloadAverage
   alias Effusion.Statistics.SessionDownloadAverage
-  alias Effusion.Stats
   use Timex
 
   @moduledoc """
@@ -51,9 +51,9 @@ defmodule Effusion.CLI do
          last_timestamp \\ System.monotonic_time(:millisecond)
        ) do
     download = DownloadServer.get(info_hash)
-    dur = Stats.download_duration(download)
+    dur = Download.download_duration(download)
 
-    {downloaded, total_to_download} = Stats.downloaded_ratio(download)
+    {downloaded, total_to_download} = Download.downloaded_ratio(download)
     fraction_downloaded = downloaded / total_to_download
 
     name_formatted = download.meta.info.name
