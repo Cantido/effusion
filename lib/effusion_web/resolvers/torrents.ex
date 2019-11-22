@@ -6,8 +6,23 @@ defmodule EffusionWeb.Resolvers.Torrents do
 
     torrents = info_hashes
       |> Enum.map(&DownloadServer.get/1)
-      |> Enum.map(&(%{name: &1.meta.info.name}))
+      |> Enum.map(&build/1)
 
     {:ok, torrents}
+  end
+
+  def find_torrent(_parent, %{id: id}, _resolution) do
+    if TorrentRegistry.present?(id) do
+      {:ok, DownloadServer.get(id) |> build()}
+    else
+      {:error, "Torrent ID #{Effusion.Hash.inspect id} not found"}
+    end
+  end
+
+  defp build(download) do
+    %{
+      id: download.meta.info_hash,
+      name: download.meta.info.name
+    }
   end
 end
