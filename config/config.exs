@@ -7,13 +7,6 @@
 # General application configuration
 use Mix.Config
 
-config :logger,
-  backends: [{LoggerFileBackend, :debug_log}]
-
-config :logger, :debug_log,
-  path: "tmp/debug.log",
-  level: :debug
-
 config :effusion,
   block_size: 16384,
   peer_id: "Effusion Experiment!",
