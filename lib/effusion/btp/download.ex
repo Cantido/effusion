@@ -243,7 +243,7 @@ defmodule Effusion.BTP.Download do
        |> Pieces.verified()
        |> Enum.map(fn p -> {:write_piece, d.meta.info, d.file, p} end)
 
-    {d, request_messages} = next_request(d)
+    {d, request_messages} = next_request_from_peer(d, from, 1)
 
     {:ok, d, write_messages ++ have_messages ++ cancel_messages ++ request_messages}
   end
@@ -285,10 +285,9 @@ defmodule Effusion.BTP.Download do
   end
 
   defp session_handle_message(d = %__MODULE__{}, remote_peer_id, :unchoke) do
-    {d, request_messages} = next_request_from_peer(d, remote_peer_id)
-    {d, request_messages2} = next_request_from_peer(d, remote_peer_id)
+    {d, request_messages} = next_request_from_peer(d, remote_peer_id, 100)
 
-    {:ok, d, request_messages ++ request_messages2}
+    {:ok, d, request_messages}
   end
 
   defp session_handle_message(d = %__MODULE__{}, _remote_peer_id, _msg), do: {:ok, d, []}
@@ -302,22 +301,22 @@ defmodule Effusion.BTP.Download do
     Map.update!(d, :swarm, &Swarm.handle_connect(&1, peer_id, address))
   end
 
-  defp next_request(d = %__MODULE__{}) do
+  defp next_request(d = %__MODULE__{}, count \\ 1) do
     avmap = d.availability_map
-    next_requests_from_available(d, d.availability_map)
+    next_requests_from_available(d, d.availability_map, count)
   end
 
-  def next_request_from_peer(d, peer_id) do
+  def next_request_from_peer(d, peer_id, count \\ 1) do
     # pieces available from this peer
     peer_avmap = Enum.filter(d.availability_map, fn {piece, av_peer_ids} ->
       Enum.member?(av_peer_ids, peer_id)
     end)
     |> Map.new()
 
-    next_requests_from_available(d, peer_avmap)
+    next_requests_from_available(d, peer_avmap, count)
   end
 
-  defp next_requests_from_available(d, availability_map) do
+  defp next_requests_from_available(d, availability_map, count \\ 1) do
     pieces_have = Pieces.bitfield(d.pieces) |> Enum.to_list()
     Logger.debug("pieces we have: #{inspect pieces_have}")
     to_request = Map.drop(availability_map, pieces_have)
@@ -350,22 +349,24 @@ defmodule Effusion.BTP.Download do
     if Enum.empty?(blocks_to_request) do
       {d, []}
     else
-      {block_to_request, peers} = Enum.at(blocks_to_request, 0)
+      blocks_peers_to_request = Enum.take(blocks_to_request, count)
 
-      if Enum.empty?(peers) do
-        {d, []}
-      else
-        # filter peers that already have the max number of requests
-        peers = reject_peers_with_max_requests(d, peers)
+      blocks_peers_to_request |> Enum.reduce({d, []}, fn {block_to_request, peers}, {d, requests} ->
+        if Enum.empty?(peers) do
+          {d, requests}
+        else
+          # filter peers that already have the max number of requests
+          peers = reject_peers_with_max_requests(d, peers)
 
-        peer_id_to_request = Enum.at(peers, 0)
+          peer_id_to_request = Enum.at(peers, 0)
 
-        req = block_into_request({peer_id_to_request, block_to_request})
+          req = block_into_request({peer_id_to_request, block_to_request})
 
-        d = Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer_id_to_request, block_to_request))
+          d = Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer_id_to_request, block_to_request))
 
-        {d, [req]}
-      end
+          {d, [req | requests]}
+        end
+      end)
     end
   end
 
