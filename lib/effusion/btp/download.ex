@@ -1,10 +1,13 @@
 defmodule Effusion.BTP.Download do
   alias Effusion.BTP.PeerSelection
   alias Effusion.BTP.PiecePicker
+  alias Effusion.BTP.AvailabilityMap
   alias Effusion.BTP.Pieces
+  alias Effusion.BTP.Block
   alias Effusion.BTP.Swarm
   alias Effusion.BTP.Metainfo
   import Effusion.BTP.Peer, only: [is_peer_id: 1]
+  import Effusion.Math
   require Logger
   use Timex
 
@@ -22,6 +25,8 @@ defmodule Effusion.BTP.Download do
     :pieces,
     :local_address,
     :swarm,
+    :availability_map,
+    :block_size,
     started_at: nil,
     listeners: MapSet.new(),
     trackerid: ""
@@ -37,14 +42,24 @@ defmodule Effusion.BTP.Download do
   This only creates a data structure. To actually start the download, call `start/1`.
   """
   def new(meta, local_address, file \\ nil) do
+    piece_count = meta.info.pieces |> Enum.count
+
     %__MODULE__{
       file: file,
       meta: meta,
       peer_id: @local_peer_id,
       pieces: Pieces.new(meta.info_hash),
       local_address: local_address,
-      swarm: Swarm.new(@local_peer_id, meta.info_hash)
+      swarm: Swarm.new(@local_peer_id, meta.info_hash),
+      availability_map: AvailabilityMap.new(),
+      block_size: @block_size,
     }
+  end
+
+  defp all_blocks_in(index, info, block_size) when is_integer(index) and index >= 0 do
+    piece_id = Block.id(index, 0, piece_size(index, info))
+
+    for b <- Block.split(piece_id, block_size), do: Block.id(b)
   end
 
   @doc """
@@ -229,13 +244,18 @@ defmodule Effusion.BTP.Download do
        |> Pieces.verified()
        |> Enum.map(fn p -> {:write_piece, d.meta.info, d.file, p} end)
 
-    peer = Swarm.select_peer(d.swarm, from)
-    {d, request_messages} = next_requests(d, [peer])
+    {d, request_messages} = next_request(d)
 
     {:ok, d, write_messages ++ have_messages ++ cancel_messages ++ request_messages}
   end
 
   defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:bitfield, bitfield}) do
+    avmap = Enum.reduce(IntSet.new(bitfield), d.availability_map, fn p, acc ->
+      AvailabilityMap.add_piece(acc, remote_peer_id, p)
+    end)
+
+    d = Map.put(d, :availability_map, avmap)
+
     interest_message =
       if Pieces.has_pieces?(d.pieces, bitfield) do
         []
@@ -247,6 +267,9 @@ defmodule Effusion.BTP.Download do
   end
 
   defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:have, i}) do
+    avmap = AvailabilityMap.add_piece(d.availability_map, remote_peer_id, i)
+    d = Map.put(d, :availability_map, avmap)
+
     interest_message =
       if Pieces.has_piece?(d.pieces, i) do
         []
@@ -263,9 +286,11 @@ defmodule Effusion.BTP.Download do
   end
 
   defp session_handle_message(d = %__MODULE__{}, remote_peer_id, :unchoke) do
-    peer = Swarm.select_peer(d.swarm, remote_peer_id)
-    {d, request_messages} = next_requests(d, [peer])
-    {:ok, d, request_messages}
+    Logger.debug("Handling unchoke now, making two requests")
+    {d, request_messages} = next_request(d)
+    {d, request_messages2} = next_request(d)
+
+    {:ok, d, request_messages ++ request_messages2}
   end
 
   defp session_handle_message(d = %__MODULE__{}, _remote_peer_id, _msg), do: {:ok, d, []}
@@ -279,26 +304,85 @@ defmodule Effusion.BTP.Download do
     Map.update!(d, :swarm, &Swarm.handle_connect(&1, peer_id, address))
   end
 
-  defp next_requests(d = %__MODULE__{}, peers) do
-    start = System.monotonic_time(:microsecond)
-    next_blocks =
-      PiecePicker.next_blocks(
-        d.pieces,
-        peers,
-        @block_size
-      )
-    stop = System.monotonic_time(:microsecond)
-    Logger.debug("PiecePicker.next_blocks latency: #{stop - start} μs")
+  defp next_request(d = %__MODULE__{}) do
+    avmap = d.availability_map
+    pieces_have = Pieces.bitfield(d.pieces) |> Enum.to_list()
+    Logger.debug("pieces we have: #{inspect pieces_have}")
+    to_request = Map.drop(avmap, pieces_have)
+    Logger.debug("Pieces we don't yet have: #{inspect to_request}")
 
-    case next_blocks do
-      [] ->
+    # blocks we still need: {block => [peer_id]}
+    blocks_needed = Enum.flat_map(to_request, fn {index, peers} ->
+      blocks = all_blocks_in(index, d.meta.info, d.block_size)
+
+      Enum.map(blocks, &({&1, peers}))
+    end)
+
+    # requests already made: {block => [peer_id]}
+    # Consider this as an inversion of the peer => [block_id] map
+    requests_made = Swarm.peers(d.swarm) |> Enum.reduce(Map.new(), fn p, acc ->
+      Enum.reduce(p.blocks_we_requested, acc, fn blk, acc ->
+        Map.update(acc, blk, MapSet.new([p.peer_id]), &MapSet.put(&1, p.peer_id))
+      end)
+    end)
+    Logger.debug("Requests already made: #{inspect requests_made}")
+
+    # requests we can make: {block => [peer_id]}
+    blocks_to_request = blocks_needed |> Enum.map(fn {block, peers} ->
+      requested_peers = Map.get(requests_made, block, MapSet.new())
+
+      {block, MapSet.difference(peers, requested_peers)}
+    end)
+    |> Enum.reject(fn {b, p} ->
+      Enum.empty?(p)
+    end)
+    |> Map.new()
+    Logger.debug("requests we can make: #{inspect blocks_to_request}")
+
+    if Enum.empty?(blocks_to_request) do
+      {d, []}
+    else
+      {block_to_request, peers} = Enum.at(blocks_to_request, 0)
+
+      if Enum.empty?(peers) do
         {d, []}
+      else
+        peer_id_to_request = Enum.at(peers, 0)
 
-      _ ->
-        d = Map.update!(d, :swarm, &Swarm.mark_blocks_requested(&1, next_blocks))
-        next_requests = next_blocks |> Enum.map(&block_into_request/1)
-        {d, next_requests}
+        req = block_into_request({peer_id_to_request, block_to_request})
+
+        d = Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer_id_to_request, block_to_request))
+
+        {d, [req]}
+      end
     end
+  end
+
+  defp piece_size(index, info) do
+    {whole_piece_count, last_piece_size} = divrem(info.length, info.piece_length)
+    last_piece_index = whole_piece_count
+
+    if index == last_piece_index do
+      last_piece_size
+    else
+      info.piece_length
+    end
+  end
+
+  defp reject_blocks_already_requested(blocks, peers) do
+    requested_blocks =
+      peers
+      |> Enum.flat_map(&(&1.blocks_we_requested))
+      |> MapSet.new()
+    Logger.debug("blocks already requested: #{inspect requested_blocks}")
+    Logger.debug("Subtracting blocks already requested from this set: #{inspect blocks}")
+
+    new_blocks =
+      blocks
+      |> MapSet.new()
+      |> MapSet.difference(requested_blocks)
+
+    new_blocks
   end
 
   defp block_into_request({peer_id, %{index: i, offset: o, size: sz}}) do

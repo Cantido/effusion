@@ -36,7 +36,7 @@ defmodule Effusion.Mixfile do
       {:absinthe_plug, "~> 1.4"},
       {:absinthe_phoenix, "~> 1.4"},
       {:ex_bencode, "~> 2.0"},
-      {:int_set, "~> 1.3"},
+      {:int_set, "~> 1.4"},
       {:httpotion, "~> 3.0.2"},
       {:httpoison, "~> 1.6"},
       {:gen_stage, "~> 0.14"},
