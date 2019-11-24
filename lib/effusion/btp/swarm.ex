@@ -114,6 +114,16 @@ defmodule Effusion.BTP.Swarm do
     end)
   end
 
+  # requests already made: {block => [peer_id]}
+  # Consider this as an inversion of the peer => [block_id] map
+  def get_request_peers(swarm) do
+    peers(swarm) |> Enum.reduce(Map.new(), fn p, acc ->
+      Enum.reduce(p.blocks_we_requested, acc, fn blk, acc ->
+        Map.update(acc, blk, MapSet.new([p.peer_id]), &MapSet.put(&1, p.peer_id))
+      end)
+    end)
+  end
+
   def remove_requested_block(swarm, block_id) do
     peers =
       swarm.peers

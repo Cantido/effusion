@@ -1,6 +1,5 @@
 defmodule Effusion.BTP.Download do
   alias Effusion.BTP.PeerSelection
-  alias Effusion.BTP.PiecePicker
   alias Effusion.BTP.AvailabilityMap
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Block
@@ -320,11 +319,7 @@ defmodule Effusion.BTP.Download do
 
     # requests already made: {block => [peer_id]}
     # Consider this as an inversion of the peer => [block_id] map
-    requests_made = Swarm.peers(d.swarm) |> Enum.reduce(Map.new(), fn p, acc ->
-      Enum.reduce(p.blocks_we_requested, acc, fn blk, acc ->
-        Map.update(acc, blk, MapSet.new([p.peer_id]), &MapSet.put(&1, p.peer_id))
-      end)
-    end)
+    requests_made = Swarm.get_request_peers(d.swarm)
     Logger.debug("Requests already made: #{inspect requests_made}")
 
     # requests we can make: {block => [peer_id]}
