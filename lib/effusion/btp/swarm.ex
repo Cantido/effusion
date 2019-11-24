@@ -14,7 +14,8 @@ defmodule Effusion.BTP.Swarm do
     :peer_id,
     :info_hash,
     :peers,
-    :peer_addresses
+    :peer_addresses,
+    :requested_block_peers
   ]
 
   def new(peer_id, info_hash) do
@@ -24,7 +25,9 @@ defmodule Effusion.BTP.Swarm do
       # {peer_address, peer}
       peers: Map.new(),
       # {peer_address, peer_id}
-      peer_addresses: Map.new()
+      peer_addresses: Map.new(),
+      # {block_id => [peer_id]}
+      requested_block_peers: Map.new()
     }
   end
 
@@ -117,11 +120,7 @@ defmodule Effusion.BTP.Swarm do
   # requests already made: {block => [peer_id]}
   # Consider this as an inversion of the peer => [block_id] map
   def get_request_peers(swarm) do
-    peers(swarm) |> Enum.reduce(Map.new(), fn p, acc ->
-      Enum.reduce(p.blocks_we_requested, acc, fn blk, acc ->
-        Map.update(acc, blk, MapSet.new([p.peer_id]), &MapSet.put(&1, p.peer_id))
-      end)
-    end)
+    swarm.requested_block_peers
   end
 
   def remove_requested_block(swarm, block_id) do
@@ -133,7 +132,9 @@ defmodule Effusion.BTP.Swarm do
       end)
       |> Map.new()
 
-    %{swarm | peers: peers}
+    requested_block_peers = Map.delete(swarm.requested_block_peers, block_id)
+
+    %{swarm | peers: peers, requested_block_peers: requested_block_peers}
   end
 
   def mark_blocks_requested(swarm, blocks) do
@@ -145,7 +146,11 @@ defmodule Effusion.BTP.Swarm do
   def mark_block_requested(swarm = %__MODULE__{}, peer_id, block_id) do
     addr = Map.get(swarm.peer_addresses, peer_id)
     peers = Map.update!(swarm.peers, addr, &Peer.request_block(&1, block_id))
-    %{swarm | peers: peers}
+    swarm = %{swarm | peers: peers}
+
+    requested_block_peers = Map.update(swarm.requested_block_peers, block_id, MapSet.new([peer_id]), &MapSet.put(&1, block_id))
+
+    %{swarm | requested_block_peers: requested_block_peers}
   end
 
   def cancel_block_requests(swarm, block, from) when is_peer_id(from) do

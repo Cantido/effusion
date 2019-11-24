@@ -364,22 +364,6 @@ defmodule Effusion.BTP.Download do
     end
   end
 
-  defp reject_blocks_already_requested(blocks, peers) do
-    requested_blocks =
-      peers
-      |> Enum.flat_map(&(&1.blocks_we_requested))
-      |> MapSet.new()
-    Logger.debug("blocks already requested: #{inspect requested_blocks}")
-    Logger.debug("Subtracting blocks already requested from this set: #{inspect blocks}")
-
-    new_blocks =
-      blocks
-      |> MapSet.new()
-      |> MapSet.difference(requested_blocks)
-
-    new_blocks
-  end
-
   defp block_into_request({peer_id, %{index: i, offset: o, size: sz}}) do
     {:btp_send, peer_id, {:request, i, o, sz}}
   end
