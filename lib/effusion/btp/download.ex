@@ -285,8 +285,8 @@ defmodule Effusion.BTP.Download do
   end
 
   defp session_handle_message(d = %__MODULE__{}, remote_peer_id, :unchoke) do
-    {d, request_messages} = next_request(d)
-    {d, request_messages2} = next_request(d)
+    {d, request_messages} = next_request_from_peer(d, remote_peer_id)
+    {d, request_messages2} = next_request_from_peer(d, remote_peer_id)
 
     {:ok, d, request_messages ++ request_messages2}
   end
@@ -304,12 +304,26 @@ defmodule Effusion.BTP.Download do
 
   defp next_request(d = %__MODULE__{}) do
     avmap = d.availability_map
+    next_requests_from_available(d, d.availability_map)
+  end
+
+  def next_request_from_peer(d, peer_id) do
+    # pieces available from this peer
+    peer_avmap = Enum.filter(d.availability_map, fn {piece, av_peer_ids} ->
+      Enum.member?(av_peer_ids, peer_id)
+    end)
+    |> Map.new()
+
+    next_requests_from_available(d, peer_avmap)
+  end
+
+  defp next_requests_from_available(d, availability_map) do
     pieces_have = Pieces.bitfield(d.pieces) |> Enum.to_list()
     Logger.debug("pieces we have: #{inspect pieces_have}")
-    to_request = Map.drop(avmap, pieces_have)
+    to_request = Map.drop(availability_map, pieces_have)
     Logger.debug("Pieces we don't yet have: #{inspect to_request}")
 
-    # blocks we still need: {block => [peer_id]}
+    # available blocks we still need: {block => [peer_id]}
     blocks_needed = Enum.flat_map(to_request, fn {index, peers} ->
       blocks = all_blocks_in(index, d.meta.info, d.block_size)
 
