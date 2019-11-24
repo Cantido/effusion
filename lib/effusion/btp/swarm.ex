@@ -179,6 +179,17 @@ defmodule Effusion.BTP.Swarm do
     put_peer(swarm, peer)
   end
 
+  def peer_has_max_requests?(swarm, peer_id) do
+    max_requests_per_peer = Application.get_env(:effusion, :max_requests_per_peer, 100)
+    peer_request_count = count_peer_requests(swarm, peer_id)
+    peer_request_count >= max_requests_per_peer
+  end
+
+  def count_peer_requests(swarm, peer_id) do
+    peer = select_peer(swarm, peer_id)
+    Enum.count(peer.blocks_we_requested)
+  end
+
   def delegate_message(swarm = %__MODULE__{}, remote_peer_id, msg) do
     case get_connected_peer(swarm, remote_peer_id) do
       {:ok, peer} ->

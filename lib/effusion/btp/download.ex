@@ -285,7 +285,6 @@ defmodule Effusion.BTP.Download do
   end
 
   defp session_handle_message(d = %__MODULE__{}, remote_peer_id, :unchoke) do
-    Logger.debug("Handling unchoke now, making two requests")
     {d, request_messages} = next_request(d)
     {d, request_messages2} = next_request(d)
 
@@ -342,6 +341,9 @@ defmodule Effusion.BTP.Download do
       if Enum.empty?(peers) do
         {d, []}
       else
+        # filter peers that already have the max number of requests
+        peers = reject_peers_with_max_requests(d, peers)
+
         peer_id_to_request = Enum.at(peers, 0)
 
         req = block_into_request({peer_id_to_request, block_to_request})
@@ -351,6 +353,11 @@ defmodule Effusion.BTP.Download do
         {d, [req]}
       end
     end
+  end
+
+  defp reject_peers_with_max_requests(d, peer_ids) do
+    peer_ids
+    |> Enum.reject(&Swarm.peer_has_max_requests?(d.swarm, &1))
   end
 
   defp piece_size(index, info) do
