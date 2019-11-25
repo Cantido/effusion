@@ -348,12 +348,12 @@ defmodule Effusion.BTP.Download do
       blocks_peers_to_request = Enum.take(blocks_to_request, count)
 
       blocks_peers_to_request |> Enum.reduce({d, []}, fn {block_to_request, peers}, {d, requests} ->
+        # filter peers that already have the max number of requests
+        peers = reject_peers_with_max_requests(d, peers)
+
         if Enum.empty?(peers) do
           {d, requests}
         else
-          # filter peers that already have the max number of requests
-          peers = reject_peers_with_max_requests(d, peers)
-
           peer_id_to_request = Enum.at(peers, 0)
 
           req = block_into_request({peer_id_to_request, block_to_request})
