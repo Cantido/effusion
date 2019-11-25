@@ -318,9 +318,7 @@ defmodule Effusion.BTP.Download do
 
   defp next_requests_from_available(d, availability_map, count \\ 1) do
     pieces_have = Pieces.bitfield(d.pieces) |> Enum.to_list()
-    Logger.debug("pieces we have: #{inspect pieces_have}")
     to_request = Map.drop(availability_map, pieces_have)
-    Logger.debug("Pieces we don't yet have: #{inspect to_request}")
 
     # available blocks we still need: {block => [peer_id]}
     blocks_needed = Enum.flat_map(to_request, fn {index, peers} ->
@@ -332,7 +330,6 @@ defmodule Effusion.BTP.Download do
     # requests already made: {block => [peer_id]}
     # Consider this as an inversion of the peer => [block_id] map
     requests_made = Swarm.get_request_peers(d.swarm)
-    Logger.debug("Requests already made: #{inspect requests_made}")
 
     # requests we can make: {block => [peer_id]}
     blocks_to_request = blocks_needed |> Enum.map(fn {block, peers} ->
@@ -344,7 +341,6 @@ defmodule Effusion.BTP.Download do
       Enum.empty?(p)
     end)
     |> Map.new()
-    Logger.debug("requests we can make: #{inspect blocks_to_request}")
 
     if Enum.empty?(blocks_to_request) do
       {d, []}
