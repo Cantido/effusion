@@ -243,7 +243,13 @@ defmodule Effusion.BTP.Download do
        |> Pieces.verified()
        |> Enum.map(fn p -> {:write_piece, d.meta.info, d.file, p} end)
 
-    {d, request_messages} = next_request_from_peer(d, from, 1)
+    peer = Swarm.select_peer(d.swarm, from)
+
+    {d, request_messages} = if Enum.empty?(peer.blocks_we_requested) do
+      next_request_from_peer(d, from, Application.get_env(:effusion, :max_requests_per_peer))
+    else
+      {d, []}
+    end
 
     {:ok, d, write_messages ++ have_messages ++ cancel_messages ++ request_messages}
   end

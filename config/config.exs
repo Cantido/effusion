@@ -10,7 +10,7 @@ use Mix.Config
 config :effusion,
   block_size: 16384,
   peer_id: "Effusion Experiment!",
-  max_requests_per_peer: 100,
+  max_requests_per_peer: 1000,
   max_peers: 100
 
 # Configures the endpoint
