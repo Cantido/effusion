@@ -76,7 +76,10 @@ defmodule Effusion.BTP.DownloadServer do
     )
   end
 
-  defp handle_internal_message({:btp_connect, address, local_info_hash, local_peer_id, expected_peer_id}, state = %Download{}) do
+  defp handle_internal_message({:btp_connect, address, local_info_hash, local_peer_id, expected_peer_id}, state = %Download{})
+  when is_hash(local_info_hash)
+   and is_peer_id(local_peer_id)
+   and is_peer_id(expected_peer_id) do
     start = System.monotonic_time(:microsecond)
     OutgoingHandler.connect({address, local_info_hash, local_peer_id, expected_peer_id})
     stop = System.monotonic_time(:microsecond)
@@ -93,7 +96,9 @@ defmodule Effusion.BTP.DownloadServer do
     state
   end
 
-  defp handle_internal_message({:btp_send, remote_peer_id, outgoing_msg}, state = %Download{}) do
+  defp handle_internal_message({:btp_send, remote_peer_id, outgoing_msg}, state = %Download{})
+  when is_peer_id(remote_peer_id)
+   and not is_nil(outgoing_msg) do
     start = System.monotonic_time(:microsecond)
     ConnectionRegistry.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
     stop = System.monotonic_time(:microsecond)

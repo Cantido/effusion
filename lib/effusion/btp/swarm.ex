@@ -143,7 +143,7 @@ defmodule Effusion.BTP.Swarm do
     end)
   end
 
-  def mark_block_requested(swarm = %__MODULE__{}, peer_id, block_id) do
+  def mark_block_requested(swarm = %__MODULE__{}, peer_id, block_id) when is_peer_id(peer_id) and is_map(block_id) do
     addr = Map.get(swarm.peer_addresses, peer_id)
     peers = Map.update!(swarm.peers, addr, &Peer.request_block(&1, block_id))
     swarm = %{swarm | peers: peers}
