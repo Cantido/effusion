@@ -336,9 +336,7 @@ defmodule Effusion.BTP.Download do
     end)
     |> Stream.map(fn block ->
       peers_with_block = AvailabilityMap.peers_with_block(availability_map, block)
-
       requests_already_made_for_block = Map.get(requests_made, block, MapSet.new())
-
       {block, MapSet.difference(peers_with_block, requests_already_made_for_block)}
     end)
     |> Stream.map(fn {block, peers} ->
@@ -349,11 +347,12 @@ defmodule Effusion.BTP.Download do
       Enum.empty?(p)
     end)
     |> Stream.take(count)
-    |> Enum.reduce({d, []}, fn {block_to_request, peers}, {d, requests} ->
-      peer_id_to_request = Enum.at(peers, 0)
-
-      req = block_into_request({peer_id_to_request, block_to_request})
-      d = Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer_id_to_request, block_to_request))
+    |> Stream.map(fn {block, peers} ->
+      {block, Enum.at(peers, 0)}
+    end)
+    |> Enum.reduce({d, []}, fn {block_to_request, peer}, {d, requests} ->
+      req = block_into_request({peer, block_to_request})
+      d = Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer, block_to_request))
 
       {d, [req | requests]}
     end)
