@@ -336,9 +336,10 @@ defmodule Effusion.BTP.Download do
     end)
     |> Stream.map(fn block ->
       peers_with_block = AvailabilityMap.peers_with_block(availability_map, block)
-      requests_already_made_for_block = Map.get(requests_made, block, MapSet.new())
-      {block, MapSet.difference(peers_with_block, requests_already_made_for_block)}
+      peers_already_requested_from = Map.get(requests_made, block, MapSet.new())
+      {block, MapSet.difference(peers_with_block, peers_already_requested_from)}
     end)
+    # We now have a bunch of {block, peers} lists, of all blocks we need (that are available) and the peers we can request them from.
     |> Stream.map(fn {block, peers} ->
       peers = reject_peers_with_max_requests(d, peers)
       {block, peers}
@@ -346,10 +347,12 @@ defmodule Effusion.BTP.Download do
     |> Stream.reject(fn {_b, p} ->
       Enum.empty?(p)
     end)
+    # Select which blocks to request and which peers to request from
     |> Stream.take(count)
     |> Stream.map(fn {block, peers} ->
       {block, Enum.at(peers, 0)}
     end)
+    # At this point we have a bunch of {block, peer} pairs, our final unit of request
     |> Enum.reduce({d, []}, fn {block_to_request, peer}, {d, requests} ->
       req = block_into_request({peer, block_to_request})
       d = Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer, block_to_request))
