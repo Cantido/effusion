@@ -327,8 +327,8 @@ defmodule Effusion.BTP.Download do
     # Consider this as an inversion of the peer => [block_id] map
     requests_made = Swarm.get_request_peers(d.swarm)
     pieces_have = Pieces.bitfield(d.pieces) |> Enum.to_list()
-    
-    blocks_to_request = availability_map
+
+    availability_map
     |> Map.drop(pieces_have)
     |> Map.keys()
     |> Stream.flat_map(fn index ->
@@ -344,29 +344,23 @@ defmodule Effusion.BTP.Download do
     |> Stream.reject(fn {_b, p} ->
       Enum.empty?(p)
     end)
+    |> Stream.take(count)
+    |> Enum.reduce({d, []}, fn {block_to_request, peers}, {d, requests} ->
+      # filter peers that already have the max number of requests
+      peers = reject_peers_with_max_requests(d, peers)
 
-    if Enum.empty?(blocks_to_request) do
-      {d, []}
-    else
-      blocks_peers_to_request = Stream.take(blocks_to_request, count)
+      if Enum.empty?(peers) do
+        {d, requests}
+      else
+        peer_id_to_request = Enum.at(peers, 0)
 
-      blocks_peers_to_request |> Enum.reduce({d, []}, fn {block_to_request, peers}, {d, requests} ->
-        # filter peers that already have the max number of requests
-        peers = reject_peers_with_max_requests(d, peers)
+        req = block_into_request({peer_id_to_request, block_to_request})
 
-        if Enum.empty?(peers) do
-          {d, requests}
-        else
-          peer_id_to_request = Enum.at(peers, 0)
+        d = Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer_id_to_request, block_to_request))
 
-          req = block_into_request({peer_id_to_request, block_to_request})
-
-          d = Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer_id_to_request, block_to_request))
-
-          {d, [req | requests]}
-        end
-      end)
-    end
+        {d, [req | requests]}
+      end
+    end)
   end
 
   defp reject_peers_with_max_requests(d, peer_ids) do
