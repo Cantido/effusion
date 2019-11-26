@@ -27,6 +27,10 @@ defmodule Effusion.BTP.AvailabilityMap do
     Map.delete(avmap, piece)
   end
 
+  def peers_with_block(avmap, blockid) do
+    Map.get(avmap, blockid.index)
+  end
+
   @doc """
   Removes a peer from the availability map.
 
