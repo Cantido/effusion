@@ -341,25 +341,21 @@ defmodule Effusion.BTP.Download do
 
       {block, MapSet.difference(peers_with_block, requests_already_made_for_block)}
     end)
+    |> Stream.map(fn {block, peers} ->
+      peers = reject_peers_with_max_requests(d, peers)
+      {block, peers}
+    end)
     |> Stream.reject(fn {_b, p} ->
       Enum.empty?(p)
     end)
     |> Stream.take(count)
     |> Enum.reduce({d, []}, fn {block_to_request, peers}, {d, requests} ->
-      # filter peers that already have the max number of requests
-      peers = reject_peers_with_max_requests(d, peers)
+      peer_id_to_request = Enum.at(peers, 0)
 
-      if Enum.empty?(peers) do
-        {d, requests}
-      else
-        peer_id_to_request = Enum.at(peers, 0)
+      req = block_into_request({peer_id_to_request, block_to_request})
+      d = Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer_id_to_request, block_to_request))
 
-        req = block_into_request({peer_id_to_request, block_to_request})
-
-        d = Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer_id_to_request, block_to_request))
-
-        {d, [req | requests]}
-      end
+      {d, [req | requests]}
     end)
   end
 
