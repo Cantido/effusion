@@ -116,14 +116,20 @@ defmodule Effusion.BTP.Block do
   """
   def split(%{index: index, offset: 0, size: piece_size} = piece, block_size)
       when is_index(index) and is_size(piece_size) and is_size(block_size) do
+    split_stream(piece, block_size) |> MapSet.new()
+  end
+
+  def split_stream(%{index: index, offset: 0, size: piece_size} = piece, block_size)
+      when is_index(index) and is_size(piece_size) and is_size(block_size) do
     {whole_block_count, last_block_size} = divrem(piece.size, block_size)
     whole_block_indices = 0..(whole_block_count - 1)
 
     whole_blocks =
       if whole_block_count > 0 do
-        for b_i <- whole_block_indices, offset = b_i * block_size, into: MapSet.new() do
+        Stream.map(whole_block_indices, fn b_i ->
+          offset = b_i * block_size
           id(piece.index, offset, block_size)
-        end
+        end)
       else
         MapSet.new()
       end
@@ -134,7 +140,7 @@ defmodule Effusion.BTP.Block do
       last_block_index = whole_block_count
       last_block_offset = last_block_index * block_size
       last_block = id(piece.index, last_block_offset, last_block_size)
-      MapSet.put(whole_blocks, last_block)
+      Stream.concat(whole_blocks, [last_block])
     end
   end
 

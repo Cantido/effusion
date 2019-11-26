@@ -58,7 +58,7 @@ defmodule Effusion.BTP.Download do
   defp all_blocks_in(index, info, block_size) when is_integer(index) and index >= 0 do
     piece_id = Block.id(index, 0, piece_size(index, info))
 
-    for b <- Block.split(piece_id, block_size), do: Block.id(b)
+    Block.split_stream(piece_id, block_size)
   end
 
   @doc """
@@ -324,9 +324,9 @@ defmodule Effusion.BTP.Download do
 
   defp next_requests_from_available(d, availability_map, count \\ 1) do
     pieces_have = Pieces.bitfield(d.pieces) |> Enum.to_list()
-    to_request = Map.drop(availability_map, pieces_have)
+    pieces_needed_and_requestable = Map.drop(availability_map, pieces_have)
 
-    blocks_needed = Enum.flat_map(to_request, fn {index, _peers} ->
+    blocks_needed_and_requestable = Stream.flat_map(pieces_needed_and_requestable, fn {index, _peers} ->
       all_blocks_in(index, d.meta.info, d.block_size)
     end)
 
@@ -335,22 +335,21 @@ defmodule Effusion.BTP.Download do
     requests_made = Swarm.get_request_peers(d.swarm)
 
     # requests we can make: {block => [peer_id]}
-    blocks_to_request = blocks_needed |> Enum.map(fn block ->
+    blocks_to_request = Stream.map(blocks_needed_and_requestable, fn block ->
       peers_with_block = AvailabilityMap.peers_with_block(availability_map, block)
 
       requests_already_made_for_block = Map.get(requests_made, block, MapSet.new())
 
       {block, MapSet.difference(peers_with_block, requests_already_made_for_block)}
     end)
-    |> Enum.reject(fn {b, p} ->
+    |> Stream.reject(fn {b, p} ->
       Enum.empty?(p)
     end)
-    |> Map.new()
 
     if Enum.empty?(blocks_to_request) do
       {d, []}
     else
-      blocks_peers_to_request = Enum.take(blocks_to_request, count)
+      blocks_peers_to_request = Stream.take(blocks_to_request, count)
 
       blocks_peers_to_request |> Enum.reduce({d, []}, fn {block_to_request, peers}, {d, requests} ->
         # filter peers that already have the max number of requests
