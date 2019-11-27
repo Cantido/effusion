@@ -115,7 +115,7 @@ defmodule Effusion.PWP.Connection do
     end
   end
 
-  def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id, socket: socket})
+  def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id})
     when is_hash(info_hash)
      and is_peer_id(peer_id) do
     SessionStats.inc_incoming_message(msg)

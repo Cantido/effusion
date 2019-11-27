@@ -50,7 +50,6 @@ defmodule Effusion.BTP.Download do
   This only creates a data structure. To actually start the download, call `start/1`.
   """
   def new(meta, local_address, file \\ nil) do
-    piece_count = meta.info.pieces |> Enum.count
     info_hash = meta.info_hash
 
     torrent = Repo.one(from t in Torrent, where: t.info_hash == ^info_hash)
@@ -191,7 +190,7 @@ defmodule Effusion.BTP.Download do
 
     opts = case d.trackerid do
       "" -> opts
-      str -> opts |> Keyword.merge([trackerid: d.trackerid])
+      _str -> opts |> Keyword.merge([trackerid: d.trackerid])
     end
 
     [
@@ -336,10 +335,6 @@ defmodule Effusion.BTP.Download do
     Map.update!(d, :swarm, &Swarm.handle_connect(&1, peer_id, address))
   end
 
-  defp next_request(d = %__MODULE__{}, count \\ 1) do
-    next_requests_from_available(d, count)
-  end
-
   def next_request_from_peer(d, peer_id, count \\ 1) do
     info_hash = d.meta.info_hash
     existing_requests = from requests in Request,
@@ -365,49 +360,12 @@ defmodule Effusion.BTP.Download do
     requests |> Enum.reduce({d, []}, fn {piece, block, peer}, {d, requests} ->
       req = {:btp_send, peer.peer_id, {:request, piece.index, block.offset, block.size}}
 
-      {:ok, block} = Repo.insert(%Effusion.BTP.Request{
+      {:ok, _block} = Repo.insert(%Effusion.BTP.Request{
         block: block,
         peer: peer
       })
       {d, [req | requests]}
     end)
-  end
-
-  defp next_requests_from_available(d, count \\ 1) when is_integer(count) and count > 0 do
-    existing_requests = from requests in Request,
-                          join: peer in assoc(requests, :peer),
-                          join: block in assoc(requests, :block),
-                          join: piece in assoc(block, :piece),
-                          join: torrent in assoc(piece, :torrent),
-                          where: torrent.info_hash == ^d.meta.info_hash,
-                          select: {piece, block, peer}
-
-    requests_to_make = from peer_pieces in PeerPiece,
-                        join: piece in assoc(peer_pieces, :piece),
-                        join: block in assoc(piece, :blocks),
-                        join: peer in assoc(peer_pieces, :peer),
-                        join: torrent in assoc(piece, :torrent),
-                        where: torrent.info_hash == ^d.meta.info_hash,
-                        except: ^existing_requests,
-                        select: {piece, block, peer},
-                        limit: ^count
-
-    requests = Repo.all(requests_to_make)
-
-    requests |> Enum.each(fn {piece, block, peer} ->
-      req = {:btp_send, peer.peer_id, {:request, piece.index, block.offset, block.size}}
-
-      {:ok, block} = Repo.insert(%Effusion.BTP.Request{
-        block: block,
-        peer: peer
-      })
-    end)
-    d
-  end
-
-  defp reject_peers_with_max_requests(d, peer_ids) do
-    peer_ids
-    |> Enum.reject(&Swarm.peer_has_max_requests?(d.swarm, &1))
   end
 
   defp piece_size(index, info) do
@@ -419,10 +377,6 @@ defmodule Effusion.BTP.Download do
     else
       info.piece_length
     end
-  end
-
-  defp block_into_request({index, offset,size, peer_id}) do
-    {:btp_send, peer_id, {:request, index, offset, size}}
   end
 
   @doc """

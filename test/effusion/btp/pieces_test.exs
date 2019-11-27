@@ -1,9 +1,9 @@
 defmodule Effusion.BTP.PiecesTest do
   use ExUnit.Case, async: true
   doctest Effusion.BTP.Pieces
-  alias Effusion.BTP.Pieces
-  alias Effusion.BTP.Metainfo
-  alias Effusion.BTP.Block
+  # alias Effusion.BTP.Pieces
+  # alias Effusion.BTP.Metainfo
+  # alias Effusion.BTP.Block
 
   @meta TestHelper.tiny_meta()
 

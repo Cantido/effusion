@@ -1,8 +1,8 @@
 defmodule Effusion.IOTest do
   use ExUnit.Case
-  alias Effusion.BTP.Pieces
-  alias Effusion.BTP.Block
-  alias Effusion.BTP.Metainfo
+  # alias Effusion.BTP.Pieces
+  # alias Effusion.BTP.Block
+  # alias Effusion.BTP.Metainfo
   doctest Effusion.IO
 
   setup do

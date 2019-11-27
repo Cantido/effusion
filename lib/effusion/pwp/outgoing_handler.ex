@@ -2,8 +2,6 @@ defmodule Effusion.PWP.OutgoingHandler do
   use GenServer, restart: :temporary
   alias Effusion.Application.ConnectionSupervisor
   alias Effusion.PWP.Connection
-  import Effusion.BTP.Peer, only: [is_peer_id: 1]
-  import Effusion.Hash, only: [is_hash: 1]
   require Logger
 
   @moduledoc """

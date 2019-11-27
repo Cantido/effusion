@@ -15,7 +15,8 @@ defmodule Effusion.BTP.PieceTest do
     Effusion.Repo.insert(%Effusion.BTP.Piece{
       torrent: torrent,
       index: 0,
-      hash: "12345678901234567890"
+      hash: "12345678901234567890",
+      size: 1_000_000
     })
   end
 end

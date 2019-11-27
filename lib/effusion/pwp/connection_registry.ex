@@ -13,7 +13,7 @@ defmodule Effusion.PWP.ConnectionRegistry do
 
     _ =
       case connections do
-        [{conn_pid, ^peer_id}] -> {:error, :already_connected}
+        [{_conn_pid, ^peer_id}] -> {:error, :already_connected}
         [] -> Registry.register(ConnectionRegistry, info_hash, peer_id)
       end
 
@@ -23,7 +23,7 @@ defmodule Effusion.PWP.ConnectionRegistry do
     connections = Registry.match(ConnectionRegistry, info_hash, peer_id)
 
     case connections do
-      [{conn_pid, ^peer_id}] -> true
+      [{_conn_pid, ^peer_id}] -> true
       [] -> false
     end
   end

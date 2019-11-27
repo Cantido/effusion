@@ -16,13 +16,15 @@ defmodule Effusion.BTP.RequestTest do
     {:ok, piece} = Effusion.Repo.insert(%Effusion.BTP.Piece{
       torrent: torrent,
       index: 0,
-      hash: "12345678901234567890"
+      hash: "12345678901234567890",
+      size: 1_000_000
     })
 
     {:ok, block} = Effusion.Repo.insert(%Effusion.BTP.Block{
       piece: piece,
       offset: 0,
-      data: "tiny\n"
+      data: "tiny\n",
+      size: 5
     })
     {:ok, peer} = Effusion.Repo.insert(%Effusion.BTP.Peer{
       address: %Postgrex.INET{address: {192, 168, 1, 1}},

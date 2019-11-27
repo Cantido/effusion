@@ -3,12 +3,18 @@ defmodule Effusion.BTP.DownloadTest do
   alias Effusion.BTP.Download
   alias Effusion.BTP.Swarm
   alias Effusion.BTP.Peer
-  alias Effusion.BTP.Block
   alias Effusion.BTP.Pieces
   doctest Effusion.BTP.Download
   import Mox
 
   setup :verify_on_exit!
+
+  setup do
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
+    :ok
+  end
+
 
   @torrent TestHelper.tiny_meta()
 
@@ -58,7 +64,7 @@ defmodule Effusion.BTP.DownloadTest do
     session = new(file)
 
     {session, _msgs} =
-      Download.handle_message(session, peer.peer_id, {:piece, Block.new(0, 0, "tin")})
+      Download.handle_message(session, peer.peer_id, {:piece, %{index: 0, offset: 0, data: "tin"}})
 
     refute Download.done?(session)
   end
@@ -68,10 +74,10 @@ defmodule Effusion.BTP.DownloadTest do
     session = new(file)
 
     {session, _msgs} =
-      Download.handle_message(session, peer.peer_id, {:piece, Block.new(0, 0, "tin")})
+      Download.handle_message(session, peer.peer_id, {:piece, %{index: 0, offset: 0, data: "tin"}})
 
     {session, _msgs} =
-      Download.handle_message(session, peer.peer_id, {:piece, Block.new(1, 0, "y\n")})
+      Download.handle_message(session, peer.peer_id, {:piece, %{index: 1, offset: 0, data: "y\n"}})
 
     assert Download.done?(session)
   end

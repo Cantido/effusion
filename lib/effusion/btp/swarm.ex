@@ -1,5 +1,4 @@
 defmodule Effusion.BTP.Swarm do
-  alias Effusion.BTP.Block
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Request
   alias Effusion.Repo
@@ -34,8 +33,8 @@ defmodule Effusion.BTP.Swarm do
     }
   end
 
-  def select_peer(swarm, peer_id) when is_peer_id(peer_id) do
-    Repo.one(from peer in Peer,
+  def select_peer(_swarm, peer_id) when is_peer_id(peer_id) do
+    Repo.one!(from peer in Peer,
               where: peer.peer_id == ^peer_id)
   end
 
@@ -54,7 +53,7 @@ defmodule Effusion.BTP.Swarm do
     Repo.all(from p in Peer, select: p)
   end
 
-  def peer_for_address(swarm = %__MODULE__{}, {ip, port}) do
+  def peer_for_address(_swarm = %__MODULE__{}, {ip, port}) do
     Repo.one(from p in Peer, where: p.address == ^ip and p.port == ^port)
   end
 
@@ -63,7 +62,7 @@ defmodule Effusion.BTP.Swarm do
       Repo.insert(%Peer{
         address: %Postgrex.INET{address: peer.ip},
         port: peer.port,
-        peer_id: Map.get(peer, :id, nil)
+        peer_id: Map.get(peer, :peer_id, nil)
       },
       on_conflict: {:replace, [:address]},
       conflict_target: [:peer_id])
@@ -91,11 +90,6 @@ defmodule Effusion.BTP.Swarm do
   end
 
   def cancel_block_requests(swarm, block, from) when is_peer_id(from) do
-    reqs_query = from request in Request,
-                      join: block in assoc(request, :block),
-                      join: peer in assoc(request, :peer),
-                      where: block == ^block
-
     peer_ids_to_send_cancel = Repo.all(from request in Request,
                                         join: block in assoc(request, :block),
                                         join: piece in assoc(block, :piece),
@@ -133,11 +127,12 @@ defmodule Effusion.BTP.Swarm do
                     join: peer in assoc(request, :peer),
                     join: block in assoc(request, :block),
                     join: torrent in assoc(block, :torrent),
-                    where: torrent.info_hash == ^swarm.info_hash),
+                    where: torrent.info_hash == ^swarm.info_hash,
+                    where: peer.peer_id == ^peer_id),
                    :count, :id)
   end
 
-  def get_connected_peer(swarm = %__MODULE__{}, remote_peer_id)
+  def get_connected_peer(_swarm = %__MODULE__{}, remote_peer_id)
       when is_peer_id(remote_peer_id) do
     peer_query = from peer in Peer,
                   where: peer.peer_id == ^remote_peer_id
@@ -148,10 +143,6 @@ defmodule Effusion.BTP.Swarm do
   end
 
   def handle_connect(swarm = %__MODULE__{}, peer_id, {ip, port}) when is_peer_id(peer_id) do
-    Logger.debug("Swarm handling connect, inserting peer #{peer_id}")
-
-
-
     # cases:
     # - another peer (difference peer_id) has that address
     # - peer with peer_id has a different address
@@ -165,11 +156,6 @@ defmodule Effusion.BTP.Swarm do
 
     Repo.delete_all(conflicting_peers_query)
 
-
-    updated_peer_query = from p in Peer,
-                          where: p.address == ^%Postgrex.INET{address: ip}
-                            and p.port == ^port
-
     %Peer{
       peer_id: peer_id,
       address: %Postgrex.INET{address: ip},
@@ -178,25 +164,10 @@ defmodule Effusion.BTP.Swarm do
     |> Peer.changeset()
     |> Repo.insert!(on_conflict: {:replace, [:address, :port, :peer_id]},
                                   conflict_target: [:address, :port])
-
+    swarm
   end
 
-  defp put_connected_peer(peers, peer_id, {ip, port}) when is_peer_id(peer_id) do
-    %Peer{
-      peer_id: peer_id,
-      address: %Postgrex.INET{address: ip},
-      port: port
-    }
-    |> Peer.changeset()
-    |> Repo.insert!(on_conflict: {:replace, [:address, :port]},
-                             conflict_target: [:peer_id])
-
-    Repo.update!(from peer in Peer,
-                  where: peer.peer_id == ^peer_id,
-                  update: [inc: [failcount: -1]])
-  end
-
-  def handle_disconnect(swarm = %__MODULE__{}, {ip, port}, reason \\ :normal) do
+  def handle_disconnect(swarm = %__MODULE__{}, {ip, port}, _reason \\ :normal) do
     {:ok, peer} = Repo.one(from peer in Peer,
                             where: peer.ip == ^%Postgrex.INET{address: ip}
                             and peer.port == ^port)
@@ -204,5 +175,6 @@ defmodule Effusion.BTP.Swarm do
 
     Repo.update(peer,
                 update: [inc: [failcount: 1]])
+    swarm
   end
 end

@@ -7,6 +7,11 @@ defmodule Effusion.BTP.DownloadServerTest do
   setup :verify_on_exit!
   setup :set_mox_global
 
+  setup do
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
+  end
+
   defp stub_started(_, _, _, _, _, _, _, _, opts) do
     assert Keyword.get(opts, :event, :started)
     {:ok, %{interval: 1, peers: []}}
@@ -82,7 +87,7 @@ defmodule Effusion.BTP.DownloadServerTest do
 
     ih = TestHelper.tiny_meta().info_hash
 
-    DownloadServer.connected(ih, "peer id ~~~~~~~~~~~~", {"host", 8000})
+    DownloadServer.connected(ih, "peer id ~~~~~~~~~~~~", {{127, 0, 0, 1}, 8000})
 
     DownloadServer.handle_message(
       ih,
