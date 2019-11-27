@@ -20,7 +20,8 @@ defmodule Effusion.Application do
       Effusion.Statistics.SessionDownloadAverage,
       {Registry, keys: :duplicate, name: ConnectionRegistry},
       {Registry, keys: :unique, name: SessionRegistry},
-      EffusionWeb.Endpoint
+      EffusionWeb.Endpoint,
+      Effusion.Repo
     ]
 
     {:ok, _listener} =

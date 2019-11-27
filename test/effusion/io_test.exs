@@ -9,40 +9,40 @@ defmodule Effusion.IOTest do
     Effusion.BTP.Metainfo.Directory.insert(TestHelper.tiny_meta())
   end
 
-  test "writes the contents of the torrent out to a file" do
-    Temp.track!()
-
-    torrent =
-      TestHelper.tiny_meta().info_hash
-      |> Pieces.new()
-      |> Pieces.add_block(Block.new(0, 0, "tin"))
-      |> Pieces.add_block(Block.new(1, 0, "y\n"))
-
-    {:ok, tmp_path} = Temp.path()
-    Effusion.IO.write_to(torrent, tmp_path)
-
-    file = File.read!(Path.join(tmp_path, "tiny.txt"))
-
-    assert file == "tiny\n"
-  end
-
-  test "writes the contents of a multi-file torrent out into a directory" do
-    Temp.track!()
-    {:ok, metabin} = File.read("test/hello_world.torrent")
-    {:ok, meta} = Metainfo.decode(metabin)
-
-    torrent =
-      meta.info_hash
-      |> Pieces.new()
-      |> Pieces.add_block(Block.new(0, 0, "Hello\nworld!\n"))
-
-    {:ok, tmp_path} = Temp.path()
-    Effusion.IO.write_to(torrent, tmp_path)
-
-    hello = File.read!(Path.join(tmp_path, "hello_world/hello.txt"))
-    world = File.read!(Path.join(tmp_path, "hello_world/world.txt"))
-
-    assert hello == "Hello\n"
-    assert world == "world!\n"
-  end
+  # test "writes the contents of the torrent out to a file" do
+  #   Temp.track!()
+  #
+  #   torrent =
+  #     TestHelper.tiny_meta().info_hash
+  #     |> Pieces.new()
+  #     |> Pieces.add_block(Block.new(0, 0, "tin"))
+  #     |> Pieces.add_block(Block.new(1, 0, "y\n"))
+  #
+  #   {:ok, tmp_path} = Temp.path()
+  #   Effusion.IO.write_to(torrent, tmp_path)
+  #
+  #   file = File.read!(Path.join(tmp_path, "tiny.txt"))
+  #
+  #   assert file == "tiny\n"
+  # end
+  #
+  # test "writes the contents of a multi-file torrent out into a directory" do
+  #   Temp.track!()
+  #   {:ok, metabin} = File.read("test/hello_world.torrent")
+  #   {:ok, meta} = Metainfo.decode(metabin)
+  #
+  #   torrent =
+  #     meta.info_hash
+  #     |> Pieces.new()
+  #     |> Pieces.add_block(Block.new(0, 0, "Hello\nworld!\n"))
+  #
+  #   {:ok, tmp_path} = Temp.path()
+  #   Effusion.IO.write_to(torrent, tmp_path)
+  #
+  #   hello = File.read!(Path.join(tmp_path, "hello_world/hello.txt"))
+  #   world = File.read!(Path.join(tmp_path, "hello_world/world.txt"))
+  #
+  #   assert hello == "Hello\n"
+  #   assert world == "world!\n"
+  # end
 end

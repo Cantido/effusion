@@ -1,6 +1,9 @@
 defmodule Effusion.BTP.Block do
+  alias Effusion.BTP.Piece
+  alias Effusion.BTP.Request
   alias Effusion.Hash
   import Effusion.Math
+  use Ecto.Schema
 
   @moduledoc """
   A chunk of data for a download.
@@ -13,42 +16,28 @@ defmodule Effusion.BTP.Block do
   indicating the data's offset from the start of the piece with index `:index`.
   """
 
-  @enforce_keys [:index, :offset, :size]
-  defstruct [:index, :offset, :size, data: <<>>]
+  schema "blocks" do
+    belongs_to :piece, Piece
+    field :offset, :integer, source: :position, null: false
+    field :size, :integer, null: false
+    field :data, :binary, null: true
+    has_one :torrent, through: [:piece, :torrent]
+    has_many :requests, Request
+    has_many :requests_from, through: [:requests, :peer_id]
+  end
+
+  # @enforce_keys [:index, :offset, :size]
+  # defstruct [:index, :offset, :size, data: <<>>]
 
   defguardp is_index(i) when is_integer(i) and i >= 0
   defguardp is_size(x) when is_integer(x) and x > 0
 
   @doc """
-  Make a data structure that represents a block.
-
-  This object carries no download data.
-  """
-  def id(i, o, s) when is_index(i) and is_index(o) and is_size(s) do
-    %__MODULE__{index: i, offset: o, size: s}
-  end
-
-  def id(%{index: i, offset: o, size: s}) do
-    %__MODULE__{index: i, offset: o, size: s}
-  end
-
-  def id(%{index: i, offset: o, data: d}) do
-    %__MODULE__{index: i, offset: o, size: byte_size(d)}
-  end
-
-  @doc """
-  Make a data structure for a block containing some data.
-  """
-  def new(i, o, d) when is_index(i) and is_index(o) and is_binary(d) do
-    %__MODULE__{index: i, offset: o, size: byte_size(d), data: d}
-  end
-
-  @doc """
   Check if the first block is followed immedately by the second block,
   if they are in the same piece.
   """
-  def sequential?(%{index: i1, offset: o1, data: d1}, %{index: i2, offset: o2}) do
-    i1 == i2 and o1 + byte_size(d1) == o2
+  def sequential?(%{piece: i1, offset: o1, data: d1}, %{piece: i2, offset: o2}) do
+    i1.index == i2.index and o1 + byte_size(d1) == o2
   end
 
   @doc """
@@ -61,11 +50,11 @@ defmodule Effusion.BTP.Block do
   @doc """
   Combine two contiguous blocks in the same piece into one larger block.
   """
-  def merge(b1 = %{index: i1, offset: o1, data: d1}, b2 = %{index: i2, offset: o2, data: d2}) do
+  def merge(b1 = %{piece: i1, offset: o1, data: d1}, b2 = %{index: i2, offset: o2, data: d2}) do
     cond do
       sequential?(b1, b2) ->
         %__MODULE__{
-          index: i1,
+          piece: i1.index,
           offset: o1,
           size: byte_size(d1 <> d2),
           data: d1 <> d2
@@ -73,7 +62,7 @@ defmodule Effusion.BTP.Block do
 
       sequential?(b2, b1) ->
         %__MODULE__{
-          index: i2,
+          piece: i2.index,
           offset: o2,
           size: byte_size(d2 <> d1),
           data: d2 <> d1
@@ -114,13 +103,12 @@ defmodule Effusion.BTP.Block do
   @doc """
   Split a piece into many blocks of a certain size.
   """
-  def split(%{index: index, offset: 0, size: piece_size} = piece, block_size)
-      when is_index(index) and is_size(piece_size) and is_size(block_size) do
+  def split(piece, block_size) when is_size(block_size) do
     split_stream(piece, block_size) |> MapSet.new()
   end
 
-  def split_stream(%{index: index, offset: 0, size: piece_size} = piece, block_size)
-      when is_index(index) and is_size(piece_size) and is_size(block_size) do
+  def split_stream(%{size: piece_size} = piece, block_size)
+      when is_size(piece_size) and is_size(block_size) do
     {whole_block_count, last_block_size} = divrem(piece.size, block_size)
     whole_block_indices = 0..(whole_block_count - 1)
 
@@ -128,7 +116,7 @@ defmodule Effusion.BTP.Block do
       if whole_block_count > 0 do
         Stream.map(whole_block_indices, fn b_i ->
           offset = b_i * block_size
-          id(piece.index, offset, block_size)
+          %__MODULE__{piece: piece, offset: offset, size: block_size}
         end)
       else
         MapSet.new()
@@ -139,7 +127,7 @@ defmodule Effusion.BTP.Block do
     else
       last_block_index = whole_block_count
       last_block_offset = last_block_index * block_size
-      last_block = id(piece.index, last_block_offset, last_block_size)
+      last_block = %__MODULE__{piece: piece, offset: last_block_offset, size: block_size}
       Stream.concat(whole_blocks, [last_block])
     end
   end

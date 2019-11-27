@@ -69,7 +69,7 @@ defmodule Effusion.BTP.DownloadServer do
     )
   end
 
-  def connected(info_hash, peer_id, address) do
+  def connected(info_hash, peer_id, address) when is_hash(info_hash) and is_peer_id(peer_id) do
     GenServer.cast(
       {:via, Registry, {SessionRegistry, info_hash}},
       {:connected, peer_id, address}
@@ -79,7 +79,7 @@ defmodule Effusion.BTP.DownloadServer do
   defp handle_internal_message({:btp_connect, address, local_info_hash, local_peer_id, expected_peer_id}, state = %Download{})
   when is_hash(local_info_hash)
    and is_peer_id(local_peer_id)
-   and is_peer_id(expected_peer_id) do
+   and is_peer_id(expected_peer_id) or is_nil(expected_peer_id) do
     start = System.monotonic_time(:microsecond)
     OutgoingHandler.connect({address, local_info_hash, local_peer_id, expected_peer_id})
     stop = System.monotonic_time(:microsecond)

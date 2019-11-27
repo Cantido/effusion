@@ -8,10 +8,17 @@
 use Mix.Config
 
 config :effusion,
+  ecto_repos: [Effusion.Repo],
   block_size: 16384,
   peer_id: "Effusion Experiment!",
   max_requests_per_peer: 1000,
   max_peers: 100
+
+config :effusion, Effusion.Repo,
+  database: "effusion_repo",
+  username: "effusion",
+  password: "zkwNw2P8t&Vec#ebMr5&cjzj",
+  hostname: "localhost"
 
 # Configures the endpoint
 config :effusion, EffusionWeb.Endpoint,

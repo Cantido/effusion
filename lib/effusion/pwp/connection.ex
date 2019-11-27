@@ -6,6 +6,8 @@ defmodule Effusion.PWP.Connection do
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
   alias Effusion.Statistics.Session, as: SessionStats
+  import Effusion.BTP.Peer, only: [is_peer_id: 1]
+  import Effusion.Hash, only: [is_hash: 1]
   require Logger
 
   @moduledoc """
@@ -72,7 +74,12 @@ defmodule Effusion.PWP.Connection do
          :ok <- validate_info_hash(info_hash, remote_info_hash),
          :ok <- validate_peer_id(expected_peer_id, remote_peer_id),
          :ok <- successful_handshake(socket, info_hash, remote_peer_id) do
-      {:noreply, Map.put(state, :socket, socket)}
+      {:noreply, %{
+        socket: socket,
+        info_hash: info_hash,
+        remote_peer_id: remote_peer_id,
+        address: :inet.peername(socket)
+      }}
     else
       {:error, :closed} ->
         {:stop, :normal, state}
@@ -82,7 +89,9 @@ defmodule Effusion.PWP.Connection do
     end
   end
 
-  def handle_btp({:handshake, remote_peer_id, info_hash, _reserved}, state = %{socket: socket}) do
+  def handle_btp({:handshake, remote_peer_id, info_hash, _reserved}, state = %{socket: socket})
+    when is_peer_id(remote_peer_id)
+     and is_hash(info_hash) do
     PeerStats.inc_num_tcp_peers()
 
     with [{_pid, _hash}] <- Registry.lookup(SessionRegistry, info_hash),
@@ -106,7 +115,9 @@ defmodule Effusion.PWP.Connection do
     end
   end
 
-  def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id, socket: socket}) do
+  def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id, socket: socket})
+    when is_hash(info_hash)
+     and is_peer_id(peer_id) do
     SessionStats.inc_incoming_message(msg)
     :ok = DownloadServer.handle_message(info_hash, peer_id, msg)
     {:noreply, state}

@@ -2,11 +2,19 @@ defmodule Effusion.BTP.Download do
   alias Effusion.BTP.PeerSelection
   alias Effusion.BTP.AvailabilityMap
   alias Effusion.BTP.Pieces
+  alias Effusion.BTP.Piece
+  alias Effusion.BTP.Peer
+  alias Effusion.BTP.PeerPiece
   alias Effusion.BTP.Block
+  alias Effusion.BTP.Request
   alias Effusion.BTP.Swarm
+  alias Effusion.BTP.Torrent
   alias Effusion.BTP.Metainfo
+  alias Effusion.Repo
   import Effusion.BTP.Peer, only: [is_peer_id: 1]
+  import Effusion.Hash, only: [is_hash: 1]
   import Effusion.Math
+  import Ecto.Query
   require Logger
   use Timex
 
@@ -26,6 +34,7 @@ defmodule Effusion.BTP.Download do
     :swarm,
     :availability_map,
     :block_size,
+    :torrent,
     started_at: nil,
     listeners: MapSet.new(),
     trackerid: ""
@@ -42,10 +51,47 @@ defmodule Effusion.BTP.Download do
   """
   def new(meta, local_address, file \\ nil) do
     piece_count = meta.info.pieces |> Enum.count
+    info_hash = meta.info_hash
+
+    torrent = Repo.one(from t in Torrent, where: t.info_hash == ^info_hash)
+    torrent = if is_nil(torrent) do
+      {:ok, torrent} = %Torrent{
+        info_hash: meta.info_hash,
+        name: meta.info.name
+      } |> Torrent.changeset()
+      |> Repo.insert()
+
+      IntSet.new()
+      |> IntSet.inverse(meta.info.pieces |> Enum.count)
+      |> Enum.each(fn index ->
+        {:ok, piece} =
+          %Piece{
+            torrent: torrent,
+            index: index,
+            hash: Enum.at(meta.info.pieces, index),
+            size: piece_size(index, meta.info),
+            blocks: []
+          }
+          |> Repo.insert()
+
+        Enum.each(Block.split(piece, @block_size), fn block ->
+            %Block{
+              piece: piece,
+              offset: block.offset,
+              size: block.size
+            } |> Repo.insert()
+        end)
+      end)
+
+      torrent
+    else
+      torrent
+    end
 
     %__MODULE__{
       file: file,
       meta: meta,
+      torrent: torrent,
       peer_id: @local_peer_id,
       pieces: Pieces.new(meta.info_hash),
       local_address: local_address,
@@ -53,12 +99,6 @@ defmodule Effusion.BTP.Download do
       availability_map: AvailabilityMap.new(),
       block_size: @block_size,
     }
-  end
-
-  defp all_blocks_in(index, info, block_size) when is_integer(index) and index >= 0 do
-    piece_id = Block.id(index, 0, piece_size(index, info))
-
-    Block.split_stream(piece_id, block_size)
   end
 
   @doc """
@@ -183,16 +223,10 @@ defmodule Effusion.BTP.Download do
       |> Map.put(:swarm, swarm)
 
     max_peers = Application.get_env(:effusion, :max_peers)
-    eligible_peers = PeerSelection.select_lowest_failcount(Swarm.peers(swarm), max_peers)
+    eligible_peers = PeerSelection.select_lowest_failcount([], max_peers)
 
     messages = Enum.map(eligible_peers, fn p ->
-      {
-        :btp_connect,
-        p.address,
-        d.meta.info_hash,
-        d.peer_id,
-        p.peer_id
-      }
+      connect_message(p.address.address, p.port, d.meta.info_hash, d.peer_id, p.peer_id)
     end)
     {d, messages}
   end
@@ -204,29 +238,7 @@ defmodule Effusion.BTP.Download do
   """
   def handle_message(session, peer_id, message)
 
-  def handle_message(d = %__MODULE__{peer_id: peer_id}, remote_peer_id, msg)
-      when is_peer_id(peer_id) and
-             is_peer_id(remote_peer_id) and
-             peer_id != remote_peer_id do
-    session_start = System.monotonic_time(:microsecond)
-    case session_handle_message(d, remote_peer_id, msg) do
-      {:ok, d, session_messages} ->
-        session_stop = System.monotonic_time(:microsecond)
-        Logger.debug("Download.session_handle_message #{inspect msg} latency: #{session_stop - session_start} μs")
-
-        delegate_start = System.monotonic_time(:microsecond)
-        {d, peer_messages} = delegate_message(d, remote_peer_id, msg)
-        delegate_stop = System.monotonic_time(:microsecond)
-        Logger.debug("Download.delegate_message #{inspect msg} latency: #{delegate_stop - delegate_start} μs")
-
-        {d, session_messages ++ peer_messages}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp session_handle_message(d = %__MODULE__{}, from, {:piece, block})
+  def handle_message(d = %__MODULE__{}, from, {:piece, block})
        when is_peer_id(from) do
      {swarm, cancel_messages} = Swarm.cancel_block_requests(d.swarm, block, from)
      d = %{d | swarm: swarm}
@@ -243,7 +255,7 @@ defmodule Effusion.BTP.Download do
        |> Pieces.verified()
        |> Enum.map(fn p -> {:write_piece, d.meta.info, d.file, p} end)
 
-    peer = Swarm.select_peer(d.swarm, from)
+    peer = Swarm.select_peer(d.swarm, from) |> Repo.preload(:blocks_we_requested)
 
     {d, request_messages} = if Enum.empty?(peer.blocks_we_requested) do
       next_request_from_peer(d, from, Application.get_env(:effusion, :max_requests_per_peer))
@@ -251,15 +263,24 @@ defmodule Effusion.BTP.Download do
       {d, []}
     end
 
-    {:ok, d, write_messages ++ have_messages ++ cancel_messages ++ request_messages}
+    {d, write_messages ++ have_messages ++ cancel_messages ++ request_messages}
   end
 
-  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:bitfield, bitfield}) do
-    avmap = Enum.reduce(IntSet.new(bitfield), d.availability_map, fn p, acc ->
-      AvailabilityMap.add_piece(acc, remote_peer_id, p)
-    end)
+  def handle_message(d = %__MODULE__{}, remote_peer_id, {:bitfield, bitfield}) when is_peer_id(remote_peer_id) and is_binary(bitfield) do
+    peer = Repo.one!(from p in Peer, where: [peer_id: ^remote_peer_id])
+    indicies = IntSet.new(bitfield) |> Enum.to_list()
+    pieces_query = from p in Piece,
+                    join: torrent in assoc(p, :torrent),
+                    where: torrent.info_hash == ^d.meta.info_hash
+                     and p.index in ^indicies
 
-    d = Map.put(d, :availability_map, avmap)
+    pieces = Repo.all(pieces_query)
+    Enum.each(pieces, fn p ->
+      Repo.insert(%PeerPiece{
+        peer: peer,
+        piece: p
+      })
+    end)
 
     interest_message =
       if Pieces.has_pieces?(d.pieces, bitfield) do
@@ -268,12 +289,23 @@ defmodule Effusion.BTP.Download do
         [{:btp_send, remote_peer_id, :interested}]
       end
 
-    {:ok, d, interest_message}
+    {d, interest_message}
   end
 
-  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, {:have, i}) do
-    avmap = AvailabilityMap.add_piece(d.availability_map, remote_peer_id, i)
-    d = Map.put(d, :availability_map, avmap)
+  def handle_message(d = %__MODULE__{}, remote_peer_id, {:have, i}) do
+    peer = from p in Peer, where: p.peer_id == ^remote_peer_id
+    piece = from p in Piece,
+             join: torrent in assoc(p, :torrent),
+             where: torrent.info_hash == ^d.meta.info_hash
+                and p.index == ^i
+
+    peer = Repo.one!(peer)
+    piece = Repo.one!(piece)
+
+    Repo.insert(%PeerPiece{
+      peer: peer,
+      piece: piece
+    })
 
     interest_message =
       if Pieces.has_piece?(d.pieces, i) do
@@ -282,83 +314,95 @@ defmodule Effusion.BTP.Download do
         [{:btp_send, remote_peer_id, :interested}]
       end
 
-    {:ok, d, interest_message}
+    {d, interest_message}
   end
 
-  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, :choke) do
-    d = Map.update!(d, :swarm, &Swarm.drop_requests(&1, remote_peer_id))
-    {:ok, d, []}
+  def handle_message(d = %__MODULE__{}, remote_peer_id, :choke) do
+    Repo.delete_all(from request in Request,
+                      join: peer in assoc(request, :peer),
+                      where: peer.peer_id == ^remote_peer_id)
+    {d, []}
   end
 
-  defp session_handle_message(d = %__MODULE__{}, remote_peer_id, :unchoke) do
+  def handle_message(d = %__MODULE__{}, remote_peer_id, :unchoke) do
     {d, request_messages} = next_request_from_peer(d, remote_peer_id, 100)
 
-    {:ok, d, request_messages}
+    {d, request_messages}
   end
 
-  defp session_handle_message(d = %__MODULE__{}, _remote_peer_id, _msg), do: {:ok, d, []}
-
-  defp delegate_message(d, remote_peer_id, msg) when is_peer_id(remote_peer_id) do
-    {swarm, messages} = Swarm.delegate_message(d.swarm, remote_peer_id, msg)
-    {%{d | swarm: swarm}, messages}
-  end
+  def handle_message(d = %__MODULE__{}, _remote_peer_id, _msg), do: {:ok, d, []}
 
   def handle_connect(d, peer_id, address) when is_peer_id(peer_id) do
     Map.update!(d, :swarm, &Swarm.handle_connect(&1, peer_id, address))
   end
 
   defp next_request(d = %__MODULE__{}, count \\ 1) do
-    avmap = d.availability_map
-    next_requests_from_available(d, d.availability_map, count)
+    next_requests_from_available(d, count)
   end
 
   def next_request_from_peer(d, peer_id, count \\ 1) do
-    # pieces available from this peer
-    peer_avmap = Enum.filter(d.availability_map, fn {piece, av_peer_ids} ->
-      Enum.member?(av_peer_ids, peer_id)
-    end)
-    |> Map.new()
+    info_hash = d.meta.info_hash
+    existing_requests = from requests in Request,
+                          join: peer in assoc(requests, :peer),
+                          join: block in assoc(requests, :block),
+                          join: piece in assoc(block, :piece),
+                          join: torrent in assoc(piece, :torrent),
+                          where: torrent.info_hash == ^info_hash,
+                          select: {piece, block, peer}
 
-    next_requests_from_available(d, peer_avmap, count)
-  end
+    requests_to_make = from peer_pieces in PeerPiece,
+                        join: piece in assoc(peer_pieces, :piece),
+                        join: block in assoc(piece, :blocks),
+                        join: peer in assoc(peer_pieces, :peer),
+                        join: torrent in assoc(piece, :torrent),
+                        where: torrent.info_hash == ^d.meta.info_hash and peer.peer_id == ^peer_id,
+                        except: ^existing_requests,
+                        limit: ^count,
+                        select: {piece, block, peer}
 
-  defp next_requests_from_available(d, availability_map, count \\ 1) do
-    # requests already made: {block => [peer_id]}
-    # Consider this as an inversion of the peer => [block_id] map
-    requests_made = Swarm.get_request_peers(d.swarm)
-    pieces_have = Pieces.bitfield(d.pieces) |> Enum.to_list()
+    requests = Repo.all(requests_to_make)
 
-    availability_map
-    |> Map.drop(pieces_have)
-    |> Map.keys()
-    |> Stream.flat_map(fn index ->
-      all_blocks_in(index, d.meta.info, d.block_size)
-    end)
-    |> Stream.map(fn block ->
-      peers_with_block = AvailabilityMap.peers_with_block(availability_map, block)
-      peers_already_requested_from = Map.get(requests_made, block, MapSet.new())
-      {block, MapSet.difference(peers_with_block, peers_already_requested_from)}
-    end)
-    # We now have a bunch of {block, peers} lists, of all blocks we need (that are available) and the peers we can request them from.
-    |> Stream.map(fn {block, peers} ->
-      peers = reject_peers_with_max_requests(d, peers)
-      {block, peers}
-    end)
-    |> Stream.reject(fn {_b, p} ->
-      Enum.empty?(p)
-    end)
-    # Select which blocks to request and which peers to request from
-    |> Stream.take(count)
-    |> Stream.map(fn {block, peers} ->
-      {block, Enum.at(peers, 0)}
-    end)
-    # At this point we have a bunch of {block, peer} pairs, our final unit of request
-    |> Enum.reduce({d, []}, fn {block_to_request, peer}, {d, requests} ->
-      req = block_into_request({peer, block_to_request})
-      d = Map.update!(d, :swarm, &Swarm.mark_block_requested(&1, peer, block_to_request))
+    requests |> Enum.reduce({d, []}, fn {piece, block, peer}, {d, requests} ->
+      req = {:btp_send, peer.peer_id, {:request, piece.index, block.offset, block.size}}
 
+      {:ok, block} = Repo.insert(%Effusion.BTP.Request{
+        block: block,
+        peer: peer
+      })
       {d, [req | requests]}
     end)
+  end
+
+  defp next_requests_from_available(d, count \\ 1) when is_integer(count) and count > 0 do
+    existing_requests = from requests in Request,
+                          join: peer in assoc(requests, :peer),
+                          join: block in assoc(requests, :block),
+                          join: piece in assoc(block, :piece),
+                          join: torrent in assoc(piece, :torrent),
+                          where: torrent.info_hash == ^d.meta.info_hash,
+                          select: {piece, block, peer}
+
+    requests_to_make = from peer_pieces in PeerPiece,
+                        join: piece in assoc(peer_pieces, :piece),
+                        join: block in assoc(piece, :blocks),
+                        join: peer in assoc(peer_pieces, :peer),
+                        join: torrent in assoc(piece, :torrent),
+                        where: torrent.info_hash == ^d.meta.info_hash,
+                        except: ^existing_requests,
+                        select: {piece, block, peer},
+                        limit: ^count
+
+    requests = Repo.all(requests_to_make)
+
+    requests |> Enum.each(fn {piece, block, peer} ->
+      req = {:btp_send, peer.peer_id, {:request, piece.index, block.offset, block.size}}
+
+      {:ok, block} = Repo.insert(%Effusion.BTP.Request{
+        block: block,
+        peer: peer
+      })
+    end)
+    d
   end
 
   defp reject_peers_with_max_requests(d, peer_ids) do
@@ -377,8 +421,8 @@ defmodule Effusion.BTP.Download do
     end
   end
 
-  defp block_into_request({peer_id, %{index: i, offset: o, size: sz}}) do
-    {:btp_send, peer_id, {:request, i, o, sz}}
+  defp block_into_request({index, offset,size, peer_id}) do
+    {:btp_send, peer_id, {:request, index, offset, size}}
   end
 
   @doc """
@@ -401,13 +445,25 @@ defmodule Effusion.BTP.Download do
 
     case selected do
       nil -> {swarm, []}
-      peer -> {swarm, [{
-                        :btp_connect,
-                        peer.address,
+      peer -> {swarm, [connect_message(
+                        peer.address.address,
+                        peer.port,
                         swarm.info_hash,
                         swarm.peer_id,
-                        peer.peer_id
-                      }]}
+                        peer.peer_id)]}
     end
+  end
+
+  defp connect_message(address, port, info_hash, local_peer_id, remote_peer_id)
+    when is_hash(info_hash)
+     and is_peer_id(local_peer_id)
+     and is_peer_id(remote_peer_id) or is_nil(remote_peer_id) do
+    {
+      :btp_connect,
+      {address, port},
+      info_hash,
+      local_peer_id,
+      remote_peer_id
+    }
   end
 end

@@ -1,5 +1,5 @@
-defmodule Effusion.BTP.TorrentTest do
-  use ExUnit.Case, async: true
+defmodule Effusion.BTP.PieceTest do
+  use ExUnit.Case
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
@@ -7,9 +7,15 @@ defmodule Effusion.BTP.TorrentTest do
   end
 
   test "insert" do
-    Effusion.Repo.insert(%Effusion.BTP.Torrent{
+    {:ok, torrent} = Effusion.Repo.insert(%Effusion.BTP.Torrent{
       info_hash: "12345678901234567890",
       name: "linuxmint-19.2-cinnamon-64bit.iso"
+    })
+
+    Effusion.Repo.insert(%Effusion.BTP.Piece{
+      torrent: torrent,
+      index: 0,
+      hash: "12345678901234567890"
     })
   end
 end
