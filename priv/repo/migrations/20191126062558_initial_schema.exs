@@ -11,7 +11,7 @@ defmodule Effusion.Repo.Migrations.InitialSchema do
     create constraint(:torrents, :info_hash_must_be_twenty_bytes, check: "octet_length(info_hash) = 20")
 
     create table(:pieces) do
-      add :torrent_id, references(:torrents), null: false
+      add :torrent_id, references(:torrents, on_delete: :delete_all, on_update: :update_all), null: false
       add :index, :integer, null: false
       add :hash, :binary, null: false
       add :size, :integer, null: false
@@ -23,7 +23,7 @@ defmodule Effusion.Repo.Migrations.InitialSchema do
 
     # Postgres doesn't like the column name "offset," so we name it "position" here
     create table(:blocks) do
-      add :piece_id, references(:pieces), null: false
+      add :piece_id, references(:pieces, on_delete: :delete_all, on_update: :update_all), null: false
       add :position, :integer, null: false
       add :size, :integer, null: false
       add :data, :binary, null: true
@@ -49,14 +49,14 @@ defmodule Effusion.Repo.Migrations.InitialSchema do
     create constraint(:peers, :port_must_be_in_range, check: "port <= 65535")
 
     create table(:peer_pieces) do
-      add :peer_id, references(:peers), null: false
-      add :piece_id, references(:pieces), null: false
+      add :peer_id, references(:peers, on_delete: :delete_all, on_update: :update_all), null: false
+      add :piece_id, references(:pieces, on_delete: :delete_all, on_update: :update_all), null: false
     end
     create unique_index(:peer_pieces, [:peer_id, :piece_id])
 
     create table(:requests) do
-      add :block_id, references(:blocks), null: false
-      add :peer_id, references(:peers), null: false
+      add :block_id, references(:blocks, on_delete: :delete_all, on_update: :update_all), null: false
+      add :peer_id, references(:peers, on_delete: :delete_all, on_update: :update_all), null: false
     end
     create unique_index(:requests, [:peer_id, :block_id])
   end
