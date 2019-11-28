@@ -279,12 +279,14 @@ defmodule Effusion.BTP.Download do
                      and p.index in ^indicies
 
     pieces = Repo.all(pieces_query)
-    Enum.each(pieces, fn p ->
-      Repo.insert(%PeerPiece{
-        peer: peer,
-        piece: p
-      })
+    peer_pieces = Enum.map(pieces, fn p ->
+      %{
+        peer_id: peer.id,
+        piece_id: p.id
+      }
     end)
+
+    Repo.insert_all(PeerPiece, peer_pieces)
 
     interest_message =
       if Pieces.has_pieces?(d.pieces, bitfield) do
