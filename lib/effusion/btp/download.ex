@@ -50,7 +50,42 @@ defmodule Effusion.BTP.Download do
   This only creates a data structure. To actually start the download, call `start/1`.
   """
   def new(meta, local_address, file \\ nil) do
-    torrent = Torrent.insert(meta)
+    info_hash = meta.info_hash
+
+    torrent = Repo.one(from t in Torrent, where: t.info_hash == ^info_hash)
+    torrent = if is_nil(torrent) do
+      {:ok, torrent} = %Torrent{
+        info_hash: meta.info_hash,
+        name: meta.info.name
+      } |> Torrent.changeset()
+      |> Repo.insert()
+
+      IntSet.new()
+      |> IntSet.inverse(meta.info.pieces |> Enum.count)
+      |> Enum.each(fn index ->
+        {:ok, piece} =
+          %Piece{
+            torrent: torrent,
+            index: index,
+            hash: Enum.at(meta.info.pieces, index),
+            size: piece_size(index, meta.info),
+            blocks: []
+          }
+          |> Repo.insert()
+
+        Enum.each(Block.split(piece, @block_size), fn block ->
+            %Block{
+              piece: piece,
+              offset: block.offset,
+              size: block.size
+            } |> Repo.insert()
+        end)
+      end)
+
+      torrent
+    else
+      torrent
+    end
 
     %__MODULE__{
       file: file,

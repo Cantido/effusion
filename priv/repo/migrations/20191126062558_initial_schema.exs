@@ -5,21 +5,10 @@ defmodule Effusion.Repo.Migrations.InitialSchema do
     create table(:torrents) do
       add :info_hash, :binary, null: false
       add :name, :string, null: false
-      add :started, :utc_datetime, null: false
-      add :announce, :string, null: false
-      add :created_at, :utc_datetime, null: true
-      add :created_by, :string, null: true
-      add :encoding, :string, null: true
-      add :comment, :string, null: true
+      add :started, :utc_datetime
     end
     create unique_index(:torrents, [:info_hash])
     create constraint(:torrents, :info_hash_must_be_twenty_bytes, check: "octet_length(info_hash) = 20")
-
-    create table(:files) do
-      add :torrent_id, references(:torrents), null: false
-      add :length, :integer, null: false
-      add :path, :string, null: false
-    end
 
     create table(:pieces) do
       add :torrent_id, references(:torrents), null: false
