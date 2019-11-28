@@ -6,7 +6,7 @@ defmodule Effusion.BTP.PeerSelection do
   Selects which peers to connect to.
   """
 
-  def select_lowest_failcount(_peers, count) when is_integer(count) and count >= 0 do
+  def select_lowest_failcount(count) when is_integer(count) and count >= 0 do
     Peer
     |> order_by([desc: :failcount])
     |> limit(^count)
