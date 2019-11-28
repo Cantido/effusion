@@ -227,7 +227,7 @@ defmodule Effusion.BTP.Download do
       |> Map.put(:swarm, swarm)
 
     max_peers = Application.get_env(:effusion, :max_peers)
-    eligible_peers = PeerSelection.select_lowest_failcount([], max_peers)
+    eligible_peers = PeerSelection.select_lowest_failcount(max_peers)
 
     messages = Enum.map(eligible_peers, fn p ->
       connect_message(p.address.address, p.port, d.meta.info_hash, d.peer_id, p.peer_id)
@@ -395,28 +395,27 @@ defmodule Effusion.BTP.Download do
   Perform actions necessary when a peer at a given address disconnects.
   """
   def handle_disconnect(d = %__MODULE__{}, address, reason \\ :normal) do
-    {swarm, messages} =
-      d.swarm
-      |> Swarm.handle_disconnect(address, reason)
-      |> increment_connections()
+    messages = increment_connections(d)
+
+    Swarm.handle_disconnect(d.swarm, address, reason)
 
     {
-      %{d | swarm: swarm},
+      d,
       messages
     }
   end
 
-  defp increment_connections(swarm) do
-    [selected] = PeerSelection.select_lowest_failcount(Swarm.peers(swarm), 1)
+  defp increment_connections(d) do
+    [selected] = PeerSelection.select_lowest_failcount(1)
 
     case selected do
-      nil -> {swarm, []}
-      peer -> {swarm, [connect_message(
+      nil -> []
+      peer -> [connect_message(
                         peer.address.address,
                         peer.port,
-                        swarm.info_hash,
-                        swarm.peer_id,
-                        peer.peer_id)]}
+                        d.meta.info_hash,
+                        d.peer_id,
+                        peer.peer_id)]
     end
   end
 
