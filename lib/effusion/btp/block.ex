@@ -36,8 +36,8 @@ defmodule Effusion.BTP.Block do
   Check if the first block is followed immedately by the second block,
   if they are in the same piece.
   """
-  def sequential?(%{piece: i1, offset: o1, data: d1}, %{piece: i2, offset: o2}) do
-    i1.index == i2.index and o1 + byte_size(d1) == o2
+  def sequential?(%{index: i1, offset: o1, data: d1}, %{index: i2, offset: o2}) do
+    i1 == i2 and o1 + byte_size(d1) == o2
   end
 
   @doc """
@@ -50,19 +50,19 @@ defmodule Effusion.BTP.Block do
   @doc """
   Combine two contiguous blocks in the same piece into one larger block.
   """
-  def merge(b1 = %{piece: i1, offset: o1, data: d1}, b2 = %{index: i2, offset: o2, data: d2}) do
+  def merge(b1 = %{index: i1, offset: o1, data: d1}, b2 = %{index: i2, offset: o2, data: d2}) do
     cond do
       sequential?(b1, b2) ->
-        %__MODULE__{
-          piece: i1.index,
+        %{
+          index: i1,
           offset: o1,
           size: byte_size(d1 <> d2),
           data: d1 <> d2
         }
 
       sequential?(b2, b1) ->
-        %__MODULE__{
-          piece: i2.index,
+        %{
+          index: i2,
           offset: o2,
           size: byte_size(d2 <> d1),
           data: d2 <> d1
