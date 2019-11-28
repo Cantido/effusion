@@ -364,15 +364,20 @@ defmodule Effusion.BTP.Download do
 
     requests = Repo.all(requests_to_make)
 
-    requests |> Enum.reduce({d, []}, fn {piece, block, peer}, {d, requests} ->
-      req = {:btp_send, peer.peer_id, {:request, piece.index, block.offset, block.size}}
+    {requests_to_insert, request_messages} = Enum.reduce(requests, {[], []}, fn {piece, block, peer}, {requests_to_insert, request_messages} ->
+      request_message = {:btp_send, peer.peer_id, {:request, piece.index, block.offset, block.size}}
 
-      {:ok, _block} = Repo.insert(%Effusion.BTP.Request{
-        block: block,
-        peer: peer
-      })
-      {d, [req | requests]}
+      request_to_insert = %{
+        block_id: block.id,
+        peer_id: peer.id
+      }
+
+      {[request_to_insert | requests_to_insert], [request_message | request_messages]}
     end)
+
+    Repo.insert_all(Request, requests_to_insert)
+
+    {d, request_messages}
   end
 
   defp piece_size(index, info) do
