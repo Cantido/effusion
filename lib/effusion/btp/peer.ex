@@ -52,6 +52,8 @@ defmodule Effusion.BTP.Peer do
   def changeset(peer, params \\ %{}) do
     peer
     |> cast(params, [:address, :port, :peer_id, :failcount, :peer_choking, :peer_interested, :am_choking, :am_interested])
+    |> validate_number(:port, greater_than: 0)
+    |> check_constraint(:port, name: :port_must_be_positive)
     |> unique_constraint(:peer_id)
     |> unique_constraint(:address, name: "peers_address_port_index")
   end

@@ -59,13 +59,13 @@ defmodule Effusion.BTP.Swarm do
 
   def add(swarm = %__MODULE__{}, peers) do
     Enum.each(peers, fn peer ->
-      Repo.insert(%Peer{
+      %Peer{
         address: %Postgrex.INET{address: peer.ip},
         port: peer.port,
         peer_id: Map.get(peer, :peer_id, nil)
-      },
-      on_conflict: {:replace, [:address]},
-      conflict_target: [:peer_id])
+      } |> Peer.changeset()
+      |> Repo.insert(on_conflict: {:replace, [:address]},
+                     conflict_target: [:peer_id])
     end)
     swarm
   end
@@ -168,8 +168,9 @@ defmodule Effusion.BTP.Swarm do
   end
 
   def handle_disconnect(swarm = %__MODULE__{}, {ip, port}, _reason \\ :normal) do
-    {:ok, peer} = Repo.one(from peer in Peer,
-                            where: peer.ip == ^%Postgrex.INET{address: ip}
+    addr = %Postgrex.INET{address: ip}
+    peer = Repo.one(from peer in Peer,
+                            where: peer.address == ^addr
                             and peer.port == ^port)
     peer = Peer.changeset(peer)
 
