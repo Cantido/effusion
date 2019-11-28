@@ -15,6 +15,7 @@ defmodule Effusion.Mixfile do
       escript: [main_module: Effusion.CLI],
       package: package(),
       deps: deps(),
+      aliases: aliases(),
       source_url: "https://github.com/Cantido/effusion",
       dialyzer: [flags: [:error_handling, :race_conditions, :underspecs]]
     ]
@@ -28,6 +29,12 @@ defmodule Effusion.Mixfile do
       extra_applications: [:logger, :crypto, :ranch, :runtime_tools, :timex],
       mod: {Effusion.Application, []}
     ]
+  end
+
+  defp aliases do
+  [
+    test: ["ecto.create --quiet", "ecto.migrate", "test"]
+  ]
   end
 
   defp deps do
