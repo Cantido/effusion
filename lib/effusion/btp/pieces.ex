@@ -2,6 +2,8 @@ defmodule Effusion.BTP.Pieces do
   require Logger
   alias Effusion.BTP.Block
   alias Effusion.BTP.Metainfo
+  alias Effusion.Repo
+  import Ecto.Query
 
   @moduledoc """
   Functions for assembling the file that results from a torrent download.
@@ -30,14 +32,15 @@ defmodule Effusion.BTP.Pieces do
     IntSet.union(written, cached)
   end
 
-  def has_block?(torrent, block) do
+  def has_block?(_torrent, block) do
     i = block.index
     o = block.offset
 
-    unfinished(torrent)
-    |> Stream.filter(fn b -> b.index == i end)
-    |> Stream.filter(fn b -> b.offset == o end)
-    |> Enum.any?()
+    Repo.exists?(from b in block,
+                 join: p in assoc(b, :piece),
+                 where: p.index == ^i,
+                 where: b.offset == ^o,
+                 where: not is_nil(b.data))
   end
 
   def has_piece?(torrent, index) when is_integer(index) and index > 0 do
@@ -58,8 +61,17 @@ defmodule Effusion.BTP.Pieces do
   If the addition of the block finishes a piece,
   the piece will then be verified and moved to the `:pieces` set.
   """
-  def add_block(torrent = %{info: %{piece_length: piece_length}}, block = %{data: data})
+  def add_block(torrent = %{info: %{piece_length: piece_length}}, block = %{index: i, offset: o, data: data})
       when is_integer(piece_length) and 0 <= piece_length and byte_size(data) <= piece_length do
+
+    Logger.debug("inserting block #{inspect block}")
+    {:ok, _block} = Repo.one!(from b in Block,
+                      join: p in assoc(b, :piece),
+                      where: p.index == ^i,
+                      where: b.offset == ^o)
+    |> Ecto.Changeset.change(data: data)
+    |> Repo.update()
+
     {finished, unfinished} =
       unfinished(torrent)
       |> reduce_blocks(block)
