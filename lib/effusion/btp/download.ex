@@ -109,6 +109,10 @@ defmodule Effusion.BTP.Download do
   """
   def start(session = %__MODULE__{}) do
     _ = Logger.info("Starting download #{Effusion.Hash.inspect(session.meta.info_hash)}")
+
+    Repo.delete_all(PeerPiece)
+    Repo.delete_all(Request)
+
     session = Map.put(session, :started_at, Timex.now())
     params = announce_params(session, :started)
 
