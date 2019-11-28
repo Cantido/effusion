@@ -8,9 +8,11 @@ defmodule Effusion.BTP.TorrentTest do
   end
 
   test "insert" do
-    Effusion.Repo.insert(%Effusion.BTP.Torrent{
+    {:ok, _torrent} = Effusion.Repo.insert(%Effusion.BTP.Torrent{
       info_hash: "12345678901234567890",
-      name: "linuxmint-19.2-cinnamon-64bit.iso"
+      name: "linuxmint-19.2-cinnamon-64bit.iso",
+      started: Timex.now() |> DateTime.truncate(:second),
+      announce: "http://example.com/announce"
     })
   end
 end
