@@ -73,13 +73,14 @@ defmodule Effusion.BTP.Download do
           }
           |> Repo.insert()
 
-        Enum.each(Block.split(piece, @block_size), fn block ->
-            %Block{
-              piece: piece,
+        block_entries = Enum.map(Block.split(piece, @block_size), fn block ->
+            %{
+              piece_id: piece.id,
               offset: block.offset,
               size: block.size
-            } |> Repo.insert()
+            }
         end)
+        Repo.insert_all(Block, block_entries)
       end)
 
       torrent
