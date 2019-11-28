@@ -406,17 +406,15 @@ defmodule Effusion.BTP.Download do
   end
 
   defp increment_connections(d) do
-    [selected] = PeerSelection.select_lowest_failcount(1)
-
-    case selected do
-      nil -> []
-      peer -> [connect_message(
-                        peer.address.address,
-                        peer.port,
-                        d.meta.info_hash,
-                        d.peer_id,
-                        peer.peer_id)]
-    end
+    PeerSelection.select_lowest_failcount(1)
+    |> Enum.map(fn peer ->
+      connect_message(
+        peer.address.address,
+        peer.port,
+        d.meta.info_hash,
+        d.peer_id,
+        peer.peer_id)
+    end)
   end
 
   defp connect_message(address, port, info_hash, local_peer_id, remote_peer_id)
