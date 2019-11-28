@@ -14,8 +14,6 @@ defmodule Effusion.BTP.Piece do
     has_many :blocks, Block
     has_many :peer_pieces, PeerPiece
     has_many :owners, through: [:peer_pieces, :peer]
-    has_many :requests, Request
-    has_many :requested_pieces, through: [:requests, :piece]
   end
 
   def changeset(piece, params \\ %{}) do
