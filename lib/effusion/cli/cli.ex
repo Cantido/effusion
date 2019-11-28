@@ -3,11 +3,13 @@ defmodule Effusion.CLI do
   alias Effusion.BTP.Download
   alias Effusion.BTP.Metainfo
   alias Effusion.BTP.Peer
+  alias Effusion.BTP.Swarm
   alias Effusion.Format
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
   alias Effusion.Statistics.PeerDownloadAverage
   alias Effusion.Statistics.SessionDownloadAverage
+  alias Effusion.Repo
   use Timex
 
   @moduledoc """
@@ -102,8 +104,9 @@ defmodule Effusion.CLI do
     IO.puts("Total TCP connections: #{PeerStats.num_tcp_peers()}")
 
     IO.puts("Peers:")
-    Enum.each(download.swarm.peers, fn {_addr, peer} ->
+    Enum.each(Swarm.peers(), fn peer ->
       if Peer.connected?(peer, info_hash) do
+        peer = peer |> Repo.preload(:blocks_we_requested)
         IO.puts "#{inspect peer.peer_id} -- #{PeerDownloadAverage.peer_20sec_download_avg(peer.peer_id) |> trunc() |> Format.bytes()}/s --- Requested #{peer.blocks_we_requested |> Enum.count} blocks"
       end
     end)
