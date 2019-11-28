@@ -52,21 +52,25 @@ defmodule Effusion.BTP.Swarm do
   def peers(_) do
     Repo.all(from p in Peer, select: p)
   end
+  def peers() do
+    Repo.all(from p in Peer, select: p)
+  end
 
   def peer_for_address(_swarm = %__MODULE__{}, {ip, port}) do
     Repo.one(from p in Peer, where: p.address == ^ip and p.port == ^port)
   end
 
   def add(swarm = %__MODULE__{}, peers) do
-    Enum.each(peers, fn peer ->
-      %Peer{
+    changesets = Enum.map(peers, fn peer ->
+      %{
         address: %Postgrex.INET{address: peer.ip},
         port: peer.port,
         peer_id: Map.get(peer, :peer_id, nil)
-      } |> Peer.changeset()
-      |> Repo.insert(on_conflict: {:replace, [:address]},
-                     conflict_target: [:peer_id])
+      }
     end)
+
+    Repo.insert_all(Peer, changesets, on_conflict: {:replace, [:address]},
+                   conflict_target: [:peer_id])
     swarm
   end
 
