@@ -105,9 +105,11 @@ defmodule Effusion.BTP.DownloadServer do
      d = Map.update!(d, :pieces, &Pieces.add_block(&1, block))
      verified = Pieces.verified(d.pieces)
 
-     have_messages =
-       verified
-       |> Enum.map(&{:broadcast, {:have, &1.index}})
+
+     verified
+     |> Enum.map(fn piece ->
+       ConnectionRegistry.btp_broadcast(d.info_hash, {:have, piece.index})
+     end)
 
      write_messages =
        d.pieces
@@ -125,7 +127,7 @@ defmodule Effusion.BTP.DownloadServer do
       {d, []}
     end
 
-    {d, write_messages ++ have_messages ++ cancel_messages ++ request_messages}
+    {d, write_messages ++ cancel_messages ++ request_messages}
   end
 
   def handle_message(d = %Download{}, remote_peer_id, {:bitfield, bitfield}) when is_peer_id(remote_peer_id) and is_binary(bitfield) do
@@ -211,14 +213,6 @@ defmodule Effusion.BTP.DownloadServer do
     end)
 
     {d, request_messages}
-  end
-
-  defp handle_internal_message({:broadcast, outgoing_msg}, state = %Download{}) do
-    start = System.monotonic_time(:microsecond)
-    ConnectionRegistry.btp_broadcast(state.meta.info_hash, outgoing_msg)
-    stop = System.monotonic_time(:microsecond)
-    Logger.debug(":broadcast latency: #{stop - start} μs")
-    state
   end
 
   defp handle_internal_message({:btp_send, remote_peer_id, outgoing_msg}, state = %Download{})
