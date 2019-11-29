@@ -238,9 +238,14 @@ defmodule Effusion.BTP.Pieces do
     |> Ecto.Changeset.change([written: true])
     |> Repo.update()
 
+    blocks_query = from block in Block,
+                  join: piece in assoc(block, :piece),
+                  join: torrent in assoc(piece, :torrent),
+                  where: torrent.info_hash == ^torrent.info_hash,
+                  where: piece.index == ^i
+    Repo.delete_all(blocks_query)
+
     torrent
-    |> Map.update(:written, IntSet.new(i), &IntSet.put(&1, i))
-    |> remove_piece(i)
   end
 
   def mark_piece_written(torrent, i) when is_integer(i) do
