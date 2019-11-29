@@ -1,6 +1,5 @@
 defmodule Effusion.BTP.Download do
   alias Effusion.BTP.PeerSelection
-  alias Effusion.BTP.AvailabilityMap
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Piece
   alias Effusion.BTP.Peer
