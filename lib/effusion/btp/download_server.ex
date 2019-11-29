@@ -264,13 +264,25 @@ defmodule Effusion.BTP.DownloadServer do
     end
   end
 
-  def handle_call({:handle_msg, peer_id, msg}, _from, state = %Download{}) when is_peer_id(peer_id) do
-    state = handle_message(state, peer_id, msg)
+  def handle_call({:handle_msg, remote_peer_id, :choke}, _from, d = %Download{}) when is_peer_id(remote_peer_id) do
+    Repo.delete_all(from request in Request,
+                      join: peer in assoc(request, :peer),
+                      where: peer.peer_id == ^remote_peer_id)
 
-    if Download.done?(state) do
-      {:stop, :normal, :ok, state}
+    if Download.done?(d) do
+      {:stop, :normal, :ok, d}
     else
-      {:reply, :ok, state}
+      {:reply, :ok, d}
+    end
+  end
+
+  def handle_call({:handle_msg, remote_peer_id, msg}, _from, d = %Download{}) when is_peer_id(remote_peer_id) do
+    state = handle_message(d, remote_peer_id, msg)
+
+    if Download.done?(d) do
+      {:stop, :normal, :ok, d}
+    else
+      {:reply, :ok, d}
     end
   end
 
@@ -281,13 +293,6 @@ defmodule Effusion.BTP.DownloadServer do
   For more information about messages, see `Effusion.PWP.Messages`.
   """
   def handle_message(session, peer_id, message)
-
-  def handle_message(d = %Download{}, remote_peer_id, :choke) do
-    Repo.delete_all(from request in Request,
-                      join: peer in assoc(request, :peer),
-                      where: peer.peer_id == ^remote_peer_id)
-    {d, []}
-  end
 
   def handle_message(d = %Download{}, remote_peer_id, :unchoke) do
     next_request_from_peer(d, remote_peer_id, 100)
