@@ -18,11 +18,17 @@ defmodule Effusion.BTP.Torrent do
     field :creation_date, :utc_datetime, null: true
   end
 
+  @required_fields [:info_hash, :name, :announce]
+  @optional_fields [:started, :comment, :created_by, :creation_date]
   def changeset(torrent, params \\ %{}) do
     torrent
-    |> cast(params, [:info_hash, :name])
-    |> validate_required([:info_hash, :name])
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
     |> unique_constraint(:info_hash)
+  end
+
+  def start(torrent, time) do
+    Ecto.Changeset.change(torrent, started: DateTime.truncate(time, :second))
   end
 
   def insert(meta) do

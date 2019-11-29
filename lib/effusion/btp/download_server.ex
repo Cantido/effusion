@@ -334,6 +334,11 @@ defmodule Effusion.BTP.DownloadServer do
     Repo.delete_all(Request)
 
     session = Map.put(session, :started_at, Timex.now())
+    Repo.one!(from torrent in Torrent,
+              where: torrent.info_hash == ^session.info_hash)
+    |> Torrent.start(Timex.now())
+    |> Repo.update()
+
     params = announce_params(session, :started)
 
     {:ok, res} = apply(@thp_client, :announce, params)
