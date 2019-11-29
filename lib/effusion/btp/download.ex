@@ -220,7 +220,13 @@ defmodule Effusion.BTP.Download do
 
   def handle_message(d = %__MODULE__{}, from, {:piece, block})
        when is_peer_id(from) do
-     {d, cancel_messages} = cancel_block_requests(d, block, from)
+
+     cancel_messages = Request.cancel(block, from)
+       |> Enum.map(fn {peer_id, index, offset, size} ->
+         {:btp_send, peer_id, {:cancel, index, offset, size}}
+       end)
+       |> Enum.uniq()
+
 
      d = Map.update!(d, :pieces, &Pieces.add_block(&1, block))
      verified = Pieces.verified(d.pieces)
@@ -313,86 +319,28 @@ defmodule Effusion.BTP.Download do
 
   def handle_message(d = %__MODULE__{}, _remote_peer_id, _msg), do: {:ok, d, []}
 
-  def handle_connect(d, peer_id, {ip, port}) when is_peer_id(peer_id) do
-    conflicting_peers_query = from p in Peer,
-                              where: p.address == ^%Postgrex.INET{address: ip}
-                                and p.port == ^port
-                                and p.peer_id != ^peer_id
-
-    Repo.delete_all(conflicting_peers_query)
-
-    %Peer{
-      peer_id: peer_id,
-      address: %Postgrex.INET{address: ip},
-      port: port
-    }
-    |> Peer.changeset()
-    |> Repo.insert!(on_conflict: {:replace, [:address, :port, :peer_id]},
-                                  conflict_target: [:address, :port])
+  def handle_connect(d, peer_id, address) when is_peer_id(peer_id) do
+    Peer.insert(peer_id, address)
     d
-  end
-
-  defp cancel_block_requests(d = %__MODULE__{}, block, from) when is_peer_id(from) do
-    peer_ids_to_send_cancel = Repo.all(from request in Request,
-                                        join: block in assoc(request, :block),
-                                        join: piece in assoc(block, :piece),
-                                        join: peer in assoc(request, :peer),
-                                        where: piece.index == ^block.index
-                                           and block.offset == ^block.offset
-                                           and peer.peer_id != ^from,
-                                        select: {peer.peer_id, piece.index, block.offset, block.size})
-
-    cancel_messages =
-      peer_ids_to_send_cancel
-      |> Enum.map(fn {peer_id, index, offset, size} ->
-        {:btp_send, peer_id, {:cancel, index, offset, size}}
-      end)
-      |> Enum.uniq()
-
-    Repo.delete_all(from request in Request,
-                      join: block in assoc(request, :block),
-                      join: piece in assoc(block, :piece),
-                      join: peer in assoc(request, :peer),
-                      where: piece.index == ^block.index
-                         and block.offset == ^block.offset)
-
-    {d, cancel_messages}
   end
 
   defp next_request_from_peer(d, peer_id, count) do
     info_hash = d.meta.info_hash
-    existing_requests = from requests in Request,
-                          join: peer in assoc(requests, :peer),
-                          join: block in assoc(requests, :block),
-                          join: piece in assoc(block, :piece),
-                          join: torrent in assoc(piece, :torrent),
-                          where: torrent.info_hash == ^info_hash,
-                          select: {piece, block, peer}
 
-    requests_to_make = from peer_pieces in PeerPiece,
-                        join: piece in assoc(peer_pieces, :piece),
-                        join: block in assoc(piece, :blocks),
-                        join: peer in assoc(peer_pieces, :peer),
-                        join: torrent in assoc(piece, :torrent),
-                        where: torrent.info_hash == ^d.meta.info_hash and peer.peer_id == ^peer_id,
-                        except: ^existing_requests,
-                        limit: ^count,
-                        select: {piece, block, peer}
+    requests = Request.valid_requests_from_peer_query(info_hash, peer_id, count)
+    |> Repo.all()
 
-    requests = Repo.all(requests_to_make)
-
-    {requests_to_insert, request_messages} = Enum.reduce(requests, {[], []}, fn {piece, block, peer}, {requests_to_insert, request_messages} ->
-      request_message = {:btp_send, peer.peer_id, {:request, piece.index, block.offset, block.size}}
-
-      request_to_insert = %{
+    requests_to_insert = Enum.map(requests, fn {_piece, block, peer} ->
+      %{
         block_id: block.id,
         peer_id: peer.id
       }
-
-      {[request_to_insert | requests_to_insert], [request_message | request_messages]}
     end)
-
     Repo.insert_all(Request, requests_to_insert)
+
+    request_messages = Enum.map(requests, fn {piece, block, peer} ->
+      {:btp_send, peer.peer_id, {:request, piece.index, block.offset, block.size}}
+    end)
 
     {d, request_messages}
   end

@@ -3,7 +3,6 @@ defmodule Effusion.BTP.DownloadTest do
   alias Effusion.BTP.Download
   alias Effusion.BTP.Swarm
   alias Effusion.BTP.Peer
-  alias Effusion.BTP.Pieces
   doctest Effusion.BTP.Download
   import Mox
 
@@ -58,7 +57,7 @@ defmodule Effusion.BTP.DownloadTest do
   def stub_tracker(_, _, _, _, _, _, _, _, _, _) do
     {:ok, stub_tracker_response()}
   end
-  # 
+  #
   # test "is not done when we don't have all the pieces", %{destfile: file} do
   #   peer = peer()
   #   session = new(file)

@@ -1,8 +1,8 @@
 defmodule Effusion.BTP.Peer do
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.Repo
-  import Effusion.Hash
   import Ecto.Changeset
+  import Ecto.Query
   use Ecto.Schema
 
   @moduledoc """
@@ -56,5 +56,23 @@ defmodule Effusion.BTP.Peer do
     |> check_constraint(:port, name: :port_must_be_positive)
     |> unique_constraint(:peer_id)
     |> unique_constraint(:address, name: "peers_address_port_index")
+  end
+
+  def insert(peer_id, {ip, port}) do
+    conflicting_peers_query = from p in __MODULE__,
+                              where: p.address == ^%Postgrex.INET{address: ip}
+                                and p.port == ^port
+                                and p.peer_id != ^peer_id
+
+    Repo.delete_all(conflicting_peers_query)
+
+    %__MODULE__{
+      peer_id: peer_id,
+      address: %Postgrex.INET{address: ip},
+      port: port
+    }
+    |> changeset()
+    |> Repo.insert!(on_conflict: {:replace, [:address, :port, :peer_id]},
+                                  conflict_target: [:address, :port])
   end
 end
