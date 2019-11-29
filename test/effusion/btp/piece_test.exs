@@ -1,4 +1,7 @@
 defmodule Effusion.BTP.PieceTest do
+  alias Effusion.BTP.Piece
+  alias Effusion.Factory
+  alias Effusion.Repo
   use ExUnit.Case
 
   setup do
@@ -7,16 +10,7 @@ defmodule Effusion.BTP.PieceTest do
   end
 
   test "insert" do
-    {:ok, torrent} = Effusion.Repo.insert(%Effusion.BTP.Torrent{
-      info_hash: "12345678901234567890",
-      name: "linuxmint-19.2-cinnamon-64bit.iso"
-    })
-
-    Effusion.Repo.insert(%Effusion.BTP.Piece{
-      torrent: torrent,
-      index: 0,
-      hash: "12345678901234567890",
-      size: 1_000_000
-    })
+    piece = Factory.insert!(:piece)
+    Repo.get(Piece, piece.id)
   end
 end

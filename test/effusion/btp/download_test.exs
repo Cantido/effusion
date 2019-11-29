@@ -1,62 +1,62 @@
 defmodule Effusion.BTP.DownloadTest do
   use ExUnit.Case
-  alias Effusion.BTP.Download
-  alias Effusion.BTP.Swarm
-  alias Effusion.BTP.Peer
+  # alias Effusion.BTP.Download
+  # alias Effusion.BTP.Swarm
+  # alias Effusion.BTP.Peer
   doctest Effusion.BTP.Download
-  import Mox
+  # import Mox
 
-  setup :verify_on_exit!
-
-  setup do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
-    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
-    :ok
-  end
-
-
-  @torrent TestHelper.tiny_meta()
-
-  setup do
-    Effusion.BTP.Metainfo.Directory.insert(@torrent)
-  end
-
-  def peer do
-    Peer.new({{192, 168, 1, 2}, 8000}, "Fake Peer Id ~~~~~~~")
-  end
-
-  setup do
-    Temp.track!()
-
-    {:ok, file} = Temp.path()
-
-    on_exit(fn ->
-      File.rm_rf(file)
-    end)
-
-    %{destfile: file}
-  end
-
-  def new(destfile) do
-    swarm =
-      Effusion.BTP.Swarm.new("Effusion Experiment!", "Effusion Experiment!")
-      |> Swarm.add([
-        %{
-          ip: {192, 168, 1, 2},
-          port: 8000,
-          peer_id: "Fake Peer Id ~~~~~~~"
-        }
-      ])
-
-    Download.new(@torrent, {{192, 168, 1, 1}, 8080}, destfile)
-    |> Map.put(:swarm, swarm)
-  end
-
-  def stub_tracker_response, do: %{interval: 9_000, peers: []}
-
-  def stub_tracker(_, _, _, _, _, _, _, _, _, _) do
-    {:ok, stub_tracker_response()}
-  end
+  # setup :verify_on_exit!
+  #
+  # setup do
+  #   :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
+  #   Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
+  #   :ok
+  # end
+  #
+  #
+  # @torrent TestHelper.tiny_meta()
+  #
+  # setup do
+  #   Effusion.BTP.Metainfo.Directory.insert(@torrent)
+  # end
+  #
+  # def peer do
+  #   Peer.new({{192, 168, 1, 2}, 8000}, "Fake Peer Id ~~~~~~~")
+  # end
+  #
+  # setup do
+  #   Temp.track!()
+  #
+  #   {:ok, file} = Temp.path()
+  #
+  #   on_exit(fn ->
+  #     File.rm_rf(file)
+  #   end)
+  #
+  #   %{destfile: file}
+  # end
+  #
+  # def new(destfile) do
+  #   swarm =
+  #     Effusion.BTP.Swarm.new("Effusion Experiment!", "Effusion Experiment!")
+  #     |> Swarm.add([
+  #       %{
+  #         ip: {192, 168, 1, 2},
+  #         port: 8000,
+  #         peer_id: "Fake Peer Id ~~~~~~~"
+  #       }
+  #     ])
+  #
+  #   Download.new(@torrent, {{192, 168, 1, 1}, 8080}, destfile)
+  #   |> Map.put(:swarm, swarm)
+  # end
+  #
+  # def stub_tracker_response, do: %{interval: 9_000, peers: []}
+  #
+  # def stub_tracker(_, _, _, _, _, _, _, _, _, _) do
+  #   {:ok, stub_tracker_response()}
+  # end
   #
   # test "is not done when we don't have all the pieces", %{destfile: file} do
   #   peer = peer()

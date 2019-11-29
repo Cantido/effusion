@@ -2,6 +2,7 @@ defmodule Effusion.BTP.BlockTest do
   use ExUnit.Case, async: true
   alias Effusion.BTP.Block
   alias Effusion.Repo
+  alias Effusion.Factory
   doctest Effusion.BTP.Block
 
   setup do
@@ -11,24 +12,7 @@ defmodule Effusion.BTP.BlockTest do
   end
 
   test "insert" do
-    {:ok, torrent} = Effusion.Repo.insert(%Effusion.BTP.Torrent{
-      info_hash: "12345678901234567890",
-      name: "linuxmint-19.2-cinnamon-64bit.iso"
-    })
-
-    {:ok, piece} = Effusion.Repo.insert(%Effusion.BTP.Piece{
-      torrent: torrent,
-      index: 0,
-      hash: "12345678901234567890",
-      size: 5
-    })
-
-    {:ok, block} = Effusion.Repo.insert(%Effusion.BTP.Block{
-      piece: piece,
-      offset: 0,
-      data: "tiny\n",
-      size: 5
-    })
+    block = Factory.insert!(:block)
 
     Repo.get(Block, block.id)
   end

@@ -5,12 +5,17 @@ defmodule Effusion.BTP.Torrent do
   use Ecto.Schema
   import Ecto.Changeset
   require Logger
-  
+
   @block_size Application.get_env(:effusion, :block_size)
 
   schema "torrents" do
     field :info_hash, :binary, null: false
     field :name, :string, null: false
+    field :announce, :string, null: false
+    field :started, :utc_datetime, null: true
+    field :comment, :string, null: true
+    field :created_by, :string, null: true
+    field :creation_date, :utc_datetime, null: true
   end
 
   def changeset(torrent, params \\ %{}) do
@@ -24,7 +29,11 @@ defmodule Effusion.BTP.Torrent do
     Repo.transaction(fn ->
       {:ok, torrent} = %__MODULE__{
         info_hash: meta.info_hash,
-        name: meta.info.name
+        name: meta.info.name,
+        announce: meta.announce,
+        comment: Map.get(meta, :comment),
+        created_by: Map.get(meta, :created_by),
+        creation_date: Map.get(meta, :creation_date) |> Timex.from_unix()
       } |> changeset()
       |> Repo.insert()
 

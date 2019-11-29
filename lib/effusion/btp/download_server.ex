@@ -1,12 +1,20 @@
 defmodule Effusion.BTP.DownloadServer do
   use GenServer, restart: :transient
   alias Effusion.Application.DownloadServerSupervisor
+  alias Effusion.BTP.Peer
+  alias Effusion.BTP.PeerSelection
+  alias Effusion.BTP.Pieces
+  alias Effusion.BTP.Piece
+  alias Effusion.BTP.PeerPiece
+  alias Effusion.BTP.Request
   alias Effusion.BTP.Download
   alias Effusion.BTP.Metainfo.Directory
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.OutgoingHandler
+  alias Effusion.Repo
   import Effusion.BTP.Peer
   import Effusion.Hash, only: [is_hash: 1]
+  import Ecto.Query
   require Logger
 
   @moduledoc """
@@ -76,6 +84,137 @@ defmodule Effusion.BTP.DownloadServer do
     )
   end
 
+
+  @doc """
+  Handle a Peer Wire Protocol (PWP) message send by the remote peer identified by `peer_id`.
+
+  For more information about messages, see `Effusion.PWP.Messages`.
+  """
+  def handle_message(session, peer_id, message)
+
+  def handle_message(d = %Download{}, from, {:piece, block})
+       when is_peer_id(from) do
+
+     cancel_messages = Request.cancel(block, from)
+       |> Enum.map(fn {peer_id, index, offset, size} ->
+         {:btp_send, peer_id, {:cancel, index, offset, size}}
+       end)
+       |> Enum.uniq()
+
+
+     d = Map.update!(d, :pieces, &Pieces.add_block(&1, block))
+     verified = Pieces.verified(d.pieces)
+
+     have_messages =
+       verified
+       |> Enum.map(&{:broadcast, {:have, &1.index}})
+
+     write_messages =
+       d.pieces
+       |> Pieces.verified()
+       |> Enum.map(fn p -> {:write_piece, d.info_hash, d.file, p} end)
+
+    peer_request_query = from peer_piece in PeerPiece,
+                          join: peer in assoc(peer_piece, :peer),
+                          where: peer.peer_id == ^from
+    peer_request_count = Repo.aggregate(peer_request_query, :count, :peer_id)
+
+    {d, request_messages} = if peer_request_count <= 0 do
+      next_request_from_peer(d, from, Application.get_env(:effusion, :max_requests_per_peer))
+    else
+      {d, []}
+    end
+
+    {d, write_messages ++ have_messages ++ cancel_messages ++ request_messages}
+  end
+
+  def handle_message(d = %Download{}, remote_peer_id, {:bitfield, bitfield}) when is_peer_id(remote_peer_id) and is_binary(bitfield) do
+    peer = Repo.one!(from p in Peer, where: [peer_id: ^remote_peer_id])
+    indicies = IntSet.new(bitfield) |> Enum.to_list()
+    pieces_query = Piece.all_indicies_query(d.info_hash, indicies)
+    pieces = Repo.all(pieces_query)
+    peer_pieces = Enum.map(pieces, fn p ->
+      %{
+        peer_id: peer.id,
+        piece_id: p.id
+      }
+    end)
+
+    Repo.insert_all(PeerPiece, peer_pieces)
+
+    interest_message =
+      if Pieces.has_pieces?(d.pieces, bitfield) do
+        []
+      else
+        [{:btp_send, remote_peer_id, :interested}]
+      end
+
+    {d, interest_message}
+  end
+
+  def handle_message(d = %Download{}, remote_peer_id, {:have, i}) do
+    peer = from p in Peer, where: p.peer_id == ^remote_peer_id
+    piece = from p in Piece,
+             join: torrent in assoc(p, :torrent),
+             where: torrent.info_hash == ^d.info_hash
+                and p.index == ^i
+
+    peer = Repo.one!(peer)
+    piece = Repo.one!(piece)
+
+    Repo.insert(%PeerPiece{
+      peer: peer,
+      piece: piece
+    })
+
+    interest_message =
+      if Pieces.has_piece?(d.pieces, i) do
+        []
+      else
+        [{:btp_send, remote_peer_id, :interested}]
+      end
+
+    {d, interest_message}
+  end
+
+  def handle_message(d = %Download{}, remote_peer_id, :choke) do
+    Repo.delete_all(from request in Request,
+                      join: peer in assoc(request, :peer),
+                      where: peer.peer_id == ^remote_peer_id)
+    {d, []}
+  end
+
+  def handle_message(d = %Download{}, remote_peer_id, :unchoke) do
+    {d, request_messages} = next_request_from_peer(d, remote_peer_id, 100)
+
+    {d, request_messages}
+  end
+
+  def handle_message(d = %Download{}, _remote_peer_id, _msg), do: {:ok, d, []}
+
+  defp next_request_from_peer(d, peer_id, count) do
+    info_hash = d.info_hash
+
+    requests = Request.valid_requests_from_peer_query(info_hash, peer_id, count)
+    |> Repo.all()
+
+    requests_to_insert = Enum.map(requests, fn {_piece, block, peer} ->
+      %{
+        block_id: block.id,
+        peer_id: peer.id
+      }
+    end)
+    Repo.insert_all(Request, requests_to_insert)
+
+    request_messages = Enum.map(requests, fn {piece, block, peer} ->
+      {:btp_send, peer.peer_id, {:request, piece.index, block.offset, block.size}}
+    end)
+
+    {d, request_messages}
+  end
+
+
+
   defp handle_internal_message({:btp_connect, address, local_info_hash, local_peer_id, expected_peer_id}, state = %Download{})
   when is_hash(local_info_hash)
    and is_peer_id(local_peer_id)
@@ -119,13 +258,86 @@ defmodule Effusion.BTP.DownloadServer do
     start = System.monotonic_time(:microsecond)
     {:ok, res} = apply(@thp_client, :announce, announce_params)
 
-    {state, messages} = Download.handle_tracker_response(state, res)
+    messages = handle_tracker_response(state, res)
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
 
     state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
     stop = System.monotonic_time(:microsecond)
     Logger.debug(":write_piece latency: #{stop - start} μs")
     state
+  end
+
+  @doc """
+  Start a download.
+
+  This means the session will make an announcement to the tracker and begin
+  making connections.
+  """
+  def start(session) do
+    _ = Logger.info("Starting download #{Effusion.Hash.inspect(session.info_hash)}")
+
+    Repo.delete_all(PeerPiece)
+    Repo.delete_all(Request)
+
+    session = Map.put(session, :started_at, Timex.now())
+    params = announce_params(session, :started)
+
+    messages = [{:announce, params}]
+    {session, messages}
+  end
+
+  defp announce_params(d, event) do
+    {local_host, local_port} = d.local_address
+
+    tracker_numwant = Application.get_env(:effusion, :tracker_numwant)
+    opts = [event: event, numwant: tracker_numwant]
+
+    opts = case d.trackerid do
+      "" -> opts
+      _str -> opts |> Keyword.merge([trackerid: d.trackerid])
+    end
+
+    [
+      d.announce,
+      local_host,
+      local_port,
+      d.peer_id,
+      d.info_hash,
+      0,
+      Pieces.bytes_completed(d.pieces),
+      Pieces.bytes_left(d.pieces),
+      opts
+    ]
+  end
+
+  defp handle_tracker_response(d, res) do
+    trackerid =
+      if Map.get(res, :trackerid, "") != "" do
+        res.trackerid
+      else
+        d.trackerid
+      end
+
+    changesets = Enum.map(res.peers, fn peer ->
+      %{
+        address: %Postgrex.INET{address: peer.ip},
+        port: peer.port,
+        peer_id: Map.get(peer, :peer_id, nil)
+      }
+    end)
+
+    Repo.insert_all(Peer, changesets, on_conflict: :nothing)
+
+    d =
+      d
+      |> Map.put(:trackerid, trackerid)
+
+    max_peers = Application.get_env(:effusion, :max_peers)
+    eligible_peers = PeerSelection.select_lowest_failcount(max_peers)
+
+    Enum.map(eligible_peers, fn p ->
+      connect_message(p.address.address, p.port, d.info_hash, d.peer_id, p.peer_id)
+    end)
   end
 
   ## Callbacks
@@ -141,7 +353,7 @@ defmodule Effusion.BTP.DownloadServer do
     handle_msg_start = System.monotonic_time(:microsecond)
     _ = Logger.debug("DownloadServer handling message from #{peer_id}: #{inspect(msg)}")
 
-    case Download.handle_message(state, peer_id, msg) do
+    case handle_message(state, peer_id, msg) do
       {:error, reason} ->
         _ = Logger.error("Download encountered error: #{inspect(reason)}")
         {:stop, reason, {:error, reason}, state}
@@ -175,15 +387,30 @@ defmodule Effusion.BTP.DownloadServer do
 
   def handle_cast({:connected, peer_id, address}, state = %Download{}) do
     start = System.monotonic_time(:microsecond)
-    reply = {:noreply, Download.handle_connect(state, peer_id, address)}
+    Peer.insert(peer_id, address)
     stop = System.monotonic_time(:microsecond)
     Logger.debug(":connected latency: #{stop - start} μs")
-    reply
+    {:noreply, state}
   end
 
-  def handle_cast({:unregister_connection, address, reason}, state = %Download{}) do
+  def handle_cast({:unregister_connection, {ip, port}, reason}, state = %Download{}) do
     start = System.monotonic_time(:microsecond)
-    {state, messages} = Download.handle_disconnect(state, address, reason)
+
+    messages = PeerSelection.select_lowest_failcount(1)
+        |> Enum.map(fn peer ->
+          connect_message(
+            peer.address.address,
+            peer.port,
+            state.info_hash,
+            state.peer_id,
+            peer.peer_id)
+        end)
+
+    Repo.one(from peer in Peer,
+              where: peer.address == ^%Postgrex.INET{address: ip}
+              and peer.port == ^port)
+    |> Peer.changeset()
+    |> Repo.update(update: [inc: [failcount: 1]])
 
     state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
 
@@ -193,8 +420,21 @@ defmodule Effusion.BTP.DownloadServer do
     {:noreply, state}
   end
 
+  defp connect_message(address, port, info_hash, local_peer_id, remote_peer_id)
+    when is_hash(info_hash)
+     and is_peer_id(local_peer_id)
+     and is_peer_id(remote_peer_id) or is_nil(remote_peer_id) do
+    {
+      :btp_connect,
+      {address, port},
+      info_hash,
+      local_peer_id,
+      remote_peer_id
+    }
+  end
+
   def handle_info(:timeout, state = %Download{}) do
-    {state, messages} = Download.start(state)
+    {state, messages} = start(state)
 
     state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
 
@@ -202,11 +442,13 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_info(:interval_expired, state = %Download{}) do
-    announce_params = Download.announce_params(state, :interval)
+    announce_params = announce_params(state, :interval)
     {:ok, res} = apply(@thp_client, :announce, announce_params)
-    state = Download.handle_tracker_response(state, res)
 
+    messages = handle_tracker_response(state, res)
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
+
+    state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
 
     {:noreply, state}
   end
@@ -220,9 +462,9 @@ defmodule Effusion.BTP.DownloadServer do
 
     announce_params =
       if Download.done?(state) do
-        Download.announce_params(state, :completed)
+        announce_params(state, :completed)
       else
-        Download.announce_params(state, :stopped)
+        announce_params(state, :stopped)
       end
 
     {:ok, _res} = apply(@thp_client, :announce, announce_params)
@@ -233,7 +475,7 @@ defmodule Effusion.BTP.DownloadServer do
   def terminate(reason, state = %Download{}) do
     Logger.debug("download server terminating with reason: #{inspect(reason)}")
 
-    announce_params = Download.announce_params(state, :stopped)
+    announce_params = announce_params(state, :stopped)
     {:ok, _res} = apply(@thp_client, :announce, announce_params)
 
     reply_to_listeners(state, {:error, :torrent_crashed, [reason: reason]})
