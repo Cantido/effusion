@@ -5,14 +5,12 @@ defmodule Effusion.BTP.Download do
   alias Effusion.BTP.Piece
   alias Effusion.BTP.Peer
   alias Effusion.BTP.PeerPiece
-  alias Effusion.BTP.Block
   alias Effusion.BTP.Request
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Metainfo
   alias Effusion.Repo
   import Effusion.BTP.Peer, only: [is_peer_id: 1]
   import Effusion.Hash, only: [is_hash: 1]
-  import Effusion.Math
   import Ecto.Query
   require Logger
   use Timex
@@ -53,7 +51,7 @@ defmodule Effusion.BTP.Download do
 
     torrent = Repo.one(from t in Torrent, where: t.info_hash == ^info_hash)
     torrent = if is_nil(torrent) do
-      {:ok, torrent} = insert_torrent(meta)
+      {:ok, torrent} = Torrent.insert(meta)
       torrent
     else
       torrent
@@ -69,53 +67,6 @@ defmodule Effusion.BTP.Download do
       availability_map: AvailabilityMap.new(),
       block_size: @block_size,
     }
-  end
-
-  defp insert_torrent(meta) do
-    Repo.transaction(fn ->
-      {:ok, torrent} = %Torrent{
-        info_hash: meta.info_hash,
-        name: meta.info.name
-      } |> Torrent.changeset()
-      |> Repo.insert()
-
-      # Postgres can only accept 65535 parameters at a time,
-      # so we need to chunk our inserts by 65535/params-per-entry
-
-      IntSet.new()
-      |> IntSet.inverse(meta.info.pieces |> Enum.count)
-      |> Enum.map(fn index ->
-          %{
-            torrent_id: torrent.id,
-            index: index,
-            hash: Enum.at(meta.info.pieces, index),
-            size: piece_size(index, meta.info)
-          }
-      end)
-      # Each piece has four parameters, so we must insert in chunks of 65535/4 = 16383.75.
-      |> Enum.chunk_every(16_383)
-      |> Enum.reduce([], fn piece_entry_chunk, returned_pieces ->
-        {_count, more_pieces} = Repo.insert_all(Piece, piece_entry_chunk, returning: true)
-        more_pieces ++ returned_pieces
-      end)
-      |> Enum.flat_map(fn piece ->
-        Enum.map(Block.split(piece, @block_size), fn block ->
-            %{
-              piece_id: piece.id,
-              offset: block.offset,
-              size: block.size
-            }
-        end)
-      end)
-      # Each block has three parameters, so we must insert in chunks of 65535/3 = 21345.
-      |> Enum.chunk_every(21_845)
-      |> Enum.each(fn block_entry_op ->
-        Logger.debug("Attempting to insert #{Enum.count(block_entry_op)} blocks")
-        Repo.insert_all(Block, block_entry_op)
-      end)
-
-      torrent
-    end)
   end
 
   @doc """
@@ -381,7 +332,7 @@ defmodule Effusion.BTP.Download do
     d
   end
 
-  def cancel_block_requests(d = %__MODULE__{}, block, from) when is_peer_id(from) do
+  defp cancel_block_requests(d = %__MODULE__{}, block, from) when is_peer_id(from) do
     peer_ids_to_send_cancel = Repo.all(from request in Request,
                                         join: block in assoc(request, :block),
                                         join: piece in assoc(block, :piece),
@@ -408,7 +359,7 @@ defmodule Effusion.BTP.Download do
     {d, cancel_messages}
   end
 
-  def next_request_from_peer(d, peer_id, count \\ 1) do
+  defp next_request_from_peer(d, peer_id, count) do
     info_hash = d.meta.info_hash
     existing_requests = from requests in Request,
                           join: peer in assoc(requests, :peer),
@@ -446,22 +397,19 @@ defmodule Effusion.BTP.Download do
     {d, request_messages}
   end
 
-  defp piece_size(index, info) do
-    {whole_piece_count, last_piece_size} = divrem(info.length, info.piece_length)
-    last_piece_index = whole_piece_count
-
-    if index == last_piece_index do
-      last_piece_size
-    else
-      info.piece_length
-    end
-  end
-
   @doc """
   Perform actions necessary when a peer at a given address disconnects.
   """
   def handle_disconnect(d = %__MODULE__{}, {ip, port}, _reason \\ :normal) do
-    messages = increment_connections(d)
+    messages = PeerSelection.select_lowest_failcount(1)
+        |> Enum.map(fn peer ->
+          connect_message(
+            peer.address.address,
+            peer.port,
+            d.meta.info_hash,
+            d.peer_id,
+            peer.peer_id)
+        end)
 
     Repo.one(from peer in Peer,
               where: peer.address == ^%Postgrex.INET{address: ip}
@@ -473,18 +421,6 @@ defmodule Effusion.BTP.Download do
       d,
       messages
     }
-  end
-
-  defp increment_connections(d) do
-    PeerSelection.select_lowest_failcount(1)
-    |> Enum.map(fn peer ->
-      connect_message(
-        peer.address.address,
-        peer.port,
-        d.meta.info_hash,
-        d.peer_id,
-        peer.peer_id)
-    end)
   end
 
   defp connect_message(address, port, info_hash, local_peer_id, remote_peer_id)
