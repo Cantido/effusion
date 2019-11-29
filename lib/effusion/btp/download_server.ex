@@ -121,13 +121,11 @@ defmodule Effusion.BTP.DownloadServer do
                           where: peer.peer_id == ^from
     peer_request_count = Repo.aggregate(peer_request_query, :count, :peer_id)
 
-    {d, request_messages} = if peer_request_count <= 0 do
+    if peer_request_count <= 0 do
       next_request_from_peer(d, from, Application.get_env(:effusion, :max_requests_per_peer))
-    else
-      {d, []}
     end
 
-    {d, request_messages}
+    d
   end
 
   def handle_message(d = %Download{}, remote_peer_id, {:bitfield, bitfield}) when is_peer_id(remote_peer_id) and is_binary(bitfield) do
@@ -148,7 +146,7 @@ defmodule Effusion.BTP.DownloadServer do
       ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
     end
 
-    {d, []}
+    d
   end
 
   def handle_message(d = %Download{}, remote_peer_id, {:have, i}) do
@@ -170,7 +168,7 @@ defmodule Effusion.BTP.DownloadServer do
       ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
     end
 
-    {d, []}
+    d
   end
 
   def handle_message(d = %Download{}, remote_peer_id, :choke) do
@@ -181,12 +179,12 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_message(d = %Download{}, remote_peer_id, :unchoke) do
-    {d, request_messages} = next_request_from_peer(d, remote_peer_id, 100)
+    next_request_from_peer(d, remote_peer_id, 100)
 
-    {d, request_messages}
+    d
   end
 
-  def handle_message(d = %Download{}, _remote_peer_id, _msg), do: {:ok, d, []}
+  def handle_message(d = %Download{}, _remote_peer_id, _msg), do: d
 
   defp next_request_from_peer(d, peer_id, count) do
     info_hash = d.info_hash
@@ -206,7 +204,7 @@ defmodule Effusion.BTP.DownloadServer do
       ConnectionRegistry.btp_send(d.meta.info_hash, peer.peer_id, {:request, piece.index, block.offset, block.size})
     end)
 
-    {d, []}
+    d
   end
 
 
@@ -282,13 +280,12 @@ defmodule Effusion.BTP.DownloadServer do
   def handle_call({:handle_msg, peer_id, msg}, _from, state = %Download{}) when is_peer_id(peer_id) do
     _ = Logger.debug("DownloadServer handling message from #{peer_id}: #{inspect(msg)}")
 
-    case handle_message(state, peer_id, msg) do
-      {state, _messages} ->
-        if Download.done?(state) do
-          {:stop, :normal, :ok, state}
-        else
-          {:reply, :ok, state}
-        end
+    state = handle_message(state, peer_id, msg)
+
+    if Download.done?(state) do
+      {:stop, :normal, :ok, state}
+    else
+      {:reply, :ok, state}
     end
   end
 
