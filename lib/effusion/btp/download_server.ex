@@ -213,25 +213,7 @@ defmodule Effusion.BTP.DownloadServer do
     end
   end
 
-  def handle_call({:handle_msg, peer_id, msg}, _from, state = %Download{}) when is_peer_id(peer_id) do
-    state = handle_message(state, peer_id, msg)
-
-    if Download.done?(state) do
-      {:stop, :normal, :ok, state}
-    else
-      {:reply, :ok, state}
-    end
-  end
-
-
-  @doc """
-  Handle a Peer Wire Protocol (PWP) message send by the remote peer identified by `peer_id`.
-
-  For more information about messages, see `Effusion.PWP.Messages`.
-  """
-  def handle_message(session, peer_id, message)
-
-  def handle_message(d = %Download{}, remote_peer_id, {:bitfield, bitfield}) when is_peer_id(remote_peer_id) and is_binary(bitfield) do
+  def handle_call({:handle_msg, remote_peer_id, {:bitfield, bitfield}}, _from, d = %Download{}) when is_peer_id(remote_peer_id) do
     peer = Repo.one!(from p in Peer, where: [peer_id: ^remote_peer_id])
     indicies = IntSet.new(bitfield) |> Enum.to_list()
     pieces_query = Piece.all_indicies_query(d.info_hash, indicies)
@@ -249,8 +231,31 @@ defmodule Effusion.BTP.DownloadServer do
       ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
     end
 
-    d
+
+    if Download.done?(d) do
+      {:stop, :normal, :ok, d}
+    else
+      {:reply, :ok, d}
+    end
   end
+
+  def handle_call({:handle_msg, peer_id, msg}, _from, state = %Download{}) when is_peer_id(peer_id) do
+    state = handle_message(state, peer_id, msg)
+
+    if Download.done?(state) do
+      {:stop, :normal, :ok, state}
+    else
+      {:reply, :ok, state}
+    end
+  end
+
+
+  @doc """
+  Handle a Peer Wire Protocol (PWP) message send by the remote peer identified by `peer_id`.
+
+  For more information about messages, see `Effusion.PWP.Messages`.
+  """
+  def handle_message(session, peer_id, message)
 
   def handle_message(d = %Download{}, remote_peer_id, {:have, i}) do
     peer = from p in Peer, where: p.peer_id == ^remote_peer_id
