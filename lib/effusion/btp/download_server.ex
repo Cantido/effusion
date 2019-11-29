@@ -109,10 +109,12 @@ defmodule Effusion.BTP.DownloadServer do
        ConnectionRegistry.btp_broadcast(d.info_hash, {:have, piece.index})
      end)
 
-     write_messages =
-       d.pieces
-       |> Pieces.verified()
-       |> Enum.map(fn p -> {:write_piece, d.info_hash, d.file, p} end)
+      d = d.pieces
+      |> Pieces.verified()
+      |> Enum.reduce(d, fn p, d_acc ->
+        Effusion.IOServer.write_piece(d.info_hash, d.file, p)
+        mark_piece_written(d_acc, block.index)
+      end)
 
     peer_request_query = from peer_piece in PeerPiece,
                           join: peer in assoc(peer_piece, :peer),
@@ -125,7 +127,7 @@ defmodule Effusion.BTP.DownloadServer do
       {d, []}
     end
 
-    {d, write_messages ++ request_messages}
+    {d, request_messages}
   end
 
   def handle_message(d = %Download{}, remote_peer_id, {:bitfield, bitfield}) when is_peer_id(remote_peer_id) and is_binary(bitfield) do
@@ -207,13 +209,9 @@ defmodule Effusion.BTP.DownloadServer do
     {d, []}
   end
 
-  defp handle_internal_message({:write_piece, info_hash, destdir, block}, state = %Download{}) do
-    start = System.monotonic_time(:microsecond)
-    Effusion.IOServer.write_piece(info_hash, destdir, block)
-    state = Download.mark_piece_written(state, block.index)
-    stop = System.monotonic_time(:microsecond)
-    Logger.debug(":write_piece latency: #{stop - start} μs")
-    state
+
+  def mark_piece_written(d = %Download{}, i) do
+    Map.update(d, :pieces, Pieces.new(d.info_hash), &Pieces.mark_piece_written(&1, i))
   end
 
   defp handle_internal_message({:announce, announce_params}, state = %Download{}) do
@@ -224,7 +222,7 @@ defmodule Effusion.BTP.DownloadServer do
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
 
     stop = System.monotonic_time(:microsecond)
-    Logger.debug(":write_piece latency: #{stop - start} μs")
+    Logger.debug(":announce latency: #{stop - start} μs")
     state
   end
 
