@@ -231,6 +231,31 @@ defmodule Effusion.BTP.DownloadServer do
       ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
     end
 
+    if Download.done?(d) do
+      {:stop, :normal, :ok, d}
+    else
+      {:reply, :ok, d}
+    end
+  end
+
+  def handle_call({:handle_msg, remote_peer_id, {:have, i}}, _from, d = %Download{}) when is_peer_id(remote_peer_id) do
+    peer = from p in Peer, where: p.peer_id == ^remote_peer_id
+    piece = from p in Piece,
+             join: torrent in assoc(p, :torrent),
+             where: torrent.info_hash == ^d.info_hash
+                and p.index == ^i
+
+    peer = Repo.one!(peer)
+    piece = Repo.one!(piece)
+
+    Repo.insert(%PeerPiece{
+      peer: peer,
+      piece: piece
+    })
+
+    if !Pieces.has_piece?(d.pieces, i) do
+      ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
+    end
 
     if Download.done?(d) do
       {:stop, :normal, :ok, d}
@@ -256,28 +281,6 @@ defmodule Effusion.BTP.DownloadServer do
   For more information about messages, see `Effusion.PWP.Messages`.
   """
   def handle_message(session, peer_id, message)
-
-  def handle_message(d = %Download{}, remote_peer_id, {:have, i}) do
-    peer = from p in Peer, where: p.peer_id == ^remote_peer_id
-    piece = from p in Piece,
-             join: torrent in assoc(p, :torrent),
-             where: torrent.info_hash == ^d.info_hash
-                and p.index == ^i
-
-    peer = Repo.one!(peer)
-    piece = Repo.one!(piece)
-
-    Repo.insert(%PeerPiece{
-      peer: peer,
-      piece: piece
-    })
-
-    if !Pieces.has_piece?(d.pieces, i) do
-      ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
-    end
-
-    d
-  end
 
   def handle_message(d = %Download{}, remote_peer_id, :choke) do
     Repo.delete_all(from request in Request,
