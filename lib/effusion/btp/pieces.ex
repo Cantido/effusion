@@ -92,13 +92,10 @@ defmodule Effusion.BTP.Pieces do
                     join: piece in assoc(block, :piece),
                     where: piece.id == ^piece_dbid,
                     order_by: block.offset,
-                    select: block.data
+                    group_by: block.position,
+                    select: fragment("string_agg(?, '')", block.data)
 
-      data_blocks = Repo.all(data_query)
-
-      piece_data = Enum.reduce(data_blocks, <<>>, fn data, bin ->
-        bin <> data
-      end)
+      piece_data = Repo.one(data_query)
 
       piece_expected_hash = Repo.one(from piece in Piece,
                                       where: piece.id == ^piece_dbid,
