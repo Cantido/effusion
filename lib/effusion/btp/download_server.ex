@@ -213,20 +213,6 @@ defmodule Effusion.BTP.DownloadServer do
     {d, request_messages}
   end
 
-
-
-  defp handle_internal_message({:btp_connect, address, local_info_hash, local_peer_id, expected_peer_id}, state = %Download{})
-  when is_hash(local_info_hash)
-   and is_peer_id(local_peer_id)
-   and is_peer_id(expected_peer_id) or is_nil(expected_peer_id) do
-    start = System.monotonic_time(:microsecond)
-    OutgoingHandler.connect({address, local_info_hash, local_peer_id, expected_peer_id})
-    stop = System.monotonic_time(:microsecond)
-    Logger.debug(":btp_connect latency: #{stop - start} μs")
-
-    state
-  end
-
   defp handle_internal_message({:broadcast, outgoing_msg}, state = %Download{}) do
     start = System.monotonic_time(:microsecond)
     ConnectionRegistry.btp_broadcast(state.meta.info_hash, outgoing_msg)
@@ -258,10 +244,9 @@ defmodule Effusion.BTP.DownloadServer do
     start = System.monotonic_time(:microsecond)
     {:ok, res} = apply(@thp_client, :announce, announce_params)
 
-    messages = handle_tracker_response(state, res)
+    handle_tracker_response(state, res)
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
 
-    state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
     stop = System.monotonic_time(:microsecond)
     Logger.debug(":write_piece latency: #{stop - start} μs")
     state
@@ -335,9 +320,11 @@ defmodule Effusion.BTP.DownloadServer do
     max_peers = Application.get_env(:effusion, :max_peers)
     eligible_peers = PeerSelection.select_lowest_failcount(max_peers)
 
-    Enum.map(eligible_peers, fn p ->
-      connect_message(p.address.address, p.port, d.info_hash, d.peer_id, p.peer_id)
+    Enum.each(eligible_peers, fn p ->
+      address = {p.address.address, p.port}
+      OutgoingHandler.connect({address, d.info_hash, d.peer_id, p.peer_id})
     end)
+    d
   end
 
   ## Callbacks
@@ -396,14 +383,10 @@ defmodule Effusion.BTP.DownloadServer do
   def handle_cast({:unregister_connection, {ip, port}, reason}, state = %Download{}) do
     start = System.monotonic_time(:microsecond)
 
-    messages = PeerSelection.select_lowest_failcount(1)
+    PeerSelection.select_lowest_failcount(1)
         |> Enum.map(fn peer ->
-          connect_message(
-            peer.address.address,
-            peer.port,
-            state.info_hash,
-            state.peer_id,
-            peer.peer_id)
+          address = {peer.address.address, peer.port}
+          OutgoingHandler.connect({address, state.info_hash, state.peer_id, peer.peer_id})
         end)
 
     Repo.one(from peer in Peer,
@@ -412,25 +395,10 @@ defmodule Effusion.BTP.DownloadServer do
     |> Peer.changeset()
     |> Repo.update(update: [inc: [failcount: 1]])
 
-    state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
-
     stop = System.monotonic_time(:microsecond)
     Logger.debug(":unregister_connection latency: #{stop - start} μs")
 
     {:noreply, state}
-  end
-
-  defp connect_message(address, port, info_hash, local_peer_id, remote_peer_id)
-    when is_hash(info_hash)
-     and is_peer_id(local_peer_id)
-     and is_peer_id(remote_peer_id) or is_nil(remote_peer_id) do
-    {
-      :btp_connect,
-      {address, port},
-      info_hash,
-      local_peer_id,
-      remote_peer_id
-    }
   end
 
   def handle_info(:timeout, state = %Download{}) do
@@ -445,10 +413,8 @@ defmodule Effusion.BTP.DownloadServer do
     announce_params = announce_params(state, :interval)
     {:ok, res} = apply(@thp_client, :announce, announce_params)
 
-    messages = handle_tracker_response(state, res)
+    handle_tracker_response(state, res)
     Process.send_after(self(), :interval_expired, res.interval * 1_000)
-
-    state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
 
     {:noreply, state}
   end
