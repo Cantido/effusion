@@ -276,6 +276,16 @@ defmodule Effusion.BTP.DownloadServer do
     end
   end
 
+  def handle_call({:handle_msg, remote_peer_id, :unchoke}, _from, d = %Download{}) when is_peer_id(remote_peer_id) do
+    next_request_from_peer(d, remote_peer_id, 100)
+
+    if Download.done?(d) do
+      {:stop, :normal, :ok, d}
+    else
+      {:reply, :ok, d}
+    end
+  end
+
   def handle_call({:handle_msg, remote_peer_id, msg}, _from, d = %Download{}) when is_peer_id(remote_peer_id) do
     state = handle_message(d, remote_peer_id, msg)
 
@@ -285,23 +295,6 @@ defmodule Effusion.BTP.DownloadServer do
       {:reply, :ok, d}
     end
   end
-
-
-  @doc """
-  Handle a Peer Wire Protocol (PWP) message send by the remote peer identified by `peer_id`.
-
-  For more information about messages, see `Effusion.PWP.Messages`.
-  """
-  def handle_message(session, peer_id, message)
-
-  def handle_message(d = %Download{}, remote_peer_id, :unchoke) do
-    next_request_from_peer(d, remote_peer_id, 100)
-
-    d
-  end
-
-  def handle_message(d = %Download{}, _remote_peer_id, _msg), do: d
-
 
   def handle_call(:get, _from, state = %Download{}) do
     {:reply, state, state}
