@@ -188,14 +188,16 @@ defmodule Effusion.BTP.DownloadServer do
     verified
     |> Enum.map(fn piece ->
       ConnectionRegistry.btp_broadcast(d.info_hash, {:have, piece.index})
+      Repo.get(Piece, piece.id)
+      |> Ecto.Changeset.change(announced: true)
+      |> Repo.update!()
     end)
 
-     d = d.pieces
-     |> Pieces.verified()
-     |> Enum.reduce(d, fn p, d_acc ->
-       Effusion.IOServer.write_piece(d.info_hash, d.file, p)
-       mark_piece_written(d_acc, block.index)
-     end)
+    verified
+    |> Enum.reduce(d, fn p, d_acc ->
+      Effusion.IOServer.write_piece(d.info_hash, d.file, p)
+      mark_piece_written(d_acc, block.index)
+    end)
 
    peer_request_query = from peer_piece in PeerPiece,
                          join: peer in assoc(peer_piece, :peer),

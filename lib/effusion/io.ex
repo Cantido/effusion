@@ -1,7 +1,10 @@
 defmodule Effusion.IO do
   require Logger
   alias Effusion.BTP.Pieces
+  alias Effusion.BTP.Block
   alias Effusion.BTP.Metainfo
+  alias Effusion.Repo
+  import Ecto.Query
 
   @moduledoc """
   Functions for reading and writing files described by torrents.
@@ -30,10 +33,25 @@ defmodule Effusion.IO do
     {:ok, torrent}
   end
 
-  def write_piece(info_hash, destdir, block) do
+  def write_piece(info_hash, destdir, %{index: index}) do
+    Logger.debug("Writing piece #{index} for #{info_hash |> Effusion.Hash.inspect()}...")
     info = Metainfo.get_meta(info_hash).info
 
-    do_write_pieces(info, destdir, [block])
+    data_query = from block in Block,
+                  join: piece in assoc(block, :piece),
+                  join: torrent in assoc(piece, :torrent),
+                  where: torrent.info_hash == ^info_hash,
+                  where: piece.index == ^index,
+                  order_by: block.offset,
+                  select: block.data
+    data_blocks = Repo.all(data_query)
+
+    piece_data = Enum.reduce(data_blocks, <<>>, fn data, bin ->
+      bin <> data
+    end)
+
+    ret = do_write_pieces(info, destdir, [%{index: index, data: piece_data}])
+    Logger.debug("Done writing piece #{index} for #{info_hash |> Effusion.Hash.inspect()}")
   end
 
   defp do_write_pieces(info, destdir, pieces) do

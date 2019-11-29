@@ -92,6 +92,7 @@ defmodule Effusion.PWP.Connection do
   def handle_btp({:handshake, remote_peer_id, info_hash, _reserved}, state = %{socket: socket})
     when is_peer_id(remote_peer_id)
      and is_hash(info_hash) do
+    Logger.debug("Receiving handshake from #{remote_peer_id}")
     PeerStats.inc_num_tcp_peers()
 
     with [{_pid, _hash}] <- Registry.lookup(SessionRegistry, info_hash),
@@ -118,6 +119,7 @@ defmodule Effusion.PWP.Connection do
   def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id})
     when is_hash(info_hash)
      and is_peer_id(peer_id) do
+    Logger.debug("Receiving message from #{peer_id}: #{inspect msg}")
     SessionStats.inc_incoming_message(msg)
     :ok = DownloadServer.handle_message(info_hash, peer_id, msg)
     {:noreply, state}

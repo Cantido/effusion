@@ -121,6 +121,6 @@ defmodule Effusion.BTP.Download do
   Check if this download has received all necessary bytes.
   """
   def done?(d = %__MODULE__{}) do
-    Pieces.all_present?(d.pieces)
+    Pieces.all_written?(d.pieces)
   end
 end
