@@ -7,7 +7,6 @@ defmodule Effusion.BTP.Download do
   alias Effusion.BTP.PeerPiece
   alias Effusion.BTP.Block
   alias Effusion.BTP.Request
-  alias Effusion.BTP.Swarm
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Metainfo
   alias Effusion.Repo
@@ -67,7 +66,6 @@ defmodule Effusion.BTP.Download do
       peer_id: @local_peer_id,
       pieces: Pieces.new(meta.info_hash),
       local_address: local_address,
-      swarm: Swarm.new(@local_peer_id, meta.info_hash),
       availability_map: AvailabilityMap.new(),
       block_size: @block_size,
     }
@@ -238,12 +236,20 @@ defmodule Effusion.BTP.Download do
         d.trackerid
       end
 
-    swarm = Swarm.add(d.swarm, res.peers)
+    changesets = Enum.map(res.peers, fn peer ->
+      %{
+        address: %Postgrex.INET{address: peer.ip},
+        port: peer.port,
+        peer_id: Map.get(peer, :peer_id, nil)
+      }
+    end)
+
+    Repo.insert_all(Peer, changesets, on_conflict: {:replace, [:address]},
+                   conflict_target: [:peer_id])
 
     d =
       d
       |> Map.put(:trackerid, trackerid)
-      |> Map.put(:swarm, swarm)
 
     max_peers = Application.get_env(:effusion, :max_peers)
     eligible_peers = PeerSelection.select_lowest_failcount(max_peers)
@@ -263,8 +269,7 @@ defmodule Effusion.BTP.Download do
 
   def handle_message(d = %__MODULE__{}, from, {:piece, block})
        when is_peer_id(from) do
-     {swarm, cancel_messages} = Swarm.cancel_block_requests(d.swarm, block, from)
-     d = %{d | swarm: swarm}
+     {d, cancel_messages} = cancel_block_requests(d, block, from)
 
      d = Map.update!(d, :pieces, &Pieces.add_block(&1, block))
      verified = Pieces.verified(d.pieces)
@@ -278,7 +283,7 @@ defmodule Effusion.BTP.Download do
        |> Pieces.verified()
        |> Enum.map(fn p -> {:write_piece, d.meta.info, d.file, p} end)
 
-    peer = Swarm.select_peer(d.swarm, from) |> Repo.preload(:blocks_we_requested)
+    peer = Repo.one!(from peer in Peer, where: peer.peer_id == ^from) |> Repo.preload(:blocks_we_requested)
 
     {d, request_messages} = if Enum.empty?(peer.blocks_we_requested) do
       next_request_from_peer(d, from, Application.get_env(:effusion, :max_requests_per_peer))
@@ -357,8 +362,50 @@ defmodule Effusion.BTP.Download do
 
   def handle_message(d = %__MODULE__{}, _remote_peer_id, _msg), do: {:ok, d, []}
 
-  def handle_connect(d, peer_id, address) when is_peer_id(peer_id) do
-    Map.update!(d, :swarm, &Swarm.handle_connect(&1, peer_id, address))
+  def handle_connect(d, peer_id, {ip, port}) when is_peer_id(peer_id) do
+    conflicting_peers_query = from p in Peer,
+                              where: p.address == ^%Postgrex.INET{address: ip}
+                                and p.port == ^port
+                                and p.peer_id != ^peer_id
+
+    Repo.delete_all(conflicting_peers_query)
+
+    %Peer{
+      peer_id: peer_id,
+      address: %Postgrex.INET{address: ip},
+      port: port
+    }
+    |> Peer.changeset()
+    |> Repo.insert!(on_conflict: {:replace, [:address, :port, :peer_id]},
+                                  conflict_target: [:address, :port])
+    d
+  end
+
+  def cancel_block_requests(d = %__MODULE__{}, block, from) when is_peer_id(from) do
+    peer_ids_to_send_cancel = Repo.all(from request in Request,
+                                        join: block in assoc(request, :block),
+                                        join: piece in assoc(block, :piece),
+                                        join: peer in assoc(request, :peer),
+                                        where: piece.index == ^block.index
+                                           and block.offset == ^block.offset
+                                           and peer.peer_id != ^from,
+                                        select: {peer.peer_id, piece.index, block.offset, block.size})
+
+    cancel_messages =
+      peer_ids_to_send_cancel
+      |> Enum.map(fn {peer_id, index, offset, size} ->
+        {:btp_send, peer_id, {:cancel, index, offset, size}}
+      end)
+      |> Enum.uniq()
+
+    Repo.delete_all(from request in Request,
+                      join: block in assoc(request, :block),
+                      join: piece in assoc(block, :piece),
+                      join: peer in assoc(request, :peer),
+                      where: piece.index == ^block.index
+                         and block.offset == ^block.offset)
+
+    {d, cancel_messages}
   end
 
   def next_request_from_peer(d, peer_id, count \\ 1) do
@@ -413,10 +460,14 @@ defmodule Effusion.BTP.Download do
   @doc """
   Perform actions necessary when a peer at a given address disconnects.
   """
-  def handle_disconnect(d = %__MODULE__{}, address, reason \\ :normal) do
+  def handle_disconnect(d = %__MODULE__{}, {ip, port}, _reason \\ :normal) do
     messages = increment_connections(d)
 
-    Swarm.handle_disconnect(d.swarm, address, reason)
+    Repo.one(from peer in Peer,
+              where: peer.address == ^%Postgrex.INET{address: ip}
+              and peer.port == ^port)
+    |> Peer.changeset()
+    |> Repo.update(update: [inc: [failcount: 1]])
 
     {
       d,
