@@ -1,5 +1,6 @@
 defmodule Effusion.BTP.Pieces do
   require Logger
+  alias Effusion.BTP.Piece
   alias Effusion.BTP.Block
   alias Effusion.BTP.Metainfo
   alias Effusion.Repo
@@ -193,12 +194,26 @@ defmodule Effusion.BTP.Pieces do
   end
 
   def mark_piece_written(torrent, %{index: i}) do
+    Repo.one!(from piece in Piece,
+               join: torrent in assoc(piece, :torrent),
+               where: torrent.info_hash == ^torrent.info_hash,
+               where: piece.index == ^i)
+    |> Ecto.Changeset.change([written: true])
+    |> Repo.update()
+
     torrent
     |> Map.update(:written, IntSet.new(i), &IntSet.put(&1, i))
     |> remove_piece(i)
   end
 
   def mark_piece_written(torrent, i) when is_integer(i) do
+    Repo.one!(from piece in Piece,
+               join: torrent in assoc(piece, :torrent),
+               where: torrent.info_hash == ^torrent.info_hash,
+               where: piece.index == ^i)
+    |> Ecto.Changeset.change([written: true])
+    |> Repo.update()
+
     torrent
     |> Map.update(:written, IntSet.new(i), &IntSet.put(&1, i))
     |> remove_piece(i)
