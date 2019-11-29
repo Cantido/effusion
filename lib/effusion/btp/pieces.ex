@@ -252,14 +252,6 @@ defmodule Effusion.BTP.Pieces do
     |> Repo.update()
   end
 
-  def mark_pieces_written(torrent, [piece | rest]) do
-    torrent
-    |> mark_piece_written(piece)
-    |> mark_pieces_written(rest)
-  end
-
-  def mark_pieces_written(torrent, []), do: torrent
-
   defp remove_piece(torrent, index) do
     verified =
       torrent
