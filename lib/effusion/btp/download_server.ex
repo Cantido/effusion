@@ -105,9 +105,8 @@ defmodule Effusion.BTP.DownloadServer do
     d
   end
 
-
   def mark_piece_written(d = %Download{}, i) do
-    Map.update(d, :pieces, Pieces.new(d.info_hash), &Pieces.mark_piece_written(&1, i))
+    Pieces.mark_piece_written(d.info_hash, i)
   end
 
   defp announce_params(d, event) do
@@ -128,8 +127,8 @@ defmodule Effusion.BTP.DownloadServer do
       d.peer_id,
       d.info_hash,
       0,
-      Pieces.bytes_completed(d.pieces),
-      Pieces.bytes_left(d.pieces),
+      Pieces.bytes_completed(d.info_hash),
+      Pieces.bytes_left(d.info_hash),
       opts
     ]
   end
@@ -182,8 +181,8 @@ defmodule Effusion.BTP.DownloadServer do
       ConnectionRegistry.btp_send(d.info_hash, peer_id, {:cancel, index, offset, size})
     end)
 
-    Pieces.add_block(d.pieces, block)
-    verified = Pieces.verified(d.pieces)
+    Pieces.add_block(d.info_hash, block)
+    verified = Pieces.verified(d.info_hash)
 
     verified
     |> Enum.map(fn piece ->
@@ -196,7 +195,7 @@ defmodule Effusion.BTP.DownloadServer do
     verified
     |> Enum.reduce(d, fn p, d_acc ->
       Effusion.IOServer.write_piece(d.info_hash, d.file, p)
-      mark_piece_written(d_acc, block.index)
+      Pieces.mark_piece_written(d.info_hash, block.index)
     end)
 
    peer_request_query = from peer_piece in PeerPiece,
@@ -229,7 +228,7 @@ defmodule Effusion.BTP.DownloadServer do
 
     Repo.insert_all(PeerPiece, peer_pieces)
 
-    if !Pieces.has_pieces?(d.pieces, bitfield) do
+    if !Pieces.has_pieces?(d.info_hash, bitfield) do
       ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
     end
 
@@ -251,7 +250,7 @@ defmodule Effusion.BTP.DownloadServer do
       piece: piece
     })
 
-    if !Pieces.has_piece?(d.pieces, i) do
+    if !Pieces.has_piece?(d.info_hash, i) do
       ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
     end
 

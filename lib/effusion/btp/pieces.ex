@@ -5,6 +5,7 @@ defmodule Effusion.BTP.Pieces do
   alias Effusion.BTP.Metainfo
   alias Effusion.Repo
   alias Effusion.Hash
+  import Effusion.Hash, only: [is_hash: 1]
   import Ecto.Query
 
   @moduledoc """
@@ -15,11 +16,7 @@ defmodule Effusion.BTP.Pieces do
   Create a map that describes a torrent download.
   """
   def new(info_hash) do
-    %{
-      info_hash: info_hash,
-      info: Metainfo.get_meta(info_hash).info,
-      blocks: MapSet.new()
-    }
+    info_hash
   end
 
   @doc """
@@ -27,30 +24,32 @@ defmodule Effusion.BTP.Pieces do
 
   This bitfield includes both in-memory as well as on-disk pieces.
   """
-  def bitfield(torrent) do
-    written = written(torrent)
-    cached = Enum.map(verified(torrent), fn p -> p.index end) |> IntSet.new()
+  def bitfield(info_hash) do
+    written = written(info_hash)
+    cached = Enum.map(verified(info_hash), fn p -> p.index end) |> IntSet.new()
 
     IntSet.union(written, cached)
   end
 
-  def has_block?(_torrent, block) do
+  def has_block?(info_hash, block) when is_hash(info_hash) do
     i = block.index
     o = block.offset
 
     Repo.exists?(from b in block,
                  join: p in assoc(b, :piece),
+                 join: torrent in assoc(p, :torrent),
+                 where: torrent.info_hash == ^info_hash,
                  where: p.index == ^i,
                  where: b.offset == ^o,
                  where: not is_nil(b.data))
   end
 
-  def has_piece?(torrent, index) when is_integer(index) and index > 0 do
-    bitfield(torrent) |> Enum.member?(index)
+  def has_piece?(info_hash, index) when is_hash(info_hash) and is_integer(index) and index > 0 do
+    bitfield(info_hash) |> Enum.member?(index)
   end
 
-  def has_pieces?(torrent, bits) do
-    we_have = bitfield(torrent)
+  def has_pieces?(info_hash, bits) when is_hash(info_hash) do
+    we_have = bitfield(info_hash)
     do_we_have = IntSet.new(bits)
 
     IntSet.difference(do_we_have, we_have)
@@ -63,12 +62,13 @@ defmodule Effusion.BTP.Pieces do
   If the addition of the block finishes a piece,
   the piece will then be verified and moved to the `:pieces` set.
   """
-  def add_block(torrent = %{info: %{piece_length: piece_length}}, block = %{index: i, offset: o, data: data})
-      when is_integer(piece_length) and 0 <= piece_length and byte_size(data) <= piece_length do
 
-    Logger.debug("inserting block #{inspect block}")
+
+  def add_block(info_hash, block = %{index: i, offset: o, data: data}) when is_hash(info_hash) do
     {:ok, _block} = Repo.one!(from b in Block,
                       join: p in assoc(b, :piece),
+                      join: torrent in assoc(p, :torrent),
+                      where: torrent.info_hash == ^info_hash,
                       where: p.index == ^i,
                       where: b.offset == ^o)
     |> Ecto.Changeset.change(data: data)
@@ -76,11 +76,15 @@ defmodule Effusion.BTP.Pieces do
 
     blocks_per_piece_query = from piece in Piece,
                               join: block in assoc(piece, :blocks),
+                              join: torrent in assoc(piece, :torrent),
+                              where: torrent.info_hash == ^info_hash,
                               group_by: piece.id,
                               select: {piece.id, count(block.id)}
 
     blocks_per_piece_with_data_query = from piece in Piece,
                                         join: block in assoc(piece, :blocks),
+                                        join: torrent in assoc(piece, :torrent),
+                                        where: torrent.info_hash == ^info_hash,
                                         where: not is_nil(block.data),
                                         group_by: piece.id,
                                         select: {piece.id, count(block.id)}
@@ -115,24 +119,31 @@ defmodule Effusion.BTP.Pieces do
         Repo.update_all(blocks_query, set: [data: nil])
       end
     end)
-    torrent
+  end
+
+  def add_block(torrent, block) do
+    add_block(torrent.info_hash, block)
   end
 
   @doc """
   Get the set of blocks cached by this torrent.
   """
-  def unfinished(torrent) do
+  def unfinished(info_hash) when is_hash(info_hash) do
     unfinished_piece_blocks_query = from block in Block,
                                     join: piece in assoc(block, :piece),
+                                    join: torrent in assoc(piece, :torrent),
+                                    where: torrent.info_hash == ^info_hash,
                                     where: not piece.verified,
                                     where: not is_nil(block.data)
 
     Repo.all(unfinished_piece_blocks_query)
   end
 
-  def verified(torrent) do
+  def verified(info_hash) when is_hash(info_hash) do
     verified_piece_blocks_query = from block in Block,
                                     join: piece in assoc(block, :piece),
+                                    join: torrent in assoc(piece, :torrent),
+                                    where: torrent.info_hash == ^info_hash,
                                     where: piece.verified,
                                     where: not piece.announced,
                                     select: %{index: piece.index, id: piece.id}
@@ -140,9 +151,11 @@ defmodule Effusion.BTP.Pieces do
     Repo.all(verified_piece_blocks_query)
   end
 
-  def written(torrent) do
+  def written(info_hash) when is_hash(info_hash) do
     written_piece_blocks_query = from block in Block,
                                     join: piece in assoc(block, :piece),
+                                    join: torrent in assoc(piece, :torrent),
+                                    where: torrent.info_hash == ^info_hash,
                                     where: piece.written,
                                     select: piece.index
 
@@ -152,18 +165,34 @@ defmodule Effusion.BTP.Pieces do
   @doc """
   Returns `true` if all pieces of this torrent have been written to disk.
   """
-  def all_written?(torrent) do
-    written(torrent) |> Enum.count() == Enum.count(torrent.info.pieces)
+  def all_written?(info_hash) when is_hash(info_hash) do
+    written(info_hash) |> Enum.count() == piece_count(info_hash)
   end
 
   @doc """
   Check if the torrent has cached or written all of the pieces it needs to be complete.
   """
-  def all_present?(torrent) do
-    in_memory_pieces = verified(torrent) |> Enum.count()
-    on_disk_pieces = written(torrent) |> Enum.count()
+  def all_present?(info_hash) when is_hash(info_hash) do
+    in_memory_pieces = verified(info_hash) |> Enum.count()
+    on_disk_pieces = written(info_hash) |> Enum.count()
 
-    in_memory_pieces + on_disk_pieces == Enum.count(torrent.info.pieces)
+    piece_count = piece_count(info_hash)
+
+    in_memory_pieces + on_disk_pieces == piece_count
+  end
+
+  def piece_count(info_hash) when is_hash(info_hash) do
+    Repo.one(from piece in Piece,
+                            join: torrent in assoc(piece, :torrent),
+                            where: torrent.info_hash == ^info_hash,
+                            select: count(piece.index))
+  end
+
+  def torrent_length(info_hash) when is_hash(info_hash) do
+    Repo.one(from piece in Piece,
+              join: torrent in assoc(piece, :torrent),
+              where: torrent.info_hash == ^info_hash,
+              select: sum(piece.size))
   end
 
   @doc """
@@ -171,72 +200,56 @@ defmodule Effusion.BTP.Pieces do
 
   This includes bytes in blocks that have not yet been verified.
   """
-  def bytes_completed(torrent) do
-    unfinished_bytes(torrent) + verified_bytes(torrent) + bytes_written(torrent)
+  def bytes_completed(info_hash) when is_hash(info_hash) do
+    unfinished_bytes(info_hash) + verified_bytes(info_hash) + bytes_written(info_hash)
   end
 
-  defp unfinished_bytes(torrent) do
-    torrent
+  defp unfinished_bytes(info_hash) when is_hash(info_hash) do
+    info_hash
     |> unfinished()
     |> Enum.map(&Map.get(&1, :data))
     |> Enum.map(&byte_size/1)
     |> Enum.sum()
   end
 
-  defp verified_bytes(torrent) do
-    count = Repo.one(from piece in Piece,
+  defp verified_bytes(info_hash) when is_hash(info_hash) do
+    Repo.one(from piece in Piece,
+              join: torrent in assoc(piece, :torrent),
+              where: torrent.info_hash == ^info_hash,
               where: piece.verified,
-              select: sum(piece.size))
-    if is_integer(count) do
-      count
-    else
-      0
-    end
+              select: coalesce(sum(piece.size), 0))
   end
 
-  defp bytes_written(torrent) do
-    info = torrent.info
-    pieces = written(torrent)
-
-    last_piece_size = rem(info.length, info.piece_length)
-    last_piece_index = Enum.count(info.pieces) - 1
-    has_last_piece = Enum.member?(pieces, last_piece_index)
-
-    naive_size = Enum.count(pieces) * torrent.info.piece_length
-
-    if has_last_piece do
-      naive_size - torrent.info.piece_length + last_piece_size
-    else
-      naive_size
-    end
+  defp bytes_written(info_hash) when is_hash(info_hash) do
+    Repo.one(from piece in Piece,
+              join: torrent in assoc(piece, :torrent),
+              where: torrent.info_hash == ^info_hash,
+              where: piece.written,
+              select: coalesce(sum(piece.size), 0))
   end
 
   @doc """
   Get the number of bytes still necessary for this download to be finished.
   """
-  def bytes_left(torrent) do
-    if all_present?(torrent) do
+  def bytes_left(info_hash) when is_hash(info_hash) do
+    if all_present?(info_hash) do
       0
     else
-      torrent.info.length - bytes_completed(torrent)
+      torrent_length(info_hash) - bytes_completed(info_hash)
     end
   end
 
   def mark_piece_written(torrent, %{index: i}) do
-    mark_piece_written(torrent, i)
+    mark_piece_written(torrent.info_hash, i)
   end
 
-  def mark_piece_written(torrent, i) when is_integer(i) do
+  def mark_piece_written(info_hash, i) when is_integer(i) do
     Repo.one!(from piece in Piece,
                join: torrent in assoc(piece, :torrent),
-               where: torrent.info_hash == ^torrent.info_hash,
+               where: torrent.info_hash == ^info_hash,
                where: piece.index == ^i)
     |> Ecto.Changeset.change([written: true])
     |> Repo.update()
-
-    torrent
-    |> Map.update(:written, IntSet.new(i), &IntSet.put(&1, i))
-    |> remove_piece(i)
   end
 
   def mark_pieces_written(torrent, [piece | rest]) do
