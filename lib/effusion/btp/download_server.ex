@@ -273,7 +273,7 @@ defmodule Effusion.BTP.DownloadServer do
   This means the session will make an announcement to the tracker and begin
   making connections.
   """
-  def start(session) do
+  def start_download(session) do
     _ = Logger.info("Starting download #{Effusion.Hash.inspect(session.info_hash)}")
 
     Repo.delete_all(PeerPiece)
@@ -434,7 +434,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_info(:timeout, state = %Download{}) do
-    {state, messages} = start(state)
+    {state, messages} = start_download(state)
 
     state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
 
