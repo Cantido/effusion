@@ -12,6 +12,7 @@ defmodule Effusion.BTP.Piece do
     field :index, :integer
     field :hash, :binary, null: false
     field :size, :integer, null: false
+    field :verified, :boolean, default: false, null: false
     field :written, :boolean, default: false, null: false
     has_many :blocks, Block
     has_many :peer_pieces, PeerPiece
