@@ -1,5 +1,5 @@
 defmodule Effusion.BTP.BlockTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   alias Effusion.BTP.Block
   alias Effusion.Repo
   alias Effusion.Factory
