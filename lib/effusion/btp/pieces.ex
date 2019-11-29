@@ -251,16 +251,4 @@ defmodule Effusion.BTP.Pieces do
     |> Ecto.Changeset.change([written: true])
     |> Repo.update()
   end
-
-  defp remove_piece(torrent, index) do
-    verified =
-      torrent
-      |> verified()
-      |> Enum.reject(fn p ->
-        p.index == index
-      end)
-      |> MapSet.new()
-
-    Map.put(torrent, :verified, verified)
-  end
 end
