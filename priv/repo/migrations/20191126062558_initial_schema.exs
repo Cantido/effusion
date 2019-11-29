@@ -19,6 +19,7 @@ defmodule Effusion.Repo.Migrations.InitialSchema do
       add :index, :integer, null: false
       add :hash, :binary, null: false
       add :size, :integer, null: false
+      add :written, :boolean, default: false, null: false
     end
     create unique_index(:pieces, [:torrent_id, :index])
     create constraint(:pieces, :hash_must_be_twenty_bytes, check: "octet_length(hash) = 20")

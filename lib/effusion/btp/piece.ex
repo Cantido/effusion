@@ -12,6 +12,7 @@ defmodule Effusion.BTP.Piece do
     field :index, :integer
     field :hash, :binary, null: false
     field :size, :integer, null: false
+    field :written, :boolean, default: false, null: false
     has_many :blocks, Block
     has_many :peer_pieces, PeerPiece
     has_many :owners, through: [:peer_pieces, :peer]
@@ -19,9 +20,8 @@ defmodule Effusion.BTP.Piece do
 
   def changeset(piece, params \\ %{}) do
     piece
-    |> cast_assoc(:torrent)
-    |> cast(params, [:index, :hash, :size])
-    |> validate_required([:torrent, :index, :hash, :size])
+    |> cast(params, [:index, :hash, :size, :written])
+    |> validate_required([:torrent, :index, :hash, :size, :written])
   end
 
   def all_indicies_query(info_hash, indicies) do
