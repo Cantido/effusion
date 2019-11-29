@@ -27,6 +27,7 @@ defmodule Effusion.BTP.Download do
     :peer_id,
     :pieces,
     :local_address,
+    :info_hash,
     started_at: nil,
     listeners: MapSet.new(),
     trackerid: ""
@@ -53,6 +54,7 @@ defmodule Effusion.BTP.Download do
 
     %__MODULE__{
       file: file,
+      info_hash: meta.info_hash,
       meta: meta,
       peer_id: @local_peer_id,
       pieces: Pieces.new(meta.info_hash),
@@ -67,7 +69,7 @@ defmodule Effusion.BTP.Download do
   making connections.
   """
   def start(session = %__MODULE__{}) do
-    _ = Logger.info("Starting download #{Effusion.Hash.inspect(session.meta.info_hash)}")
+    _ = Logger.info("Starting download #{Effusion.Hash.inspect(session.info_hash)}")
 
     Repo.delete_all(PeerPiece)
     Repo.delete_all(Request)
@@ -121,7 +123,7 @@ defmodule Effusion.BTP.Download do
   end
 
   def mark_piece_written(d = %__MODULE__{}, i) do
-    Map.update(d, :pieces, Pieces.new(d.meta.info_hash), &Pieces.mark_piece_written(&1, i))
+    Map.update(d, :pieces, Pieces.new(d.info_hash), &Pieces.mark_piece_written(&1, i))
   end
 
   @doc """
@@ -162,7 +164,7 @@ defmodule Effusion.BTP.Download do
       local_host,
       local_port,
       d.peer_id,
-      d.meta.info_hash,
+      d.info_hash,
       0,
       Pieces.bytes_completed(d.pieces),
       Pieces.bytes_left(d.pieces),
@@ -197,7 +199,7 @@ defmodule Effusion.BTP.Download do
     eligible_peers = PeerSelection.select_lowest_failcount(max_peers)
 
     messages = Enum.map(eligible_peers, fn p ->
-      connect_message(p.address.address, p.port, d.meta.info_hash, d.peer_id, p.peer_id)
+      connect_message(p.address.address, p.port, d.info_hash, d.peer_id, p.peer_id)
     end)
     {d, messages}
   end
@@ -245,7 +247,7 @@ defmodule Effusion.BTP.Download do
   def handle_message(d = %__MODULE__{}, remote_peer_id, {:bitfield, bitfield}) when is_peer_id(remote_peer_id) and is_binary(bitfield) do
     peer = Repo.one!(from p in Peer, where: [peer_id: ^remote_peer_id])
     indicies = IntSet.new(bitfield) |> Enum.to_list()
-    pieces_query = Piece.all_indicies_query(d.meta.info_hash, indicies)
+    pieces_query = Piece.all_indicies_query(d.info_hash, indicies)
     pieces = Repo.all(pieces_query)
     peer_pieces = Enum.map(pieces, fn p ->
       %{
@@ -270,7 +272,7 @@ defmodule Effusion.BTP.Download do
     peer = from p in Peer, where: p.peer_id == ^remote_peer_id
     piece = from p in Piece,
              join: torrent in assoc(p, :torrent),
-             where: torrent.info_hash == ^d.meta.info_hash
+             where: torrent.info_hash == ^d.info_hash
                 and p.index == ^i
 
     peer = Repo.one!(peer)
@@ -312,7 +314,7 @@ defmodule Effusion.BTP.Download do
   end
 
   defp next_request_from_peer(d, peer_id, count) do
-    info_hash = d.meta.info_hash
+    info_hash = d.info_hash
 
     requests = Request.valid_requests_from_peer_query(info_hash, peer_id, count)
     |> Repo.all()
@@ -341,7 +343,7 @@ defmodule Effusion.BTP.Download do
           connect_message(
             peer.address.address,
             peer.port,
-            d.meta.info_hash,
+            d.info_hash,
             d.peer_id,
             peer.peer_id)
         end)
