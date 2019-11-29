@@ -231,21 +231,7 @@ defmodule Effusion.BTP.Pieces do
   end
 
   def mark_piece_written(torrent, %{index: i}) do
-    Repo.one!(from piece in Piece,
-               join: torrent in assoc(piece, :torrent),
-               where: torrent.info_hash == ^torrent.info_hash,
-               where: piece.index == ^i)
-    |> Ecto.Changeset.change([written: true])
-    |> Repo.update()
-
-    blocks_query = from block in Block,
-                  join: piece in assoc(block, :piece),
-                  join: torrent in assoc(piece, :torrent),
-                  where: torrent.info_hash == ^torrent.info_hash,
-                  where: piece.index == ^i
-    Repo.delete_all(blocks_query)
-
-    torrent
+    mark_piece_written(torrent, i)
   end
 
   def mark_piece_written(torrent, i) when is_integer(i) do
@@ -279,61 +265,5 @@ defmodule Effusion.BTP.Pieces do
       |> MapSet.new()
 
     Map.put(torrent, :verified, verified)
-  end
-
-  defp reduce_blocks(blocks, block) do
-    adjacent_block = Enum.find(blocks, fn b -> Block.adjacent?(b, block) end)
-
-    if adjacent_block == nil do
-      MapSet.put(blocks, block)
-    else
-      blocks
-      |> MapSet.delete(adjacent_block)
-      |> MapSet.put(Block.merge(adjacent_block, block))
-    end
-  end
-
-  defp split_finished(blocks, info) do
-    finished = find_finished(blocks, info)
-    unfinished = MapSet.difference(blocks, finished)
-
-    {finished, unfinished}
-  end
-
-  defp find_finished(blocks, %{piece_length: target_size, length: file_size, pieces: pieces}) do
-    last_piece_index = Enum.count(pieces) - 1
-    last_piece_size = rem(file_size, target_size)
-
-    finished = find_finished_whole_pieces(blocks, target_size)
-    finished_last = find_finished_last_piece(blocks, last_piece_index, last_piece_size)
-
-    if finished_last == nil do
-      finished
-    else
-      MapSet.put(finished, finished_last)
-    end
-  end
-
-  defp find_finished_whole_pieces(blocks, target_size) do
-    finished? = &Block.finished?(&1, target_size)
-
-    Enum.filter(blocks, finished?) |> MapSet.new()
-  end
-
-  defp find_finished_last_piece(blocks, last_piece_index, last_piece_size) do
-    Enum.find(blocks, fn b ->
-      b.index == last_piece_index and byte_size(b.data) == last_piece_size
-    end)
-  end
-
-  defp strip_offsets(pieces) do
-    Enum.map(pieces, fn p ->
-      Block.to_piece(p)
-    end)
-    |> MapSet.new()
-  end
-
-  defp verify_all(pieces, info) do
-    Enum.filter(pieces, &Block.correct_hash?(&1, info)) |> MapSet.new()
   end
 end
