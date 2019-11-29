@@ -28,10 +28,6 @@ defmodule Effusion.BTP.Download do
     :peer_id,
     :pieces,
     :local_address,
-    :swarm,
-    :availability_map,
-    :block_size,
-    :torrent,
     started_at: nil,
     listeners: MapSet.new(),
     trackerid: ""
@@ -39,7 +35,6 @@ defmodule Effusion.BTP.Download do
 
 
   @local_peer_id Application.get_env(:effusion, :peer_id)
-  @block_size Application.get_env(:effusion, :block_size)
 
   @doc """
   Create a new download.
@@ -60,12 +55,9 @@ defmodule Effusion.BTP.Download do
     %__MODULE__{
       file: file,
       meta: meta,
-      torrent: torrent,
       peer_id: @local_peer_id,
       pieces: Pieces.new(meta.info_hash),
-      local_address: local_address,
-      availability_map: AvailabilityMap.new(),
-      block_size: @block_size,
+      local_address: local_address
     }
   end
 
