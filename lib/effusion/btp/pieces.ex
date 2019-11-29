@@ -73,7 +73,10 @@ defmodule Effusion.BTP.Pieces do
                       where: b.offset == ^o)
     |> Ecto.Changeset.change(data: data)
     |> Repo.update()
+    verify_all(info_hash)
+  end
 
+  def verify_all(info_hash) do
     blocks_per_piece_query = from piece in Piece,
                               join: block in assoc(piece, :blocks),
                               join: torrent in assoc(piece, :torrent),
