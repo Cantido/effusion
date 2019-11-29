@@ -2,9 +2,9 @@ defmodule Effusion.BTP.Piece do
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Block
   alias Effusion.BTP.PeerPiece
-  alias Effusion.BTP.Request
   use Ecto.Schema
   import Ecto.Changeset
+  import Ecto.Query
   import Effusion.Math
 
   schema "pieces" do
@@ -22,6 +22,13 @@ defmodule Effusion.BTP.Piece do
     |> cast_assoc(:torrent)
     |> cast(params, [:index, :hash, :size])
     |> validate_required([:torrent, :index, :hash, :size])
+  end
+
+  def all_indicies_query(info_hash, indicies) do
+    from p in __MODULE__,
+      join: torrent in assoc(p, :torrent),
+      where: torrent.info_hash == ^info_hash
+       and p.index in ^indicies
   end
 
   def piece_size(index, info) do

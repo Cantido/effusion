@@ -254,11 +254,7 @@ defmodule Effusion.BTP.Download do
   def handle_message(d = %__MODULE__{}, remote_peer_id, {:bitfield, bitfield}) when is_peer_id(remote_peer_id) and is_binary(bitfield) do
     peer = Repo.one!(from p in Peer, where: [peer_id: ^remote_peer_id])
     indicies = IntSet.new(bitfield) |> Enum.to_list()
-    pieces_query = from p in Piece,
-                    join: torrent in assoc(p, :torrent),
-                    where: torrent.info_hash == ^d.meta.info_hash
-                     and p.index in ^indicies
-
+    pieces_query = Piece.all_indicies_query(d.meta.info_hash, indicies)
     pieces = Repo.all(pieces_query)
     peer_pieces = Enum.map(pieces, fn p ->
       %{
