@@ -1,6 +1,7 @@
 defmodule Effusion.IO do
   require Logger
   alias Effusion.BTP.Pieces
+  alias Effusion.BTP.Metainfo
 
   @moduledoc """
   Functions for reading and writing files described by torrents.
@@ -29,7 +30,9 @@ defmodule Effusion.IO do
     {:ok, torrent}
   end
 
-  def write_piece(info, destdir, block) do
+  def write_piece(info_hash, destdir, block) do
+    info = Metainfo.get_meta(info_hash).info
+
     do_write_pieces(info, destdir, [block])
   end
 

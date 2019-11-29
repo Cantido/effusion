@@ -106,9 +106,9 @@ defmodule Effusion.BTP.DownloadServer do
     state
   end
 
-  defp handle_internal_message({:write_piece, info, destdir, block}, state = %Download{}) do
+  defp handle_internal_message({:write_piece, info_hash, destdir, block}, state = %Download{}) do
     start = System.monotonic_time(:microsecond)
-    Effusion.IOServer.write_piece(info, destdir, block)
+    Effusion.IOServer.write_piece(info_hash, destdir, block)
     state = Download.mark_piece_written(state, block.index)
     stop = System.monotonic_time(:microsecond)
     Logger.debug(":write_piece latency: #{stop - start} μs")

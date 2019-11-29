@@ -17,8 +17,8 @@ defmodule Effusion.IOServer do
     {:ok, []}
   end
 
-  def handle_cast({:write, info, destdir, block}, state) do
-    :ok = Effusion.IO.write_piece(info, destdir, block)
+  def handle_cast({:write, info_hash, destdir, block}, state) do
+    :ok = Effusion.IO.write_piece(info_hash, destdir, block)
     {:noreply, state}
   end
 end
