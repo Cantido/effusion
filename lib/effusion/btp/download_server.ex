@@ -214,28 +214,6 @@ defmodule Effusion.BTP.DownloadServer do
     Map.update(d, :pieces, Pieces.new(d.info_hash), &Pieces.mark_piece_written(&1, i))
   end
 
-  @doc """
-  Start a download.
-
-  This means the session will make an announcement to the tracker and begin
-  making connections.
-  """
-  def start_download(session) do
-    _ = Logger.info("Starting download #{Effusion.Hash.inspect(session.info_hash)}")
-
-    Repo.delete_all(PeerPiece)
-    Repo.delete_all(Request)
-
-    session = Map.put(session, :started_at, Timex.now())
-    params = announce_params(session, :started)
-
-    {:ok, res} = apply(@thp_client, :announce, params)
-    handle_tracker_response(session, res)
-    Process.send_after(self(), :interval_expired, res.interval * 1_000)
-
-    {session, []}
-  end
-
   defp announce_params(d, event) do
     {local_host, local_port} = d.local_address
 
@@ -364,10 +342,20 @@ defmodule Effusion.BTP.DownloadServer do
     {:noreply, state}
   end
 
-  def handle_info(:timeout, state = %Download{}) do
-    {state, _messages} = start_download(state)
+  def handle_info(:timeout, session = %Download{}) do
+    _ = Logger.info("Starting download #{Effusion.Hash.inspect(session.info_hash)}")
 
-    {:noreply, state}
+    Repo.delete_all(PeerPiece)
+    Repo.delete_all(Request)
+
+    session = Map.put(session, :started_at, Timex.now())
+    params = announce_params(session, :started)
+
+    {:ok, res} = apply(@thp_client, :announce, params)
+    handle_tracker_response(session, res)
+    Process.send_after(self(), :interval_expired, res.interval * 1_000)
+
+    {:noreply, session}
   end
 
   def handle_info(:interval_expired, state = %Download{}) do
