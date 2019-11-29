@@ -2,6 +2,9 @@ defmodule Effusion.Repo.Migrations.InitialSchema do
   use Ecto.Migration
 
   def up do
+    # This gives us the digest() function
+    execute "CREATE EXTENSION pgcrypto"
+
     create table(:torrents) do
       add :info_hash, :binary, null: false
       add :name, :string, null: false
@@ -69,6 +72,7 @@ defmodule Effusion.Repo.Migrations.InitialSchema do
   end
 
   def down do
+    execute "DROP EXTENSION pgcrypto"
     drop table(:requests)
     drop table(:peer_pieces)
     drop table(:peers)

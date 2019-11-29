@@ -93,15 +93,13 @@ defmodule Effusion.BTP.Pieces do
                     where: piece.id == ^piece_dbid,
                     order_by: block.offset,
                     group_by: block.position,
-                    select: fragment("string_agg(?, '')", block.data)
+                    select: fragment("digest(string_agg(?, ''), 'sha1')", block.data)
 
-      piece_data = Repo.one(data_query)
+      piece_actual_hash = Repo.one(data_query)
 
       piece_expected_hash = Repo.one(from piece in Piece,
                                       where: piece.id == ^piece_dbid,
                                       select: piece.hash)
-
-      piece_actual_hash = Hash.calc(piece_data)
 
       if piece_expected_hash == piece_actual_hash do
         Logger.debug("Piece verified! dbid: #{piece_dbid}")
