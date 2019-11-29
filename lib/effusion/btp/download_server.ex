@@ -231,11 +231,7 @@ defmodule Effusion.BTP.DownloadServer do
       ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
     end
 
-    if Download.done?(d) do
-      {:stop, :normal, :ok, d}
-    else
-      {:reply, :ok, d}
-    end
+    {:reply, :ok, d}
   end
 
   def handle_call({:handle_msg, remote_peer_id, {:have, i}}, _from, d = %Download{}) when is_peer_id(remote_peer_id) do
@@ -257,11 +253,7 @@ defmodule Effusion.BTP.DownloadServer do
       ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
     end
 
-    if Download.done?(d) do
-      {:stop, :normal, :ok, d}
-    else
-      {:reply, :ok, d}
-    end
+    {:reply, :ok, d}
   end
 
   def handle_call({:handle_msg, remote_peer_id, :choke}, _from, d = %Download{}) when is_peer_id(remote_peer_id) do
@@ -269,31 +261,13 @@ defmodule Effusion.BTP.DownloadServer do
                       join: peer in assoc(request, :peer),
                       where: peer.peer_id == ^remote_peer_id)
 
-    if Download.done?(d) do
-      {:stop, :normal, :ok, d}
-    else
-      {:reply, :ok, d}
-    end
+    {:reply, :ok, d}
   end
 
   def handle_call({:handle_msg, remote_peer_id, :unchoke}, _from, d = %Download{}) when is_peer_id(remote_peer_id) do
     next_request_from_peer(d, remote_peer_id, 100)
 
-    if Download.done?(d) do
-      {:stop, :normal, :ok, d}
-    else
-      {:reply, :ok, d}
-    end
-  end
-
-  def handle_call({:handle_msg, remote_peer_id, msg}, _from, d = %Download{}) when is_peer_id(remote_peer_id) do
-    state = handle_message(d, remote_peer_id, msg)
-
-    if Download.done?(d) do
-      {:stop, :normal, :ok, d}
-    else
-      {:reply, :ok, d}
-    end
+    {:reply, :ok, d}
   end
 
   def handle_call(:get, _from, state = %Download{}) do
