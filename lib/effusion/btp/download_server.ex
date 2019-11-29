@@ -207,7 +207,7 @@ defmodule Effusion.BTP.DownloadServer do
      next_request_from_peer(d, from, Application.get_env(:effusion, :max_requests_per_peer))
    end
 
-    if Download.done?(d) do
+    if Pieces.all_written?(d.info_hash) do
       {:stop, :normal, :ok, d}
     else
       {:reply, :ok, d}
@@ -276,7 +276,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_call(:await, from, state = %Download{}) do
-    state = Download.add_listener(state, from)
+    state = Map.update(state, :listeners, MapSet.new(), &MapSet.put(&1, from))
     {:noreply, state}
   end
 
@@ -343,7 +343,7 @@ defmodule Effusion.BTP.DownloadServer do
     ConnectionRegistry.disconnect_all(state.meta.info_hash)
 
     announce_params =
-      if Download.done?(state) do
+      if Pieces.all_written?(state.pieces) do
         announce_params(state, :completed)
       else
         announce_params(state, :stopped)
@@ -351,7 +351,7 @@ defmodule Effusion.BTP.DownloadServer do
 
     {:ok, _res} = apply(@thp_client, :announce, announce_params)
 
-    reply_to_listeners(state, {:ok, Download.pieces(state)})
+    reply_to_listeners(state, :ok)
   end
 
   def terminate(reason, state = %Download{}) do
@@ -364,6 +364,6 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   defp reply_to_listeners(state = %Download{}, msg) do
-    Download.each_listener(state, fn l -> GenServer.reply(l, msg) end)
+    Enum.each(state.listeners, fn l -> GenServer.reply(l, msg) end)
   end
 end
