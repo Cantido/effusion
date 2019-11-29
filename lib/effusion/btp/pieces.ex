@@ -79,16 +79,13 @@ defmodule Effusion.BTP.Pieces do
                               group_by: piece.id,
                               select: {piece.id, count(block.id)}
 
-    blocks_per_piece = Repo.all(blocks_per_piece_query) |> MapSet.new()
-
     blocks_per_piece_with_data_query = from piece in Piece,
                                         join: block in assoc(piece, :blocks),
                                         where: not is_nil(block.data),
                                         group_by: piece.id,
                                         select: {piece.id, count(block.id)}
-    blocks_per_piece_with_data = Repo.all(blocks_per_piece_with_data_query) |> MapSet.new()
 
-    pieces_with_all_blocks = MapSet.intersection(blocks_per_piece, blocks_per_piece_with_data)
+    pieces_with_all_blocks = Repo.all(blocks_per_piece_query |> intersect(^blocks_per_piece_with_data_query))
 
     pieces_with_all_blocks |> Enum.each(fn {piece_dbid, _block_count} ->
       data_query = from block in Block,
