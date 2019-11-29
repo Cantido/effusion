@@ -84,108 +84,6 @@ defmodule Effusion.BTP.DownloadServer do
     )
   end
 
-
-  @doc """
-  Handle a Peer Wire Protocol (PWP) message send by the remote peer identified by `peer_id`.
-
-  For more information about messages, see `Effusion.PWP.Messages`.
-  """
-  def handle_message(session, peer_id, message)
-
-  def handle_message(d = %Download{}, from, {:piece, block})
-       when is_peer_id(from) do
-
-     Request.cancel(block, from)
-     |> Enum.uniq()
-     |> Enum.each(fn {peer_id, index, offset, size} ->
-       ConnectionRegistry.btp_send(d.info_hash, peer_id, {:cancel, index, offset, size})
-     end)
-
-     d = Map.update!(d, :pieces, &Pieces.add_block(&1, block))
-     verified = Pieces.verified(d.pieces)
-
-     verified
-     |> Enum.map(fn piece ->
-       ConnectionRegistry.btp_broadcast(d.info_hash, {:have, piece.index})
-     end)
-
-      d = d.pieces
-      |> Pieces.verified()
-      |> Enum.reduce(d, fn p, d_acc ->
-        Effusion.IOServer.write_piece(d.info_hash, d.file, p)
-        mark_piece_written(d_acc, block.index)
-      end)
-
-    peer_request_query = from peer_piece in PeerPiece,
-                          join: peer in assoc(peer_piece, :peer),
-                          where: peer.peer_id == ^from
-    peer_request_count = Repo.aggregate(peer_request_query, :count, :peer_id)
-
-    if peer_request_count <= 0 do
-      next_request_from_peer(d, from, Application.get_env(:effusion, :max_requests_per_peer))
-    end
-
-    d
-  end
-
-  def handle_message(d = %Download{}, remote_peer_id, {:bitfield, bitfield}) when is_peer_id(remote_peer_id) and is_binary(bitfield) do
-    peer = Repo.one!(from p in Peer, where: [peer_id: ^remote_peer_id])
-    indicies = IntSet.new(bitfield) |> Enum.to_list()
-    pieces_query = Piece.all_indicies_query(d.info_hash, indicies)
-    pieces = Repo.all(pieces_query)
-    peer_pieces = Enum.map(pieces, fn p ->
-      %{
-        peer_id: peer.id,
-        piece_id: p.id
-      }
-    end)
-
-    Repo.insert_all(PeerPiece, peer_pieces)
-
-    if !Pieces.has_pieces?(d.pieces, bitfield) do
-      ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
-    end
-
-    d
-  end
-
-  def handle_message(d = %Download{}, remote_peer_id, {:have, i}) do
-    peer = from p in Peer, where: p.peer_id == ^remote_peer_id
-    piece = from p in Piece,
-             join: torrent in assoc(p, :torrent),
-             where: torrent.info_hash == ^d.info_hash
-                and p.index == ^i
-
-    peer = Repo.one!(peer)
-    piece = Repo.one!(piece)
-
-    Repo.insert(%PeerPiece{
-      peer: peer,
-      piece: piece
-    })
-
-    if !Pieces.has_piece?(d.pieces, i) do
-      ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
-    end
-
-    d
-  end
-
-  def handle_message(d = %Download{}, remote_peer_id, :choke) do
-    Repo.delete_all(from request in Request,
-                      join: peer in assoc(request, :peer),
-                      where: peer.peer_id == ^remote_peer_id)
-    {d, []}
-  end
-
-  def handle_message(d = %Download{}, remote_peer_id, :unchoke) do
-    next_request_from_peer(d, remote_peer_id, 100)
-
-    d
-  end
-
-  def handle_message(d = %Download{}, _remote_peer_id, _msg), do: d
-
   defp next_request_from_peer(d, peer_id, count) do
     info_hash = d.info_hash
 
@@ -277,9 +175,45 @@ defmodule Effusion.BTP.DownloadServer do
     {:ok, state, 0}
   end
 
-  def handle_call({:handle_msg, peer_id, msg}, _from, state = %Download{}) when is_peer_id(peer_id) do
-    _ = Logger.debug("DownloadServer handling message from #{peer_id}: #{inspect(msg)}")
+  def handle_call({:handle_msg, from, {:piece, block}}, _from, d = %Download{}) when is_peer_id(from) do
+    Request.cancel(block, from)
+    |> Enum.uniq()
+    |> Enum.each(fn {peer_id, index, offset, size} ->
+      ConnectionRegistry.btp_send(d.info_hash, peer_id, {:cancel, index, offset, size})
+    end)
 
+    d = Map.update!(d, :pieces, &Pieces.add_block(&1, block))
+    verified = Pieces.verified(d.pieces)
+
+    verified
+    |> Enum.map(fn piece ->
+      ConnectionRegistry.btp_broadcast(d.info_hash, {:have, piece.index})
+    end)
+
+     d = d.pieces
+     |> Pieces.verified()
+     |> Enum.reduce(d, fn p, d_acc ->
+       Effusion.IOServer.write_piece(d.info_hash, d.file, p)
+       mark_piece_written(d_acc, block.index)
+     end)
+
+   peer_request_query = from peer_piece in PeerPiece,
+                         join: peer in assoc(peer_piece, :peer),
+                         where: peer.peer_id == ^from
+   peer_request_count = Repo.aggregate(peer_request_query, :count, :peer_id)
+
+   if peer_request_count <= 0 do
+     next_request_from_peer(d, from, Application.get_env(:effusion, :max_requests_per_peer))
+   end
+
+    if Download.done?(d) do
+      {:stop, :normal, :ok, d}
+    else
+      {:reply, :ok, d}
+    end
+  end
+
+  def handle_call({:handle_msg, peer_id, msg}, _from, state = %Download{}) when is_peer_id(peer_id) do
     state = handle_message(state, peer_id, msg)
 
     if Download.done?(state) do
@@ -288,6 +222,73 @@ defmodule Effusion.BTP.DownloadServer do
       {:reply, :ok, state}
     end
   end
+
+
+  @doc """
+  Handle a Peer Wire Protocol (PWP) message send by the remote peer identified by `peer_id`.
+
+  For more information about messages, see `Effusion.PWP.Messages`.
+  """
+  def handle_message(session, peer_id, message)
+
+  def handle_message(d = %Download{}, remote_peer_id, {:bitfield, bitfield}) when is_peer_id(remote_peer_id) and is_binary(bitfield) do
+    peer = Repo.one!(from p in Peer, where: [peer_id: ^remote_peer_id])
+    indicies = IntSet.new(bitfield) |> Enum.to_list()
+    pieces_query = Piece.all_indicies_query(d.info_hash, indicies)
+    pieces = Repo.all(pieces_query)
+    peer_pieces = Enum.map(pieces, fn p ->
+      %{
+        peer_id: peer.id,
+        piece_id: p.id
+      }
+    end)
+
+    Repo.insert_all(PeerPiece, peer_pieces)
+
+    if !Pieces.has_pieces?(d.pieces, bitfield) do
+      ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
+    end
+
+    d
+  end
+
+  def handle_message(d = %Download{}, remote_peer_id, {:have, i}) do
+    peer = from p in Peer, where: p.peer_id == ^remote_peer_id
+    piece = from p in Piece,
+             join: torrent in assoc(p, :torrent),
+             where: torrent.info_hash == ^d.info_hash
+                and p.index == ^i
+
+    peer = Repo.one!(peer)
+    piece = Repo.one!(piece)
+
+    Repo.insert(%PeerPiece{
+      peer: peer,
+      piece: piece
+    })
+
+    if !Pieces.has_piece?(d.pieces, i) do
+      ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
+    end
+
+    d
+  end
+
+  def handle_message(d = %Download{}, remote_peer_id, :choke) do
+    Repo.delete_all(from request in Request,
+                      join: peer in assoc(request, :peer),
+                      where: peer.peer_id == ^remote_peer_id)
+    {d, []}
+  end
+
+  def handle_message(d = %Download{}, remote_peer_id, :unchoke) do
+    next_request_from_peer(d, remote_peer_id, 100)
+
+    d
+  end
+
+  def handle_message(d = %Download{}, _remote_peer_id, _msg), do: d
+
 
   def handle_call(:get, _from, state = %Download{}) do
     {:reply, state, state}
