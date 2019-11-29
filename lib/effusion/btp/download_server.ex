@@ -182,7 +182,7 @@ defmodule Effusion.BTP.DownloadServer do
       ConnectionRegistry.btp_send(d.info_hash, peer_id, {:cancel, index, offset, size})
     end)
 
-    d = Map.update!(d, :pieces, &Pieces.add_block(&1, block))
+    Pieces.add_block(d.pieces, block)
     verified = Pieces.verified(d.pieces)
 
     verified
