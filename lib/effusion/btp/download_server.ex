@@ -214,18 +214,6 @@ defmodule Effusion.BTP.DownloadServer do
     Map.update(d, :pieces, Pieces.new(d.info_hash), &Pieces.mark_piece_written(&1, i))
   end
 
-  defp handle_internal_message({:announce, announce_params}, state = %Download{}) do
-    start = System.monotonic_time(:microsecond)
-    {:ok, res} = apply(@thp_client, :announce, announce_params)
-
-    handle_tracker_response(state, res)
-    Process.send_after(self(), :interval_expired, res.interval * 1_000)
-
-    stop = System.monotonic_time(:microsecond)
-    Logger.debug(":announce latency: #{stop - start} μs")
-    state
-  end
-
   @doc """
   Start a download.
 
@@ -241,8 +229,11 @@ defmodule Effusion.BTP.DownloadServer do
     session = Map.put(session, :started_at, Timex.now())
     params = announce_params(session, :started)
 
-    messages = [{:announce, params}]
-    {session, messages}
+    {:ok, res} = apply(@thp_client, :announce, params)
+    handle_tracker_response(session, res)
+    Process.send_after(self(), :interval_expired, res.interval * 1_000)
+
+    {session, []}
   end
 
   defp announce_params(d, event) do
@@ -319,11 +310,9 @@ defmodule Effusion.BTP.DownloadServer do
         _ = Logger.error("Download encountered error: #{inspect(reason)}")
         {:stop, reason, {:error, reason}, state}
 
-      {state, messages} ->
+      {state, _messages} ->
         download_handle_message_stop = System.monotonic_time(:microsecond)
         Logger.debug("Download.handle_message #{inspect msg} latency: #{download_handle_message_stop - handle_msg_start} μs")
-
-        state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
 
         if Download.done?(state) do
           handle_msg_stop = System.monotonic_time(:microsecond)
@@ -376,9 +365,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_info(:timeout, state = %Download{}) do
-    {state, messages} = start_download(state)
-
-    state = Enum.reduce(messages, state, &handle_internal_message(&1, &2))
+    {state, _messages} = start_download(state)
 
     {:noreply, state}
   end

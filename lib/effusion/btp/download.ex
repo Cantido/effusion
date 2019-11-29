@@ -102,10 +102,6 @@ defmodule Effusion.BTP.Download do
     |> Timex.Interval.duration(:duration)
   end
 
-  def mark_piece_written(d = %__MODULE__{}, i) do
-    Map.update(d, :pieces, Pieces.new(d.info_hash), &Pieces.mark_piece_written(&1, i))
-  end
-
   @doc """
   Add a process that should be notified when this download completes or crashes.
   """
