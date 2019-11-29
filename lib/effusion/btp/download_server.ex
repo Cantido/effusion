@@ -280,25 +280,13 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_call({:handle_msg, peer_id, msg}, _from, state = %Download{}) when is_peer_id(peer_id) do
-    handle_msg_start = System.monotonic_time(:microsecond)
     _ = Logger.debug("DownloadServer handling message from #{peer_id}: #{inspect(msg)}")
 
     case handle_message(state, peer_id, msg) do
-      {:error, reason} ->
-        _ = Logger.error("Download encountered error: #{inspect(reason)}")
-        {:stop, reason, {:error, reason}, state}
-
       {state, _messages} ->
-        download_handle_message_stop = System.monotonic_time(:microsecond)
-        Logger.debug("Download.handle_message #{inspect msg} latency: #{download_handle_message_stop - handle_msg_start} μs")
-
         if Download.done?(state) do
-          handle_msg_stop = System.monotonic_time(:microsecond)
-          Logger.debug(":handle_msg #{inspect msg} (download done) latency: #{handle_msg_stop - handle_msg_start} μs")
           {:stop, :normal, :ok, state}
         else
-          handle_msg_stop = System.monotonic_time(:microsecond)
-          Logger.debug(":handle_msg #{inspect msg} (download not done) latency : #{handle_msg_stop - handle_msg_start} μs")
           {:reply, :ok, state}
         end
     end
