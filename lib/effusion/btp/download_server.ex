@@ -95,16 +95,14 @@ defmodule Effusion.BTP.DownloadServer do
   def handle_message(d = %Download{}, from, {:piece, block})
        when is_peer_id(from) do
 
-     cancel_messages = Request.cancel(block, from)
-       |> Enum.map(fn {peer_id, index, offset, size} ->
-         {:btp_send, peer_id, {:cancel, index, offset, size}}
-       end)
-       |> Enum.uniq()
-
+     Request.cancel(block, from)
+     |> Enum.uniq()
+     |> Enum.each(fn {peer_id, index, offset, size} ->
+       ConnectionRegistry.btp_send(d.info_hash, peer_id, {:cancel, index, offset, size})
+     end)
 
      d = Map.update!(d, :pieces, &Pieces.add_block(&1, block))
      verified = Pieces.verified(d.pieces)
-
 
      verified
      |> Enum.map(fn piece ->
@@ -127,7 +125,7 @@ defmodule Effusion.BTP.DownloadServer do
       {d, []}
     end
 
-    {d, write_messages ++ cancel_messages ++ request_messages}
+    {d, write_messages ++ request_messages}
   end
 
   def handle_message(d = %Download{}, remote_peer_id, {:bitfield, bitfield}) when is_peer_id(remote_peer_id) and is_binary(bitfield) do
@@ -144,14 +142,11 @@ defmodule Effusion.BTP.DownloadServer do
 
     Repo.insert_all(PeerPiece, peer_pieces)
 
-    interest_message =
-      if Pieces.has_pieces?(d.pieces, bitfield) do
-        []
-      else
-        [{:btp_send, remote_peer_id, :interested}]
-      end
+    if !Pieces.has_pieces?(d.pieces, bitfield) do
+      ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
+    end
 
-    {d, interest_message}
+    {d, []}
   end
 
   def handle_message(d = %Download{}, remote_peer_id, {:have, i}) do
@@ -169,14 +164,11 @@ defmodule Effusion.BTP.DownloadServer do
       piece: piece
     })
 
-    interest_message =
-      if Pieces.has_piece?(d.pieces, i) do
-        []
-      else
-        [{:btp_send, remote_peer_id, :interested}]
-      end
+    if !Pieces.has_piece?(d.pieces, i) do
+      ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
+    end
 
-    {d, interest_message}
+    {d, []}
   end
 
   def handle_message(d = %Download{}, remote_peer_id, :choke) do
@@ -208,21 +200,11 @@ defmodule Effusion.BTP.DownloadServer do
     end)
     Repo.insert_all(Request, requests_to_insert)
 
-    request_messages = Enum.map(requests, fn {piece, block, peer} ->
-      {:btp_send, peer.peer_id, {:request, piece.index, block.offset, block.size}}
+    Enum.each(requests, fn {piece, block, peer} ->
+      ConnectionRegistry.btp_send(d.meta.info_hash, peer.peer_id, {:request, piece.index, block.offset, block.size})
     end)
 
-    {d, request_messages}
-  end
-
-  defp handle_internal_message({:btp_send, remote_peer_id, outgoing_msg}, state = %Download{})
-  when is_peer_id(remote_peer_id)
-   and not is_nil(outgoing_msg) do
-    start = System.monotonic_time(:microsecond)
-    ConnectionRegistry.btp_send(state.meta.info_hash, remote_peer_id, outgoing_msg)
-    stop = System.monotonic_time(:microsecond)
-    Logger.debug(":btp_send latency: #{stop - start} μs")
-    state
+    {d, []}
   end
 
   defp handle_internal_message({:write_piece, info_hash, destdir, block}, state = %Download{}) do
