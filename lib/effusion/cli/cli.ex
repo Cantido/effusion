@@ -3,6 +3,8 @@ defmodule Effusion.CLI do
   alias Effusion.BTP.Download
   alias Effusion.BTP.Metainfo
   alias Effusion.BTP.Peer
+  alias Effusion.BTP.Pieces
+  alias Effusion.BTP.Torrent
   alias Effusion.Format
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
@@ -37,6 +39,7 @@ defmodule Effusion.CLI do
 
     {:ok, info_hash} = Effusion.start_download(meta, dest)
 
+    Process.sleep(100)
     output_loop(info_hash)
   end
 
@@ -52,13 +55,18 @@ defmodule Effusion.CLI do
          last_downloaded_bytes \\ 0,
          last_timestamp \\ System.monotonic_time(:millisecond)
        ) do
-    download = DownloadServer.get(info_hash)
-    dur = Download.download_duration(download)
 
-    {downloaded, total_to_download} = Download.downloaded_ratio(download)
+    torrent = Repo.one!(from torrent in Torrent,
+                        where: torrent.info_hash == ^info_hash,
+                        select: torrent)
+
+    dur = Timex.Interval.new(from: torrent.started, until: Timex.now()) |> Timex.Interval.duration(:duration)
+
+    downloaded = Pieces.bytes_completed(info_hash)
+    total_to_download = Pieces.torrent_length(info_hash)
     fraction_downloaded = downloaded / total_to_download
 
-    name_formatted = download.meta.info.name
+    name_formatted = torrent.name
     percent_downloaded = Float.round(fraction_downloaded * 100, 3)
     progress_bar = Format.progress_bar(percent_downloaded, @progress_width - 2)
     downloaded_str = Format.bytes(downloaded)
