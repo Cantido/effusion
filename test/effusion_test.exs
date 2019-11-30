@@ -11,7 +11,6 @@ defmodule EffusionTest do
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
-    Ecto.Adapters.SQL.Sandbox.allow(Effusion.Repo, self(), Effusion.BTP.VerifierWatchdog)
     Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
   end
 
