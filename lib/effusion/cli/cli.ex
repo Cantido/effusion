@@ -4,6 +4,7 @@ defmodule Effusion.CLI do
   alias Effusion.BTP.Metainfo
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Pieces
+  alias Effusion.BTP.Request
   alias Effusion.BTP.Torrent
   alias Effusion.Format
   alias Effusion.Statistics.Net, as: NetStats
@@ -111,10 +112,17 @@ defmodule Effusion.CLI do
     IO.puts("Total TCP connections: #{PeerStats.num_tcp_peers()}")
 
     IO.puts("Peers:")
-    Enum.each(Repo.all(from p in Peer, select: p), fn peer ->
+
+    peers_query = from peer in Peer,
+                  left_join: request in Request,
+                  on: peer.id == request.peer_id,
+                  group_by: peer.id,
+                  select: {peer, count(request)}
+    peers = Repo.all(peers_query)
+
+    Enum.each(peers, fn {peer, request_count} ->
       if Peer.connected?(peer, info_hash) do
-        peer = peer |> Repo.preload(:blocks_we_requested)
-        IO.puts "#{inspect peer.peer_id} -- #{PeerDownloadAverage.peer_20sec_download_avg(peer.peer_id) |> trunc() |> Format.bytes()}/s --- Requested #{peer.blocks_we_requested |> Enum.count} blocks"
+        IO.puts "#{inspect peer.peer_id} -- #{PeerDownloadAverage.peer_20sec_download_avg(peer.peer_id) |> trunc() |> Format.bytes()}/s --- Requested #{request_count} blocks"
       end
     end)
 
