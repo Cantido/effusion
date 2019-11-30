@@ -127,7 +127,15 @@ defmodule Effusion.BTP.DownloadServer do
     end
     :ok
   end
-  
+
+  def handle_message(info_hash, remote_peer_id, :choke) when is_hash(info_hash) and is_peer_id(remote_peer_id) do
+    Repo.delete_all(from request in Request,
+                      join: peer in assoc(request, :peer),
+                      where: peer.peer_id == ^remote_peer_id)
+
+    :ok
+  end
+
   def handle_message(info_hash, peer_id, message) when is_hash(info_hash) and is_peer_id(peer_id) do
     GenServer.call(
       {:via, Registry, {SessionRegistry, info_hash}},
@@ -268,13 +276,6 @@ defmodule Effusion.BTP.DownloadServer do
     {:reply, :ok, d}
   end
 
-  def handle_call({:handle_msg, remote_peer_id, :choke}, _from, d) when is_peer_id(remote_peer_id) do
-    Repo.delete_all(from request in Request,
-                      join: peer in assoc(request, :peer),
-                      where: peer.peer_id == ^remote_peer_id)
-
-    {:reply, :ok, d}
-  end
 
   def handle_call({:handle_msg, remote_peer_id, :unchoke}, _from, d) when is_peer_id(remote_peer_id) do
     next_request_from_peer(d.info_hash, remote_peer_id, 100)
