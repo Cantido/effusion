@@ -142,7 +142,7 @@ defmodule EffusionTest do
       assert r2 == 0
     end
 
-    :timer.sleep(1000)
+    :timer.sleep(700)
     :file.datasync(file)
 
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
@@ -194,7 +194,7 @@ defmodule EffusionTest do
       assert r2 == 0
     end
 
-    :timer.sleep(1000)
+    :timer.sleep(700)
     :file.datasync(file)
 
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
