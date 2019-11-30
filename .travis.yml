@@ -8,3 +8,7 @@ services:
 before_install:
   - docker pull postgres
   - docker run -d -p 127.0.0.1:5432:5432 -e POSTGRES_USER=effusion_test -e POSTGRES_PASSWORD=xVWQ2s28YjhWjXPGdGkQnyDN -e POSTGRES_DB=effusion_test postgres
+
+cache:
+  directories:
+    - _build
