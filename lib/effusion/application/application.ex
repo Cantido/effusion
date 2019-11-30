@@ -14,12 +14,14 @@ defmodule Effusion.Application do
     children = [
       Effusion.Application.DownloadServerSupervisor,
       Effusion.Application.ConnectionSupervisor,
+      Effusion.Application.VerifierWatchdogSupervisor,
       Effusion.BTP.Metainfo.Directory,
       Effusion.IOServer,
       Effusion.Statistics.PeerDownloadAverage,
       Effusion.Statistics.SessionDownloadAverage,
       {Registry, keys: :duplicate, name: ConnectionRegistry},
       {Registry, keys: :unique, name: SessionRegistry},
+      {Registry, keys: :unique, name: VerifierWatchdogRegistry},
       EffusionWeb.Endpoint,
       Effusion.Repo
     ]

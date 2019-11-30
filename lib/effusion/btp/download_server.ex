@@ -9,6 +9,7 @@ defmodule Effusion.BTP.DownloadServer do
   alias Effusion.BTP.Request
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Metainfo.Directory
+  alias Effusion.BTP.VerifierWatchdog
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.OutgoingHandler
   alias Effusion.Repo
@@ -332,6 +333,8 @@ defmodule Effusion.BTP.DownloadServer do
 
     Repo.delete_all(PeerPiece)
     Repo.delete_all(Request)
+
+    VerifierWatchdog.start(session.info_hash, session.file)
 
     session = Map.put(session, :started_at, Timex.now())
     Repo.one!(from torrent in Torrent,

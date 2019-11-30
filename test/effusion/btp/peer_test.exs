@@ -1,11 +1,9 @@
 defmodule Effusion.BTP.PeerTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   doctest Effusion.BTP.Peer
 
   setup do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
-    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
-    :ok
+    Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
   end
 
   test "insert" do

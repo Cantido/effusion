@@ -73,7 +73,6 @@ defmodule Effusion.BTP.Pieces do
                       where: b.offset == ^o)
     |> Ecto.Changeset.change(data: data)
     |> Repo.update()
-    verify_all(info_hash)
   end
 
   def verify_all(info_hash) do
@@ -81,6 +80,7 @@ defmodule Effusion.BTP.Pieces do
                               join: block in assoc(piece, :blocks),
                               join: torrent in assoc(piece, :torrent),
                               where: torrent.info_hash == ^info_hash,
+                              where: not piece.verified,
                               group_by: piece.id,
                               select: {piece.id, count(block.id)}
 
@@ -89,6 +89,7 @@ defmodule Effusion.BTP.Pieces do
                                         join: torrent in assoc(piece, :torrent),
                                         where: torrent.info_hash == ^info_hash,
                                         where: not is_nil(block.data),
+                                        where: not piece.verified,
                                         group_by: piece.id,
                                         select: {piece.id, count(block.id)}
 
@@ -137,12 +138,15 @@ defmodule Effusion.BTP.Pieces do
                                     join: torrent in assoc(piece, :torrent),
                                     where: torrent.info_hash == ^info_hash,
                                     where: not piece.verified,
-                                    where: not is_nil(block.data)
+                                    where: not is_nil(block.data),
+                                    select: block
 
     Repo.all(unfinished_piece_blocks_query)
   end
 
   def verified(info_hash) when is_hash(info_hash) do
+    verify_all(info_hash)
+
     verified_piece_blocks_query = from block in Block,
                                     join: piece in assoc(block, :piece),
                                     join: torrent in assoc(piece, :torrent),

@@ -11,6 +11,7 @@ defmodule EffusionTest do
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
+    Ecto.Adapters.SQL.Sandbox.allow(Effusion.Repo, self(), Effusion.BTP.VerifierWatchdog)
     Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
   end
 
@@ -139,7 +140,7 @@ defmodule EffusionTest do
       assert r2 == 0
     end
 
-    :timer.sleep(100)
+    :timer.sleep(1000)
     :file.datasync(file)
 
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
@@ -189,7 +190,7 @@ defmodule EffusionTest do
       assert r2 == 0
     end
 
-    :timer.sleep(100)
+    :timer.sleep(1000)
     :file.datasync(file)
 
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
