@@ -8,6 +8,9 @@ config :effusion,
 config :effusion, Effusion.Repo,
   pool: Ecto.Adapters.SQL.Sandbox,
   database: "effusion_test",
+  username: "effusion_test",
+  password: "xVWQ2s28YjhWjXPGdGkQnyDN",
+  hostname: "localhost",
   log: false
 
 # We don't run a server during test. If one is required,
