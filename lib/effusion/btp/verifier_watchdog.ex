@@ -12,6 +12,8 @@ defmodule Effusion.BTP.VerifierWatchdog do
   Any pieces that get verified will get announced and written.
   """
 
+  @watch_interval_ms 250
+
   def start(info_hash, file) do
     case VerifierWatchdogSupervisor.start_child([info_hash, file]) do
       {:ok, _pid} -> {:ok, info_hash}
@@ -28,7 +30,7 @@ defmodule Effusion.BTP.VerifierWatchdog do
   end
 
   def init([info_hash, file]) do
-    Process.send_after(self(), :watch, 50)
+    Process.send_after(self(), :watch, @watch_interval_ms)
     {:ok, {info_hash, file}}
   end
 
@@ -52,7 +54,7 @@ defmodule Effusion.BTP.VerifierWatchdog do
 
     Logger.debug("VerifierWatchdog announced & wrote #{Enum.count(verified)} pieces")
 
-    Process.send_after(self(), :watch, 50)
+    Process.send_after(self(), :watch, @watch_interval_ms)
     {:noreply, state}
   end
 
