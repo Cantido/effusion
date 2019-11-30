@@ -12,6 +12,11 @@ defmodule Effusion.PWP.OutgoingHandlerTest do
   @remote_peer Peer.new({{127, 0, 0, 1}, 8002})
 
   setup do
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
+  end
+
+  setup do
     {_host, port} = @remote_peer.address
     {:ok, lsock} = Socket.listen(port)
 

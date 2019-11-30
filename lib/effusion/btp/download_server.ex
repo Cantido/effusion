@@ -104,10 +104,8 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def connected(info_hash, peer_id, address) when is_hash(info_hash) and is_peer_id(peer_id) do
-    GenServer.cast(
-      {:via, Registry, {SessionRegistry, info_hash}},
-      {:connected, peer_id, address}
-    )
+    Peer.insert(peer_id, address)
+    :ok
   end
 
   defp next_request_from_peer(info_hash, peer_id, count) when is_hash(info_hash) do
@@ -282,14 +280,6 @@ defmodule Effusion.BTP.DownloadServer do
 
   def handle_call(:await, from, state) do
     state = Map.update(state, :listeners, MapSet.new(), &MapSet.put(&1, from))
-    {:noreply, state}
-  end
-
-  def handle_cast({:connected, peer_id, address}, state) do
-    start = System.monotonic_time(:microsecond)
-    Peer.insert(peer_id, address)
-    stop = System.monotonic_time(:microsecond)
-    Logger.debug(":connected latency: #{stop - start} μs")
     {:noreply, state}
   end
 
