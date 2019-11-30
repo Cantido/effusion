@@ -107,6 +107,27 @@ defmodule Effusion.BTP.DownloadServer do
     :ok
   end
 
+  def handle_message(info_hash, remote_peer_id, {:have, i}) when is_hash(info_hash) and is_peer_id(remote_peer_id) do
+    peer = from p in Peer, where: p.peer_id == ^remote_peer_id
+    piece = from p in Piece,
+             join: torrent in assoc(p, :torrent),
+             where: torrent.info_hash == ^info_hash
+                and p.index == ^i
+
+    peer = Repo.one!(peer)
+    piece = Repo.one!(piece)
+
+    Repo.insert(%PeerPiece{
+      peer: peer,
+      piece: piece
+    })
+
+    if !Pieces.has_piece?(info_hash, i) do
+      ConnectionRegistry.btp_send(info_hash, remote_peer_id, :interested)
+    end
+    :ok
+  end
+  
   def handle_message(info_hash, peer_id, message) when is_hash(info_hash) and is_peer_id(peer_id) do
     GenServer.call(
       {:via, Registry, {SessionRegistry, info_hash}},
@@ -243,30 +264,6 @@ defmodule Effusion.BTP.DownloadServer do
     {:ok, _res} = apply(@thp_client, :announce, params)
 
     reply_to_listeners(d, :ok)
-
-    {:reply, :ok, d}
-  end
-
-
-
-  def handle_call({:handle_msg, remote_peer_id, {:have, i}}, _from, d) when is_peer_id(remote_peer_id) do
-    peer = from p in Peer, where: p.peer_id == ^remote_peer_id
-    piece = from p in Piece,
-             join: torrent in assoc(p, :torrent),
-             where: torrent.info_hash == ^d.info_hash
-                and p.index == ^i
-
-    peer = Repo.one!(peer)
-    piece = Repo.one!(piece)
-
-    Repo.insert(%PeerPiece{
-      peer: peer,
-      piece: piece
-    })
-
-    if !Pieces.has_piece?(d.info_hash, i) do
-      ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
-    end
 
     {:reply, :ok, d}
   end
