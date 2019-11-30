@@ -66,6 +66,26 @@ defmodule Effusion.BTP.DownloadServer do
   @doc """
   Handle a Peer Wire Protocol (PWP) message sent by a remote peer.
   """
+  def handle_message(info_hash, from, {:piece, block}) when is_hash(info_hash) and is_peer_id(from) do
+    Request.cancel(block, from)
+    |> Enum.uniq()
+    |> Enum.each(fn {peer_id, index, offset, size} ->
+      ConnectionRegistry.btp_send(info_hash, peer_id, {:cancel, index, offset, size})
+    end)
+
+    Pieces.add_block(info_hash, block)
+
+    peer_request_query = from peer_piece in PeerPiece,
+                         join: peer in assoc(peer_piece, :peer),
+                         where: peer.peer_id == ^from
+    peer_request_count = Repo.aggregate(peer_request_query, :count, :peer_id)
+
+    if peer_request_count <= 0 do
+      next_request_from_peer(info_hash, from, Application.get_env(:effusion, :max_requests_per_peer))
+    end
+    :ok
+  end
+
   def handle_message(info_hash, peer_id, message) when is_hash(info_hash) and is_peer_id(peer_id) do
     GenServer.call(
       {:via, Registry, {SessionRegistry, info_hash}},
@@ -106,10 +126,6 @@ defmodule Effusion.BTP.DownloadServer do
       ConnectionRegistry.btp_send(info_hash, peer.peer_id, {:request, piece.index, block.offset, block.size})
     end)
     :ok
-  end
-
-  def mark_piece_written(d, i) do
-    Pieces.mark_piece_written(d.info_hash, i)
   end
 
   defp announce_params(d, event) do
@@ -199,27 +215,6 @@ defmodule Effusion.BTP.DownloadServer do
     {:ok, _res} = apply(@thp_client, :announce, params)
 
     reply_to_listeners(d, :ok)
-
-    {:reply, :ok, d}
-  end
-
-  def handle_call({:handle_msg, from, {:piece, block}}, _from, d) when is_peer_id(from) do
-    Request.cancel(block, from)
-    |> Enum.uniq()
-    |> Enum.each(fn {peer_id, index, offset, size} ->
-      ConnectionRegistry.btp_send(d.info_hash, peer_id, {:cancel, index, offset, size})
-    end)
-
-    Pieces.add_block(d.info_hash, block)
-
-   peer_request_query = from peer_piece in PeerPiece,
-                         join: peer in assoc(peer_piece, :peer),
-                         where: peer.peer_id == ^from
-   peer_request_count = Repo.aggregate(peer_request_query, :count, :peer_id)
-
-   if peer_request_count <= 0 do
-     next_request_from_peer(d.info_hash, from, Application.get_env(:effusion, :max_requests_per_peer))
-   end
 
     {:reply, :ok, d}
   end
