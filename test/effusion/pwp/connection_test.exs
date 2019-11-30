@@ -1,5 +1,5 @@
 defmodule Effusion.PWP.OutgoingHandlerTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   alias Effusion.PWP.OutgoingHandler
   alias Effusion.BTP.Peer
   alias Effusion.PWP.Socket
@@ -13,7 +13,6 @@ defmodule Effusion.PWP.OutgoingHandlerTest do
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
-    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
   end
 
   setup do

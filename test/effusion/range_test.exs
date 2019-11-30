@@ -1,5 +1,5 @@
 defmodule Effusion.RangeTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   doctest Effusion.Range
 
   test "alternates of doctests" do

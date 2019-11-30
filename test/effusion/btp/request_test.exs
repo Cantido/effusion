@@ -1,10 +1,9 @@
 defmodule Effusion.BTP.RequestTest do
   alias Effusion.Factory
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
-    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
   end
 
 

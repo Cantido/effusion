@@ -1,5 +1,5 @@
 defmodule Effusion.BTP.PiecesTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   doctest Effusion.BTP.Pieces
   # alias Effusion.BTP.Pieces
   # alias Effusion.BTP.Metainfo

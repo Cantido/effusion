@@ -1,5 +1,5 @@
 defmodule Effusion.BTP.TorrentTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   alias Effusion.Factory
 
   setup do

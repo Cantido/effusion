@@ -1,5 +1,5 @@
 defmodule Effusion.Statistics.NetTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   alias Effusion.Statistics.Net
 
   test "get and read sent_payload_bytes" do

@@ -1,5 +1,5 @@
 defmodule Effusion.PWP.SocketTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   alias Effusion.PWP.Socket
   alias Effusion.BTP.Peer
   alias Effusion.PWP.Messages
