@@ -86,6 +86,27 @@ defmodule Effusion.BTP.DownloadServer do
     :ok
   end
 
+  def handle_message(info_hash, remote_peer_id, {:bitfield, bitfield}) when is_hash(info_hash) and is_peer_id(remote_peer_id) do
+    peer = Repo.one!(from p in Peer, where: [peer_id: ^remote_peer_id])
+    indicies = IntSet.new(bitfield) |> Enum.to_list()
+    pieces_query = Piece.all_indicies_query(info_hash, indicies)
+    pieces = Repo.all(pieces_query)
+    peer_pieces = Enum.map(pieces, fn p ->
+      %{
+        peer_id: peer.id,
+        piece_id: p.id
+      }
+    end)
+
+    Repo.insert_all(PeerPiece, peer_pieces)
+
+    if !Pieces.has_pieces?(info_hash, bitfield) do
+      ConnectionRegistry.btp_send(info_hash, remote_peer_id, :interested)
+    end
+
+    :ok
+  end
+
   def handle_message(info_hash, peer_id, message) when is_hash(info_hash) and is_peer_id(peer_id) do
     GenServer.call(
       {:via, Registry, {SessionRegistry, info_hash}},
@@ -226,26 +247,7 @@ defmodule Effusion.BTP.DownloadServer do
     {:reply, :ok, d}
   end
 
-  def handle_call({:handle_msg, remote_peer_id, {:bitfield, bitfield}}, _from, d) when is_peer_id(remote_peer_id) do
-    peer = Repo.one!(from p in Peer, where: [peer_id: ^remote_peer_id])
-    indicies = IntSet.new(bitfield) |> Enum.to_list()
-    pieces_query = Piece.all_indicies_query(d.info_hash, indicies)
-    pieces = Repo.all(pieces_query)
-    peer_pieces = Enum.map(pieces, fn p ->
-      %{
-        peer_id: peer.id,
-        piece_id: p.id
-      }
-    end)
 
-    Repo.insert_all(PeerPiece, peer_pieces)
-
-    if !Pieces.has_pieces?(d.info_hash, bitfield) do
-      ConnectionRegistry.btp_send(d.meta.info_hash, remote_peer_id, :interested)
-    end
-
-    {:reply, :ok, d}
-  end
 
   def handle_call({:handle_msg, remote_peer_id, {:have, i}}, _from, d) when is_peer_id(remote_peer_id) do
     peer = from p in Peer, where: p.peer_id == ^remote_peer_id
