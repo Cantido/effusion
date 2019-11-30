@@ -52,6 +52,10 @@ defmodule Effusion.BTP.DownloadServer do
     GenServer.call({:via, Registry, {SessionRegistry, info_hash}}, :get, 10_000)
   end
 
+  def notify_all_pieces_written(info_hash) do
+    GenServer.call({:via, Registry, {SessionRegistry, info_hash}}, :all_pieces_written)
+  end
+
   @doc """
   Wait on a download managed by a session server to complete.
   """
@@ -192,6 +196,16 @@ defmodule Effusion.BTP.DownloadServer do
     {:ok, state, 0}
   end
 
+  def handle_call(:all_pieces_written, _from, d) do
+    params = announce_params(d, :completed)
+
+    {:ok, _res} = apply(@thp_client, :announce, params)
+
+    reply_to_listeners(d, :ok)
+
+    {:reply, :ok, d}
+  end
+
   def handle_call({:handle_msg, from, {:piece, block}}, _from, d) when is_peer_id(from) do
     Request.cancel(block, from)
     |> Enum.uniq()
@@ -200,21 +214,6 @@ defmodule Effusion.BTP.DownloadServer do
     end)
 
     Pieces.add_block(d.info_hash, block)
-    verified = Pieces.verified(d.info_hash)
-
-    verified
-    |> Enum.map(fn piece ->
-      ConnectionRegistry.btp_broadcast(d.info_hash, {:have, piece.index})
-      Repo.get(Piece, piece.id)
-      |> Ecto.Changeset.change(announced: true)
-      |> Repo.update!()
-    end)
-
-    verified
-    |> Enum.reduce(d, fn p, d_acc ->
-      Effusion.IOServer.write_piece(d.info_hash, p)
-      Pieces.mark_piece_written(d.info_hash, block.index)
-    end)
 
    peer_request_query = from peer_piece in PeerPiece,
                          join: peer in assoc(peer_piece, :peer),
@@ -225,11 +224,7 @@ defmodule Effusion.BTP.DownloadServer do
      next_request_from_peer(d, from, Application.get_env(:effusion, :max_requests_per_peer))
    end
 
-    if Pieces.all_written?(d.info_hash) do
-      {:stop, :normal, :ok, d}
-    else
-      {:reply, :ok, d}
-    end
+    {:reply, :ok, d}
   end
 
   def handle_call({:handle_msg, remote_peer_id, {:bitfield, bitfield}}, _from, d) when is_peer_id(remote_peer_id) do
