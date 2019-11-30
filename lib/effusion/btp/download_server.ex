@@ -90,9 +90,7 @@ defmodule Effusion.BTP.DownloadServer do
     )
   end
 
-  defp next_request_from_peer(d, peer_id, count) do
-    info_hash = d.info_hash
-
+  defp next_request_from_peer(info_hash, peer_id, count) when is_hash(info_hash) do
     requests = Request.valid_requests_from_peer_query(info_hash, peer_id, count)
     |> Repo.all()
 
@@ -105,10 +103,9 @@ defmodule Effusion.BTP.DownloadServer do
     Repo.insert_all(Request, requests_to_insert)
 
     Enum.each(requests, fn {piece, block, peer} ->
-      ConnectionRegistry.btp_send(d.meta.info_hash, peer.peer_id, {:request, piece.index, block.offset, block.size})
+      ConnectionRegistry.btp_send(info_hash, peer.peer_id, {:request, piece.index, block.offset, block.size})
     end)
-
-    d
+    :ok
   end
 
   def mark_piece_written(d, i) do
@@ -221,7 +218,7 @@ defmodule Effusion.BTP.DownloadServer do
    peer_request_count = Repo.aggregate(peer_request_query, :count, :peer_id)
 
    if peer_request_count <= 0 do
-     next_request_from_peer(d, from, Application.get_env(:effusion, :max_requests_per_peer))
+     next_request_from_peer(d.info_hash, from, Application.get_env(:effusion, :max_requests_per_peer))
    end
 
     {:reply, :ok, d}
@@ -279,7 +276,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_call({:handle_msg, remote_peer_id, :unchoke}, _from, d) when is_peer_id(remote_peer_id) do
-    next_request_from_peer(d, remote_peer_id, 100)
+    next_request_from_peer(d.info_hash, remote_peer_id, 100)
 
     {:reply, :ok, d}
   end
