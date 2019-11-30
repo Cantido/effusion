@@ -96,11 +96,20 @@ defmodule Effusion.BTP.DownloadServer do
   @doc """
   Handle a peer disconnection.
   """
-  def unregister_connection(info_hash, address, reason) do
-    GenServer.cast(
-      {:via, Registry, {SessionRegistry, info_hash}},
-      {:unregister_connection, address, reason}
-    )
+  def unregister_connection(info_hash, {ip, port}, reason) do
+    PeerSelection.select_lowest_failcount(1)
+        |> Enum.map(fn peer ->
+          address = {peer.address.address, peer.port}
+          OutgoingHandler.connect({address, info_hash, @local_peer_id, peer.peer_id})
+        end)
+
+    Repo.one(from peer in Peer,
+              where: peer.address == ^%Postgrex.INET{address: ip}
+              and peer.port == ^port)
+    |> Peer.changeset()
+    |> Repo.update(update: [inc: [failcount: 1]])
+
+    :ok
   end
 
   def connected(info_hash, peer_id, address) when is_hash(info_hash) and is_peer_id(peer_id) do
@@ -280,27 +289,6 @@ defmodule Effusion.BTP.DownloadServer do
 
   def handle_call(:await, from, state) do
     state = Map.update(state, :listeners, MapSet.new(), &MapSet.put(&1, from))
-    {:noreply, state}
-  end
-
-  def handle_cast({:unregister_connection, {ip, port}, reason}, state) do
-    start = System.monotonic_time(:microsecond)
-
-    PeerSelection.select_lowest_failcount(1)
-        |> Enum.map(fn peer ->
-          address = {peer.address.address, peer.port}
-          OutgoingHandler.connect({address, state.info_hash, state.peer_id, peer.peer_id})
-        end)
-
-    Repo.one(from peer in Peer,
-              where: peer.address == ^%Postgrex.INET{address: ip}
-              and peer.port == ^port)
-    |> Peer.changeset()
-    |> Repo.update(update: [inc: [failcount: 1]])
-
-    stop = System.monotonic_time(:microsecond)
-    Logger.debug(":unregister_connection latency: #{stop - start} μs")
-
     {:noreply, state}
   end
 
