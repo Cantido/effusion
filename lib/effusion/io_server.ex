@@ -9,16 +9,16 @@ defmodule Effusion.IOServer do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  def write_piece(info, destdir, block) do
-    GenServer.cast(__MODULE__, {:write, info, destdir, block})
+  def write_piece(info, block) do
+    GenServer.cast(__MODULE__, {:write, info, block})
   end
 
   def init(:ok) do
     {:ok, []}
   end
 
-  def handle_cast({:write, info_hash, destdir, block}, state) do
-    :ok = Effusion.IO.write_piece(info_hash, destdir, block)
+  def handle_cast({:write, info_hash, block}, state) do
+    :ok = Effusion.IO.write_piece(info_hash, block)
     {:noreply, state}
   end
 end

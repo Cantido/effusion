@@ -95,10 +95,12 @@ defmodule EffusionTest do
   end
 
   test "download a file", %{lsock: lsock, destfile: file} do
+    Application.put_env(:effusion, :download_destination, file)
+
     Effusion.THP.Mock
     |> expect(:announce, 2, &stub_tracker/9)
 
-    {:ok, _} = Effusion.start_download(@torrent, file)
+    {:ok, _} = Effusion.start_download(@torrent)
 
     {:ok, sock, _remote_peer} =
       Socket.accept(
@@ -149,10 +151,12 @@ defmodule EffusionTest do
   end
 
   test "receive a connection from a peer", %{destfile: file} do
+    Application.put_env(:effusion, :download_destination, file)
+
     Effusion.THP.Mock
     |> expect(:announce, 2, &stub_tracker_no_peers/9)
 
-    {:ok, _} = Effusion.start_download(@torrent, file)
+    {:ok, _} = Effusion.start_download(@torrent)
 
     {:ok, sock, _remote_peer} =
       Socket.connect(

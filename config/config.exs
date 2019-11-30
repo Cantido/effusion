@@ -12,7 +12,8 @@ config :effusion,
   block_size: 16384,
   peer_id: "Effusion Experiment!",
   max_requests_per_peer: 1000,
-  max_peers: 100
+  max_peers: 100,
+  download_destination: File.cwd!()
 
 config :effusion, Effusion.Repo,
   database: "effusion_repo",

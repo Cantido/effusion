@@ -35,9 +35,8 @@ defmodule Effusion.CLI do
 
     {:ok, metabin} = file |> Path.expand() |> File.read()
     {:ok, meta} = Metainfo.decode(metabin)
-    dest = Keyword.get(opts, :output, meta.info.name) |> Path.expand()
 
-    {:ok, info_hash} = Effusion.start_download(meta, dest)
+    {:ok, info_hash} = Effusion.start_download(meta)
 
     Process.sleep(100)
     output_loop(info_hash)

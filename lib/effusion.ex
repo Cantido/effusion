@@ -17,10 +17,10 @@ defmodule Effusion do
 
   This function returns immediately.
   """
-  def start_download(meta, destfile) do
+  def start_download(meta) do
     local_server_address = Application.get_env(:effusion, :server_address)
 
-    DownloadServer.start(meta, local_server_address, destfile)
+    DownloadServer.start(meta, local_server_address)
   end
 
   @doc """
@@ -29,8 +29,8 @@ defmodule Effusion do
 
   This function blocks until the download completes.
   """
-  def download(meta, destfile) do
-    case start_download(meta, destfile) do
+  def download(meta) do
+    case start_download(meta) do
       {:ok, _pid} -> DownloadServer.await(meta.info_hash)
       err -> err
     end
@@ -42,8 +42,7 @@ defmodule Effusion do
   def download_file(torrent_file) do
     {:ok, metabin} = torrent_file |> Path.expand() |> File.read()
     {:ok, meta} = Metainfo.decode(metabin)
-    dest = meta.info.name |> Path.expand()
 
-    {:ok, _info_hash} = Effusion.start_download(meta, dest)
+    {:ok, _info_hash} = Effusion.start_download(meta)
   end
 end

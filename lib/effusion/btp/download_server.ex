@@ -30,8 +30,8 @@ defmodule Effusion.BTP.DownloadServer do
   @doc """
   Start the Download Server in its own supervision tree.
   """
-  def start(meta, {_host, _port} = local_server, file) when is_map(meta) do
-    case DownloadServerSupervisor.start_child([meta, local_server, file]) do
+  def start(meta, {_host, _port} = local_server) when is_map(meta) do
+    case DownloadServerSupervisor.start_child([meta, local_server]) do
       {:ok, _pid} -> {:ok, meta.info_hash}
       err -> err
     end
@@ -40,10 +40,10 @@ defmodule Effusion.BTP.DownloadServer do
   @doc """
   Start the session server and link it to the current process.
   """
-  def start_link([meta, local_peer, file]) do
+  def start_link([meta, local_peer]) do
     GenServer.start_link(
       __MODULE__,
-      [meta, local_peer, file],
+      [meta, local_peer],
       name: {:via, Registry, {SessionRegistry, meta.info_hash}}
     )
   end
@@ -169,7 +169,7 @@ defmodule Effusion.BTP.DownloadServer do
 
   ## Callbacks
 
-  def init([meta, local_peer, file]) do
+  def init([meta, local_peer]) do
     :ok = Directory.insert(meta)
     info_hash = meta.info_hash
 
@@ -179,7 +179,6 @@ defmodule Effusion.BTP.DownloadServer do
     end
 
     state = %{
-      file: file,
       info_hash: meta.info_hash,
       announce: meta.announce,
       meta: meta,
@@ -213,7 +212,7 @@ defmodule Effusion.BTP.DownloadServer do
 
     verified
     |> Enum.reduce(d, fn p, d_acc ->
-      Effusion.IOServer.write_piece(d.info_hash, d.file, p)
+      Effusion.IOServer.write_piece(d.info_hash, p)
       Pieces.mark_piece_written(d.info_hash, block.index)
     end)
 
@@ -334,7 +333,7 @@ defmodule Effusion.BTP.DownloadServer do
     Repo.delete_all(PeerPiece)
     Repo.delete_all(Request)
 
-    VerifierWatchdog.start(session.info_hash, session.file)
+    VerifierWatchdog.start(session.info_hash)
 
     session = Map.put(session, :started_at, Timex.now())
     Repo.one!(from torrent in Torrent,

@@ -22,18 +22,18 @@ defmodule Effusion.IO do
   The `torrent` will have its in-memory pieces cleared,
   and will be updated to remember the pieces that were written.
   """
-  def write_to(torrent, directory) do
-    write_pieces(torrent, directory, Enum.to_list(Pieces.verified(torrent)))
+  def write_to(torrent) do
+    write_pieces(torrent, Enum.to_list(Pieces.verified(torrent)))
   end
 
-  def write_pieces(torrent = %{info: info}, destdir, pieces) do
-    do_write_pieces(info, destdir, pieces)
+  def write_pieces(torrent = %{info: info}, pieces) do
+    do_write_pieces(info, pieces)
 
     torrent = Enum.reduce(pieces, torrent, fn p, t -> Pieces.mark_piece_written(t, p) end)
     {:ok, torrent}
   end
 
-  def write_piece(info_hash, destdir, %{index: index}) do
+  def write_piece(info_hash, %{index: index}) do
     Logger.debug("Writing piece #{index} for #{info_hash |> Effusion.Hash.inspect()}...")
     info = Metainfo.get_meta(info_hash).info
 
@@ -50,11 +50,12 @@ defmodule Effusion.IO do
       bin <> data
     end)
 
-    ret = do_write_pieces(info, destdir, [%{index: index, data: piece_data}])
+    ret = do_write_pieces(info, [%{index: index, data: piece_data}])
     Logger.debug("Done writing piece #{index} for #{info_hash |> Effusion.Hash.inspect()}")
   end
 
-  defp do_write_pieces(info, destdir, pieces) do
+  defp do_write_pieces(info, pieces) do
+    destdir = Application.get_env(:effusion, :download_destination)
     pieces
     |> Enum.flat_map(fn %{index: i, data: d} ->
       split_bytes_to_files(destdir, info, %{index: i, data: d})

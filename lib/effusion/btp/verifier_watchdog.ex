@@ -14,27 +14,27 @@ defmodule Effusion.BTP.VerifierWatchdog do
 
   @watch_interval_ms 250
 
-  def start(info_hash, file) do
-    case VerifierWatchdogSupervisor.start_child([info_hash, file]) do
+  def start(info_hash) do
+    case VerifierWatchdogSupervisor.start_child([info_hash]) do
       {:ok, _pid} -> {:ok, info_hash}
       err -> err
     end
   end
 
-  def start_link([info_hash, file]) do
+  def start_link([info_hash]) do
     GenServer.start_link(
       __MODULE__,
-      [info_hash, file],
+      info_hash,
       name: {:via, Registry, {VerifierWatchdogRegistry, info_hash}}
     )
   end
 
-  def init([info_hash, file]) do
+  def init(info_hash) do
     Process.send_after(self(), :watch, @watch_interval_ms)
-    {:ok, {info_hash, file}}
+    {:ok, info_hash}
   end
 
-  def handle_info(:watch, state = {info_hash, file}) do
+  def handle_info(:watch, info_hash) do
     Logger.debug("VerifierWatchdog checking for completed pieces")
     verified = Pieces.verified(info_hash)
 
@@ -48,17 +48,17 @@ defmodule Effusion.BTP.VerifierWatchdog do
 
     verified
     |> Enum.each(fn p ->
-      Effusion.IOServer.write_piece(info_hash, file, p)
+      Effusion.IOServer.write_piece(info_hash, p)
       Pieces.mark_piece_written(info_hash, p.index)
     end)
 
     Logger.debug("VerifierWatchdog announced & wrote #{Enum.count(verified)} pieces")
 
     Process.send_after(self(), :watch, @watch_interval_ms)
-    {:noreply, state}
+    {:noreply, info_hash}
   end
 
-  def terminate(reason, {info_hash, file}) do
+  def terminate(reason, info_hash) do
     Logger.debug("Watchdog for #{info_hash |> Effusion.Hash.inspect} terminating for reason: #{inspect reason}")
     :ok
   end
