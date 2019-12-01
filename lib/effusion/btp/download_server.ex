@@ -183,7 +183,7 @@ defmodule Effusion.BTP.DownloadServer do
     :ok
   end
 
-  defp announce_params(d, event) do
+  defp announce(d, event) do
     {local_host, local_port} = d.local_address
 
     tracker_numwant = Application.get_env(:effusion, :tracker_numwant)
@@ -198,7 +198,7 @@ defmodule Effusion.BTP.DownloadServer do
       _str -> opts |> Keyword.merge([trackerid: trackerid])
     end
 
-    [
+    {:ok, res} = @thp_client.announce(
       announce,
       local_host,
       local_port,
@@ -208,10 +208,9 @@ defmodule Effusion.BTP.DownloadServer do
       Pieces.bytes_completed(d.info_hash),
       Pieces.bytes_left(d.info_hash),
       opts
-    ]
-  end
+    )
+    Process.send_after(self(), :interval_expired, res.interval * 1_000)
 
-  defp handle_tracker_response(d, res) do
     Repo.one!(from torrent in Torrent,
               where: torrent.info_hash == ^d.info_hash)
     |> Ecto.Changeset.change(trackerid: Map.get(res, :trackerid, ""))
@@ -236,7 +235,7 @@ defmodule Effusion.BTP.DownloadServer do
       address = {p.address.address, p.port}
       OutgoingHandler.connect({address, d.info_hash, d.peer_id, p.peer_id})
     end)
-    d
+    :ok
   end
 
   ## Callbacks
@@ -262,9 +261,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_call(:all_pieces_written, _from, d) do
-    params = announce_params(d, :completed)
-
-    {:ok, _res} = apply(@thp_client, :announce, params)
+    :ok = announce(d, :completed)
 
     reply_to_listeners(d, :ok)
 
@@ -294,21 +291,13 @@ defmodule Effusion.BTP.DownloadServer do
     |> Torrent.start(Timex.now())
     |> Repo.update()
 
-    params = announce_params(session, :started)
-
-    {:ok, res} = apply(@thp_client, :announce, params)
-    handle_tracker_response(session, res)
-    Process.send_after(self(), :interval_expired, res.interval * 1_000)
+    :ok = announce(session, :started)
 
     {:noreply, session}
   end
 
   def handle_info(:interval_expired, state) do
-    announce_params = announce_params(state, :interval)
-    {:ok, res} = apply(@thp_client, :announce, announce_params)
-
-    handle_tracker_response(state, res)
-    Process.send_after(self(), :interval_expired, res.interval * 1_000)
+    :ok = announce(state, :interval)
 
     {:noreply, state}
   end
@@ -320,14 +309,11 @@ defmodule Effusion.BTP.DownloadServer do
   def terminate(:normal, state) do
     ConnectionRegistry.disconnect_all(state.meta.info_hash)
 
-    announce_params =
       if Pieces.all_written?(state.pieces) do
-        announce_params(state, :completed)
+        :ok = announce(state, :completed)
       else
-        announce_params(state, :stopped)
+        :ok = announce(state, :stopped)
       end
-
-    {:ok, _res} = apply(@thp_client, :announce, announce_params)
 
     reply_to_listeners(state, :ok)
   end
@@ -336,8 +322,7 @@ defmodule Effusion.BTP.DownloadServer do
     Logger.debug("download server terminating with reason: #{inspect(reason)}")
     ConnectionRegistry.disconnect_all(state.meta.info_hash)
 
-    announce_params = announce_params(state, :stopped)
-    {:ok, _res} = apply(@thp_client, :announce, announce_params)
+    :ok = announce(state, :stopped)
 
     reply_to_listeners(state, {:error, :torrent_crashed, [reason: reason]})
   end
