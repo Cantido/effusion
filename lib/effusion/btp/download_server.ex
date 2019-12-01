@@ -334,6 +334,7 @@ defmodule Effusion.BTP.DownloadServer do
 
   def terminate(reason, state) do
     Logger.debug("download server terminating with reason: #{inspect(reason)}")
+    ConnectionRegistry.disconnect_all(state.meta.info_hash)
 
     announce_params = announce_params(state, :stopped)
     {:ok, _res} = apply(@thp_client, :announce, announce_params)
