@@ -30,8 +30,8 @@ defmodule Effusion.BTP.DownloadServer do
   @doc """
   Start the Download Server in its own supervision tree.
   """
-  def start(meta, {_host, _port} = local_server) when is_map(meta) do
-    case DownloadServerSupervisor.start_child([meta, local_server]) do
+  def start(meta) when is_map(meta) do
+    case DownloadServerSupervisor.start_child([meta]) do
       {:ok, _pid} -> {:ok, meta.info_hash}
       err -> err
     end
@@ -40,10 +40,10 @@ defmodule Effusion.BTP.DownloadServer do
   @doc """
   Start the session server and link it to the current process.
   """
-  def start_link([meta, local_peer]) do
+  def start_link([meta]) do
     GenServer.start_link(
       __MODULE__,
-      [meta, local_peer],
+      meta,
       name: {:via, Registry, {SessionRegistry, meta.info_hash}}
     )
   end
@@ -184,7 +184,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   defp announce(d, event) do
-    {local_host, local_port} = d.local_address
+    {local_host, local_port} = Application.get_env(:effusion, :server_address)
 
     tracker_numwant = Application.get_env(:effusion, :tracker_numwant)
     opts = [event: event, numwant: tracker_numwant]
@@ -240,7 +240,7 @@ defmodule Effusion.BTP.DownloadServer do
 
   ## Callbacks
 
-  def init([meta, local_peer]) do
+  def init(meta) do
     :ok = Directory.insert(meta)
     info_hash = meta.info_hash
 
@@ -253,7 +253,6 @@ defmodule Effusion.BTP.DownloadServer do
       info_hash: meta.info_hash,
       meta: meta,
       peer_id: @local_peer_id,
-      local_address: local_peer,
       listeners: MapSet.new()
     }
 

@@ -18,9 +18,7 @@ defmodule Effusion do
   This function returns immediately.
   """
   def start_download(meta) do
-    local_server_address = Application.get_env(:effusion, :server_address)
-
-    DownloadServer.start(meta, local_server_address)
+    DownloadServer.start(meta)
   end
 
   @doc """
