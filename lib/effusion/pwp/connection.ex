@@ -163,46 +163,21 @@ defmodule Effusion.PWP.Connection do
     {:noreply, state}
   end
 
-  def terminate(reason, %{
-        socket: socket,
-        info_hash: info_hash,
-        remote_peer_id: remote_peer_id,
-        address: address
-      }) do
+  def terminate(reason, state) do
     PeerStats.dec_num_tcp_peers()
 
-    Logger.debug(
-      "Connection handler for #{remote_peer_id} terminating with reason #{inspect(reason)}"
-    )
+    cond do
+      Map.has_key?(state, :remote_peer_id) -> Logger.debug("Connection handler for #{state.remote_peer_id} terminating with reason #{inspect(reason)}")
+      Map.has_key?(state, :address) -> Logger.debug("Connection handler for #{inspect state.address} terminating with reason #{inspect(reason)}")
+    end
 
-    Socket.close(socket)
-    DownloadServer.unregister_connection(info_hash, address, reason)
-    :ok
-  end
+    if(Map.has_key?(state, :socket)) do
+      Socket.close(state.socket)
+    end
 
-  def terminate(reason, %{info_hash: info_hash, remote_peer_id: remote_peer_id, address: address}) when not is_nil(remote_peer_id) and not is_nil(address) do
-    PeerStats.dec_num_tcp_peers()
-
-    Logger.debug(
-      "Connection handler for #{inspect address} (#{inspect remote_peer_id}) terminating with reason #{inspect(reason)}"
-    )
-
-    DownloadServer.unregister_connection(info_hash, address, reason)
-  end
-
-  def terminate(reason, %{address: address}) when not is_nil(address) do
-    PeerStats.dec_num_tcp_peers()
-
-    Logger.debug(
-      "Connection handler for #{inspect address} terminating with reason #{inspect(reason)}"
-    )
-
-    :ok
-  end
-
-  def terminate(reason, _state) do
-    PeerStats.dec_num_tcp_peers()
-    Logger.debug("Connection handler terminating with reason #{inspect(reason)}")
+    if(Map.has_key?(state, :info_hash) && Map.has_key?(state, :address)) do
+      DownloadServer.unregister_connection(state.info_hash, state.address, reason)
+    end
 
     :ok
   end
