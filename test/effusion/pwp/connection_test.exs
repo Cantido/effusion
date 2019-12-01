@@ -1,5 +1,5 @@
 defmodule Effusion.PWP.OutgoingHandlerTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   alias Effusion.PWP.OutgoingHandler
   alias Effusion.BTP.Peer
   alias Effusion.PWP.Socket
