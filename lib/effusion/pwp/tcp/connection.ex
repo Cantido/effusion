@@ -1,7 +1,6 @@
 defmodule Effusion.PWP.TCP.Connection do
-  alias Effusion.BTP.DownloadServer
-  alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.Messages
+  alias Effusion.PWP.ProtocolHandler
   alias Effusion.PWP.TCP.Socket
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
@@ -16,6 +15,8 @@ defmodule Effusion.PWP.TCP.Connection do
   This amounts to performing the handshake, and then forwarding any messages
   to the associated download.
   """
+
+  @local_peer_id Application.get_env(:effusion, :peer_id)
 
   def disconnect(pid) do
     send(pid, :disconnect)
@@ -48,8 +49,7 @@ defmodule Effusion.PWP.TCP.Connection do
   defp successful_handshake(socket, info_hash, peer_id) do
     with {:ok, address} <- :inet.peername(socket),
          _ = Logger.debug("Handshake with #{ntoa(address)} successful"),
-         {:ok, _pid} <- ConnectionRegistry.register(info_hash, peer_id),
-         :ok <- DownloadServer.connected(info_hash, peer_id, address),
+         :ok <- ProtocolHandler.handle_connect(info_hash, peer_id, address),
          :ok <- :inet.setopts(socket, active: :once, packet: 4) do
       :ok
     else
@@ -119,7 +119,7 @@ defmodule Effusion.PWP.TCP.Connection do
   def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id})
     when is_hash(info_hash)
      and is_peer_id(peer_id) do
-    :ok = DownloadServer.handle_message(info_hash, peer_id, msg)
+    :ok = ProtocolHandler.handle_message(info_hash, peer_id, msg)
     {:noreply, state}
   end
 
@@ -177,7 +177,7 @@ defmodule Effusion.PWP.TCP.Connection do
     end
 
     if(Map.has_key?(state, :info_hash) && Map.has_key?(state, :address)) do
-      DownloadServer.unregister_connection(state.info_hash, state.address, reason)
+      ProtocolHandler.handle_disconnect(state.info_hash, state.address, reason)
     end
 
     :ok
