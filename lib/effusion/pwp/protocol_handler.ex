@@ -15,6 +15,11 @@ defmodule Effusion.PWP.ProtocolHandler do
 
   @local_peer_id Application.get_env(:effusion, :peer_id)
 
+  def connect(address, info_hash, remote_peer_id) do
+    # This is where we would make the uTP/TCP decision, once we support uTP.
+    OutgoingHandler.connect({address, info_hash, @local_peer_id, remote_peer_id})
+  end
+
   def handle_connect(info_hash, peer_id, address) do
     {:ok, _pid} = ConnectionRegistry.register(info_hash, peer_id)
     Peer.insert(peer_id, address)
@@ -117,6 +122,10 @@ defmodule Effusion.PWP.ProtocolHandler do
     :ok
   end
 
+  def disconnect_all(info_hash) do
+    ConnectionRegistry.disconnect_all(info_hash)
+  end
+
   @doc """
   Handle a peer disconnection.
   """
@@ -124,7 +133,7 @@ defmodule Effusion.PWP.ProtocolHandler do
     PeerSelection.select_lowest_failcount(1)
         |> Enum.map(fn peer ->
           address = {peer.address.address, peer.port}
-          OutgoingHandler.connect({address, info_hash, @local_peer_id, peer.peer_id})
+          connect(address, info_hash, peer.peer_id)
         end)
 
     Repo.one(from peer in Peer,

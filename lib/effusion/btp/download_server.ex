@@ -7,7 +7,7 @@ defmodule Effusion.BTP.DownloadServer do
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Metainfo.Directory
   alias Effusion.BTP.VerifierWatchdog
-  alias Effusion.PWP.ConnectionRegistry
+  alias Effusion.PWP.ProtocolHandler
   alias Effusion.THP.Announcer
   alias Effusion.Repo
   import Ecto.Query
@@ -125,7 +125,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def terminate(:normal, state) do
-    ConnectionRegistry.disconnect_all(state.meta.info_hash)
+    ProtocolHandler.disconnect_all(state.meta.info_hash)
 
       if Pieces.all_written?(state.pieces) do
         :ok = Announcer.announce(state.info_hash, :completed)
@@ -138,7 +138,7 @@ defmodule Effusion.BTP.DownloadServer do
 
   def terminate(reason, state) do
     Logger.debug("download server terminating with reason: #{inspect(reason)}")
-    ConnectionRegistry.disconnect_all(state.meta.info_hash)
+    ProtocolHandler.disconnect_all(state.meta.info_hash)
 
     :ok = Announcer.announce(state.info_hash, :stopped)
 
