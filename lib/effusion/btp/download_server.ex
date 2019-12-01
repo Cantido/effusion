@@ -12,6 +12,7 @@ defmodule Effusion.BTP.DownloadServer do
   alias Effusion.BTP.VerifierWatchdog
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.TCP.OutgoingHandler
+  alias Effusion.THP.Announcer
   alias Effusion.Repo
   import Effusion.BTP.Peer
   import Effusion.Hash, only: [is_hash: 1]
@@ -22,7 +23,6 @@ defmodule Effusion.BTP.DownloadServer do
   An API to manage a `Effusion.BTP.Download` object as it is connected to many peers simultaneously.
   """
 
-  @thp_client Application.get_env(:effusion, :thp_client)
   @local_peer_id Application.get_env(:effusion, :peer_id)
 
   ## API
@@ -183,61 +183,6 @@ defmodule Effusion.BTP.DownloadServer do
     :ok
   end
 
-  defp announce(d, event) do
-    {local_host, local_port} = Application.get_env(:effusion, :server_address)
-
-    tracker_numwant = Application.get_env(:effusion, :tracker_numwant)
-    opts = [event: event, numwant: tracker_numwant]
-
-    {announce, trackerid} = Repo.one!(from torrent in Torrent,
-                                      where: torrent.info_hash == ^d.info_hash,
-                                      select: {torrent.announce, torrent.trackerid})
-
-    opts = case trackerid do
-      "" -> opts
-      _str -> opts |> Keyword.merge([trackerid: trackerid])
-    end
-
-    {:ok, res} = @thp_client.announce(
-      announce,
-      local_host,
-      local_port,
-      d.peer_id,
-      d.info_hash,
-      0,
-      Pieces.bytes_completed(d.info_hash),
-      Pieces.bytes_left(d.info_hash),
-      opts
-    )
-    Process.send_after(self(), :interval_expired, res.interval * 1_000)
-
-    Repo.one!(from torrent in Torrent,
-              where: torrent.info_hash == ^d.info_hash)
-    |> Ecto.Changeset.change(trackerid: Map.get(res, :trackerid, ""))
-    |> Ecto.Changeset.change(last_announce: Timex.now() |> DateTime.truncate(:second))
-    |> Ecto.Changeset.change(next_announce: Timex.now() |> Timex.shift(seconds: res.interval) |> DateTime.truncate(:second))
-    |> Repo.update!()
-
-    changesets = Enum.map(res.peers, fn peer ->
-      %{
-        address: %Postgrex.INET{address: peer.ip},
-        port: peer.port,
-        peer_id: Map.get(peer, :peer_id, nil)
-      }
-    end)
-
-    Repo.insert_all(Peer, changesets, on_conflict: :nothing)
-
-    max_peers = Application.get_env(:effusion, :max_peers)
-    eligible_peers = PeerSelection.select_lowest_failcount(max_peers)
-
-    Enum.each(eligible_peers, fn p ->
-      address = {p.address.address, p.port}
-      OutgoingHandler.connect({address, d.info_hash, d.peer_id, p.peer_id})
-    end)
-    :ok
-  end
-
   ## Callbacks
 
   def init(meta) do
@@ -260,7 +205,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_call(:all_pieces_written, _from, d) do
-    :ok = announce(d, :completed)
+    :ok = Announcer.announce(d.info_hash, :completed)
 
     reply_to_listeners(d, :ok)
 
@@ -290,13 +235,13 @@ defmodule Effusion.BTP.DownloadServer do
     |> Torrent.start(Timex.now())
     |> Repo.update()
 
-    :ok = announce(session, :started)
+    :ok = Announcer.announce(session.info_hash, :started)
 
     {:noreply, session}
   end
 
   def handle_info(:interval_expired, state) do
-    :ok = announce(state, :interval)
+    :ok = Announcer.announce(state.info_hash, :interval)
 
     {:noreply, state}
   end
@@ -309,9 +254,9 @@ defmodule Effusion.BTP.DownloadServer do
     ConnectionRegistry.disconnect_all(state.meta.info_hash)
 
       if Pieces.all_written?(state.pieces) do
-        :ok = announce(state, :completed)
+        :ok = Announcer.announce(state.info_hash, :completed)
       else
-        :ok = announce(state, :stopped)
+        :ok = Announcer.announce(state.info_hash, :stopped)
       end
 
     reply_to_listeners(state, :ok)
@@ -321,7 +266,7 @@ defmodule Effusion.BTP.DownloadServer do
     Logger.debug("download server terminating with reason: #{inspect(reason)}")
     ConnectionRegistry.disconnect_all(state.meta.info_hash)
 
-    :ok = announce(state, :stopped)
+    :ok = Announcer.announce(state.info_hash, :stopped)
 
     reply_to_listeners(state, {:error, :torrent_crashed, [reason: reason]})
   end
