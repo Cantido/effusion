@@ -268,7 +268,7 @@ defmodule Effusion.BTP.DownloadServer do
 
     reply_to_listeners(d, :ok)
 
-    {:reply, :ok, d}
+    {:stop, :normal, :ok, d}
   end
 
   def handle_call(:get, _from, state) do
