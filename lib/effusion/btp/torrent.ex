@@ -16,10 +16,21 @@ defmodule Effusion.BTP.Torrent do
     field :comment, :string, null: true
     field :created_by, :string, null: true
     field :creation_date, :utc_datetime, null: true
+    field :trackerid, :string, null: true
+    field :last_announce, :utc_datetime, null: true
+    field :next_announce, :utc_datetime, null: true
   end
 
   @required_fields [:info_hash, :name, :announce]
-  @optional_fields [:started, :comment, :created_by, :creation_date]
+  @optional_fields [
+    :started,
+    :comment,
+    :created_by,
+    :creation_date,
+    :trackerid,
+    :last_announce,
+    :next_announce
+  ]
   def changeset(torrent, params \\ %{}) do
     torrent
     |> cast(params, @required_fields ++ @optional_fields)

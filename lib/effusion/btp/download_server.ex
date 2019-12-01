@@ -189,13 +189,17 @@ defmodule Effusion.BTP.DownloadServer do
     tracker_numwant = Application.get_env(:effusion, :tracker_numwant)
     opts = [event: event, numwant: tracker_numwant]
 
-    opts = case d.trackerid do
+    {announce, trackerid} = Repo.one!(from torrent in Torrent,
+                                      where: torrent.info_hash == ^d.info_hash,
+                                      select: {torrent.announce, torrent.trackerid})
+
+    opts = case trackerid do
       "" -> opts
-      _str -> opts |> Keyword.merge([trackerid: d.trackerid])
+      _str -> opts |> Keyword.merge([trackerid: trackerid])
     end
 
     [
-      d.announce,
+      announce,
       local_host,
       local_port,
       d.peer_id,
@@ -208,12 +212,12 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   defp handle_tracker_response(d, res) do
-    trackerid =
-      if Map.get(res, :trackerid, "") != "" do
-        res.trackerid
-      else
-        d.trackerid
-      end
+    Repo.one!(from torrent in Torrent,
+              where: torrent.info_hash == ^d.info_hash)
+    |> Ecto.Changeset.change(trackerid: Map.get(res, :trackerid, ""))
+    |> Ecto.Changeset.change(last_announce: Timex.now() |> DateTime.truncate(:second))
+    |> Ecto.Changeset.change(next_announce: Timex.now() |> Timex.shift(seconds: res.interval) |> DateTime.truncate(:second))
+    |> Repo.update!()
 
     changesets = Enum.map(res.peers, fn peer ->
       %{
@@ -224,10 +228,6 @@ defmodule Effusion.BTP.DownloadServer do
     end)
 
     Repo.insert_all(Peer, changesets, on_conflict: :nothing)
-
-    d =
-      d
-      |> Map.put(:trackerid, trackerid)
 
     max_peers = Application.get_env(:effusion, :max_peers)
     eligible_peers = PeerSelection.select_lowest_failcount(max_peers)
@@ -252,13 +252,10 @@ defmodule Effusion.BTP.DownloadServer do
 
     state = %{
       info_hash: meta.info_hash,
-      announce: meta.announce,
       meta: meta,
       peer_id: @local_peer_id,
       local_address: local_peer,
-      listeners: MapSet.new(),
-      started_at: nil,
-      trackerid: ""
+      listeners: MapSet.new()
     }
 
     {:ok, state, 0}
