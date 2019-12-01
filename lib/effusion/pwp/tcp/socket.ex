@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Socket do
+defmodule Effusion.PWP.TCP.Socket do
   require Logger
   alias Effusion.PWP.Messages
   alias Effusion.PWP.Messages.Handshake

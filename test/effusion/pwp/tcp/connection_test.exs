@@ -1,10 +1,10 @@
-defmodule Effusion.PWP.OutgoingHandlerTest do
+defmodule Effusion.PWP.TCP.ConnectionTest do
   use ExUnit.Case
-  alias Effusion.PWP.OutgoingHandler
   alias Effusion.BTP.Peer
-  alias Effusion.PWP.Socket
+  alias Effusion.PWP.TCP.OutgoingHandler
+  alias Effusion.PWP.TCP.Socket
 
-  doctest Effusion.PWP.OutgoingHandler
+  doctest Effusion.PWP.TCP.Connection
 
   @torrent TestHelper.tiny_meta()
   @local_peer_id "Other peer 123456789"

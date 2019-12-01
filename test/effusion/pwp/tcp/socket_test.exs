@@ -1,9 +1,9 @@
-defmodule Effusion.PWP.SocketTest do
+defmodule Effusion.PWP.TCP.SocketTest do
   use ExUnit.Case, async: true
-  alias Effusion.PWP.Socket
+  alias Effusion.PWP.TCP.Socket
   alias Effusion.BTP.Peer
   alias Effusion.PWP.Messages
-  doctest Effusion.PWP.Socket
+  doctest Effusion.PWP.TCP.Socket
 
   @info_hash TestHelper.mint_info_hash()
   @local_peer_id "Effusion Experiment!"

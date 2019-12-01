@@ -2,7 +2,7 @@ defmodule EffusionTest do
   use ExUnit.Case
   doctest Effusion
   alias Effusion.BTP.Peer
-  alias Effusion.PWP.Socket
+  alias Effusion.PWP.TCP.Socket
   import Mox
   require Logger
 

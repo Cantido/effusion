@@ -1,5 +1,5 @@
 defmodule Effusion.PWP.Messages.Handshake do
-  alias Effusion.PWP.Socket
+  alias Effusion.PWP.TCP.Socket
 
   @moduledoc """
   Encode and decode peer handshake messages.

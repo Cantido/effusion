@@ -1,7 +1,7 @@
-defmodule Effusion.PWP.OutgoingHandler do
+defmodule Effusion.PWP.TCP.OutgoingHandler do
   use GenServer, restart: :temporary
   alias Effusion.Application.ConnectionSupervisor
-  alias Effusion.PWP.Connection
+  alias Effusion.PWP.TCP.Connection
   require Logger
 
   @moduledoc """

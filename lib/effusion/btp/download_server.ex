@@ -11,7 +11,7 @@ defmodule Effusion.BTP.DownloadServer do
   alias Effusion.BTP.Metainfo.Directory
   alias Effusion.BTP.VerifierWatchdog
   alias Effusion.PWP.ConnectionRegistry
-  alias Effusion.PWP.OutgoingHandler
+  alias Effusion.PWP.TCP.OutgoingHandler
   alias Effusion.Repo
   import Effusion.BTP.Peer
   import Effusion.Hash, only: [is_hash: 1]

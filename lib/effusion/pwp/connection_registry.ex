@@ -1,5 +1,5 @@
 defmodule Effusion.PWP.ConnectionRegistry do
-  alias Effusion.PWP.OutgoingHandler
+  alias Effusion.PWP.TCP.OutgoingHandler
   import Effusion.Hash, only: [is_hash: 1]
   import Effusion.BTP.Peer
   require Logger

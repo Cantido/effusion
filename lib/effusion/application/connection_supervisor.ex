@@ -14,7 +14,7 @@ defmodule Effusion.Application.ConnectionSupervisor do
   end
 
   def start_child(peer) do
-    spec = {Effusion.PWP.OutgoingHandler, peer}
+    spec = {Effusion.PWP.TCP.OutgoingHandler, peer}
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
 end

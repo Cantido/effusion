@@ -1,8 +1,8 @@
-defmodule Effusion.PWP.Connection do
+defmodule Effusion.PWP.TCP.Connection do
   alias Effusion.BTP.DownloadServer
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.Messages
-  alias Effusion.PWP.Socket
+  alias Effusion.PWP.TCP.Socket
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
   alias Effusion.Statistics.Session, as: SessionStats
@@ -169,6 +169,7 @@ defmodule Effusion.PWP.Connection do
     cond do
       Map.has_key?(state, :remote_peer_id) -> Logger.debug("Connection handler for #{state.remote_peer_id} terminating with reason #{inspect(reason)}")
       Map.has_key?(state, :address) -> Logger.debug("Connection handler for #{inspect state.address} terminating with reason #{inspect(reason)}")
+      true -> Logger.debug("Connection handler #{inspect self()} terminating with reason #{inspect reason}")
     end
 
     if(Map.has_key?(state, :socket)) do
