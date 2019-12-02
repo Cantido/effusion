@@ -99,7 +99,7 @@ defmodule Effusion.PWP.ProtocolHandler do
     :ok
   end
 
-  def handle_message(info_hash, remote_peer_id, message) when is_hash(info_hash) and is_peer_id(remote_peer_id) do
+  def handle_message(info_hash, remote_peer_id, :unchoke) when is_hash(info_hash) and is_peer_id(remote_peer_id) do
     next_request_from_peer(info_hash, remote_peer_id, 100)
     :ok
   end
