@@ -1,33 +1,29 @@
 defmodule EffusionWeb.Resolvers.Torrents do
-  alias Effusion.BTP.TorrentRegistry
-  alias Effusion.BTP.DownloadServer
-  alias Effusion.BTP.Download
-  def all_torrents(_root, _args, _info) do
-    info_hashes = TorrentRegistry.all_torrents
+  alias Effusion.BTP.Pieces
+  alias Effusion.BTP.Torrent
+  alias Effusion.Repo
+  import Ecto.Query
 
-    torrents = info_hashes
-      |> Enum.map(&DownloadServer.get/1)
-      |> Enum.map(&build/1)
+  def all_torrents(_root, _args, _info) do
+    torrents = Repo.all(Torrent)
 
     {:ok, torrents}
   end
 
   def find_torrent(_parent, %{id: id}, _resolution) do
-    if TorrentRegistry.present?(id) do
-      {:ok, DownloadServer.get(id) |> build()}
+    binary_id = Effusion.Hash.decode(id)
+    torrent_query = from torrent in Torrent,
+                      where: torrent.info_hash == ^binary_id
+
+    torrent = Repo.one(torrent_query)
+    if torrent != nil do
+      {:ok, torrent}
     else
       {:error, "Torrent ID #{Effusion.Hash.inspect id} not found"}
     end
   end
 
-  defp build(download) do
-    {downloaded, total_to_download} = Download.downloaded_ratio(download)
-    %{
-      id: download.meta.info_hash,
-      name: download.meta.info.name,
-      downloaded: downloaded,
-      left: total_to_download,
-      started_at: download.started_at
-    }
+  def downloaded(torrent, _args, _info) do
+    {:ok, Pieces.bytes_completed(torrent.info_hash)}
   end
 end

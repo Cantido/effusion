@@ -6,9 +6,15 @@ defmodule EffusionWeb.Schema do
 
   @desc "A torrent"
   object :torrent do
-    field :id, :string
+    field :id, :string do
+      resolve fn torrent, _, _ ->
+        {:ok, torrent.info_hash |> Effusion.Hash.inspect()}
+      end
+    end
     field :name, :string
-    field :downloaded, :integer
+    field :downloaded, :integer do
+      resolve &Resolvers.Torrents.downloaded/3
+    end
     field :left, :integer
     field :started_at, :datetime
   end

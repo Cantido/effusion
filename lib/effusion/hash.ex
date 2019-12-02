@@ -30,6 +30,10 @@ defmodule Effusion.Hash do
     Base.encode16(hash, case: :lower)
   end
 
+  def decode(base16) when is_binary(base16) and byte_size(base16) == 40 do
+    Base.decode16!(base16, case: :mixed)
+  end
+
   @doc """
   Calculate the SHA-1 hash on a binary.
 
