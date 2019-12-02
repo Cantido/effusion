@@ -1,7 +1,6 @@
 defmodule Effusion.BTP.Block do
   alias Effusion.BTP.Piece
   alias Effusion.BTP.Request
-  alias Effusion.Hash
   import Effusion.Math
   use Ecto.Schema
 
@@ -26,79 +25,7 @@ defmodule Effusion.BTP.Block do
     has_many :requests_from, through: [:requests, :peer_id]
   end
 
-  # @enforce_keys [:index, :offset, :size]
-  # defstruct [:index, :offset, :size, data: <<>>]
-
-  defguardp is_index(i) when is_integer(i) and i >= 0
   defguardp is_size(x) when is_integer(x) and x > 0
-
-  @doc """
-  Check if the first block is followed immedately by the second block,
-  if they are in the same piece.
-  """
-  def sequential?(%{index: i1, offset: o1, data: d1}, %{index: i2, offset: o2}) do
-    i1 == i2 and o1 + byte_size(d1) == o2
-  end
-
-  @doc """
-  Check if the two blocks are contiguous, with either b1 first or b2 first.
-  """
-  def adjacent?(b1, b2) do
-    sequential?(b1, b2) or sequential?(b2, b1)
-  end
-
-  @doc """
-  Combine two contiguous blocks in the same piece into one larger block.
-  """
-  def merge(b1 = %{index: i1, offset: o1, data: d1}, b2 = %{index: i2, offset: o2, data: d2}) do
-    cond do
-      sequential?(b1, b2) ->
-        %{
-          index: i1,
-          offset: o1,
-          size: byte_size(d1 <> d2),
-          data: d1 <> d2
-        }
-
-      sequential?(b2, b1) ->
-        %{
-          index: i2,
-          offset: o2,
-          size: byte_size(d2 <> d1),
-          data: d2 <> d1
-        }
-
-      true ->
-        {:error, :blocks_not_contiguous}
-    end
-  end
-
-  @doc """
-  Check if a block is a requisite size.
-  """
-  def finished?(block, target_size) do
-    size(block) == target_size
-  end
-
-  @doc """
-  Get the size of the data in, or identified by, a block.
-  """
-  def size(block)
-
-  def size(%{data: d}) do
-    byte_size(d)
-  end
-
-  def size(%{size: s}) do
-    s
-  end
-
-  @doc """
-  Drop the `:offset` value from a block, indicating that it is now a whole piece.
-  """
-  def to_piece(%{index: i, offset: _, data: d}) do
-    %{index: i, data: d}
-  end
 
   @doc """
   Split a piece into many blocks of a certain size.
@@ -130,13 +57,5 @@ defmodule Effusion.BTP.Block do
       last_block = %__MODULE__{piece: piece, offset: last_block_offset, size: block_size}
       Stream.concat(whole_blocks, [last_block])
     end
-  end
-
-  @doc """
-  Check that the block's data matches the SHA-1 hash in a metadata map.
-  """
-  def correct_hash?(block, info) do
-    expected_hash = Enum.at(info.pieces, block.index)
-    Hash.matches?(expected_hash, block.data)
   end
 end

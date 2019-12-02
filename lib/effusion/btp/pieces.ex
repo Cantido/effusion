@@ -2,9 +2,7 @@ defmodule Effusion.BTP.Pieces do
   require Logger
   alias Effusion.BTP.Piece
   alias Effusion.BTP.Block
-  alias Effusion.BTP.Metainfo
   alias Effusion.Repo
-  alias Effusion.Hash
   import Effusion.Hash, only: [is_hash: 1]
   import Ecto.Query
 
@@ -62,9 +60,13 @@ defmodule Effusion.BTP.Pieces do
   If the addition of the block finishes a piece,
   the piece will then be verified and moved to the `:pieces` set.
   """
+  def add_block(torrent, block)
 
+  def add_block(torrent, block) when is_map(torrent) do
+    add_block(torrent.info_hash, block)
+  end
 
-  def add_block(info_hash, block = %{index: i, offset: o, data: data}) when is_hash(info_hash) do
+  def add_block(info_hash, %{index: i, offset: o, data: data}) when is_hash(info_hash) do
     {:ok, _block} = Repo.one!(from b in Block,
                       join: p in assoc(b, :piece),
                       join: torrent in assoc(p, :torrent),
@@ -123,10 +125,6 @@ defmodule Effusion.BTP.Pieces do
         Repo.update_all(blocks_query, set: [data: nil])
       end
     end)
-  end
-
-  def add_block(torrent, block) do
-    add_block(torrent.info_hash, block)
   end
 
   @doc """

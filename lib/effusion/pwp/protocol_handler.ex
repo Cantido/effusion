@@ -129,7 +129,7 @@ defmodule Effusion.PWP.ProtocolHandler do
   @doc """
   Handle a peer disconnection.
   """
-  def handle_disconnect(info_hash, {ip, port}, reason) do
+  def handle_disconnect(info_hash, {ip, port}, _reason) do
     PeerSelection.select_lowest_failcount(1)
         |> Enum.map(fn peer ->
           address = {peer.address.address, peer.port}

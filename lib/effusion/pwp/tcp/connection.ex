@@ -16,8 +16,6 @@ defmodule Effusion.PWP.TCP.Connection do
   to the associated download.
   """
 
-  @local_peer_id Application.get_env(:effusion, :peer_id)
-
   def disconnect(pid) do
     send(pid, :disconnect)
   end
