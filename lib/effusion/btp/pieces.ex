@@ -102,7 +102,7 @@ defmodule Effusion.BTP.Pieces do
                     join: piece in assoc(block, :piece),
                     where: piece.id == ^piece_dbid,
                     order_by: block.offset,
-                    group_by: block.position,
+                    group_by: block.offset,
                     select: fragment("digest(string_agg(?, ''), 'sha1')", block.data)
 
       piece_actual_hash = Repo.one(data_query)
