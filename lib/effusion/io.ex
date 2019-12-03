@@ -20,12 +20,10 @@ defmodule Effusion.IO do
                   where: torrent.info_hash == ^info_hash,
                   where: piece.index == ^index,
                   order_by: block.offset,
-                  select: block.data
-    data_blocks = Repo.all(data_query)
+                  group_by: block.offset,
+                  select: fragment("string_agg(?, '')", block.data)
 
-    piece_data = Enum.reduce(data_blocks, <<>>, fn data, bin ->
-      bin <> data
-    end)
+    piece_data = Repo.one!(data_query)
 
     ret = do_write_pieces(info, [%{index: index, data: piece_data}])
     Logger.debug("Done writing piece #{index} for #{info_hash |> Effusion.Hash.encode()}")
