@@ -20,9 +20,7 @@ defmodule Effusion.IO do
                   where: torrent.info_hash == ^info_hash,
                   where: piece.index == ^index,
                   where: piece.verified,
-                  order_by: block.offset,
-                  group_by: block.offset,
-                  select: fragment("string_agg(?, '')", block.data)
+                  select: fragment("string_agg(?, '' ORDER BY ?)", block.data, block.offset)
 
     piece_data = Repo.one!(data_query)
 
