@@ -97,13 +97,14 @@ defmodule Effusion.PWP.TCP.Connection do
          local_peer_id = Application.get_env(:effusion, :peer_id),
          _ = Logger.debug("Responding to #{remote_peer_id} with handshake"),
          :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, info_hash}),
-         :ok <- successful_handshake(socket, info_hash, remote_peer_id) do
+         :ok <- successful_handshake(socket, info_hash, remote_peer_id),
+         {:ok, address} <- :inet.peername(socket) do
       {:noreply,
        %{
          socket: socket,
          info_hash: info_hash,
          remote_peer_id: remote_peer_id,
-         address: :inet.peername(socket)
+         address: address
        }}
     else
       [] ->

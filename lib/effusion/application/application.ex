@@ -15,6 +15,7 @@ defmodule Effusion.Application do
       Effusion.Application.BTPHandlerSupervisor,
       Effusion.Application.ConnectionSupervisor,
       Effusion.Application.VerifierWatchdogSupervisor,
+      Effusion.Application.AnnouncerSupervisor,
       Effusion.BTP.Metainfo.Directory,
       Effusion.IOServer,
       Effusion.Statistics.PeerDownloadAverage,
@@ -22,6 +23,7 @@ defmodule Effusion.Application do
       {Registry, keys: :duplicate, name: ConnectionRegistry},
       {Registry, keys: :unique, name: BTPHandlerRegistry},
       {Registry, keys: :unique, name: VerifierWatchdogRegistry},
+      {Registry, keys: :unique, name: AnnouncerRegistry},
       EffusionWeb.Endpoint,
       Effusion.Repo
     ]

@@ -1,4 +1,7 @@
 defmodule Effusion.THP.Announcer do
+  use GenServer
+
+  alias Effusion.Application.AnnouncerSupervisor
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Peer
   alias Effusion.BTP.PeerSelection
@@ -10,7 +13,34 @@ defmodule Effusion.THP.Announcer do
 
   @thp_client Application.get_env(:effusion, :thp_client)
 
+  def start(info_hash) do
+    case AnnouncerSupervisor.start_child([info_hash]) do
+      {:ok, _pid} -> {:ok, info_hash}
+      err -> err
+    end
+  end
+
+  def start_link([info_hash]) do
+    GenServer.start_link(
+      __MODULE__,
+      info_hash,
+      name: {:via, Registry, {AnnouncerRegistry, info_hash}}
+    )
+  end
+
+  def init(info_hash) do
+    {:ok, {info_hash, nil}}
+  end
+
   def announce(info_hash, event) when is_hash(info_hash) do
+    GenServer.cast({:via, Registry, {AnnouncerRegistry, info_hash}}, {:announce, event})
+  end
+
+  def handle_info(:interval_expired, state) do
+    handle_cast({:announce, :interval}, state)
+  end
+
+  def handle_cast({:announce, event}, {info_hash, timer}) do
     peer_id = Application.get_env(:effusion, :peer_id)
     {local_host, local_port} = Application.get_env(:effusion, :server_address)
 
@@ -37,7 +67,10 @@ defmodule Effusion.THP.Announcer do
       Pieces.bytes_left(info_hash),
       opts
     )
-    Process.send_after(self(), :interval_expired, res.interval * 1_000)
+    if not is_nil(timer) do
+      Process.cancel_timer(timer)
+    end
+    timer = Process.send_after(self(), :interval_expired, res.interval * 1_000)
 
     Repo.one!(from torrent in Torrent,
               where: torrent.info_hash == ^info_hash)
@@ -63,6 +96,6 @@ defmodule Effusion.THP.Announcer do
       address = {p.address.address, p.port}
       OutgoingHandler.connect({address, info_hash, peer_id, p.peer_id})
     end)
-    :ok
+    {:noreply, {info_hash, timer}}
   end
 end

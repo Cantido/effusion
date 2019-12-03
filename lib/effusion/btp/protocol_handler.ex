@@ -101,6 +101,7 @@ defmodule Effusion.BTP.ProtocolHandler do
     Repo.delete_all(Request)
 
     VerifierWatchdog.start(session.info_hash)
+    Announcer.start(session.info_hash)
 
     session = Map.put(session, :started_at, Timex.now())
     Repo.one!(from torrent in Torrent,
@@ -113,12 +114,6 @@ defmodule Effusion.BTP.ProtocolHandler do
     {:noreply, session}
   end
 
-  def handle_info(:interval_expired, state) do
-    :ok = Announcer.announce(state.info_hash, :interval)
-
-    {:noreply, state}
-  end
-
   def handle_info(_, state) do
     {:noreply, state}
   end
@@ -126,7 +121,7 @@ defmodule Effusion.BTP.ProtocolHandler do
   def terminate(:normal, state) do
     ProtocolHandler.disconnect_all(state.meta.info_hash)
 
-      if Pieces.all_written?(state.pieces) do
+      if Pieces.all_written?(state.info_hash) do
         :ok = Announcer.announce(state.info_hash, :completed)
       else
         :ok = Announcer.announce(state.info_hash, :stopped)
