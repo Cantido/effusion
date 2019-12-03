@@ -12,8 +12,8 @@ defmodule Effusion.Repo.Migrations.AddTrackerFields do
   def down do
     alter table("torrents") do
       remove :trackerid
-      remove :last_contacted
-      remove :next_contact
+      remove :last_announce
+      remove :next_announce
     end
   end
 end
