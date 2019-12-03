@@ -10,29 +10,6 @@ defmodule Effusion.IO do
   Functions for reading and writing files described by torrents.
   """
 
-  @doc """
-  Writes the completed pieces of `torrent` to a file in `directory`.
-
-  If the torrent describes a single file, then that file with be created
-  in `directory` with the torrent's `:name`.
-  If `torrent` describes multiple files,
-  then a directory with the torrent's `:name` will be created in `directory`,
-  and the torrent's files will be written to that directory.
-
-  The `torrent` will have its in-memory pieces cleared,
-  and will be updated to remember the pieces that were written.
-  """
-  def write_to(torrent) do
-    write_pieces(torrent, Enum.to_list(Pieces.verified(torrent)))
-  end
-
-  def write_pieces(torrent = %{info: info}, pieces) do
-    do_write_pieces(info, pieces)
-
-    torrent = Enum.reduce(pieces, torrent, fn p, t -> Pieces.mark_piece_written(t, p) end)
-    {:ok, torrent}
-  end
-
   def write_piece(info_hash, %{index: index}) do
     Logger.debug("Writing piece #{index} for #{info_hash |> Effusion.Hash.inspect()}...")
     info = Metainfo.get_meta(info_hash).info

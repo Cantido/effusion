@@ -1,6 +1,7 @@
 defmodule Effusion.BTP.Torrent do
   alias Effusion.BTP.Piece
   alias Effusion.BTP.Block
+  alias Effusion.BTP.Metainfo
   alias Effusion.Repo
   use Ecto.Schema
   import Ecto.Changeset
@@ -43,6 +44,8 @@ defmodule Effusion.BTP.Torrent do
   end
 
   def insert(meta) do
+    Metainfo.put_meta(meta)
+
     Repo.transaction(fn ->
       {:ok, torrent} = %__MODULE__{
         info_hash: meta.info_hash,
