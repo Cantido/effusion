@@ -1,8 +1,8 @@
-defmodule Effusion.BTP.DownloadServerTest do
+defmodule Effusion.BTP.ProtocolHandlerTest do
   use ExUnit.Case
-  # alias Effusion.BTP.DownloadServer
+  # alias Effusion.BTP.ProtocolHandler
   # import Mox
-  doctest Effusion.BTP.DownloadServer
+  doctest Effusion.BTP.ProtocolHandler
 
   # setup :verify_on_exit!
   # setup :set_mox_global
@@ -51,7 +51,7 @@ defmodule Effusion.BTP.DownloadServerTest do
   #
   #   {:ok, _} =
   #     start_supervised({
-  #       DownloadServer,
+  #       ProtocolHandler,
   #       [TestHelper.tiny_meta(), {nil, nil}, file]
   #     })
   #
@@ -65,7 +65,7 @@ defmodule Effusion.BTP.DownloadServerTest do
   #
   #   {:ok, spid} =
   #     start_supervised({
-  #       DownloadServer,
+  #       ProtocolHandler,
   #       [TestHelper.tiny_meta(), {nil, nil}, file]
   #     })
   #
@@ -81,21 +81,21 @@ defmodule Effusion.BTP.DownloadServerTest do
   #
   #   {:ok, spid} =
   #     start_supervised({
-  #       DownloadServer,
+  #       ProtocolHandler,
   #       [TestHelper.tiny_meta(), {nil, nil}, file]
   #     })
   #
   #   ih = TestHelper.tiny_meta().info_hash
   #
-  #   DownloadServer.connected(ih, "peer id ~~~~~~~~~~~~", {{127, 0, 0, 1}, 8000})
+  #   ProtocolHandler.connected(ih, "peer id ~~~~~~~~~~~~", {{127, 0, 0, 1}, 8000})
   #
-  #   DownloadServer.handle_message(
+  #   ProtocolHandler.handle_message(
   #     ih,
   #     "peer id ~~~~~~~~~~~~",
   #     {:piece, %{index: 0, offset: 0, data: "tin"}}
   #   )
   #
-  #   DownloadServer.handle_message(
+  #   ProtocolHandler.handle_message(
   #     ih,
   #     "peer id ~~~~~~~~~~~~",
   #     {:piece, %{index: 1, offset: 0, data: "y\n"}}

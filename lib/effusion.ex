@@ -1,5 +1,5 @@
 defmodule Effusion do
-  alias Effusion.BTP.DownloadServer
+  alias Effusion.BTP.ProtocolHandler
   alias Effusion.BTP.Metainfo
 
   @moduledoc """
@@ -18,7 +18,7 @@ defmodule Effusion do
   This function returns immediately.
   """
   def start_download(meta) do
-    DownloadServer.start(meta)
+    ProtocolHandler.start(meta)
   end
 
   @doc """
@@ -29,7 +29,7 @@ defmodule Effusion do
   """
   def download(meta) do
     case start_download(meta) do
-      {:ok, _pid} -> DownloadServer.await(meta.info_hash)
+      {:ok, _pid} -> ProtocolHandler.await(meta.info_hash)
       err -> err
     end
   end

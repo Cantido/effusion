@@ -93,7 +93,7 @@ defmodule Effusion.PWP.TCP.Connection do
     Logger.debug("Receiving handshake from #{remote_peer_id}")
     PeerStats.inc_num_tcp_peers()
 
-    with [{_pid, _hash}] <- Registry.lookup(SessionRegistry, info_hash),
+    with [{_pid, _hash}] <- Registry.lookup(BTPHandlerRegistry, info_hash),
          local_peer_id = Application.get_env(:effusion, :peer_id),
          _ = Logger.debug("Responding to #{remote_peer_id} with handshake"),
          :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, info_hash}),

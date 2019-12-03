@@ -12,7 +12,7 @@ defmodule Effusion.Application do
     SessionStats.init()
 
     children = [
-      Effusion.Application.DownloadServerSupervisor,
+      Effusion.Application.BTPHandlerSupervisor,
       Effusion.Application.ConnectionSupervisor,
       Effusion.Application.VerifierWatchdogSupervisor,
       Effusion.BTP.Metainfo.Directory,
@@ -20,7 +20,7 @@ defmodule Effusion.Application do
       Effusion.Statistics.PeerDownloadAverage,
       Effusion.Statistics.SessionDownloadAverage,
       {Registry, keys: :duplicate, name: ConnectionRegistry},
-      {Registry, keys: :unique, name: SessionRegistry},
+      {Registry, keys: :unique, name: BTPHandlerRegistry},
       {Registry, keys: :unique, name: VerifierWatchdogRegistry},
       EffusionWeb.Endpoint,
       Effusion.Repo

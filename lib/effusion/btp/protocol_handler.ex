@@ -1,6 +1,6 @@
-defmodule Effusion.BTP.DownloadServer do
+defmodule Effusion.BTP.ProtocolHandler do
   use GenServer, restart: :transient
-  alias Effusion.Application.DownloadServerSupervisor
+  alias Effusion.Application.BTPHandlerSupervisor
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.PeerPiece
   alias Effusion.BTP.Request
@@ -14,7 +14,7 @@ defmodule Effusion.BTP.DownloadServer do
   require Logger
 
   @moduledoc """
-  An API to manage a `Effusion.BTP.Download` object as it is connected to many peers simultaneously.
+  Responds to BitTorrent Protocol events.
   """
 
   @local_peer_id Application.get_env(:effusion, :peer_id)
@@ -25,7 +25,7 @@ defmodule Effusion.BTP.DownloadServer do
   Start the Download Server in its own supervision tree.
   """
   def start(meta) when is_map(meta) do
-    case DownloadServerSupervisor.start_child([meta]) do
+    case BTPHandlerSupervisor.start_child([meta]) do
       {:ok, _pid} -> {:ok, meta.info_hash}
       err -> err
     end
@@ -38,23 +38,23 @@ defmodule Effusion.BTP.DownloadServer do
     GenServer.start_link(
       __MODULE__,
       meta,
-      name: {:via, Registry, {SessionRegistry, meta.info_hash}}
+      name: {:via, Registry, {BTPHandlerRegistry, meta.info_hash}}
     )
   end
 
   def get(info_hash) do
-    GenServer.call({:via, Registry, {SessionRegistry, info_hash}}, :get, 10_000)
+    GenServer.call({:via, Registry, {BTPHandlerRegistry, info_hash}}, :get, 10_000)
   end
 
   def notify_all_pieces_written(info_hash) do
-    GenServer.call({:via, Registry, {SessionRegistry, info_hash}}, :all_pieces_written)
+    GenServer.call({:via, Registry, {BTPHandlerRegistry, info_hash}}, :all_pieces_written)
   end
 
   @doc """
   Wait on a download managed by a session server to complete.
   """
   def await(info_hash) do
-    GenServer.call({:via, Registry, {SessionRegistry, info_hash}}, :await, :infinity)
+    GenServer.call({:via, Registry, {BTPHandlerRegistry, info_hash}}, :await, :infinity)
   end
 
   ## Callbacks

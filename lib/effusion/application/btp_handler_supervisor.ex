@@ -1,8 +1,8 @@
-defmodule Effusion.Application.DownloadServerSupervisor do
+defmodule Effusion.Application.BTPHandlerSupervisor do
   use DynamicSupervisor
 
   @moduledoc """
-  Supervises a dynamic number of `Effusion.BTP.DownloadServer` processes.
+  Supervises a dynamic number of `Effusion.BTP.ProtocolHandler` processes.
   """
 
   def start_link([]) do
@@ -14,6 +14,6 @@ defmodule Effusion.Application.DownloadServerSupervisor do
   end
 
   def start_child(args) do
-    DynamicSupervisor.start_child(__MODULE__, {Effusion.BTP.DownloadServer, args})
+    DynamicSupervisor.start_child(__MODULE__, {Effusion.BTP.ProtocolHandler, args})
   end
 end

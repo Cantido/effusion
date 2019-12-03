@@ -2,7 +2,7 @@ defmodule Effusion.BTP.VerifierWatchdog do
   alias Effusion.Application.VerifierWatchdogSupervisor
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Piece
-  alias Effusion.BTP.DownloadServer
+  alias Effusion.BTP.ProtocolHandler
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.Repo
   require Logger
@@ -56,7 +56,7 @@ defmodule Effusion.BTP.VerifierWatchdog do
     Logger.debug("VerifierWatchdog announced & wrote #{Enum.count(verified)} pieces")
 
     if Pieces.all_written?(info_hash) do
-      DownloadServer.notify_all_pieces_written(info_hash)
+      ProtocolHandler.notify_all_pieces_written(info_hash)
       {:stop, :normal, info_hash}
     else
       Process.send_after(self(), :watch, @watch_interval_ms)

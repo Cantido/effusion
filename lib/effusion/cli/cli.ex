@@ -1,6 +1,4 @@
 defmodule Effusion.CLI do
-  alias Effusion.BTP.DownloadServer
-  alias Effusion.BTP.Download
   alias Effusion.BTP.Metainfo
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Pieces
