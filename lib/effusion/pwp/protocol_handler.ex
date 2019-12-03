@@ -133,19 +133,20 @@ defmodule Effusion.PWP.ProtocolHandler do
   @doc """
   Handle a peer disconnection.
   """
-  def handle_disconnect(info_hash, {ip, port}, _reason) do
+  def handle_disconnect(info_hash, {ip, port}, reason) do
     PeerSelection.select_lowest_failcount(1)
         |> Enum.map(fn peer ->
           address = {peer.address.address, peer.port}
           connect(address, info_hash, peer.peer_id)
         end)
 
-    Repo.one(from peer in Peer,
-              where: peer.address == ^%Postgrex.INET{address: ip}
-              and peer.port == ^port)
-    |> Peer.changeset()
-    |> Repo.update(update: [inc: [failcount: 1]])
-
+    if reason != :normal do
+      Repo.one(from peer in Peer,
+                where: peer.address == ^%Postgrex.INET{address: ip}
+                and peer.port == ^port)
+      |> Peer.changeset()
+      |> Repo.update(update: [inc: [failcount: 1]])
+    end
     :ok
   end
 end
