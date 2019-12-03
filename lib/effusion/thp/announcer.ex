@@ -28,12 +28,20 @@ defmodule Effusion.THP.Announcer do
     )
   end
 
+  def stop(info_hash) do
+    GenServer.call({:via, Registry, {AnnouncerRegistry, info_hash}}, :stop)
+  end
+
   def init(info_hash) do
     {:ok, {info_hash, nil}}
   end
 
   def announce(info_hash, event) when is_hash(info_hash) do
     GenServer.cast({:via, Registry, {AnnouncerRegistry, info_hash}}, {:announce, event})
+  end
+
+  def handle_call(:stop, state) do
+    {:stop, :normal, :ok, state}
   end
 
   def handle_info(:interval_expired, state) do
@@ -97,5 +105,12 @@ defmodule Effusion.THP.Announcer do
       OutgoingHandler.connect({address, info_hash, peer_id, p.peer_id})
     end)
     {:noreply, {info_hash, timer}}
+  end
+
+  def terminate(_reason, {_hash, timer}) do
+    if not is_nil(timer) do
+      Process.cancel_timer(timer)
+    end
+    :ok
   end
 end

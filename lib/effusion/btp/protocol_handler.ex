@@ -126,6 +126,7 @@ defmodule Effusion.BTP.ProtocolHandler do
       else
         :ok = Announcer.announce(state.info_hash, :stopped)
       end
+    Announcer.stop(state.info_hash)
 
     reply_to_listeners(state, :ok)
   end
