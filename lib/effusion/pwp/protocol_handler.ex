@@ -13,6 +13,10 @@ defmodule Effusion.PWP.ProtocolHandler do
   import Ecto.Query
   require Logger
 
+  @moduledoc """
+  Handles PWP messages.
+  """
+
   @local_peer_id Application.get_env(:effusion, :peer_id)
 
   def connect(address, info_hash, remote_peer_id) do
