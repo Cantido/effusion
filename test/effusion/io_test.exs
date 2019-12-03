@@ -15,6 +15,7 @@ defmodule Effusion.IOTest do
 
     Pieces.add_block(single_file_meta.info_hash, %{index: 0, offset: 0, data: "tin"})
     Pieces.add_block(single_file_meta.info_hash, %{index: 1, offset: 0, data: "y\n"})
+    Pieces.verify_all(single_file_meta.info_hash)
 
     %{single_file_meta: single_file_meta}
   end
@@ -25,6 +26,7 @@ defmodule Effusion.IOTest do
     Torrent.insert(multi_file_meta)
 
     Pieces.add_block(multi_file_meta.info_hash, %{index: 0, offset: 0, data: "Hello\nworld!\n"})
+    Pieces.verify_all(multi_file_meta.info_hash)
 
     %{multi_file_meta: multi_file_meta}
   end

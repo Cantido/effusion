@@ -19,6 +19,7 @@ defmodule Effusion.IO do
                   join: torrent in assoc(piece, :torrent),
                   where: torrent.info_hash == ^info_hash,
                   where: piece.index == ^index,
+                  where: piece.verified,
                   order_by: block.offset,
                   group_by: block.offset,
                   select: fragment("string_agg(?, '')", block.data)
