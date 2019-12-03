@@ -65,7 +65,7 @@ defmodule Effusion.BTP.VerifierWatchdog do
   end
 
   def terminate(reason, info_hash) do
-    Logger.debug("Watchdog for #{info_hash |> Effusion.Hash.inspect} terminating for reason: #{inspect reason}")
+    Logger.debug("Watchdog for #{info_hash |> Effusion.Hash.encode} terminating for reason: #{inspect reason}")
     :ok
   end
 end

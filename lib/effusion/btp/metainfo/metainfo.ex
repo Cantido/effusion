@@ -112,7 +112,7 @@ defmodule Effusion.BTP.Metainfo do
         "#Metainfo<[",
         to_doc(meta.info.name, opts),
         break(),
-        Hash.inspect(meta.info_hash),
+        Hash.encode(meta.info_hash),
         "]>"
       ])
     end

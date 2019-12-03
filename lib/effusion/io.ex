@@ -11,7 +11,7 @@ defmodule Effusion.IO do
   """
 
   def write_piece(info_hash, %{index: index}) do
-    Logger.debug("Writing piece #{index} for #{info_hash |> Effusion.Hash.inspect()}...")
+    Logger.debug("Writing piece #{index} for #{info_hash |> Effusion.Hash.encode()}...")
     info = Metainfo.get_meta(info_hash).info
 
     data_query = from block in Block,
@@ -28,7 +28,7 @@ defmodule Effusion.IO do
     end)
 
     ret = do_write_pieces(info, [%{index: index, data: piece_data}])
-    Logger.debug("Done writing piece #{index} for #{info_hash |> Effusion.Hash.inspect()}")
+    Logger.debug("Done writing piece #{index} for #{info_hash |> Effusion.Hash.encode()}")
   end
 
   defp do_write_pieces(info, pieces) do

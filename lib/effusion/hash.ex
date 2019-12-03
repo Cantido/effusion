@@ -23,10 +23,10 @@ defmodule Effusion.Hash do
 
   ## Examples
 
-      iex> Effusion.Hash.calc("Hello!") |> Effusion.Hash.inspect()
+      iex> Effusion.Hash.calc("Hello!") |> Effusion.Hash.encode()
       "69342c5c39e5ae5f0077aecc32c0f81811fb8193"
   """
-  def inspect(hash) when is_hash(hash) do
+  def encode(hash) when is_hash(hash) do
     Base.encode16(hash, case: :lower)
   end
 

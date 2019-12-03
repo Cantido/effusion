@@ -41,7 +41,7 @@ defmodule Effusion.Format do
   end
 
   def info_hash(hash) when is_hash(hash) do
-    Effusion.Hash.inspect(hash)
+    Effusion.Hash.encode(hash)
   end
 
   defguardp is_percentage(percent) when is_float(percent) and percent >= 0.0 and percent <= 100.0

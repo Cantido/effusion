@@ -19,7 +19,7 @@ defmodule EffusionWeb.Resolvers.Torrents do
     if torrent != nil do
       {:ok, torrent}
     else
-      {:error, "Torrent ID #{Effusion.Hash.inspect id} not found"}
+      {:error, "Torrent ID #{Effusion.Hash.encode id} not found"}
     end
   end
 

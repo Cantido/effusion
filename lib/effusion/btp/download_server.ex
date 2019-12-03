@@ -96,7 +96,7 @@ defmodule Effusion.BTP.DownloadServer do
   end
 
   def handle_info(:timeout, session) do
-    _ = Logger.info("Starting download #{Effusion.Hash.inspect(session.info_hash)}")
+    _ = Logger.info("Starting download #{Effusion.Hash.encode(session.info_hash)}")
 
     Repo.delete_all(PeerPiece)
     Repo.delete_all(Request)

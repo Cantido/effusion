@@ -8,7 +8,7 @@ defmodule EffusionWeb.Schema do
   object :torrent do
     field :id, :string do
       resolve fn torrent, _, _ ->
-        {:ok, torrent.info_hash |> Effusion.Hash.inspect()}
+        {:ok, torrent.info_hash |> Effusion.Hash.encode()}
       end
     end
     field :name, :string

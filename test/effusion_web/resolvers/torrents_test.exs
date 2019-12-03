@@ -20,7 +20,7 @@ defmodule EffusionWeb.Resolvers.TorrentsTest do
   test "torrent by info_hash" do
     expected_torrent = Factory.insert!(:torrent)
 
-    encoded_id = expected_torrent.info_hash |> Effusion.Hash.inspect()
+    encoded_id = expected_torrent.info_hash |> Effusion.Hash.encode()
 
     query = %{id: encoded_id}
     {:ok, torrent} = Torrents.find_torrent(nil, query, nil)
