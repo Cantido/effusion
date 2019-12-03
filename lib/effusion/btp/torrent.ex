@@ -47,14 +47,15 @@ defmodule Effusion.BTP.Torrent do
     Metainfo.put_meta(meta)
 
     Repo.transaction(fn ->
-      {:ok, torrent} = %__MODULE__{
+      {:ok, torrent} = %__MODULE__{}
+      |> changeset(%{
         info_hash: meta.info_hash,
         name: meta.info.name,
         announce: meta.announce,
         comment: Map.get(meta, :comment),
         created_by: Map.get(meta, :created_by),
         creation_date: Map.get(meta, :creation_date) |> Timex.from_unix()
-      } |> changeset()
+      })
       |> Repo.insert()
 
       # Postgres can only accept 65535 parameters at a time,
