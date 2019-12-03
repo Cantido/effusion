@@ -42,8 +42,8 @@ defmodule Effusion.PWP.ProtocolHandler do
 
     Pieces.add_block(info_hash, block)
 
-    peer_request_query = from peer_piece in PeerPiece,
-                         join: peer in assoc(peer_piece, :peer),
+    peer_request_query = from request in Request,
+                         join: peer in assoc(request, :peer),
                          where: peer.peer_id == ^from
     peer_request_count = Repo.aggregate(peer_request_query, :count, :peer_id)
 
