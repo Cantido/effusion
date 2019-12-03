@@ -30,6 +30,7 @@ defmodule Effusion.BTP.Request do
                         join: peer in assoc(peer_pieces, :peer),
                         join: torrent in assoc(piece, :torrent),
                         where: torrent.info_hash == ^info_hash and peer.peer_id == ^peer_id,
+                        where: is_nil(block.data),
                         except: ^existing_requests,
                         limit: ^count,
                         select: {piece, block, peer}
