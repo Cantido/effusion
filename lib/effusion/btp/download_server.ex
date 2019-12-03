@@ -60,7 +60,6 @@ defmodule Effusion.BTP.DownloadServer do
   ## Callbacks
 
   def init(meta) do
-    :ok = Directory.insert(meta)
     info_hash = meta.info_hash
 
     torrent = Repo.one(from t in Torrent, where: t.info_hash == ^info_hash)
