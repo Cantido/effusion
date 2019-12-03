@@ -141,6 +141,8 @@ defmodule EffusionTest do
       assert r2 == 0
     end
 
+    Socket.close(sock)
+
     :timer.sleep(700)
     :file.datasync(file)
 
@@ -192,6 +194,8 @@ defmodule EffusionTest do
       assert r1 == 1
       assert r2 == 0
     end
+
+    Socket.close(sock)
 
     :timer.sleep(700)
     :file.datasync(file)
