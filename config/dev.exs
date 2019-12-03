@@ -13,6 +13,9 @@ config :effusion,
   server_port: 4001,
   server_address: {{127, 0, 0, 1}, 4001}
 
+config :effusion, Effusion.Repo,
+  log: false
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #
