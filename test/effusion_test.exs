@@ -96,8 +96,9 @@ defmodule EffusionTest do
   test "download a file", %{lsock: lsock, destfile: file} do
     Application.put_env(:effusion, :download_destination, file)
 
+    # Expect started, completed, and stopped messages
     Effusion.THP.Mock
-    |> expect(:announce, 2, &stub_tracker/9)
+    |> expect(:announce, 3, &stub_tracker/9)
 
     {:ok, _} = Effusion.start_download(@torrent)
 
@@ -154,8 +155,9 @@ defmodule EffusionTest do
   test "receive a connection from a peer", %{destfile: file} do
     Application.put_env(:effusion, :download_destination, file)
 
+    # Expect started, completed, and stopped messages
     Effusion.THP.Mock
-    |> expect(:announce, 2, &stub_tracker_no_peers/9)
+    |> expect(:announce, 3, &stub_tracker_no_peers/9)
 
     {:ok, _} = Effusion.start_download(@torrent)
 
@@ -166,6 +168,10 @@ defmodule EffusionTest do
         @local_peer_id,
         @remote_peer.peer_id
       )
+
+    on_exit(fn ->
+      Socket.close(sock)
+    end)
 
     bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
     :ok = Socket.send_msg(sock, {:bitfield, bitfield})
