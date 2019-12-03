@@ -40,7 +40,7 @@ defmodule Effusion.THP.Announcer do
     GenServer.cast({:via, Registry, {AnnouncerRegistry, info_hash}}, {:announce, event})
   end
 
-  def handle_call(:stop, state) do
+  def handle_call(:stop, _from, state) do
     {:stop, :normal, :ok, state}
   end
 
