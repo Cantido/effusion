@@ -19,6 +19,14 @@ defmodule Effusion.Statistics.Net do
       write_concurrency: true
     ])
 
+    :ets.new(TorrentDownloadStatsTable, [
+      :set,
+      :public,
+      :named_table,
+      read_concurrency: false,
+      write_concurrency: true
+    ])
+
     :ets.insert(NetStatsTable, [
       {:sent_payload_bytes, 0},
       {:sent_bytes, 0},
@@ -68,8 +76,21 @@ defmodule Effusion.Statistics.Net do
     :ets.update_counter(NetStatsTable, :recv_payload_bytes, n, {:k, 0})
   end
 
+  def add_recv_payload_bytes(info_hash, n) when is_integer(n) and n >= 0 do
+    :ets.update_counter(TorrentDownloadStatsTable, info_hash, n, {:k, 0})
+    :ets.update_counter(NetStatsTable, :recv_payload_bytes, n, {:k, 0})
+  end
+
   def recv_payload_bytes do
     :ets.lookup_element(NetStatsTable, :recv_payload_bytes, 2)
+  end
+
+  def add_recv_torrent_payload_bytes(info_hash, n) when is_integer(n) and n >= 0 do
+    :ets.update_counter(TorrentDownloadStatsTable, info_hash, n, {:k, 0})
+  end
+
+  def recv_torrent_payload_bytes(info_hash) do
+    :ets.lookup_element(TorrentDownloadStatsTable, info_hash, 2)
   end
 
   def add_recv_bytes(n) when is_integer(n) and n >= 0 do

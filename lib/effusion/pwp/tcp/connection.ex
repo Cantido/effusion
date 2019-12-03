@@ -137,8 +137,11 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def handle_info({:tcp, _tcp_socket, data}, state) when is_binary(data) do
-    # _ = Logger.debug("Handling incoming packet with data #{inspect data}")
-    Messages.payload_bytes_count(data) |> NetStats.add_recv_payload_bytes()
+    if Map.has_key?(state, :info_hash) do
+      NetStats.add_recv_payload_bytes(state.info_hash, Messages.payload_bytes_count(data))
+    else
+      NetStats.add_recv_payload_bytes(Messages.payload_bytes_count(data))
+    end
     NetStats.add_recv_bytes(byte_size(data))
     {:ok, msg} = Messages.decode(data)
 
