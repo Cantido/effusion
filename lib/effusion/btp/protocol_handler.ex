@@ -1,6 +1,7 @@
 defmodule Effusion.BTP.ProtocolHandler do
   use GenServer, restart: :transient
   alias Effusion.Application.BTPHandlerSupervisor
+  alias Effusion.BTP.DownloadSpeedWatcher
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.PeerPiece
   alias Effusion.BTP.Request
@@ -102,6 +103,7 @@ defmodule Effusion.BTP.ProtocolHandler do
 
     VerifierWatchdog.start(session.info_hash)
     Announcer.start(session.info_hash)
+    DownloadSpeedWatcher.start(session.info_hash)
 
     session = Map.put(session, :started_at, Timex.now())
     Repo.one!(from torrent in Torrent,

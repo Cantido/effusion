@@ -2,6 +2,7 @@ defmodule Effusion.PWP.TCP.OutgoingHandler do
   use GenServer, restart: :temporary
   alias Effusion.Application.ConnectionSupervisor
   alias Effusion.PWP.TCP.Connection
+  alias Effusion.PWP.ConnectionRegistry
   require Logger
 
   @moduledoc """
@@ -29,6 +30,11 @@ defmodule Effusion.PWP.TCP.OutgoingHandler do
 
   def disconnect(pid) do
     Connection.disconnect(pid)
+  end
+
+  def disconnect(info_hash, peer_id, reason) do
+    pid = ConnectionRegistry.get_pid(info_hash, peer_id)
+    Connection.disconnect(pid, reason)
   end
 
   ## Callbacks

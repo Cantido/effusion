@@ -24,6 +24,10 @@ defmodule Effusion.PWP.ProtocolHandler do
     OutgoingHandler.connect({address, info_hash, @local_peer_id, remote_peer_id})
   end
 
+  def disconnect(info_hash, remote_peer_id, reason) do
+    OutgoingHandler.disconnect(info_hash, remote_peer_id, reason)
+  end
+
   def handle_connect(info_hash, peer_id, address) when is_hash(info_hash) and is_peer_id(peer_id) do
     {:ok, _pid} = ConnectionRegistry.register(info_hash, peer_id)
     Peer.insert(info_hash, peer_id, address)

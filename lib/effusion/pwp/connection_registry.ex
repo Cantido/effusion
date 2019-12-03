@@ -19,6 +19,15 @@ defmodule Effusion.PWP.ConnectionRegistry do
 
   end
 
+  def get_pid(info_hash, peer_id) do
+    connections = Registry.match(ConnectionRegistry, info_hash, peer_id)
+
+    case connections do
+      [{conn_pid, ^peer_id}] -> conn_pid
+      _ -> nil
+    end
+  end
+
   def connected?(info_hash, peer_id) do
     connections = Registry.match(ConnectionRegistry, info_hash, peer_id)
 
@@ -26,6 +35,13 @@ defmodule Effusion.PWP.ConnectionRegistry do
       [{_conn_pid, ^peer_id}] -> true
       [] -> false
     end
+  end
+
+  def all_connected(info_hash) do
+    Registry.match(ConnectionRegistry, info_hash, :_)
+    |> Enum.map(fn {_conn_pid, peer_id} ->
+      peer_id
+    end)
   end
 
   def disconnect_all(info_hash) do

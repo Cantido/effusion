@@ -14,12 +14,13 @@ defmodule Effusion.Repo.Migrations.LinkPeersToTorrents do
   end
 
   def down do
-    alter table(:peers) do
-      drop :torrent_id
-    end
 
     drop unique_index(:peers, [:torrent_id, :peer_id])
     drop unique_index(:peers, [:torrent_id, :address, :port])
+
+    alter table(:peers) do
+      remove :torrent_id
+    end
 
     create unique_index(:peers, [:peer_id])
     create unique_index(:peers, [:address, :port])

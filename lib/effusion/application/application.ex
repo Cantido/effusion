@@ -15,6 +15,7 @@ defmodule Effusion.Application do
       Effusion.Application.BTPHandlerSupervisor,
       Effusion.Application.ConnectionSupervisor,
       Effusion.Application.VerifierWatchdogSupervisor,
+      Effusion.Application.DownloadSpeedWatcherSupervisor,
       Effusion.Application.AnnouncerSupervisor,
       Effusion.BTP.Metainfo.Directory,
       Effusion.IOServer,

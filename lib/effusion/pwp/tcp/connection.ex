@@ -20,6 +20,10 @@ defmodule Effusion.PWP.TCP.Connection do
     send(pid, :disconnect)
   end
 
+  def disconnect(pid, reason) do
+    send(pid, {:disconnect, reason})
+  end
+
   defp ntoa({host, port}) when is_binary(host) and port > 0 do
     "#{host}:#{port}"
   end
@@ -159,6 +163,7 @@ defmodule Effusion.PWP.TCP.Connection do
   def handle_info(:timeout, state), do: connect(state)
   def handle_info({:tcp_closed, _socket}, state), do: {:stop, :normal, state}
   def handle_info(:disconnect, state), do: {:stop, :normal, state}
+  def handle_info({:disconnect, reason}, state), do: {:stop, reason, state}
 
   def handle_info(info, state) do
     Logger.warn("Handler received unknown message: #{inspect(info)}")
