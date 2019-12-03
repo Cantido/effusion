@@ -6,10 +6,11 @@ defmodule Effusion.BTP.PeerSelection do
   Selects which peers to connect to.
   """
 
-  def select_lowest_failcount(count) when is_integer(count) and count >= 0 do
-    Peer
-    |> order_by([desc: :failcount])
-    |> limit(^count)
-    |> Repo.all()
+  def select_lowest_failcount(info_hash, count) when is_integer(count) and count >= 0 do
+    query = from peer in Peer,
+            join: torrent in assoc(peer, :torrent),
+            order_by: [desc: :failcount],
+            limit: ^count
+    Repo.all(query)
   end
 end

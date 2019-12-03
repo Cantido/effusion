@@ -80,8 +80,9 @@ defmodule Effusion.THP.Announcer do
     end
     timer = Process.send_after(self(), :interval_expired, res.interval * 1_000)
 
-    Repo.one!(from torrent in Torrent,
+    torrent = Repo.one!(from torrent in Torrent,
               where: torrent.info_hash == ^info_hash)
+    torrent
     |> Ecto.Changeset.change(trackerid: Map.get(res, :trackerid, ""))
     |> Ecto.Changeset.change(last_announce: Timex.now() |> DateTime.truncate(:second))
     |> Ecto.Changeset.change(next_announce: Timex.now() |> Timex.shift(seconds: res.interval) |> DateTime.truncate(:second))
@@ -89,6 +90,7 @@ defmodule Effusion.THP.Announcer do
 
     changesets = Enum.map(res.peers, fn peer ->
       %{
+        torrent_id: torrent.id,
         address: %Postgrex.INET{address: peer.ip},
         port: peer.port,
         peer_id: Map.get(peer, :peer_id, nil)
@@ -98,7 +100,7 @@ defmodule Effusion.THP.Announcer do
     Repo.insert_all(Peer, changesets, on_conflict: :nothing)
 
     max_peers = Application.get_env(:effusion, :max_peers)
-    eligible_peers = PeerSelection.select_lowest_failcount(max_peers)
+    eligible_peers = PeerSelection.select_lowest_failcount(info_hash, max_peers)
 
     Enum.each(eligible_peers, fn p ->
       address = {p.address.address, p.port}

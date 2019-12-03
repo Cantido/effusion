@@ -1,5 +1,6 @@
 defmodule Effusion.BTP.Torrent do
   alias Effusion.BTP.Piece
+  alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
   alias Effusion.BTP.Metainfo
   alias Effusion.Repo
@@ -20,6 +21,8 @@ defmodule Effusion.BTP.Torrent do
     field :trackerid, :string, null: true
     field :last_announce, :utc_datetime, null: true
     field :next_announce, :utc_datetime, null: true
+    has_many :pieces, Piece
+    has_many :peers, Peer
   end
 
   @required_fields [:info_hash, :name, :announce]

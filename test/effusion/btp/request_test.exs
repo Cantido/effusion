@@ -24,6 +24,7 @@ defmodule Effusion.BTP.RequestTest do
       size: 5
     })
     {:ok, peer} = Effusion.Repo.insert(%Effusion.BTP.Peer{
+      torrent: torrent,
       address: %Postgrex.INET{address: {192, 168, 1, 1}},
       port: 8080,
       failcount: 1,

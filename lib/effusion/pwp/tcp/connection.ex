@@ -165,7 +165,7 @@ defmodule Effusion.PWP.TCP.Connection do
     {:noreply, state}
   end
 
-  def terminate(reason, state) do
+  def terminate(reason, state) when is_map(state) do
     PeerStats.dec_num_tcp_peers()
 
     cond do

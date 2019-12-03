@@ -1,4 +1,5 @@
 defmodule Effusion.BTP.PeerTest do
+  alias Effusion.Factory
   use ExUnit.Case, async: true
   doctest Effusion.BTP.Peer
 
@@ -7,7 +8,9 @@ defmodule Effusion.BTP.PeerTest do
   end
 
   test "insert" do
+    torrent = Factory.insert! :torrent
     Effusion.Repo.insert(%Effusion.BTP.Peer{
+      torrent_id: torrent.id,
       address: %Postgrex.INET{address: {192, 168, 1, 1}},
       port: 8080,
       failcount: 1,
