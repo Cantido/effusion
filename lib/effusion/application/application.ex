@@ -3,6 +3,7 @@ defmodule Effusion.Application do
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
   alias Effusion.Statistics.Session, as: SessionStats
+  alias Effusion.Statistics.TelemetryHandler
 
   use Application
 
@@ -10,7 +11,7 @@ defmodule Effusion.Application do
     NetStats.init()
     PeerStats.init()
     SessionStats.init()
-    Effusion.Statistics.TelemetryHandler.init()
+    TelemetryHandler.init()
 
     children = [
       Effusion.Application.BTPHandlerSupervisor,
