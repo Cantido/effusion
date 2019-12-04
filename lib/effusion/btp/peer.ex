@@ -36,6 +36,7 @@ defmodule Effusion.BTP.Peer do
     field :peer_interested, :boolean, default: false, null: false
     field :am_choking, :boolean, default: true, null: false
     field :am_interested, :boolean, default: false, null: false
+    field :connected, :boolean, default: false, null: false
     has_many :blocks_we_requested, Effusion.BTP.Request
     has_many :peer_pieces, Effusion.BTP.PeerPiece
     has_many :pieces, through: [:peer_pieces, :piece]
@@ -61,7 +62,7 @@ defmodule Effusion.BTP.Peer do
     |> unique_constraint(:address, name: "peers_address_port_index")
   end
 
-  def insert(info_hash, peer_id, {ip, port}) when is_hash(info_hash) and is_peer_id(peer_id) do
+  def insert(info_hash, peer_id, {ip, port}, connected \\ false) when is_hash(info_hash) and is_peer_id(peer_id) do
     torrent_id = Repo.one!(from torrent in Torrent,
                             where: torrent.info_hash == ^info_hash,
                             select: torrent.id)
@@ -78,7 +79,8 @@ defmodule Effusion.BTP.Peer do
       torrent_id: torrent_id,
       peer_id: peer_id,
       address: %Postgrex.INET{address: ip},
-      port: port
+      port: port,
+      connected: connected
     }
     |> changeset()
     |> Repo.insert!(on_conflict: {:replace, [:address, :port, :peer_id]},

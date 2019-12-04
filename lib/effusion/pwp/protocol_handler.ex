@@ -30,7 +30,7 @@ defmodule Effusion.PWP.ProtocolHandler do
 
   def handle_connect(info_hash, peer_id, address) when is_hash(info_hash) and is_peer_id(peer_id) do
     {:ok, _pid} = ConnectionRegistry.register(info_hash, peer_id)
-    Peer.insert(info_hash, peer_id, address)
+    Peer.insert(info_hash, peer_id, address, true)
     :ok
   end
 
@@ -144,14 +144,17 @@ defmodule Effusion.PWP.ProtocolHandler do
           connect(address, info_hash, peer.peer_id)
         end)
 
+    disconnected_peer = Repo.one!(from peer in Peer,
+                                  join: torrent in assoc(peer, :torrent),
+                                  where: torrent.info_hash == ^info_hash,
+                                  where: peer.address == ^%Postgrex.INET{address: ip},
+                                  where: peer.port == ^port)
+                        |> Peer.changeset()
+
     if reason != :normal do
-      Repo.one(from peer in Peer,
-                join: torrent in assoc(peer, :torrent),
-                where: torrent.info_hash == ^info_hash,
-                where: peer.address == ^%Postgrex.INET{address: ip},
-                where: peer.port == ^port)
-      |> Peer.changeset()
-      |> Repo.update(update: [inc: [failcount: 1]])
+      Repo.update(disconnected_peer, update: [inc: [failcount: 1], set: [connected: false]])
+    else
+      Repo.update(disconnected_peer, update: [set: [connected: false]])
     end
     :ok
   end
