@@ -108,6 +108,7 @@ defmodule Effusion.CLI do
     end
 
     IO.puts("Total TCP connections: #{PeerStats.num_tcp_peers()}")
+    IO.puts("Total half-open connections: #{PeerStats.num_peers_half_open()}")
 
     IO.puts("Peers:")
 

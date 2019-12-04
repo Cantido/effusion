@@ -14,6 +14,7 @@ defmodule Effusion.Statistics.Peer do
     ])
 
     :ets.insert(PeerStatsTable, [{:num_tcp_peers, 0}])
+    :ets.insert(PeerStatsTable, [{:num_peers_half_open, 0}])
   end
 
   def inc_num_tcp_peers do
@@ -26,5 +27,17 @@ defmodule Effusion.Statistics.Peer do
 
   def num_tcp_peers do
     :ets.lookup_element(PeerStatsTable, :num_tcp_peers, 2)
+  end
+
+  def inc_num_peers_half_open do
+    :ets.update_counter(PeerStatsTable, :num_peers_half_open, 1, {:k, 0})
+  end
+
+  def dec_num_peers_half_open do
+    :ets.update_counter(PeerStatsTable, :num_peers_half_open, {2, -1, 0, 0})
+  end
+
+  def num_peers_half_open do
+    :ets.lookup_element(PeerStatsTable, :num_peers_half_open, 2)
   end
 end

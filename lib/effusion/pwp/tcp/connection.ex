@@ -70,12 +70,15 @@ defmodule Effusion.PWP.TCP.Connection do
       remote_peer_id: expected_peer_id
     }
 
+    PeerStats.inc_num_peers_half_open()
     with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 10_000),
+
          :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, info_hash}),
          {:ok, {:handshake, remote_peer_id, remote_info_hash, _}} <- Socket.recv(socket, 68),
          :ok <- validate_info_hash(info_hash, remote_info_hash),
          :ok <- validate_peer_id(expected_peer_id, remote_peer_id),
          :ok <- successful_handshake(socket, info_hash, remote_peer_id) do
+      PeerStats.dec_num_peers_half_open()
       {:noreply, %{
         socket: socket,
         info_hash: info_hash,
@@ -83,10 +86,8 @@ defmodule Effusion.PWP.TCP.Connection do
         address: :inet.peername(socket)
       }}
     else
-      {:error, :closed} ->
-        {:stop, :normal, state}
-
       {:error, reason} ->
+        PeerStats.dec_num_peers_half_open()
         {:stop, reason, state}
     end
   end
