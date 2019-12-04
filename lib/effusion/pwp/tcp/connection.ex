@@ -2,9 +2,6 @@ defmodule Effusion.PWP.TCP.Connection do
   alias Effusion.PWP.Messages
   alias Effusion.PWP.ProtocolHandler
   alias Effusion.PWP.TCP.Socket
-  alias Effusion.Statistics.Net, as: NetStats
-  alias Effusion.Statistics.Peer, as: PeerStats
-  alias Effusion.Statistics.Session, as: SessionStats
   import Effusion.BTP.Peer, only: [is_peer_id: 1]
   import Effusion.Hash, only: [is_hash: 1]
   require Logger
@@ -22,14 +19,6 @@ defmodule Effusion.PWP.TCP.Connection do
 
   def disconnect(pid, reason) do
     send(pid, {:disconnect, reason})
-  end
-
-  defp ntoa({host, port}) when is_binary(host) and port > 0 do
-    "#{host}:#{port}"
-  end
-
-  defp ntoa({host, port}) when port > 0 do
-    "#{:inet.ntoa(host)}:#{port}"
   end
 
   defp validate_info_hash(local_info_hash, remote_info_hash) do
@@ -50,7 +39,6 @@ defmodule Effusion.PWP.TCP.Connection do
 
   defp successful_handshake(socket, info_hash, peer_id) do
     with {:ok, address} <- :inet.peername(socket),
-         _ = Logger.debug("Handshake with #{ntoa(address)} successful"),
          :ok <- ProtocolHandler.handle_connect(info_hash, peer_id, address),
          :ok <- :inet.setopts(socket, active: :once, packet: 4) do
       :ok
@@ -60,17 +48,14 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   defp connect({address = {host, port}, info_hash, local_peer_id, expected_peer_id}) do
-    _ = Logger.debug("Establishing connection to #{ntoa(address)}")
-    # must do it here in case we terminate later
-    PeerStats.inc_num_tcp_peers()
-
     state = %{
       address: address,
       info_hash: info_hash,
       remote_peer_id: expected_peer_id
     }
 
-    PeerStats.inc_num_peers_half_open()
+    :telemetry.execute([:pwp, :outgoing, :starting], %{}, state)
+
     with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 10_000),
 
          :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, info_hash}),
@@ -78,7 +63,9 @@ defmodule Effusion.PWP.TCP.Connection do
          :ok <- validate_info_hash(info_hash, remote_info_hash),
          :ok <- validate_peer_id(expected_peer_id, remote_peer_id),
          :ok <- successful_handshake(socket, info_hash, remote_peer_id) do
-      PeerStats.dec_num_peers_half_open()
+
+      :telemetry.execute([:pwp, :outgoing, :success], %{}, state)
+
       {:noreply, %{
         socket: socket,
         info_hash: info_hash,
@@ -87,7 +74,7 @@ defmodule Effusion.PWP.TCP.Connection do
       }}
     else
       {:error, reason} ->
-        PeerStats.dec_num_peers_half_open()
+        :telemetry.execute([:pwp, :outgoing, :failure], %{}, state)
         {:stop, reason, state}
     end
   end
@@ -95,15 +82,21 @@ defmodule Effusion.PWP.TCP.Connection do
   def handle_btp({:handshake, remote_peer_id, info_hash, _reserved}, state = %{socket: socket})
     when is_peer_id(remote_peer_id)
      and is_hash(info_hash) do
-    Logger.debug("Receiving handshake from #{remote_peer_id}")
-    PeerStats.inc_num_tcp_peers()
+
+    :telemetry.execute(
+      [:pwp, :incoming, :starting],
+      %{},
+      Map.put(state, :remote_peer_id, remote_peer_id)
+    )
 
     with [{_pid, _hash}] <- Registry.lookup(BTPHandlerRegistry, info_hash),
          local_peer_id = Application.get_env(:effusion, :peer_id),
-         _ = Logger.debug("Responding to #{remote_peer_id} with handshake"),
          :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, info_hash}),
          :ok <- successful_handshake(socket, info_hash, remote_peer_id),
          {:ok, address} <- :inet.peername(socket) do
+
+      :telemetry.execute([:pwp, :incoming, :success], %{}, state)
+
       {:noreply,
        %{
          socket: socket,
@@ -132,8 +125,7 @@ defmodule Effusion.PWP.TCP.Connection do
         state = %{socket: socket, remote_peer_id: peer_id}
       )
       when dest_peer_id == peer_id do
-    Logger.debug("Sending message #{inspect(msg)} to peer #{peer_id}")
-    SessionStats.inc_outgoing_message(msg)
+    :telemetry.execute([:pwp, :message_sent], %{}, %{message: msg, peer: peer_id})
 
     case Socket.send_msg(socket, msg) do
       :ok -> {:noreply, state}
@@ -142,21 +134,20 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def handle_info({:tcp, _tcp_socket, data}, state) when is_binary(data) do
-    if Map.has_key?(state, :info_hash) do
-      NetStats.add_recv_payload_bytes(state.info_hash, Messages.payload_bytes_count(data))
-    else
-      NetStats.add_recv_payload_bytes(Messages.payload_bytes_count(data))
-    end
-    NetStats.add_recv_bytes(byte_size(data))
-    {:ok, msg} = Messages.decode(data)
+    {latency, {msg, ret}} = :timer.tc(fn ->
+      {:ok, msg} = Messages.decode(data)
+      ret = handle_btp(msg, state)
+      {msg, ret}
+    end)
 
-    if Map.has_key?(state, :remote_peer_id) do
-      Logger.debug("Receiving message from #{state.remote_peer_id}: #{inspect msg}")
-      NetStats.add_recv_bytes(state.remote_peer_id, byte_size(data))
-    end
+    :telemetry.execute(
+      [:pwp, :message_received],
+      %{latency: latency},
+      Map.take(state, [:remote_peer_id, :info_hash])
+      |> Map.put(:binary, data)
+      |> Map.put(:message, msg)
+    )
 
-    SessionStats.inc_incoming_message(msg)
-    ret = handle_btp(msg, state)
     :ok = :inet.setopts(state.socket, active: :once)
     ret
   end
@@ -172,13 +163,12 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def terminate(reason, state) when is_map(state) do
-    PeerStats.dec_num_tcp_peers()
-
-    cond do
-      Map.has_key?(state, :remote_peer_id) -> Logger.debug("Connection handler for #{state.remote_peer_id} terminating with reason #{inspect(reason)}")
-      Map.has_key?(state, :address) -> Logger.debug("Connection handler for #{inspect state.address} terminating with reason #{inspect(reason)}")
-      true -> Logger.debug("Connection handler #{inspect self()} terminating with reason #{inspect reason}")
-    end
+    :telemetry.execute(
+      [:pwp, :disconnect],
+      %{},
+      Map.take(state, [:remote_peer_id, :info_hash])
+      |> Map.put(:reason, reason)
+    )
 
     if(Map.has_key?(state, :socket)) do
       Socket.close(state.socket)

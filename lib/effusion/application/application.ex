@@ -10,6 +10,7 @@ defmodule Effusion.Application do
     NetStats.init()
     PeerStats.init()
     SessionStats.init()
+    Effusion.Statistics.TelemetryHandler.init()
 
     children = [
       Effusion.Application.BTPHandlerSupervisor,
