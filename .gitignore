@@ -38,3 +38,6 @@ npm-debug.log
 
 # Logs, etc
 /tmp
+
+# Test torrents that I download using the program
+linuxmint-19.2-cinnamon-64bit.iso
