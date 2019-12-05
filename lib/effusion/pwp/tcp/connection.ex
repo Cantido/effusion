@@ -142,7 +142,7 @@ defmodule Effusion.PWP.TCP.Connection do
 
     :telemetry.execute(
       [:pwp, :message_received],
-      %{latency: latency},
+      %{latency: latency / 1_000},
       Map.take(state, [:remote_peer_id, :info_hash])
       |> Map.put(:binary, data)
       |> Map.put(:message, msg)
