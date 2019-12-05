@@ -67,5 +67,6 @@ defmodule Effusion.BTP.DownloadSpeedWatcher do
       address = {peer.address.address, peer.port}
       ProtocolHandler.connect(address, info_hash, peer.peer_id)
     end)
+    :ok
   end
 end
