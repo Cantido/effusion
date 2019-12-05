@@ -96,6 +96,9 @@ defmodule Effusion.THP.Announcer do
         peer_id: Map.get(peer, :peer_id, nil)
       }
     end)
+    |> Enum.filter(fn peer ->
+      peer.port > 0
+    end)
 
     Repo.insert_all(Peer, changesets, on_conflict: :nothing)
 
