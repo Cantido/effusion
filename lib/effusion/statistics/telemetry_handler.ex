@@ -106,7 +106,9 @@ defmodule Effusion.Statistics.TelemetryHandler do
   end
 
   def handle_event([:pwp, :disconnect], _measurements, metadata, _config) do
-    PeerStats.dec_num_tcp_peers()
+    if metadata.reason != :handshake_failure do
+      PeerStats.dec_num_tcp_peers()
+    end
 
     cond do
       Map.has_key?(metadata, :remote_peer_id) ->

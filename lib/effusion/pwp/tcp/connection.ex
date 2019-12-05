@@ -105,11 +105,9 @@ defmodule Effusion.PWP.TCP.Connection do
          address: address
        }}
     else
-      [] ->
-        {:stop, :normal, state}
-
-      {:error, reason} ->
-        {:stop, reason, state}
+      _ ->
+        :telemetry.execute([:pwp, :incoming, :failure], %{}, state)
+        {:stop, :handshake_failure, state}
     end
   end
 
