@@ -17,7 +17,7 @@ defmodule Effusion do
 
   This function returns immediately.
   """
-  def start_download(meta) do
+  def start_download(meta) when is_map(meta) do
     ProtocolHandler.start(meta)
   end
 

@@ -3,6 +3,7 @@ defmodule EffusionWeb.Schema do
   alias EffusionWeb.Resolvers
 
   import_types Absinthe.Type.Custom
+  import_types Effusion.Schema.Binary
 
   @desc "A torrent"
   object :torrent do
@@ -29,6 +30,15 @@ defmodule EffusionWeb.Schema do
     field :torrent, :torrent do
       arg :id, non_null(:id)
       resolve &Resolvers.Torrents.find_torrent/3
+    end
+  end
+
+  mutation do
+    @desc "Add a torrent metainfo file to start downloading"
+    field :add_torrent, type: :torrent do
+      arg :meta, non_null(:binary)
+
+      resolve &Resolvers.Torrents.add_torrent/3
     end
   end
 end

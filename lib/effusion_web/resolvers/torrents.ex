@@ -1,4 +1,5 @@
 defmodule EffusionWeb.Resolvers.Torrents do
+  alias Effusion.BTP.Metainfo
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Torrent
   alias Effusion.Repo
@@ -19,11 +20,26 @@ defmodule EffusionWeb.Resolvers.Torrents do
     if torrent != nil do
       {:ok, torrent}
     else
-      {:error, "Torrent ID #{Effusion.Hash.encode id} not found"}
+      {:error, "Torrent ID #{id} not found"}
     end
   end
 
   def downloaded(torrent, _args, _info) do
     {:ok, Pieces.bytes_completed(torrent.info_hash)}
+  end
+
+  def add_torrent(_root, %{meta: meta}, _info) do
+    {:ok, metainfo} = Metainfo.decode(meta)
+    {:ok, info_hash} = Effusion.start_download(metainfo)
+
+    torrent_query = from torrent in Torrent,
+                      where: torrent.info_hash == ^info_hash
+
+    torrent = Repo.one(torrent_query)
+    if torrent != nil do
+      {:ok, torrent}
+    else
+      {:error, "Torrent ID #{Effusion.Hash.encode info_hash} not found"}
+    end
   end
 end
