@@ -6,7 +6,6 @@ defmodule Effusion.BTP.ProtocolHandler do
   alias Effusion.BTP.PeerPiece
   alias Effusion.BTP.Request
   alias Effusion.BTP.Torrent
-  alias Effusion.BTP.Metainfo.Directory
   alias Effusion.BTP.VerifierWatchdog
   alias Effusion.PWP.ProtocolHandler
   alias Effusion.THP.Announcer
