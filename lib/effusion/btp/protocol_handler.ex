@@ -18,8 +18,6 @@ defmodule Effusion.BTP.ProtocolHandler do
   Responds to BitTorrent Protocol events.
   """
 
-  @local_peer_id Application.get_env(:effusion, :peer_id)
-
   ## API
 
   @doc """
@@ -70,8 +68,6 @@ defmodule Effusion.BTP.ProtocolHandler do
 
     state = %{
       info_hash: meta.info_hash,
-      meta: meta,
-      peer_id: @local_peer_id,
       listeners: MapSet.new()
     }
 
@@ -121,7 +117,7 @@ defmodule Effusion.BTP.ProtocolHandler do
   end
 
   def terminate(:normal, state) do
-    ProtocolHandler.disconnect_all(state.meta.info_hash)
+    ProtocolHandler.disconnect_all(state.info_hash)
 
       if Pieces.all_written?(state.info_hash) do
         :ok = Announcer.announce(state.info_hash, :completed)
@@ -135,7 +131,7 @@ defmodule Effusion.BTP.ProtocolHandler do
 
   def terminate(reason, state) do
     Logger.debug("download server terminating with reason: #{inspect(reason)}")
-    ProtocolHandler.disconnect_all(state.meta.info_hash)
+    ProtocolHandler.disconnect_all(state.info_hash)
 
     :ok = Announcer.announce(state.info_hash, :stopped)
 
