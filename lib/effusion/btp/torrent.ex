@@ -6,6 +6,7 @@ defmodule Effusion.BTP.Torrent do
   alias Effusion.Repo
   use Ecto.Schema
   import Ecto.Changeset
+  import Ecto.Query
   require Logger
 
   @block_size Application.get_env(:effusion, :block_size)
@@ -40,6 +41,18 @@ defmodule Effusion.BTP.Torrent do
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
     |> unique_constraint(:info_hash)
+  end
+
+  def by_info_hash(info_hash) do
+    torrent_query = from torrent in __MODULE__,
+                      where: torrent.info_hash == ^info_hash
+
+    torrent = Repo.one(torrent_query)
+    if torrent != nil do
+      {:ok, torrent}
+    else
+      {:error, "Torrent ID #{Effusion.Hash.encode info_hash} not found"}
+    end
   end
 
   def start(torrent, time) do

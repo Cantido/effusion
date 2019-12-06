@@ -13,15 +13,7 @@ defmodule EffusionWeb.Resolvers.Torrents do
 
   def find_torrent(_parent, %{id: id}, _resolution) do
     binary_id = Effusion.Hash.decode(id)
-    torrent_query = from torrent in Torrent,
-                      where: torrent.info_hash == ^binary_id
-
-    torrent = Repo.one(torrent_query)
-    if torrent != nil do
-      {:ok, torrent}
-    else
-      {:error, "Torrent ID #{id} not found"}
-    end
+    Torrent.by_info_hash(binary_id)
   end
 
   def downloaded(torrent, _args, _info) do
@@ -32,14 +24,6 @@ defmodule EffusionWeb.Resolvers.Torrents do
     {:ok, metainfo} = Metainfo.decode(meta)
     {:ok, info_hash} = Effusion.start_download(metainfo)
 
-    torrent_query = from torrent in Torrent,
-                      where: torrent.info_hash == ^info_hash
-
-    torrent = Repo.one(torrent_query)
-    if torrent != nil do
-      {:ok, torrent}
-    else
-      {:error, "Torrent ID #{Effusion.Hash.encode info_hash} not found"}
-    end
+    Torrent.by_info_hash(info_hash)
   end
 end
