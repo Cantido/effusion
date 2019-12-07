@@ -32,7 +32,7 @@ defmodule Effusion.PWP.TCP.Connection do
     end
   end
 
-  defp connect({address = {host, port}, info_hash, expected_peer_id}) do
+  defp connect({address = {host, port}, info_hash, expected_peer_id}) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id) do
     state = %{
       address: address,
       info_hash: info_hash,
