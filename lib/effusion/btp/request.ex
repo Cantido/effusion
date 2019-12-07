@@ -61,4 +61,18 @@ defmodule Effusion.BTP.Request do
 
     peer_ids_to_send_cancel
   end
+
+  def reject(info_hash, block, from) do
+    Repo.delete_all(from request in __MODULE__,
+                      join: block in assoc(request, :block),
+                      join: piece in assoc(block, :piece),
+                      join: torrent in assoc(piece, :torrent),
+                      join: peer in assoc(request, :peer),
+                      where: piece.index == ^block.index
+                         and block.offset == ^block.offset
+                         and peer.peer_id == ^from
+                         and torrent.info_hash == ^info_hash)
+
+    :ok
+  end
 end

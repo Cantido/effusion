@@ -63,7 +63,7 @@ defmodule Effusion.BTP.Peer do
     |> unique_constraint(:address, name: "peers_address_port_index")
   end
 
-  def insert(info_hash, peer_id, {ip, port}, connected \\ false) when is_hash(info_hash) and is_peer_id(peer_id) do
+  def insert(info_hash, peer_id, {ip, port}, connected, extensions) when is_hash(info_hash) and is_peer_id(peer_id) do
     torrent_id = Repo.one!(from torrent in Torrent,
                             where: torrent.info_hash == ^info_hash,
                             select: torrent.id)
@@ -81,7 +81,8 @@ defmodule Effusion.BTP.Peer do
       peer_id: peer_id,
       address: %Postgrex.INET{address: ip},
       port: port,
-      connected: connected
+      connected: connected,
+      fast_extension: Enum.member?(extensions, :fast)
     }
     |> changeset()
     |> Repo.insert!(on_conflict: {:replace, [:address, :port, :peer_id]},

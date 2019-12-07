@@ -18,6 +18,7 @@ defmodule Effusion.PWP.ProtocolHandler do
   """
 
   @local_peer_id Application.get_env(:effusion, :peer_id)
+  @supported_extensions [:fast]
 
   def connect(address, info_hash, remote_peer_id) do
     # This is where we would make the uTP/TCP decision, once we support uTP.
@@ -29,7 +30,7 @@ defmodule Effusion.PWP.ProtocolHandler do
   end
 
   def get_handshake(info_hash) do
-    {:handshake, @local_peer_id, info_hash}
+    {:handshake, @local_peer_id, info_hash, @supported_extensions}
   end
 
   def recv_handshake({:handshake, _remote_peer_id, info_hash, _extensions}) do
@@ -64,9 +65,9 @@ defmodule Effusion.PWP.ProtocolHandler do
     end
   end
 
-  def handle_connect(info_hash, peer_id, address, _extensions) when is_hash(info_hash) and is_peer_id(peer_id) do
+  def handle_connect(info_hash, peer_id, address, extensions) when is_hash(info_hash) and is_peer_id(peer_id) do
     {:ok, _pid} = ConnectionRegistry.register(info_hash, peer_id)
-    Peer.insert(info_hash, peer_id, address, true)
+    Peer.insert(info_hash, peer_id, address, true, extensions)
     :ok
   end
 
@@ -81,6 +82,20 @@ defmodule Effusion.PWP.ProtocolHandler do
     end)
 
     Pieces.add_block(info_hash, block)
+
+    peer_request_query = from request in Request,
+                         join: peer in assoc(request, :peer),
+                         where: peer.peer_id == ^from
+    peer_request_count = Repo.aggregate(peer_request_query, :count, :peer_id)
+
+    if peer_request_count <= 0 do
+      next_request_from_peer(info_hash, from, Application.get_env(:effusion, :max_requests_per_peer))
+    end
+    :ok
+  end
+
+  def handle_message(info_hash, from, {:reject, block}) when is_hash(info_hash) and is_peer_id(from) do
+    :ok = Request.reject(info_hash, block, from)
 
     peer_request_query = from request in Request,
                          join: peer in assoc(request, :peer),
@@ -132,6 +147,39 @@ defmodule Effusion.PWP.ProtocolHandler do
     if !Pieces.has_piece?(info_hash, i) do
       ConnectionRegistry.btp_send(info_hash, remote_peer_id, :interested)
     end
+    :ok
+  end
+
+  def handle_message(info_hash, remote_peer_id, :have_all) when is_hash(info_hash) and is_peer_id(remote_peer_id) do
+    peer = Repo.one!(from p in Peer, where: [peer_id: ^remote_peer_id])
+
+    pieces_query = from piece in Piece,
+                   join: torrent in assoc(piece, :torrent),
+                   where: torrent.info_hash == ^info_hash,
+                   select: piece.id
+
+    piece_dbids = Repo.all(pieces_query)
+    peer_pieces = Enum.map(piece_dbids, fn piece_dbid ->
+      %{
+        peer_id: peer.id,
+        piece_id: piece_dbid
+      }
+    end)
+
+    Repo.insert_all(PeerPiece, peer_pieces)
+
+    if !Pieces.all_present?(info_hash) do
+      ConnectionRegistry.btp_send(info_hash, remote_peer_id, :interested)
+    end
+
+    :ok
+  end
+
+  def handle_message(info_hash, remote_peer_id, :have_none) when is_hash(info_hash) and is_peer_id(remote_peer_id) do
+    :ok
+  end
+
+  def handle_message(info_hash, remote_peer_id, {:allowed_fast, _index}) when is_hash(info_hash) and is_peer_id(remote_peer_id) do
     :ok
   end
 
