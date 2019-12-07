@@ -51,6 +51,25 @@ defmodule Effusion.PWP.Messages do
       iex> Effusion.PWP.Messages.decode(<<8, 4201 :: 32, 69 :: 32, 12 :: 32>>)
       {:ok, {:cancel, %{index: 4201, offset: 69, size: 12}}}
 
+  ### Fast Extension Messages
+
+      iex> Effusion.PWP.Messages.decode(<<13, 0, 0, 0, 230>>)
+      {:ok, {:suggest_piece, 230}}
+
+      iex> Effusion.PWP.Messages.decode(<<14>>)
+      {:ok, :have_all}
+
+      iex> Effusion.PWP.Messages.decode(<<15>>)
+      {:ok, :have_none}
+
+      iex> Effusion.PWP.Messages.decode(<<16, 0, 0, 0, 230, 0, 0, 0, 60, 0, 0, 0, 200>>)
+      {:ok, {:reject, %{index: 230, offset: 60, size: 200}}}
+
+      iex> Effusion.PWP.Messages.decode(<<17, 0, 0, 0, 230>>)
+      {:ok, {:allowed_fast, 230}}
+
+  ### Invalid messages
+
       iex> Effusion.PWP.Messages.decode(<<42>>)
       {:error, :invalid}
 
@@ -86,6 +105,26 @@ defmodule Effusion.PWP.Messages do
 
   def decode(<<8, index::32, offset::32, size::32>>) do
     {:ok, {:cancel, %{index: index, offset: offset, size: size}}}
+  end
+
+  def decode(<<13, index::32>>) do
+    {:ok, {:suggest_piece, index}}
+  end
+
+  def decode(<<14>>) do
+    {:ok, :have_all}
+  end
+
+  def decode(<<15>>) do
+    {:ok, :have_none}
+  end
+
+  def decode(<<16, index::32, offset::32, size::32>>) do
+    {:ok, {:reject, %{index: index, offset: offset, size: size}}}
+  end
+
+  def decode(<<17, index::32>>) do
+    {:ok, {:allowed_fast, index}}
   end
 
   def decode(msg = <<19, "BitTorrent protocol", _rest::binary>>), do: Handshake.decode(msg)
@@ -139,6 +178,23 @@ defmodule Effusion.PWP.Messages do
       iex> Effusion.PWP.Messages.encode({:cancel, 420, 69, 666})
       {:ok, <<8, 0, 0, 1, 164, 0, 0, 0, 69, 0, 0, 2, 154>>}
 
+  ### Fast Extension messages
+
+      iex> Effusion.PWP.Messages.encode({:suggest_piece, 230})
+      {:ok, <<13, 0, 0, 0, 230>>}
+
+      iex> Effusion.PWP.Messages.encode(:have_all)
+      {:ok, <<14>>}
+
+      iex> Effusion.PWP.Messages.encode(:have_none)
+      {:ok, <<15>>}
+
+      iex> Effusion.PWP.Messages.encode({:reject, 230, 60, 200})
+      {:ok, <<16, 0, 0, 0, 230, 0, 0, 0, 60, 0, 0, 0, 200>>}
+
+      iex> Effusion.PWP.Messages.encode({:allowed_fast, 230})
+      {:ok, <<17, 0, 0, 0, 230>>}
+
   """
   def encode(m)
 
@@ -166,6 +222,19 @@ defmodule Effusion.PWP.Messages do
 
   def encode({:cancel, %{index: i, offset: o, size: s}}) when is_all_uint32(i, o, s),
     do: encode({:cancel, i, o, s})
+
+  def encode({:suggest_piece, index}) when is_uint32(index),
+    do: {:ok, <<13, index::32>>}
+
+  def encode(:have_all), do: {:ok, <<14>>}
+
+  def encode(:have_none), do: {:ok, <<15>>}
+
+  def encode({:reject, i, o, s}) when is_all_uint32(i, o, s),
+    do: {:ok, <<16, i::32, o::32, s::32>>}
+
+  def encode({:allowed_fast, index}) when is_uint32(index),
+    do: {:ok, <<17, index::32>>}
 
   def encode({:handshake, peer_id, info_hash}) do
     {:ok, Handshake.encode(peer_id, info_hash)}
