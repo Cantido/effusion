@@ -33,12 +33,13 @@ defmodule Effusion.PWP.TCP.ConnectionTest do
 
     {:ok, cpid} = start_supervised({OutgoingHandler, {address, local_info_hash, expected_peer_id}})
 
-    {:ok, _sock, _remote_peer} =
+    {:ok, _sock, _remote_peer, _extensions} =
       Socket.accept(
         lsock,
         @torrent.info_hash,
         @local_peer_id,
-        @remote_peer.peer_id
+        @remote_peer.peer_id,
+        []
       )
 
     :timer.sleep(10)

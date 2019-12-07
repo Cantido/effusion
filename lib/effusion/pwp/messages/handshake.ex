@@ -50,12 +50,12 @@ defmodule Effusion.PWP.Messages.Handshake do
     <<0, 0, 0, 0, 0, 0, 0, 0>>
   end
 
-  def perform(socket, local_peer_id, expected_peer_id, local_info_hash) do
-    with :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, local_info_hash}),
-         {:ok, hs = {:handshake, remote_peer_id, _, _}} <- Socket.recv(socket, 68),
+  def perform(socket, local_peer_id, expected_peer_id, local_info_hash, our_extensions) do
+    with :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, local_info_hash, our_extensions}),
+         {:ok, hs = {:handshake, remote_peer_id, _, their_extensions}} <- Socket.recv(socket, 68),
          :ok <- validate(expected_peer_id, local_info_hash, hs),
          :ok <- :inet.setopts(socket, packet: 4) do
-      {:ok, socket, remote_peer_id}
+      {:ok, socket, remote_peer_id, their_extensions}
     else
       err -> err
     end

@@ -102,12 +102,13 @@ defmodule EffusionTest do
 
     {:ok, _} = Effusion.start_download(@torrent)
 
-    {:ok, sock, _remote_peer} =
+    {:ok, sock, _remote_peer, [:fast]} =
       Socket.accept(
         lsock,
         @info_hash,
         @local_peer_id,
-        @remote_peer.peer_id
+        @remote_peer.peer_id,
+        []
       )
 
     on_exit(fn ->
@@ -161,12 +162,13 @@ defmodule EffusionTest do
 
     {:ok, _} = Effusion.start_download(@torrent)
 
-    {:ok, sock, _remote_peer} =
+    {:ok, sock, _remote_peer, [:fast]} =
       Socket.connect(
         {{127, 0, 0, 1}, @local_port},
         @info_hash,
         @local_peer_id,
-        @remote_peer.peer_id
+        @remote_peer.peer_id,
+        []
       )
 
     on_exit(fn ->
