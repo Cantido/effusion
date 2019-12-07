@@ -88,8 +88,10 @@ defmodule Effusion.PWP.ProtocolHandler do
                          where: peer.peer_id == ^from
     peer_request_count = Repo.aggregate(peer_request_query, :count, :peer_id)
 
-    if peer_request_count <= 0 do
-      next_request_from_peer(info_hash, from, Application.get_env(:effusion, :max_requests_per_peer))
+    max_requests = Application.get_env(:effusion, :max_requests_per_peer)
+
+    if peer_request_count <= max_requests / 2 do
+      next_request_from_peer(info_hash, from, max_requests)
     end
     :ok
   end
