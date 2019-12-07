@@ -153,6 +153,65 @@ defmodule EffusionTest do
     assert "tiny\n" == contents
   end
 
+  test "download a file from a peer supporting the fast extension", %{lsock: lsock, destfile: file} do
+    Application.put_env(:effusion, :download_destination, file)
+
+    # Expect started, completed, and stopped messages
+    Effusion.THP.Mock
+    |> expect(:announce, 3, &stub_tracker/9)
+
+    {:ok, _} = Effusion.start_download(@torrent)
+
+    {:ok, sock, _remote_peer, [:fast]} =
+      Socket.accept(
+        lsock,
+        @info_hash,
+        @local_peer_id,
+        @remote_peer.peer_id,
+        [:fast]
+      )
+
+    on_exit(fn ->
+      Socket.close(sock)
+    end)
+
+    :ok = Socket.send_msg(sock, :have_all)
+    {:ok, :interested} = Socket.recv(sock)
+
+    :ok = Socket.send_msg(sock, :unchoke)
+    {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
+    {:ok, {:request, %{index: i2}}} = Socket.recv(sock)
+
+    if i1 == 0 do
+      assert i2 == 1
+    else
+      assert i1 == 1
+      assert i2 == 0
+    end
+
+    :ok = Socket.send_msg(sock, {:piece, 0, 0, "tin"})
+    :ok = Socket.send_msg(sock, {:piece, 1, 0, "y\n"})
+
+    {:ok, {:have, r1}} = Socket.recv(sock)
+    {:ok, {:have, r2}} = Socket.recv(sock)
+
+    if r1 == 0 do
+      assert r2 == 1
+    else
+      assert r1 == 1
+      assert r2 == 0
+    end
+
+    Socket.close(sock)
+
+    :timer.sleep(700)
+    :file.datasync(file)
+
+    {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
+
+    assert "tiny\n" == contents
+  end
+
   test "receive a connection from a peer", %{destfile: file} do
     Application.put_env(:effusion, :download_destination, file)
 
