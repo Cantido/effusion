@@ -21,25 +21,10 @@ defmodule Effusion.PWP.TCP.Connection do
     send(pid, {:disconnect, reason})
   end
 
-  defp validate_info_hash(local_info_hash, remote_info_hash) do
-    if local_info_hash == remote_info_hash do
-      :ok
-    else
-      {:error, {:mismatched_info_hash, [expected: local_info_hash, actual: remote_info_hash]}}
-    end
-  end
 
-  defp validate_peer_id(expected_peer_id, remote_peer_id) do
-    if expected_peer_id == nil or expected_peer_id == remote_peer_id do
-      :ok
-    else
-      {:error, {:mismatched_peer_id, [expected: expected_peer_id, actual: remote_peer_id]}}
-    end
-  end
-
-  defp successful_handshake(socket, info_hash, peer_id) do
+  defp successful_handshake(socket, info_hash, peer_id, extensions) do
     with {:ok, address} <- :inet.peername(socket),
-         :ok <- ProtocolHandler.handle_connect(info_hash, peer_id, address),
+         :ok <- ProtocolHandler.handle_connect(info_hash, peer_id, address, extensions),
          :ok <- :inet.setopts(socket, active: :once, packet: 4) do
       :ok
     else
@@ -47,7 +32,7 @@ defmodule Effusion.PWP.TCP.Connection do
     end
   end
 
-  defp connect({address = {host, port}, info_hash, local_peer_id, expected_peer_id}) do
+  defp connect({address = {host, port}, info_hash, expected_peer_id}) do
     state = %{
       address: address,
       info_hash: info_hash,
@@ -58,11 +43,10 @@ defmodule Effusion.PWP.TCP.Connection do
 
     with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 10_000),
 
-         :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, info_hash}),
-         {:ok, {:handshake, remote_peer_id, remote_info_hash, _}} <- Socket.recv(socket, 68),
-         :ok <- validate_info_hash(info_hash, remote_info_hash),
-         :ok <- validate_peer_id(expected_peer_id, remote_peer_id),
-         :ok <- successful_handshake(socket, info_hash, remote_peer_id) do
+         :ok <- Socket.send_msg(socket, ProtocolHandler.get_handshake(info_hash)),
+         {:ok, handshake = {:handshake, remote_peer_id, _remote_info_hash, extensions}} <- Socket.recv(socket, 68),
+         :ok <- ProtocolHandler.recv_handshake(handshake, info_hash, expected_peer_id),
+         :ok <- successful_handshake(socket, info_hash, remote_peer_id, extensions) do
 
       :telemetry.execute([:pwp, :outgoing, :success], %{}, state)
 
@@ -79,7 +63,7 @@ defmodule Effusion.PWP.TCP.Connection do
     end
   end
 
-  def handle_btp({:handshake, remote_peer_id, info_hash, _reserved}, state = %{socket: socket})
+  def handle_btp(handshake = {:handshake, remote_peer_id, info_hash, extensions}, state = %{socket: socket})
     when is_peer_id(remote_peer_id)
      and is_hash(info_hash) do
 
@@ -89,10 +73,9 @@ defmodule Effusion.PWP.TCP.Connection do
       Map.put(state, :remote_peer_id, remote_peer_id)
     )
 
-    with [{_pid, _hash}] <- Registry.lookup(BTPHandlerRegistry, info_hash),
-         local_peer_id = Application.get_env(:effusion, :peer_id),
-         :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, info_hash}),
-         :ok <- successful_handshake(socket, info_hash, remote_peer_id),
+    with :ok <- ProtocolHandler.recv_handshake(handshake),
+         :ok <- Socket.send_msg(socket, ProtocolHandler.get_handshake(info_hash)),
+         :ok <- successful_handshake(socket, info_hash, remote_peer_id, extensions),
          {:ok, address} <- :inet.peername(socket) do
 
       :telemetry.execute([:pwp, :incoming, :success], %{}, state)

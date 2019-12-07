@@ -29,10 +29,9 @@ defmodule Effusion.PWP.TCP.ConnectionTest do
   test "registers with ConnectionRegistry on successful handshake", %{lsock: lsock} do
     address = @remote_peer.address
     local_info_hash = @torrent.info_hash
-    local_peer_id = @local_peer_id
     expected_peer_id = @remote_peer.peer_id
 
-    {:ok, cpid} = start_supervised({OutgoingHandler, {address, local_info_hash, local_peer_id, expected_peer_id}})
+    {:ok, cpid} = start_supervised({OutgoingHandler, {address, local_info_hash, expected_peer_id}})
 
     {:ok, _sock, _remote_peer} =
       Socket.accept(

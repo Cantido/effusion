@@ -107,7 +107,7 @@ defmodule Effusion.THP.Announcer do
 
     Enum.each(eligible_peers, fn p ->
       address = {p.address.address, p.port}
-      OutgoingHandler.connect({address, info_hash, peer_id, p.peer_id})
+      OutgoingHandler.connect({address, info_hash, p.peer_id})
     end)
     {:noreply, {info_hash, timer}}
   end
