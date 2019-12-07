@@ -37,6 +37,7 @@ defmodule Effusion.BTP.Peer do
     field :am_choking, :boolean, default: true, null: false
     field :am_interested, :boolean, default: false, null: false
     field :connected, :boolean, default: false, null: false
+    field :fast_extension, :boolean, default: false, null: false
     has_many :blocks_we_requested, Effusion.BTP.Request
     has_many :peer_pieces, Effusion.BTP.PeerPiece
     has_many :pieces, through: [:peer_pieces, :piece]
