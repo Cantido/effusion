@@ -39,7 +39,7 @@ defmodule Effusion.PWP.TCP.SocketTest do
         |> IO.iodata_to_binary()
         |> Messages.decode()
 
-      assert {:handshake, @local_peer_id, @info_hash, <<0, 0, 0, 0, 0, 0, 0, 0>>} =
+      assert {:handshake, @local_peer_id, @info_hash, extensions} =
                outgoing_handshake
     end
 
