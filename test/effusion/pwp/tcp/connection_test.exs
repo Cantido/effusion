@@ -1,6 +1,7 @@
 defmodule Effusion.PWP.TCP.ConnectionTest do
   use ExUnit.Case
   alias Effusion.BTP.Peer
+  alias Effusion.BTP.Torrent
   alias Effusion.PWP.TCP.OutgoingHandler
   alias Effusion.PWP.TCP.Socket
 
@@ -13,6 +14,7 @@ defmodule Effusion.PWP.TCP.ConnectionTest do
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
   end
 
   setup do
@@ -24,6 +26,11 @@ defmodule Effusion.PWP.TCP.ConnectionTest do
     end)
 
     %{lsock: lsock}
+  end
+
+  setup do
+    Torrent.insert(@torrent)
+    :ok
   end
 
   test "registers with ConnectionRegistry on successful handshake", %{lsock: lsock} do
@@ -41,7 +48,7 @@ defmodule Effusion.PWP.TCP.ConnectionTest do
         @remote_peer.peer_id
       )
 
-    :timer.sleep(10)
+    :timer.sleep(50)
 
     connections = Registry.lookup(ConnectionRegistry, @torrent.info_hash)
 
