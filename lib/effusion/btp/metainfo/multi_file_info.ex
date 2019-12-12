@@ -12,6 +12,10 @@ defmodule Effusion.BTP.Metainfo.MultiFileInfo do
     struct(Effusion.BTP.Metainfo.MultiFileInfo, update_info(fields))
   end
 
+  def decode_md5sum(encoded) when byte_size(encoded) == 32 do
+    Base.decode16!(encoded, case: :mixed)
+  end
+
   def bytes_count(info) do
     Enum.count(info.pieces) * info.piece_length
   end
@@ -39,7 +43,9 @@ defmodule Effusion.BTP.Metainfo.MultiFileInfo do
   end
 
   defp update_file(file) do
-    Effusion.Map.rename_keys(file, file_tokens())
+    file
+    |> Effusion.Map.rename_keys(file_tokens())
+    |> Map.update(:md5sum, nil, &decode_md5sum/1)
   end
 
   defp info_tokens do
@@ -54,7 +60,8 @@ defmodule Effusion.BTP.Metainfo.MultiFileInfo do
   defp file_tokens do
     %{
       "length" => :length,
-      "path" => :path
+      "path" => :path,
+      "md5sum" => :md5sum
     }
   end
 end

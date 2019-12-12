@@ -6,6 +6,8 @@ defmodule Effusion.Factory do
       info_hash: "12345678901234567890",
       name: "linuxmint-19.2-cinnamon-64bit.iso",
       announce: "http://example.com/announce",
+      size: 1_000_000_000,
+      piece_size: 1_000_000,
       started: Timex.now() |> DateTime.truncate(:second),
       comment: "Made with love",
       created_by: "Rosa",
