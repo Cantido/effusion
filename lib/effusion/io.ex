@@ -2,7 +2,6 @@ defmodule Effusion.IO do
   require Logger
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Block
-  alias Effusion.BTP.Metainfo
   alias Effusion.Range
   alias Effusion.Repo
   import Ecto.Query
