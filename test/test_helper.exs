@@ -25,6 +25,12 @@ defmodule TestHelper do
     meta
   end
 
+  def multi_file_meta do
+    {:ok, metabin} = File.read("test/hello_world.torrent")
+    {:ok, meta} = Effusion.BTP.Metainfo.decode(metabin)
+    meta
+  end
+
   def tiny_meta do
     %{
       announce: "http://localhost:6969/announce",
