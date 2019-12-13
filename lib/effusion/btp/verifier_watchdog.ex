@@ -31,6 +31,7 @@ defmodule Effusion.BTP.VerifierWatchdog do
   end
 
   def init(info_hash) do
+    Logger.debug("VerifierWatchdog started")
     Process.send_after(self(), :watch, @watch_interval_ms)
     {:ok, info_hash}
   end
@@ -56,6 +57,7 @@ defmodule Effusion.BTP.VerifierWatchdog do
     Logger.debug("VerifierWatchdog announced & wrote #{Enum.count(verified)} pieces")
 
     if Pieces.all_written?(info_hash) do
+      Logger.debug("All pieces are written, notifying BTP handler")
       ProtocolHandler.notify_all_pieces_written(info_hash)
       {:stop, :normal, info_hash}
     else
