@@ -19,9 +19,31 @@ defmodule Effusion.PWP.TCP.Socket do
   Connect to a server described by `peer`.
   """
   def connect({host, port}, local_info_hash, local_peer_id, expected_peer_id, our_extensions) do
-    case :gen_tcp.connect(host, port, [:binary, active: false], 10_000) do
-      {:ok, socket} -> Handshake.perform(socket, local_peer_id, expected_peer_id, local_info_hash, our_extensions)
+    with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false], 10_000),
+         :ok <- send_msg(socket, {:handshake, local_peer_id, local_info_hash, our_extensions}),
+         {:ok, hs = {:handshake, remote_peer_id, _, their_extensions}} <- recv(socket, 68),
+         :ok <- validate(expected_peer_id, local_info_hash, hs),
+         :ok <- :inet.setopts(socket, packet: 4) do
+      {:ok, socket, remote_peer_id, their_extensions}
+    else
       err -> err
+    end
+  end
+
+  defp validate(
+         expected_peer_id,
+         local_info_hash,
+         {:handshake, remote_peer_id, remote_info_hash, _reserved}
+       ) do
+    cond do
+      local_info_hash != remote_info_hash ->
+        {:error, {:mismatched_info_hash, [expected: local_info_hash, actual: remote_info_hash]}}
+
+      expected_peer_id != nil and expected_peer_id != remote_peer_id ->
+        {:error, {:mismatched_peer_id, [expected: expected_peer_id, actual: remote_peer_id]}}
+
+      true ->
+        :ok
     end
   end
 
@@ -29,9 +51,13 @@ defmodule Effusion.PWP.TCP.Socket do
   Accepts an incoming connection a listening socket,
   and performs a PWP handshake as the given `peer`.
   """
-  def accept(lsock, local_info_hash, local_peer_id, expected_peer_id, our_extensions) do
-    case :gen_tcp.accept(lsock, 1_000) do
-      {:ok, socket} -> Handshake.perform(socket, local_peer_id, expected_peer_id, local_info_hash, our_extensions)
+  def accept(lsock, local_peer_id, our_extensions) do
+    with {:ok, socket} <- :gen_tcp.accept(lsock, [:binary, active: false], 1_000),
+         {:ok, hs = {:handshake, _, _, their_extensions}} <- recv(socket, 68),
+         :ok <- send_msg(socket, {:handshake, local_peer_id, local_info_hash, our_extensions}),
+         :ok <- validate(expected_peer_id, local_info_hash, hs),
+         :ok <- :inet.setopts(socket, packet: 4) do
+    else
       err -> err
     end
   end

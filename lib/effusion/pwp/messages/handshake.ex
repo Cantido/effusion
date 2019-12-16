@@ -1,6 +1,4 @@
 defmodule Effusion.PWP.Messages.Handshake do
-  alias Effusion.PWP.TCP.Socket
-
   @moduledoc """
   Encode and decode peer handshake messages.
   """
@@ -48,33 +46,5 @@ defmodule Effusion.PWP.Messages.Handshake do
 
   defp encode_reserved([]) do
     <<0, 0, 0, 0, 0, 0, 0, 0>>
-  end
-
-  def perform(socket, local_peer_id, expected_peer_id, local_info_hash, our_extensions) do
-    with :ok <- Socket.send_msg(socket, {:handshake, local_peer_id, local_info_hash, our_extensions}),
-         {:ok, hs = {:handshake, remote_peer_id, _, their_extensions}} <- Socket.recv(socket, 68),
-         :ok <- validate(expected_peer_id, local_info_hash, hs),
-         :ok <- :inet.setopts(socket, packet: 4) do
-      {:ok, socket, remote_peer_id, their_extensions}
-    else
-      err -> err
-    end
-  end
-
-  defp validate(
-         expected_peer_id,
-         local_info_hash,
-         {:handshake, remote_peer_id, remote_info_hash, _reserved}
-       ) do
-    cond do
-      local_info_hash != remote_info_hash ->
-        {:error, {:mismatched_info_hash, [expected: local_info_hash, actual: remote_info_hash]}}
-
-      expected_peer_id != nil and expected_peer_id != remote_peer_id ->
-        {:error, {:mismatched_peer_id, [expected: expected_peer_id, actual: remote_peer_id]}}
-
-      true ->
-        :ok
-    end
   end
 end
