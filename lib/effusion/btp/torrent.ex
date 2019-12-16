@@ -1,8 +1,8 @@
 defmodule Effusion.BTP.Torrent do
+  alias Effusion.BTP.File
   alias Effusion.BTP.Piece
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Block
-  alias Effusion.BTP.Metainfo
   alias Effusion.Repo
   use Ecto.Schema
   import Ecto.Changeset
@@ -15,6 +15,8 @@ defmodule Effusion.BTP.Torrent do
     field :info_hash, :binary, null: false
     field :name, :string, null: false
     field :announce, :string, null: false
+    field :size, :integer, null: false
+    field :piece_size, :integer, null: false
     field :started, :utc_datetime, null: true
     field :comment, :string, null: true
     field :created_by, :string, null: true
@@ -26,7 +28,13 @@ defmodule Effusion.BTP.Torrent do
     has_many :peers, Peer
   end
 
-  @required_fields [:info_hash, :name, :announce]
+  @required_fields [
+    :info_hash,
+    :name,
+    :announce,
+    :size,
+    :piece_size
+  ]
   @optional_fields [
     :started,
     :comment,
@@ -60,19 +68,21 @@ defmodule Effusion.BTP.Torrent do
   end
 
   def insert(meta) do
-    Metainfo.put_meta(meta)
-
     Repo.transaction(fn ->
       {:ok, torrent} = %__MODULE__{}
       |> changeset(%{
         info_hash: meta.info_hash,
         name: meta.info.name,
+        size: meta.info.length,
+        piece_size: meta.info.piece_length,
         announce: meta.announce,
         comment: Map.get(meta, :comment),
         created_by: Map.get(meta, :created_by),
         creation_date: Map.get(meta, :creation_date) |> Timex.from_unix()
       })
       |> Repo.insert()
+
+      :ok = File.insert(meta, torrent)
 
       # Postgres can only accept 65535 parameters at a time,
       # so we need to chunk our inserts by 65535/params-per-entry

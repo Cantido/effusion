@@ -19,7 +19,6 @@ defmodule Effusion.Application do
       Effusion.Application.VerifierWatchdogSupervisor,
       Effusion.Application.DownloadSpeedWatcherSupervisor,
       Effusion.Application.AnnouncerSupervisor,
-      Effusion.BTP.Metainfo.Directory,
       Effusion.IOServer,
       Effusion.Statistics.PeerDownloadAverage,
       Effusion.Statistics.SessionDownloadAverage,

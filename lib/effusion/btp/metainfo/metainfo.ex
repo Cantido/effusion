@@ -1,5 +1,4 @@
 defmodule Effusion.BTP.Metainfo do
-  alias Effusion.BTP.Metainfo.Directory
   alias Effusion.BTP.Metainfo.MultiFileInfo
   alias Effusion.BTP.Metainfo.SingleFileInfo
   alias Effusion.Hash
@@ -27,7 +26,6 @@ defmodule Effusion.BTP.Metainfo do
         |> Map.update!(:info, &update_info/1)
 
       meta = struct(Effusion.BTP.Metainfo, result)
-      put_meta(meta)
       {:ok, meta}
     else
       err -> err
@@ -82,14 +80,6 @@ defmodule Effusion.BTP.Metainfo do
 
   defp binary_chunk(<<head::binary-size(20), rest::binary>>) when rem(byte_size(rest), 20) == 0 do
     [head | binary_chunk(rest)]
-  end
-
-  def put_meta(meta) do
-    Directory.insert(meta)
-  end
-
-  def get_meta(info_hash) do
-    Directory.lookup(info_hash)
   end
 
   defimpl Inspect, for: Effusion.BTP.Metainfo.SingleFileInfo do
