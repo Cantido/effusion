@@ -9,6 +9,9 @@ defmodule Effusion.IOServer do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
+  @doc """
+  Pull the given piece out of the database and write it out to the configured file.
+  """
   def write_piece(info, block) do
     GenServer.cast(__MODULE__, {:write, info, block})
   end

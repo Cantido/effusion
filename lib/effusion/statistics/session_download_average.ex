@@ -2,14 +2,24 @@ defmodule Effusion.Statistics.SessionDownloadAverage do
   alias Effusion.Statistics.Net, as: NetStats
   use GenServer
 
+  @moduledoc """
+  Tracks the overall download speed for the session.
+  """
+
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
+  @doc """
+  Get the overall download speed for the current session.
+  """
   def session_20sec_download_avg() do
     GenServer.call(__MODULE__, :session_20sec_download_avg)
   end
 
+  @doc """
+  Initialize the download speed tracker.
+  """
   def init(:ok) do
     Process.send_after(self(), :accumulate, 1_000)
     {:ok, %{last_total_seen: 0, bytes_per_second: [0]}}
@@ -26,7 +36,7 @@ defmodule Effusion.Statistics.SessionDownloadAverage do
     {:noreply, state}
   end
 
-  def update_speed(%{last_total_seen: last_total_seen, bytes_per_second: bytes_per_second}, new_total_seen) do
+  defp update_speed(%{last_total_seen: last_total_seen, bytes_per_second: bytes_per_second}, new_total_seen) do
     bytes_this_second = new_total_seen - last_total_seen
     new_bytes_per_second = [bytes_this_second | List.delete_at(bytes_per_second, 19)]
 

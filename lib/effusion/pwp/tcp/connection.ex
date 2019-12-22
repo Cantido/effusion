@@ -13,10 +13,16 @@ defmodule Effusion.PWP.TCP.Connection do
   to the associated download.
   """
 
+  @doc """
+  Break the connection.
+  """
   def disconnect(pid) do
     send(pid, :disconnect)
   end
 
+  @doc """
+  Break the connection with the given reason.
+  """
   def disconnect(pid, reason) do
     send(pid, {:disconnect, reason})
   end
@@ -62,6 +68,11 @@ defmodule Effusion.PWP.TCP.Connection do
         {:stop, reason, state}
     end
   end
+
+  @doc """
+  Handle a Peer Wire Protocol message.
+  """
+  def handle_btp(btp_message, state)
 
   def handle_btp(handshake = {:handshake, remote_peer_id, info_hash, extensions}, state = %{socket: socket})
     when is_peer_id(remote_peer_id)

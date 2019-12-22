@@ -41,14 +41,17 @@ defmodule Effusion.PWP.TCP.OutgoingHandler do
 
   ## Callbacks
 
+  @impl true
   def init(peer) do
     {:ok, peer, 0}
   end
 
+  @impl true
   def handle_info(info, state) do
     Connection.handle_info(info, state)
   end
 
+  @impl true
   def terminate(reason, state) do
     Connection.terminate(reason, state)
   end

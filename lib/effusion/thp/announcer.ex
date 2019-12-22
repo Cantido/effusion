@@ -11,8 +11,15 @@ defmodule Effusion.THP.Announcer do
   import Effusion.Hash, only: [is_hash: 1]
   import Ecto.Query
 
+  @moduledoc """
+  Makes tracker announcements for a torrent, including interval announcements.
+  """
+
   @thp_client Application.get_env(:effusion, :thp_client)
 
+  @doc """
+  Starts an announcer process for a torrent.
+  """
   def start(info_hash) do
     case AnnouncerSupervisor.start_child([info_hash]) do
       {:ok, _pid} -> {:ok, info_hash}
@@ -28,6 +35,9 @@ defmodule Effusion.THP.Announcer do
     )
   end
 
+  @doc """
+  Stops the torrent's announcer process
+  """
   def stop(info_hash) do
     GenServer.call({:via, Registry, {AnnouncerRegistry, info_hash}}, :stop)
   end
@@ -36,6 +46,9 @@ defmodule Effusion.THP.Announcer do
     {:ok, {info_hash, nil}}
   end
 
+  @doc """
+  Announce an event to the torrent's trackers.
+  """
   def announce(info_hash, event) when is_hash(info_hash) do
     GenServer.cast({:via, Registry, {AnnouncerRegistry, info_hash}}, {:announce, event})
   end

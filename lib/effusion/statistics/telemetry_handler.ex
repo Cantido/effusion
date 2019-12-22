@@ -4,56 +4,68 @@ defmodule Effusion.Statistics.TelemetryHandler do
   alias Effusion.Statistics.Peer, as: PeerStats
   require Logger
 
+  @moduledoc """
+  Handles events emitted by the `:telemetry` library.
+  """
+
+  @doc """
+  Attach all telemetry handlers.
+  """
   def init do
     :ok = :telemetry.attach(
       "effusion-handler-message-sent",
       [:pwp, :message_sent],
       &__MODULE__.handle_event/4,
-      nil
-    )
+      nil)
+
     :ok = :telemetry.attach(
       "effusion-handler-message-received",
       [:pwp, :message_received],
       &__MODULE__.handle_event/4,
-      nil
-    )
+      nil)
+
     :ok = :telemetry.attach(
       "effusion-handler-outgoing-connection-establishing",
       [:pwp, :outgoing, :starting],
       &__MODULE__.handle_event/4,
-      nil
-    )
+      nil)
+
     :ok = :telemetry.attach(
       "effusion-handler-outgoing-connection-success",
       [:pwp, :outgoing, :success],
       &__MODULE__.handle_event/4,
-      nil
-    )
+      nil)
+
     :ok = :telemetry.attach(
       "effusion-handler-outgoing-connection-failure",
       [:pwp, :outgoing, :failure],
       &__MODULE__.handle_event/4,
-      nil
-    )
+      nil)
+
     :ok = :telemetry.attach(
       "effusion-handler-incoming-connection-establishing",
       [:pwp, :incoming, :starting],
       &__MODULE__.handle_event/4,
-      nil
-    )
+      nil)
+
     :ok = :telemetry.attach(
       "effusion-handler-incoming-connection-success",
       [:pwp, :incoming, :success],
       &__MODULE__.handle_event/4,
-      nil
-    )
+      nil)
+
     :ok = :telemetry.attach(
       "effusion-handler-disconnect",
       [:pwp, :disconnect],
       &__MODULE__.handle_event/4,
-      nil
-    )
+      nil)
+
   end
+
+  @doc """
+  Handle a telemetry event.
+  """
+  def handle_event(event, measurements, metadata, config)
 
   def handle_event([:pwp, :message_sent], _measurements, metadata, _config) do
     Logger.debug("Sending message #{inspect(metadata.message)} to peer #{metadata.peer}")

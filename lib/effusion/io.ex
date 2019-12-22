@@ -10,6 +10,9 @@ defmodule Effusion.IO do
   Functions for reading and writing files described by torrents.
   """
 
+  @doc """
+  Pull the piece with the given index out of the database and write it out to the configured file.
+  """
   def write_piece(info_hash, %{index: index}) do
     Logger.debug("Writing piece #{index} for #{info_hash |> Effusion.Hash.encode()}...")
     piece_data = Repo.one!(from block in Block,

@@ -14,25 +14,37 @@ defmodule Effusion.PWP.ProtocolHandler do
   require Logger
 
   @moduledoc """
-  Handles PWP messages.
+  Handles Peer Wire Protocol messages.
   """
 
   @local_peer_id Application.get_env(:effusion, :peer_id)
   @supported_extensions [:fast]
 
+  @doc """
+  Connect to the remote address, expecting the given peer ID.
+  """
   def connect(address, info_hash, remote_peer_id) do
     # This is where we would make the uTP/TCP decision, once we support uTP.
     OutgoingHandler.connect({address, info_hash, remote_peer_id})
   end
 
+  @doc """
+  Break the connection with the given peer.
+  """
   def disconnect(info_hash, remote_peer_id, reason) do
     OutgoingHandler.disconnect(info_hash, remote_peer_id, reason)
   end
 
+  @doc """
+  Get the handshake tuple for this connection.
+  """
   def get_handshake(info_hash) do
     {:handshake, @local_peer_id, info_hash, @supported_extensions}
   end
 
+  @doc """
+  Validate and handle the given handshake tuple.
+  """
   def recv_handshake({:handshake, _remote_peer_id, info_hash, _extensions}) do
     case Registry.lookup(BTPHandlerRegistry, info_hash) do
       [{_pid, _hash}] -> :ok
@@ -40,6 +52,9 @@ defmodule Effusion.PWP.ProtocolHandler do
     end
   end
 
+  @doc """
+  Validate and handle the given handshake tuple, expecting a given info hash and peer ID.
+  """
   def recv_handshake({:handshake, remote_peer_id, remote_info_hash, _extensions}, info_hash, expected_peer_id) do
     with :ok <- validate_info_hash(info_hash, remote_info_hash),
          :ok <- validate_peer_id(expected_peer_id, remote_peer_id) do
@@ -65,6 +80,9 @@ defmodule Effusion.PWP.ProtocolHandler do
     end
   end
 
+  @doc """
+  Handle a successful connection.
+  """
   def handle_connect(info_hash, peer_id, address, extensions) when is_hash(info_hash) and is_peer_id(peer_id) do
     {:ok, _pid} = ConnectionRegistry.register(info_hash, peer_id)
     Peer.insert(info_hash, peer_id, address, true, extensions)
@@ -74,6 +92,8 @@ defmodule Effusion.PWP.ProtocolHandler do
   @doc """
   Handle a Peer Wire Protocol (PWP) message sent by a remote peer.
   """
+  def handle_message(info_hash, from, message)
+
   def handle_message(info_hash, from, {:piece, block}) when is_hash(info_hash) and is_peer_id(from) do
     Request.cancel(block, from)
     |> Enum.uniq()
@@ -216,6 +236,9 @@ defmodule Effusion.PWP.ProtocolHandler do
     :ok
   end
 
+  @doc """
+  Disconnect from all peers.
+  """
   def disconnect_all(info_hash) do
     ConnectionRegistry.disconnect_all(info_hash)
   end
