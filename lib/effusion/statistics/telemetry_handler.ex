@@ -16,7 +16,9 @@ defmodule Effusion.Statistics.TelemetryHandler do
     "effusion-handler-outgoing-connection-failure" => [:pwp, :outgoing, :failure],
     "effusion-handler-incoming-connection-establishing" => [:pwp, :incoming, :starting],
     "effusion-handler-incoming-connection-success" => [:pwp, :incoming, :success],
-    "effusion-handler-disconnect" => [:pwp, :disconnect]
+    "effusion-handler-disconnect" => [:pwp, :disconnect],
+    "effusion-handler-write-piece-start" => [:io, :write, :piece, :starting],
+    "effusion-handler-write-piece-success" => [:io, :write, :piece, :success]
   }
 
   @doc """
@@ -96,5 +98,13 @@ defmodule Effusion.Statistics.TelemetryHandler do
       true ->
         Logger.debug("Connection handler #{inspect self()} terminating with reason #{inspect metadata.reason}")
     end
+  end
+
+  def handle_event([:io, :write, :piece, :starting], _measurements, %{index: index, info_hash: info_hash}, _config) do
+    Logger.debug("Writing piece #{index} for #{info_hash |> Effusion.Hash.encode()}...")
+  end
+
+  def handle_event([:io, :write, :piece, :success], %{latency: latency}, %{index: index, info_hash: info_hash}, _config) do
+    Logger.debug("Done writing piece #{index} for #{info_hash |> Effusion.Hash.encode()}. Took #{latency} us.")
   end
 end
