@@ -8,58 +8,24 @@ defmodule Effusion.Statistics.TelemetryHandler do
   Handles events emitted by the `:telemetry` library.
   """
 
+  @handlers %{
+    "effusion-handler-message-sent" => [:pwp, :message_sent],
+    "effusion-handler-message-received" => [:pwp, :message_received],
+    "effusion-handler-outgoing-connection-establishing" => [:pwp, :outgoing, :starting],
+    "effusion-handler-outgoing-connection-success" => [:pwp, :outgoing, :success],
+    "effusion-handler-outgoing-connection-failure" => [:pwp, :outgoing, :failure],
+    "effusion-handler-incoming-connection-establishing" => [:pwp, :incoming, :starting],
+    "effusion-handler-incoming-connection-success" => [:pwp, :incoming, :success],
+    "effusion-handler-disconnect" => [:pwp, :disconnect]
+  }
+
   @doc """
   Attach all telemetry handlers.
   """
   def init do
-    :ok = :telemetry.attach(
-      "effusion-handler-message-sent",
-      [:pwp, :message_sent],
-      &__MODULE__.handle_event/4,
-      nil)
-
-    :ok = :telemetry.attach(
-      "effusion-handler-message-received",
-      [:pwp, :message_received],
-      &__MODULE__.handle_event/4,
-      nil)
-
-    :ok = :telemetry.attach(
-      "effusion-handler-outgoing-connection-establishing",
-      [:pwp, :outgoing, :starting],
-      &__MODULE__.handle_event/4,
-      nil)
-
-    :ok = :telemetry.attach(
-      "effusion-handler-outgoing-connection-success",
-      [:pwp, :outgoing, :success],
-      &__MODULE__.handle_event/4,
-      nil)
-
-    :ok = :telemetry.attach(
-      "effusion-handler-outgoing-connection-failure",
-      [:pwp, :outgoing, :failure],
-      &__MODULE__.handle_event/4,
-      nil)
-
-    :ok = :telemetry.attach(
-      "effusion-handler-incoming-connection-establishing",
-      [:pwp, :incoming, :starting],
-      &__MODULE__.handle_event/4,
-      nil)
-
-    :ok = :telemetry.attach(
-      "effusion-handler-incoming-connection-success",
-      [:pwp, :incoming, :success],
-      &__MODULE__.handle_event/4,
-      nil)
-
-    :ok = :telemetry.attach(
-      "effusion-handler-disconnect",
-      [:pwp, :disconnect],
-      &__MODULE__.handle_event/4,
-      nil)
-
+    Enum.each(@handlers, fn {name, event} ->
+      :ok = :telemetry.attach(name, event, &__MODULE__.handle_event/4, nil)
+    end)
   end
 
   @doc """
