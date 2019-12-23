@@ -2,6 +2,7 @@ defmodule Effusion.BTP.Block do
   alias Effusion.BTP.Piece
   alias Effusion.BTP.Request
   import Effusion.Math
+  import Ecto.Query
   use Ecto.Schema
 
   @moduledoc """
@@ -26,6 +27,16 @@ defmodule Effusion.BTP.Block do
   end
 
   defguardp is_size(x) when is_integer(x) and x > 0
+
+  def aggregate_data(info_hash, index) when is_integer(index) and index >= 0 do
+    from block in __MODULE__,
+    join: piece in assoc(block, :piece),
+    join: torrent in assoc(piece, :torrent),
+    where: torrent.info_hash == ^info_hash,
+    where: piece.index == ^index,
+    where: piece.verified,
+    select: fragment("string_agg(?, '' ORDER BY ?)", block.data, block.offset)
+  end
 
   @doc """
   Split a piece into many blocks of a certain size.

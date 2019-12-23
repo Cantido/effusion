@@ -1,7 +1,9 @@
 defmodule Effusion.BTP.File do
   alias Effusion.BTP.Torrent
   alias Effusion.Repo
+  import Effusion.Hash
   import Ecto.Changeset
+  import Ecto.Query
   use Ecto.Schema
 
   schema "files" do
@@ -17,7 +19,6 @@ defmodule Effusion.BTP.File do
     |> cast(params, [:size, :path, :md5sum])
     |> validate_required([:size, :path])
   end
-
 
   def insert(meta, torrent) do
     if Map.has_key?(meta.info, :files) do
@@ -39,5 +40,11 @@ defmodule Effusion.BTP.File do
       }, acc + 1}
     end)
     result
+  end
+
+  def get(info_hash) when is_hash(info_hash) do
+    from file in __MODULE__,
+    join: torrent in assoc(file, :torrent),
+    where: torrent.info_hash == ^info_hash
   end
 end

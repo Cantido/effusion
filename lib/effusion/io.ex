@@ -1,10 +1,10 @@
 defmodule Effusion.IO do
   require Logger
   alias Effusion.BTP.Torrent
+  alias Effusion.BTP.Piece
   alias Effusion.BTP.Block
   alias Effusion.Range
   alias Effusion.Repo
-  import Ecto.Query
 
   @moduledoc """
   Functions for reading and writing files described by torrents.
@@ -13,25 +13,24 @@ defmodule Effusion.IO do
   @doc """
   Pull the piece with the given index out of the database and write it out to the configured file.
   """
-  def write_piece(info_hash, %{index: index}) do
-    Logger.debug("Writing piece #{index} for #{info_hash |> Effusion.Hash.encode()}...")
-    piece_data = Repo.one!(from block in Block,
-                           join: piece in assoc(block, :piece),
-                           join: torrent in assoc(piece, :torrent),
-                           where: torrent.info_hash == ^info_hash,
-                           where: piece.index == ^index,
-                           where: piece.verified,
-                           select: fragment("string_agg(?, '' ORDER BY ?)", block.data, block.offset))
+  def write_piece(info_hash, %{index: index}) when is_integer(index) and index >= 0 do
+    :telemetry.execute(
+      [:io, :write, :piece, :starting],
+      %{},
+      %{info_hash: info_hash, index: index})
 
-    torrent = Repo.one!(from torrent in Torrent,
-                        where: torrent.info_hash == ^info_hash)
+    piece_data = Block.aggregate_data(info_hash, index) |> Repo.one!()
+    torrent = Torrent.get(info_hash) |> Repo.one!()
+    files = Effusion.BTP.File.get(info_hash) |> Repo.all()
 
-    files = Repo.all(from file in Effusion.BTP.File,
-                     join: torrent in assoc(file, :torrent),
-                     where: torrent.info_hash == ^info_hash)
+    {latency, _} = :timer.tc(fn ->
+      :ok = do_write_pieces(files, torrent.name, torrent.piece_size, [%{index: index, data: piece_data}])
+    end)
 
-    do_write_pieces(files, torrent.name, torrent.piece_size, [%{index: index, data: piece_data}])
-    Logger.debug("Done writing piece #{index} for #{info_hash |> Effusion.Hash.encode()}")
+    :telemetry.execute(
+      [:io, :write, :piece, :success],
+      %{latency: latency},
+      %{info_hash: info_hash, index: index})
   end
 
   defp do_write_pieces(files, name, piece_length, pieces) do
@@ -42,6 +41,8 @@ defmodule Effusion.IO do
     end)
     |> Enum.group_by(fn {path, _} -> path end, fn {_, locbytes} -> locbytes end)
     |> Enum.each(fn {path, locbytes} -> write_chunk(path, locbytes) end)
+
+    :ok
   end
 
   defp write_chunk(path, locbytes) when is_list(locbytes) do
@@ -51,6 +52,8 @@ defmodule Effusion.IO do
       _ = File.close(device)
       write_result
     end
+
+    :ok
   end
 
   defp split_bytes_to_files(destdir, [], name, piece_length, %{index: i, data: d}) do

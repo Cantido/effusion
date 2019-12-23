@@ -5,6 +5,7 @@ defmodule Effusion.BTP.Torrent do
   alias Effusion.BTP.Block
   alias Effusion.Repo
   use Ecto.Schema
+  import Effusion.Hash
   import Ecto.Changeset
   import Ecto.Query
   require Logger
@@ -61,6 +62,11 @@ defmodule Effusion.BTP.Torrent do
     else
       {:error, "Torrent ID #{Effusion.Hash.encode info_hash} not found"}
     end
+  end
+
+  def get(info_hash) when is_hash(info_hash) do
+    from torrent in __MODULE__,
+    where: torrent.info_hash == ^info_hash
   end
 
   def start(torrent, time) do
