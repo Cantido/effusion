@@ -60,7 +60,7 @@ defmodule Effusion.PWP.TCP.Connection do
         socket: socket,
         info_hash: info_hash,
         remote_peer_id: remote_peer_id,
-        address: :inet.peername(socket)
+        address: address
       }}
     else
       {:error, reason} ->
