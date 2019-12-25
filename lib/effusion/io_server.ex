@@ -1,5 +1,6 @@
 defmodule Effusion.IOServer do
   use GenServer
+  require Logger
 
   @moduledoc """
   A process that performs IO.
@@ -21,7 +22,11 @@ defmodule Effusion.IOServer do
   end
 
   def handle_cast({:write, info_hash, block}, state) do
-    :ok = Effusion.IO.write_piece(info_hash, block)
+    Effusion.IO.write_piece(info_hash, block)
+    |> Enum.reject(fn {path, result} -> result == :ok end)
+    |> Enum.each(fn {path, {:error, reason}} ->
+      Logger.error("Error writing file #{path}: #{inspect reason}")
+    end)
     {:noreply, state}
   end
 end
