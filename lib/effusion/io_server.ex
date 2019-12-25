@@ -21,12 +21,12 @@ defmodule Effusion.IOServer do
     {:ok, []}
   end
 
-  def handle_cast({:write, info_hash, block}, state) do
+  def handle_cast({:write, info_hash, block}, []) do
     Effusion.IO.write_piece(info_hash, block)
-    |> Enum.reject(fn {path, result} -> result == :ok end)
+    |> Enum.reject(fn {_path, result} -> result == :ok end)
     |> Enum.each(fn {path, {:error, reason}} ->
       Logger.error("Error writing file #{path}: #{inspect reason}")
     end)
-    {:noreply, state}
+    {:noreply, []}
   end
 end
