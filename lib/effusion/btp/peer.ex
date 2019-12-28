@@ -90,7 +90,7 @@ defmodule Effusion.BTP.Peer do
   end
 
   def compact(peer) do
-    {ip0, ip1, ip2, ip3} = peer.address
+    {ip0, ip1, ip2, ip3} = peer.address.address
     port = peer.port
     <<ip0, ip1, ip2, ip3, port::16>>
   end

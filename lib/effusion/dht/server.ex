@@ -16,6 +16,8 @@ defmodule Effusion.DHT.Server do
     when is_node_id(sender_id)
      and is_node_id(target_id) do
     <<target_id_int::160>> = target_id
+    # I really wish I could do this in the DB, it's way easier,
+    # but Postgres does not have a bitwise XOR operator.
     nodes = Repo.all(DHT.Node)
             |> Enum.map(fn node ->
               <<node_id::160>> = node.node_id
@@ -31,16 +33,21 @@ defmodule Effusion.DHT.Server do
   end
 
   def handle_krpc_query({:get_peers, transaction_id, sender_id, info_hash}) do
-    # Search our routing table for peers with a node_id close to info_hash
-    # In postgres, '#' is the XOR operator
-    nodes = Repo.all(from node in DHT.Node,
-                     order_by: [asc: fragment("? # ?", node.node_id, ^info_hash)],
-                     limit: 8)
+    <<info_hash_int::160>> = info_hash
+    nodes = Repo.all(DHT.Node)
+            |> Enum.map(fn node ->
+              <<node_id::160>> = node.node_id
+              {bxor(node_id, info_hash_int), node}
+            end)
+            |> Enum.sort_by(fn {distance, node} ->
+              distance
+            end)
+            |> Enum.take(8)
+            |> Enum.map(&elem(&1, 1))
 
     matching_nodes = Enum.filter(nodes, fn node ->
       node.node_id == info_hash
     end)
-
 
     if Enum.empty?(matching_nodes) do
       nodes = Enum.map(nodes, &DHT.Node.compact/1)
