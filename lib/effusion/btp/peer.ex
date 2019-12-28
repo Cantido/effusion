@@ -88,4 +88,10 @@ defmodule Effusion.BTP.Peer do
     |> Repo.insert!(on_conflict: {:replace, [:address, :port, :peer_id]},
                                   conflict_target: [:torrent_id, :address, :port])
   end
+
+  def compact(peer) do
+    {ip0, ip1, ip2, ip3} = peer.address
+    port = peer.port
+    <<ip0, ip1, ip2, ip3, port::16>>
+  end
 end

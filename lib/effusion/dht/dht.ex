@@ -9,14 +9,23 @@ defmodule Effusion.DHT do
   defguard is_info_hash(binary) when is_binary(binary) and byte_size(binary) == 20
   defguard is_inet_port(n) when is_integer(n) and n in 1..65535
 
+  @doc """
+  Generates twenty-byte node ID.
+  """
   def node_id do
     :crypto.strong_rand_bytes(20)
   end
 
+  @doc """
+  Generates a unique ID for transactions.
+  """
   def transaction_id do
     Base.encode64(:crypto.strong_rand_bytes(1), padding: false)
   end
 
+  @doc """
+  Generates a token for use in `get_peers` responses.
+  """
   def token do
     Base.encode64(:crypto.strong_rand_bytes(4))
   end

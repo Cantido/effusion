@@ -13,7 +13,10 @@ config :effusion,
   peer_id: "Effusion Experiment!",
   max_requests_per_peer: 200,
   max_peers: 100,
-  download_destination: File.cwd!()
+  download_destination: File.cwd!(),
+  # dht_node_id should be generated fresh for new installations,
+  # by calling Effusion.DHT.node_id() |> Base.encode64()
+  dht_node_id: "zjuXKldLo4rJMGR1Ww/ykZFlXLQ="
 
 config :effusion, Effusion.Repo,
   database: "effusion_repo",

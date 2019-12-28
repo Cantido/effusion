@@ -14,10 +14,10 @@ defmodule Effusion.BTP.Torrent do
 
   schema "torrents" do
     field :info_hash, :binary, null: false
-    field :name, :string, null: false
-    field :announce, :string, null: false
-    field :size, :integer, null: false
-    field :piece_size, :integer, null: false
+    field :name, :string, null: true
+    field :announce, :string, null: true
+    field :size, :integer, null: true
+    field :piece_size, :integer, null: true
     field :started, :utc_datetime, null: true
     field :comment, :string, null: true
     field :created_by, :string, null: true
@@ -30,13 +30,13 @@ defmodule Effusion.BTP.Torrent do
   end
 
   @required_fields [
-    :info_hash,
+    :info_hash
+  ]
+  @optional_fields [
     :name,
     :announce,
     :size,
-    :piece_size
-  ]
-  @optional_fields [
+    :piece_size,
     :started,
     :comment,
     :created_by,
