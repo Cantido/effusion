@@ -152,7 +152,7 @@ defmodule Effusion.DHT.ServerTest do
   end
 
   test "handle ping response", %{context: context} do
-    :ok = Server.handle_krpc_response({:ping, "abcde", "12345678901234567890"}, {}, context)
+    :ok = Server.handle_krpc_response({:ping, "abcde", "12345678901234567890"}, context)
 
     last_contacted = Repo.one!(from node in Effusion.DHT.Node,
                                 where: node.node_id == ^"12345678901234567890",

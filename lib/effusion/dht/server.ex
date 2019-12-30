@@ -101,7 +101,7 @@ defmodule Effusion.DHT.Server do
     {:announce_peer, transaction_id, @node_id}
   end
 
-  def handle_krpc_response({:ping, transaction_id, node_id}, _query, %{remote_address: {host, port}, current_timestamp: now}) do
+  def handle_krpc_response({:ping, transaction_id, node_id}, %{remote_address: {host, port}, current_timestamp: now}) do
     case Repo.one(from node in Effusion.DHT.Node, where: node.node_id == ^node_id) do
       nil ->
         DHT.Node.changeset(%DHT.Node{}, %{
@@ -118,13 +118,11 @@ defmodule Effusion.DHT.Server do
     :ok
   end
 
-  def handle_krpc_response({:find_node, transaction_id, node_id, nodes}, _query, _context) do
     :ok
   end
 
   def handle_krpc_response({:get_peers_matching, response_transaction_id, node_id, token, peers},
-                           {:get_peers, query_transaction_id, _sender_id, info_hash},
-                           _context)
+                           %{query: {:get_peers, query_transaction_id, _sender_id, info_hash}})
     when response_transaction_id == query_transaction_id do
 
     torrent_id =
@@ -148,7 +146,7 @@ defmodule Effusion.DHT.Server do
     :ok
   end
 
-  def handle_krpc_response({:get_peers_nearest, _transaction_id, _node_id, token, nodes}, _query, _context) do
+  def handle_krpc_response({:get_peers_nearest, _transaction_id, _node_id, token, nodes}, _context) do
     nodes_to_insert = Enum.map(nodes, fn {node_id, {ip, port}} ->
       %{
         node_id: node_id,
@@ -164,7 +162,7 @@ defmodule Effusion.DHT.Server do
     :ok
   end
 
-  def handle_krpc_response({:announce_peer, transaction_id, node_id}, _query, _context) do
+  def handle_krpc_response({:announce_peer, transaction_id, node_id}, _context) do
     :ok
   end
 end
