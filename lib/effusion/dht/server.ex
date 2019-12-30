@@ -102,6 +102,19 @@ defmodule Effusion.DHT.Server do
   end
 
   def handle_krpc_response({:ping, transaction_id, node_id}, _query, %{remote_address: {host, port}, current_timestamp: now}) do
+    case Repo.one(from node in Effusion.DHT.Node, where: node.node_id == ^node_id) do
+      nil ->
+        DHT.Node.changeset(%DHT.Node{}, %{
+          node_id: node_id,
+          address: host,
+          port: port,
+          last_contacted: now
+        }) |> Repo.insert()
+      node ->
+        DHT.Node.changeset(node, %{
+          last_contacted: now
+        }) |> Repo.update()
+    end
     :ok
   end
 

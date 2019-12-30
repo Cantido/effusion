@@ -150,5 +150,16 @@ defmodule Effusion.DHT.ServerTest do
       "token!"
       }, context)
   end
+
+  test "handle ping response", %{context: context} do
+    :ok = Server.handle_krpc_response({:ping, "abcde", "12345678901234567890"}, {}, context)
+
+    last_contacted = Repo.one!(from node in Effusion.DHT.Node,
+                                where: node.node_id == ^"12345678901234567890",
+                                select: node.last_contacted)
+
+    earliest_timestamp_allowed = Timex.shift(Timex.now(), minutes: -1)
+    assert Timex.after?(last_contacted, earliest_timestamp_allowed)
+    assert Timex.before?(last_contacted, Timex.now())
   end
 end
