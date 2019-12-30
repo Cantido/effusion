@@ -9,19 +9,19 @@ defmodule Effusion.DHT.Node do
     field :received_token, :binary, null: true
     field :sent_token, :binary, null: true
     field :sent_token_timestamp, :utc_datetime, null: true
-    field :last_contacted, :utc_datetime, null: false
+    field :last_contacted, :utc_datetime, null: true
   end
 
   @required_fields [
     :node_id,
     :address,
     :port,
-    :last_contacted
   ]
   @optional_fields [
     :received_token,
     :sent_token,
-    :sent_token_timestamp
+    :sent_token_timestamp,
+    :last_contacted
   ]
 
   def changeset(model, params \\ %{}) do

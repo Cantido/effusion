@@ -20,7 +20,7 @@ defmodule Effusion.Repo.Migrations.AddDht do
       add :received_token, :binary, null: true
       add :sent_token, :binary, null: true
       add :sent_token_timestamp, :utc_datetime, null: true
-      add :last_contacted, :utc_datetime, null: false
+      add :last_contacted, :utc_datetime, null: true
     end
     create unique_index(:nodes, [:address])
     create unique_index(:nodes, [:node_id, :address])
@@ -45,9 +45,5 @@ defmodule Effusion.Repo.Migrations.AddDht do
       modify :size, :integer, null: false
       modify :piece_size, :integer, null: false
     end
-
-    execute "drop function f_bytea_to_bit"
-    execute "drop function f_bit_to_bytea"
-    execute "drop function f_bytea_xor"
   end
 end
