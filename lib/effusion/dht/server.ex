@@ -118,6 +118,15 @@ defmodule Effusion.DHT.Server do
     :ok
   end
 
+  def handle_krpc_response({:find_node, transaction_id, node_id, nodes}, _context) do
+    nodes_to_insert = Enum.map(nodes, fn {node_id, {host, port}} ->
+      %{
+        node_id: node_id,
+        address: %Postgrex.INET{address: host},
+        port: port
+      }
+    end)
+    Repo.insert_all(DHT.Node, nodes_to_insert, on_conflict: :nothing)
     :ok
   end
 

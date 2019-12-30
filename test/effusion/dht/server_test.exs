@@ -162,4 +162,12 @@ defmodule Effusion.DHT.ServerTest do
     assert Timex.after?(last_contacted, earliest_timestamp_allowed)
     assert Timex.before?(last_contacted, Timex.now())
   end
+
+  test "handle find_node response", %{context: context} do
+    nodes = [{"abcdefghij1234567890", {{10, 0, 0, 69}, 4200}}]
+    :ok = Server.handle_krpc_response({:find_node, "abcde", "12345678901234567890", nodes}, context)
+
+    Repo.one!(from node in Effusion.DHT.Node,
+              where: node.node_id == ^"abcdefghij1234567890")
+  end
 end
