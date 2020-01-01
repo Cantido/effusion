@@ -167,7 +167,6 @@ defmodule Effusion.DHT.Server do
     end)
     Repo.insert_all(DHT.Node, nodes_to_insert)
 
-    # Issue another get_peers request to K closest nodes
     :ok
   end
 
