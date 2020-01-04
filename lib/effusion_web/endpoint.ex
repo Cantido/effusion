@@ -40,5 +40,6 @@ defmodule EffusionWeb.Endpoint do
     key: "_effusion_key",
     signing_salt: "f0XVVGWb"
 
+  plug CORSPlug
   plug EffusionWeb.Router
 end
