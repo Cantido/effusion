@@ -7,17 +7,31 @@ defmodule EffusionWeb.Schema do
 
   @desc "A torrent"
   object :torrent do
+    description """
+    A torrent that Effusion is currently downloading.
+    """
+
     field :id, :string do
+      description "The torrent's info hash."
       resolve fn torrent, _, _ ->
         {:ok, torrent.info_hash |> Effusion.Hash.encode()}
       end
     end
-    field :name, :string
+    field :name, :string, description: "The name of the torrent."
     field :downloaded, :integer do
+      description "How many of this torrent's bytes have been downloaded."
       resolve &Resolvers.Torrents.downloaded/3
     end
-    field :left, :integer
-    field :started_at, :datetime
+    field :left, :integer, description: "How many of this torrent's bytes still need to be downloaded before the download is complete."
+    field :started_at, :datetime, description: "When Effusion started downloading this torrent"
+    field :announce, :string, description: "The main announce URL to send download updates to."
+    field :size, :integer, description: "The total number of bytes in this torrent."
+    field :piece_size, :integer, description: "The nominal number of bytes in each piece of this torrent."
+    field :comment, :string, description: "The comment left in the torrent's metadata file."
+    field :created_by, :string, description: "The person or program that assembled this torrent's metadata file."
+    field :creation_date, :datetime, description: "The date the torrent file was created."
+    field :last_announce, :datetime, description: "The last time the announce server was contacted."
+    field :next_announce, :datetime, description: "The next time the announce server should be contacted."
   end
 
   query do
