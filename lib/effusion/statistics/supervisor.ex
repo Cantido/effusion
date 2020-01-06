@@ -14,6 +14,7 @@ defmodule Effusion.Statistics.Supervisor do
     children = [
       Effusion.Statistics.PeerDownloadAverage,
       Effusion.Statistics.SessionDownloadAverage,
+      Effusion.Statistics.SessionUploadAverage,
     ]
     Supervisor.init(children, strategy: :one_for_one)
   end
