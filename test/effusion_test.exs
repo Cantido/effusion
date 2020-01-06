@@ -40,8 +40,6 @@ defmodule EffusionTest do
       <<95, 189, 143, 1, 37, 56, 146, 40, 140, 78, 2, 250, 208, 144, 217, 10, 49, 7, 64, 28>>
   }
 
-  @multi_file_meta TestHelper.multi_file_meta()
-
   @remote_peer Peer.new({{127, 0, 0, 1}, @remote_port})
   @local_peer_id "Fake-Remote-Peer----"
   @info_hash @torrent.info_hash
@@ -212,50 +210,6 @@ defmodule EffusionTest do
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
 
     assert "tiny\n" == contents
-  end
-
-  test "download a torrent with multiple files", %{lsock: lsock, destfile: file} do
-    Application.put_env(:effusion, :download_destination, file)
-
-    # Expect started, completed, and stopped messages
-    Effusion.THP.Mock
-    |> expect(:announce, 3, &stub_tracker/9)
-
-    {:ok, _} = Effusion.start_download(@multi_file_meta)
-
-    {:ok, sock, _remote_peer, _ext} =
-      Socket.accept(
-        lsock,
-        @multi_file_meta.info_hash,
-        @local_peer_id,
-        @remote_peer.peer_id
-      )
-
-    on_exit(fn ->
-      Socket.close(sock)
-    end)
-
-    bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
-    :ok = Socket.send_msg(sock, {:bitfield, bitfield})
-    {:ok, :interested} = Socket.recv(sock)
-
-    :ok = Socket.send_msg(sock, :unchoke)
-    {:ok, {:request, %{index: 0}}} = Socket.recv(sock)
-
-    :ok = Socket.send_msg(sock, {:piece, 0, 0, "Hello\nworld!\n"})
-
-    {:ok, {:have, 0}} = Socket.recv(sock)
-
-    Socket.close(sock)
-
-    :timer.sleep(700)
-    :file.datasync(file)
-
-    {:ok, first_contents} = File.read(Path.join(file, "hello_world/hello.txt"))
-    {:ok, second_contents} = File.read(Path.join(file, "hello_world/world.txt"))
-
-    assert "Hello\n" == first_contents
-    assert "world!\n" == second_contents
   end
 
   test "receive a connection from a peer", %{destfile: file} do
