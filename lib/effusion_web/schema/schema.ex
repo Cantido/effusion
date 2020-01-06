@@ -34,7 +34,7 @@ defmodule EffusionWeb.Schema do
   end
 
   object :session do
-    description "Global statistics across all torrents" 
+    description "Global statistics across all torrents"
     field :download_bytes_per_second, :integer do
       description "The average number of downloaded bytes per second."
       resolve &Resolvers.Sessions.download_bytes_per_second/3
@@ -49,7 +49,7 @@ defmodule EffusionWeb.Schema do
     field :session, :session do
       description "Get global statistics across all torrents."
       # all stats will come from field resolvers
-      resolve fn _, _, _ -> %{} end
+      resolve fn _, _, _ -> {:ok, %{}} end
     end
 
     field :torrents, list_of(:torrent) do
