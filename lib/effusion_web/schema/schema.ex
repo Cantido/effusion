@@ -33,7 +33,26 @@ defmodule EffusionWeb.Schema do
     field :next_announce, :datetime, description: "The next time the announce server should be contacted."
   end
 
+  object :session do
+    description "Global statistics across all torrents" do
+      field :download_bytes_per_second, :integer do
+        description "The average number of downloaded bytes per second."
+        resolve &Resolvers.Sessions.download_bytes_per_second/3
+      end
+      field :upload_bytes_per_second, :integer do
+        description "The average number of uploaded bytes per second."
+        resolve &Resolvers.Sessions.upload_bytes_per_second/3
+      end
+    end
+  end
+
   query do
+    field :session, :session do
+      description "Get global statistics across all torrents."
+      # all stats will come from field resolvers
+      resolve fn _, _, _ -> %{} end
+    end
+
     field :torrents, list_of(:torrent) do
       description "Get all torrents that are being downloaded."
       resolve &Resolvers.Torrents.all_torrents/3
