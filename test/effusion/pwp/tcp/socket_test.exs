@@ -28,7 +28,7 @@ defmodule Effusion.PWP.TCP.SocketTest do
     test "connects and sends a handshake first", %{lsock: lsock, peer: peer} do
       _ =
         Task.async(fn ->
-          Socket.connect(peer.address, @info_hash, @local_peer_id, peer.peer_id)
+          Socket.connect(peer.address, @info_hash, @local_peer_id, peer.peer_id, [])
         end)
 
       {:ok, sock} = :gen_tcp.accept(lsock)
@@ -46,22 +46,22 @@ defmodule Effusion.PWP.TCP.SocketTest do
     test "returns the socket and peer if the handshake succeeds", %{lsock: lsock, peer: peer} do
       task =
         Task.async(fn ->
-          Socket.connect(peer.address, @info_hash, @local_peer_id, peer.peer_id)
+          Socket.connect(peer.address, @info_hash, @local_peer_id, peer.peer_id, [])
         end)
 
       {:ok, sock} = :gen_tcp.accept(lsock)
       {:ok, _} = :gen_tcp.recv(sock, 68)
-      {:ok, good_handshake} = Messages.encode({:handshake, @remote_peer_id, @info_hash})
+      {:ok, good_handshake} = Messages.encode({:handshake, @remote_peer_id, @info_hash, []})
       :ok = :gen_tcp.send(sock, good_handshake)
 
-      {:ok, _, remote_peer_id} = Task.await(task)
+      {:ok, _, remote_peer_id, []} = Task.await(task)
       assert remote_peer_id == @remote_peer_id
     end
 
     test "returns an error if the handshake is bad", %{lsock: lsock, peer: peer} do
       task =
         Task.async(fn ->
-          Socket.connect(peer.address, @info_hash, @local_peer_id, peer.peer_id)
+          Socket.connect(peer.address, @info_hash, @local_peer_id, peer.peer_id, [])
         end)
 
       {:ok, sock} = :gen_tcp.accept(lsock)

@@ -3,6 +3,9 @@ defmodule Effusion.Statistics.Session do
   Tracks message statistics, across all downloads.
   """
 
+  @doc """
+  Initialize the ETS table and entries.
+  """
   def init do
     :ets.new(SessionStatsTable, [
       :set,
@@ -35,6 +38,11 @@ defmodule Effusion.Statistics.Session do
       {:num_outgoing_unknown, 0}
     ])
   end
+
+  @doc """
+  Record an incoming message.
+  """
+  def inc_incoming_message(message)
 
   def inc_incoming_message(:choke),
     do: :ets.update_counter(SessionStatsTable, :num_incoming_choke, 1, {:k, 0})

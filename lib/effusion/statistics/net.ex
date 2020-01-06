@@ -2,6 +2,10 @@ defmodule Effusion.Statistics.Net do
   @moduledoc """
   Tracks network statistics.
   """
+
+  @doc """
+  Initializes the network stats ETS table.
+  """
   def init do
     :ets.new(NetStatsTable, [
       :set,

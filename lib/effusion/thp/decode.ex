@@ -9,6 +9,11 @@ defmodule Effusion.THP.Decode do
     "peer id" => :peer_id
   }
 
+  @doc """
+  Decodes a tracker peer response.
+  """
+  def decode_peers(peers)
+
   def decode_peers(peers) when is_binary(peers) do
     decode_compact_peers(peers)
   end

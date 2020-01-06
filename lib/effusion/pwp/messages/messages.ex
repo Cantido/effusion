@@ -240,6 +240,10 @@ defmodule Effusion.PWP.Messages do
     {:ok, Handshake.encode(peer_id, info_hash)}
   end
 
+  def encode({:handshake, peer_id, info_hash, extensions}) do
+    {:ok, Handshake.encode(peer_id, info_hash, extensions)}
+  end
+
   def encode(m), do: {:error, {:unknown_message, m}}
 
   defp right_pad_bitstring_to_bytes(bits) when is_bitstring(bits) do
