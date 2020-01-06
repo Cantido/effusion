@@ -34,15 +34,14 @@ defmodule EffusionWeb.Schema do
   end
 
   object :session do
-    description "Global statistics across all torrents" do
-      field :download_bytes_per_second, :integer do
-        description "The average number of downloaded bytes per second."
-        resolve &Resolvers.Sessions.download_bytes_per_second/3
-      end
-      field :upload_bytes_per_second, :integer do
-        description "The average number of uploaded bytes per second."
-        resolve &Resolvers.Sessions.upload_bytes_per_second/3
-      end
+    description "Global statistics across all torrents" 
+    field :download_bytes_per_second, :integer do
+      description "The average number of downloaded bytes per second."
+      resolve &Resolvers.Sessions.download_bytes_per_second/3
+    end
+    field :upload_bytes_per_second, :integer do
+      description "The average number of uploaded bytes per second."
+      resolve &Resolvers.Sessions.upload_bytes_per_second/3
     end
   end
 
