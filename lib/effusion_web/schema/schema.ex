@@ -5,7 +5,6 @@ defmodule EffusionWeb.Schema do
   import_types Absinthe.Type.Custom
   import_types Effusion.Schema.Binary
 
-  @desc "A torrent"
   object :torrent do
     description """
     A torrent that Effusion is currently downloading.
@@ -35,23 +34,22 @@ defmodule EffusionWeb.Schema do
   end
 
   query do
-    @desc "Get all torrents"
     field :torrents, list_of(:torrent) do
+      description "Get all torrents that are being downloaded."
       resolve &Resolvers.Torrents.all_torrents/3
     end
 
-    @desc "Get a torrent"
     field :torrent, :torrent do
-      arg :id, non_null(:id)
+      description "Get a torrent"
+      arg :id, non_null(:id), description: "The info hash of the torrent to get."
       resolve &Resolvers.Torrents.find_torrent/3
     end
   end
 
   mutation do
-    @desc "Add a torrent metainfo file to start downloading"
     field :add_torrent, type: :torrent do
-      arg :meta, non_null(:binary)
-
+      description "Add a torrent metainfo file to start downloading"
+      arg :meta, non_null(:binary), description: "The base64-encoded metadata file (.torrent file) of the torrent to download."
       resolve &Resolvers.Torrents.add_torrent/3
     end
   end
