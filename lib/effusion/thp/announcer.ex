@@ -8,6 +8,7 @@ defmodule Effusion.THP.Announcer do
   alias Effusion.Repo
   import Effusion.Hash, only: [is_hash: 1]
   import Ecto.Query
+  require Logger
 
   @moduledoc """
   Makes tracker announcements for a torrent, including interval announcements.
@@ -50,6 +51,7 @@ defmodule Effusion.THP.Announcer do
   end
 
   def handle_cast({:announce, event}, {info_hash, timer}) do
+    Logger.debug("Announcing #{event}")
     peer_id = Application.get_env(:effusion, :peer_id)
     {local_host, local_port} = Application.get_env(:effusion, :server_address)
 

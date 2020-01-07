@@ -1,6 +1,7 @@
 defmodule Effusion.Application.DownloadSupervisor do
   use Supervisor
   alias Effusion.BTP.{
+    ProtocolHandler,
     VerifierWatchdog,
     DownloadSpeedWatcher
   }
@@ -15,7 +16,8 @@ defmodule Effusion.Application.DownloadSupervisor do
     children = [
       {VerifierWatchdog, info_hash},
       {Announcer, info_hash},
-      {DownloadSpeedWatcher, info_hash}
+      {DownloadSpeedWatcher, info_hash},
+      {ProtocolHandler, info_hash}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

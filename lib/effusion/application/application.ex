@@ -14,7 +14,6 @@ defmodule Effusion.Application do
     TelemetryHandler.init()
 
     children = [
-      Effusion.Application.BTPHandlerSupervisor,
       Effusion.Application.ConnectionSupervisor,
       Effusion.Application.DownloadsSupervisor,
       Effusion.IOServer,

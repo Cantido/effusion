@@ -10,6 +10,11 @@ defmodule Effusion.Application.DownloadsSupervisor do
   end
 
   def start_child(info_hash) do
-    DynamicSupervisor.start_child(__MODULE__, {Effusion.Application.DownloadSupervisor, info_hash})
+    DynamicSupervisor.start_child(
+      __MODULE__,
+      %{
+        id: info_hash,
+        start: {Effusion.Application.DownloadSupervisor, :start_link, [info_hash]}
+      })
   end
 end

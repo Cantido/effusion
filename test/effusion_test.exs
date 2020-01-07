@@ -100,7 +100,10 @@ defmodule EffusionTest do
     Effusion.THP.Mock
     |> expect(:announce, 3, &stub_tracker/9)
 
-    {:ok, _} = Effusion.start_download(@torrent)
+    {:ok, pid} = Effusion.start_download(@torrent)
+    on_exit(fn ->
+      Effusion.stop_download(@torrent.info_hash)
+    end)
 
     {:ok, sock, _remote_peer, [:fast]} =
       Socket.accept(
@@ -160,7 +163,10 @@ defmodule EffusionTest do
     Effusion.THP.Mock
     |> expect(:announce, 3, &stub_tracker/9)
 
-    {:ok, _} = Effusion.start_download(@torrent)
+    {:ok, pid} = Effusion.start_download(@torrent)
+    on_exit(fn ->
+      Effusion.stop_download(@torrent.info_hash)
+    end)
 
     {:ok, sock, _remote_peer, [:fast]} =
       Socket.accept(
@@ -219,7 +225,10 @@ defmodule EffusionTest do
     Effusion.THP.Mock
     |> expect(:announce, 3, &stub_tracker_no_peers/9)
 
-    {:ok, _} = Effusion.start_download(@torrent)
+    {:ok, pid} = Effusion.start_download(@torrent)
+    on_exit(fn ->
+      Effusion.stop_download(@torrent.info_hash)
+    end)
 
     {:ok, sock, _remote_peer, _ext} =
       Socket.connect(

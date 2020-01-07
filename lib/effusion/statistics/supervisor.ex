@@ -2,7 +2,7 @@ defmodule Effusion.Statistics.Supervisor do
   use Supervisor
 
   @moduledoc """
-  Supervises a dynamic number of `Effusion.BTP.ProtocolHandler` processes.
+  Supervises a dynamic number of statistics processes.
   """
 
   def start_link([]) do

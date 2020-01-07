@@ -1,12 +1,9 @@
 defmodule Effusion.BTP.ProtocolHandler do
-  use GenServer, restart: :transient
-  alias Effusion.Application.BTPHandlerSupervisor
-  alias Effusion.BTP.DownloadSpeedWatcher
+  use GenServer
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.PeerPiece
   alias Effusion.BTP.Request
   alias Effusion.BTP.Torrent
-  alias Effusion.BTP.VerifierWatchdog
   alias Effusion.PWP.ProtocolHandler
   alias Effusion.THP.Announcer
   alias Effusion.Repo
@@ -20,23 +17,13 @@ defmodule Effusion.BTP.ProtocolHandler do
   ## API
 
   @doc """
-  Start the Download Server in its own supervision tree.
-  """
-  def start(meta) when is_map(meta) do
-    case BTPHandlerSupervisor.start_child([meta]) do
-      {:ok, _pid} -> {:ok, meta.info_hash}
-      err -> err
-    end
-  end
-
-  @doc """
   Start the session server and link it to the current process.
   """
-  def start_link([meta]) do
+  def start_link(info_hash) do
     GenServer.start_link(
       __MODULE__,
-      meta,
-      name: {:via, Registry, {BTPHandlerRegistry, meta.info_hash}}
+      info_hash,
+      name: {:via, Registry, {BTPHandlerRegistry, info_hash}}
     )
   end
 
@@ -57,16 +44,9 @@ defmodule Effusion.BTP.ProtocolHandler do
 
   ## Callbacks
 
-  def init(meta) do
-    info_hash = meta.info_hash
-
-    torrent = Repo.one(from t in Torrent, where: t.info_hash == ^info_hash)
-    if is_nil(torrent) do
-      {:ok, _torrent} = Torrent.insert(meta)
-    end
-
+  def init(info_hash) do
     state = %{
-      info_hash: meta.info_hash,
+      info_hash: info_hash,
       listeners: MapSet.new()
     }
 
@@ -96,8 +76,6 @@ defmodule Effusion.BTP.ProtocolHandler do
     Repo.delete_all(PeerPiece)
     Repo.delete_all(Request)
 
-    Effusion.Application.DownloadsSupervisor.start_child(session.info_hash)
-
     session = Map.put(session, :started_at, Timex.now())
     Repo.one!(from torrent in Torrent,
               where: torrent.info_hash == ^session.info_hash)
@@ -121,7 +99,6 @@ defmodule Effusion.BTP.ProtocolHandler do
       else
         :ok = Announcer.announce(state.info_hash, :stopped)
       end
-    Announcer.stop(state.info_hash)
 
     reply_to_listeners(state, :ok)
   end
