@@ -16,9 +16,7 @@ defmodule Effusion.Application do
     children = [
       Effusion.Application.BTPHandlerSupervisor,
       Effusion.Application.ConnectionSupervisor,
-      Effusion.Application.VerifierWatchdogSupervisor,
-      Effusion.Application.DownloadSpeedWatcherSupervisor,
-      Effusion.Application.AnnouncerSupervisor,
+      Effusion.Application.DownloadsSupervisor,
       Effusion.IOServer,
       Effusion.Statistics.Supervisor,
       {Registry, keys: :duplicate, name: ConnectionRegistry},

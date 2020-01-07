@@ -1,7 +1,5 @@
 defmodule Effusion.THP.Announcer do
   use GenServer
-
-  alias Effusion.Application.AnnouncerSupervisor
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Peer
   alias Effusion.BTP.PeerSelection
@@ -17,17 +15,7 @@ defmodule Effusion.THP.Announcer do
 
   @thp_client Application.get_env(:effusion, :thp_client)
 
-  @doc """
-  Starts an announcer process for a torrent.
-  """
-  def start(info_hash) do
-    case AnnouncerSupervisor.start_child([info_hash]) do
-      {:ok, _pid} -> {:ok, info_hash}
-      err -> err
-    end
-  end
-
-  def start_link([info_hash]) do
+  def start_link(info_hash) do
     GenServer.start_link(
       __MODULE__,
       info_hash,

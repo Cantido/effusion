@@ -1,5 +1,4 @@
 defmodule Effusion.BTP.VerifierWatchdog do
-  alias Effusion.Application.VerifierWatchdogSupervisor
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Piece
   alias Effusion.BTP.ProtocolHandler
@@ -15,14 +14,7 @@ defmodule Effusion.BTP.VerifierWatchdog do
 
   @watch_interval_ms 250
 
-  def start(info_hash) do
-    case VerifierWatchdogSupervisor.start_child([info_hash]) do
-      {:ok, _pid} -> {:ok, info_hash}
-      err -> err
-    end
-  end
-
-  def start_link([info_hash]) do
+  def start_link(info_hash) do
     GenServer.start_link(
       __MODULE__,
       info_hash,

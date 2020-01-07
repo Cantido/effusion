@@ -1,5 +1,4 @@
 defmodule Effusion.BTP.DownloadSpeedWatcher do
-  alias Effusion.Application.DownloadSpeedWatcherSupervisor
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.ProtocolHandler
   alias Effusion.BTP.PeerSelection
@@ -16,14 +15,7 @@ defmodule Effusion.BTP.DownloadSpeedWatcher do
   @max_bits_per_second :infinity
   @peer_min_bits_per_second 1
 
-  def start(info_hash) do
-    case DownloadSpeedWatcherSupervisor.start_child([info_hash]) do
-      {:ok, _pid} -> {:ok, info_hash}
-      err -> err
-    end
-  end
-
-  def start_link([info_hash]) do
+  def start_link(info_hash) do
     GenServer.start_link(__MODULE__, info_hash)
   end
 

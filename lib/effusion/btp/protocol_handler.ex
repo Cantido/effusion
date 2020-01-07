@@ -96,9 +96,7 @@ defmodule Effusion.BTP.ProtocolHandler do
     Repo.delete_all(PeerPiece)
     Repo.delete_all(Request)
 
-    VerifierWatchdog.start(session.info_hash)
-    Announcer.start(session.info_hash)
-    DownloadSpeedWatcher.start(session.info_hash)
+    Effusion.Application.DownloadsSupervisor.start_child(session.info_hash)
 
     session = Map.put(session, :started_at, Timex.now())
     Repo.one!(from torrent in Torrent,
