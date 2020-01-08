@@ -31,8 +31,10 @@ defmodule Effusion.BTP.DownloadSpeedWatcher do
     end
     timer = Process.send_after(self(), :watch, @watch_interval_ms)
 
-    :ok = prune_peers(info_hash)
-    :ok = add_peers(info_hash)
+    if Torrent.downloading?(info_hash) do
+      :ok = prune_peers(info_hash)
+      :ok = add_peers(info_hash)
+    end
 
     {:noreply, {info_hash, timer}}
   end

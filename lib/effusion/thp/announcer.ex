@@ -46,8 +46,10 @@ defmodule Effusion.THP.Announcer do
     {:stop, :normal, :ok, state}
   end
 
-  def handle_info(:interval_expired, state) do
-    handle_cast({:announce, :interval}, state)
+  def handle_info(:interval_expired, state = {info_hash, _timer}) do
+    if Torrent.downloading?(info_hash) do
+      handle_cast({:announce, :interval}, state)
+    end
   end
 
   def handle_cast({:announce, event}, {info_hash, timer}) do

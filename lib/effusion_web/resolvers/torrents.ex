@@ -26,4 +26,16 @@ defmodule EffusionWeb.Resolvers.Torrents do
 
     Torrent.by_info_hash(info_hash)
   end
+
+  def pause_torrent(_root, %{id: id}, _info) do
+    binary_id = Effusion.Hash.decode(id)
+    Effusion.pause_download(binary_id)
+    Torrent.by_info_hash(binary_id)
+  end
+
+  def start_torrent(_root, %{id: id}, _info) do
+    binary_id = Effusion.Hash.decode(id)
+    Effusion.start_download(binary_id)
+    Torrent.by_info_hash(binary_id)
+  end
 end

@@ -80,30 +80,34 @@ defmodule Effusion.PWP.TCP.Connection do
     when is_peer_id(remote_peer_id)
      and is_hash(info_hash) do
 
-    :telemetry.execute(
-      [:pwp, :incoming, :starting],
-      %{},
-      Map.put(state, :remote_peer_id, remote_peer_id)
-    )
-
-    with :ok <- ProtocolHandler.recv_handshake(handshake),
-         :ok <- Socket.send_msg(socket, ProtocolHandler.get_handshake(info_hash)),
-         :ok <- successful_handshake(socket, info_hash, remote_peer_id, extensions),
-         {:ok, address} <- :inet.peername(socket) do
-
-      :telemetry.execute([:pwp, :incoming, :success], %{}, state)
-
-      {:noreply,
-       %{
-         socket: socket,
-         info_hash: info_hash,
-         remote_peer_id: remote_peer_id,
-         address: address
-       }}
+    if not Torrent.downloading?(info_hash) do
+      {:stop, :normal, state}
     else
-      _ ->
-        :telemetry.execute([:pwp, :incoming, :failure], %{}, state)
-        {:stop, :handshake_failure, state}
+      :telemetry.execute(
+        [:pwp, :incoming, :starting],
+        %{},
+        Map.put(state, :remote_peer_id, remote_peer_id)
+      )
+
+      with :ok <- ProtocolHandler.recv_handshake(handshake),
+           :ok <- Socket.send_msg(socket, ProtocolHandler.get_handshake(info_hash)),
+           :ok <- successful_handshake(socket, info_hash, remote_peer_id, extensions),
+           {:ok, address} <- :inet.peername(socket) do
+
+        :telemetry.execute([:pwp, :incoming, :success], %{}, state)
+
+        {:noreply,
+         %{
+           socket: socket,
+           info_hash: info_hash,
+           remote_peer_id: remote_peer_id,
+           address: address
+         }}
+      else
+        _ ->
+          :telemetry.execute([:pwp, :incoming, :failure], %{}, state)
+          {:stop, :handshake_failure, state}
+      end
     end
   end
 

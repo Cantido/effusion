@@ -15,6 +15,7 @@ defmodule Effusion.BTP.Torrent do
   schema "torrents" do
     field :info_hash, :binary, null: false
     field :name, :string, null: true
+    field :state, :string, null: false, default: "paused"
     field :announce, :string, null: true
     field :size, :integer, null: true
     field :piece_size, :integer, null: true
@@ -34,6 +35,7 @@ defmodule Effusion.BTP.Torrent do
   ]
   @optional_fields [
     :name,
+    :state,
     :announce,
     :size,
     :piece_size,
@@ -45,23 +47,36 @@ defmodule Effusion.BTP.Torrent do
     :last_announce,
     :next_announce
   ]
-  def changeset(torrent, params \\ %{}) do
+  def changeset(torrent = %__MODULE__{}, params \\ %{}) do
+    # :started should be set only once
+    params = if not is_nil(torrent.started) do
+      Map.drop(params, [:started])
+    else
+      params
+    end
+
     torrent
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
+    |> validate_inclusion(:state, ["paused", "downloading", "finished"])
     |> unique_constraint(:info_hash)
   end
 
-  def by_info_hash(info_hash) do
-    torrent_query = from torrent in __MODULE__,
-                      where: torrent.info_hash == ^info_hash
+  def by_info_hash_query(info_hash) do
+    from torrent in __MODULE__, where: torrent.info_hash == ^info_hash
+  end
 
-    torrent = Repo.one(torrent_query)
+  def by_info_hash(info_hash) do
+    torrent = Repo.one(by_info_hash_query(info_hash))
     if torrent != nil do
       {:ok, torrent}
     else
       {:error, "Torrent ID #{Effusion.Hash.encode info_hash} not found"}
     end
+  end
+
+  def by_info_hash!(info_hash) do
+    Repo.one!(by_info_hash_query(info_hash))
   end
 
   def get(info_hash) when is_hash(info_hash) do
@@ -70,7 +85,23 @@ defmodule Effusion.BTP.Torrent do
   end
 
   def start(torrent, time) do
-    Ecto.Changeset.change(torrent, started: DateTime.truncate(time, :second))
+    changeset(torrent, %{
+      started: DateTime.truncate(time, :second),
+      state: "downloading"
+    })
+  end
+
+  def pause(torrent) do
+    changeset(torrent, %{
+      state: "paused"
+    })
+  end
+
+  def downloading?(info_hash) when is_hash(info_hash) do
+    case by_info_hash(info_hash) do
+      {:ok, torrent} -> torrent.state == "downloading"
+      _ -> false
+    end
   end
 
   def insert(meta) do

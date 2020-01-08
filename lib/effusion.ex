@@ -2,6 +2,7 @@ defmodule Effusion do
   alias Effusion.Application.DownloadsSupervisor
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Metainfo
+  alias Effusion.BTP.ProtocolHandler, as: BTPProtocolHandler
   alias Effusion.Repo
   import Ecto.Query
 
@@ -22,13 +23,22 @@ defmodule Effusion do
   """
   def start_download(meta) when is_map(meta) do
     info_hash = meta.info_hash
-
     torrent = Repo.one(from t in Torrent, where: t.info_hash == ^info_hash)
     if is_nil(torrent) do
       {:ok, _torrent} = Torrent.insert(meta)
     end
 
-    DownloadsSupervisor.start_child(meta.info_hash)
+    {:ok, pid} = DownloadsSupervisor.start_child(info_hash)
+    start_download(info_hash)
+    {:ok, pid}
+  end
+
+  def start_download(info_hash) do
+    :ok = BTPProtocolHandler.start(info_hash)
+  end
+
+  def pause_download(info_hash) do
+    BTPProtocolHandler.pause(info_hash)
   end
 
   def stop_download(info_hash) do
@@ -43,7 +53,7 @@ defmodule Effusion do
   """
   def download(meta) do
     case start_download(meta) do
-      {:ok, _pid} -> Effusion.BTP.ProtocolHandler.await(meta.info_hash)
+      {:ok, _pid} -> BTPProtocolHandler.await(meta.info_hash)
       err -> err
     end
   end

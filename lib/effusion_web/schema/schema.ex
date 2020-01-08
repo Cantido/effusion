@@ -5,6 +5,13 @@ defmodule EffusionWeb.Schema do
   import_types Absinthe.Type.Custom
   import_types Effusion.Schema.Binary
 
+  enum :torrent_status do
+    description "The current downloading state of a torrent."
+    value :paused, as: "paused", description: "The torrent has been halted."
+    value :downloading, as: "downloading", description: "The torrent is actively looking for connections and downloading data."
+    value :finished, as: "finished", description: "The torrent has downloaded and written all pieces."
+  end
+
   object :torrent do
     description """
     A torrent that Effusion is currently downloading.
@@ -23,6 +30,7 @@ defmodule EffusionWeb.Schema do
     end
     field :left, :integer, description: "How many of this torrent's bytes still need to be downloaded before the download is complete."
     field :started, :datetime, description: "When Effusion started downloading this torrent"
+    field :state, :torrent_status, description: "The current downloading state of the torrent."
     field :announce, :string, description: "The main announce URL to send download updates to."
     field :size, :integer, description: "The total number of bytes in this torrent."
     field :piece_size, :integer, description: "The nominal number of bytes in each piece of this torrent."
@@ -69,6 +77,18 @@ defmodule EffusionWeb.Schema do
       description "Add a torrent metainfo file to start downloading"
       arg :meta, non_null(:binary), description: "The base64-encoded metadata file (.torrent file) of the torrent to download."
       resolve &Resolvers.Torrents.add_torrent/3
+    end
+
+    field :pause_torrent, type: :torrent do
+      description "Halt a torrent's downloading."
+      arg :id, non_null(:id), description: "The info hash of the torrent to pause."
+      resolve &Resolvers.Torrents.pause_torrent/3
+    end
+
+    field :start_torrent, type: :torrent do
+      description "Start or restart torrent's downloading."
+      arg :id, non_null(:id), description: "The info hash of the torrent to start."
+      resolve &Resolvers.Torrents.start_torrent/3
     end
   end
 end

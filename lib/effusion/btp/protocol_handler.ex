@@ -42,15 +42,32 @@ defmodule Effusion.BTP.ProtocolHandler do
     GenServer.call({:via, Registry, {BTPHandlerRegistry, info_hash}}, :await, :infinity)
   end
 
+  @doc """
+  Start or restart a download
+  """
+  def start(info_hash) do
+    GenServer.call({:via, Registry, {BTPHandlerRegistry, info_hash}}, :start)
+  end
+
+  @doc """
+  Pause a download
+  """
+  def pause(info_hash) do
+    GenServer.call({:via, Registry, {BTPHandlerRegistry, info_hash}}, :pause)
+  end
+
   ## Callbacks
 
   def init(info_hash) do
+    Repo.delete_all(PeerPiece)
+    Repo.delete_all(Request)
+
     state = %{
       info_hash: info_hash,
       listeners: MapSet.new()
     }
 
-    {:ok, state, 0}
+    {:ok, state}
   end
 
   def handle_call(:all_pieces_written, _from, d) do
@@ -70,21 +87,29 @@ defmodule Effusion.BTP.ProtocolHandler do
     {:noreply, state}
   end
 
-  def handle_info(:timeout, session) do
-    _ = Logger.info("Starting download #{Effusion.Hash.encode(session.info_hash)}")
+  def handle_call(:start, _from, state) do
+    _ = Logger.info("Starting download #{Effusion.Hash.encode(state.info_hash)}")
 
-    Repo.delete_all(PeerPiece)
-    Repo.delete_all(Request)
-
-    session = Map.put(session, :started_at, Timex.now())
-    Repo.one!(from torrent in Torrent,
-              where: torrent.info_hash == ^session.info_hash)
+    Torrent.by_info_hash!(state.info_hash)
     |> Torrent.start(Timex.now())
     |> Repo.update()
 
-    :ok = Announcer.announce(session.info_hash, :started)
+    :ok = Announcer.announce(state.info_hash, :started)
+    {:reply, :ok, state}
+  end
 
-    {:noreply, session}
+  def handle_call(:pause, _from, state) do
+    _ = Logger.info("Pausing download #{Effusion.Hash.encode(state.info_hash)}")
+
+    Torrent.by_info_hash!(state.info_hash)
+    |> Torrent.pause()
+    |> Repo.update()
+
+    Effusion.PWP.ConnectionRegistry.disconnect_all(state.info_hash)
+
+    :ok = Announcer.announce(state.info_hash, :stopped)
+
+    {:reply, :ok, state}
   end
 
   def handle_info(_, state) do
