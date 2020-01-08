@@ -22,7 +22,7 @@ defmodule EffusionWeb.Schema do
       resolve &Resolvers.Torrents.downloaded/3
     end
     field :left, :integer, description: "How many of this torrent's bytes still need to be downloaded before the download is complete."
-    field :started_at, :datetime, description: "When Effusion started downloading this torrent"
+    field :started, :datetime, description: "When Effusion started downloading this torrent"
     field :announce, :string, description: "The main announce URL to send download updates to."
     field :size, :integer, description: "The total number of bytes in this torrent."
     field :piece_size, :integer, description: "The nominal number of bytes in each piece of this torrent."
