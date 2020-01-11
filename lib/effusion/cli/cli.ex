@@ -26,7 +26,7 @@ defmodule Effusion.CLI do
   Usage: `effusion <name> -o <destination>`
   """
   def main(argv \\ []) do
-    {opts, [file], invalid} = OptionParser.parse(argv, strict: @strict, aliases: @aliases)
+    {_opts, [file], invalid} = OptionParser.parse(argv, strict: @strict, aliases: @aliases)
 
     Enum.each(invalid, fn i ->
       IO.warn("Invalid option #{i}")
@@ -50,7 +50,6 @@ defmodule Effusion.CLI do
   defp output_loop(
          info_hash,
          last_uploaded_bytes \\ 0,
-         last_downloaded_bytes \\ 0,
          last_timestamp \\ System.monotonic_time(:millisecond)
        ) do
 
@@ -126,7 +125,7 @@ defmodule Effusion.CLI do
     end)
 
     Process.sleep(100)
-    output_loop(info_hash, uploaded_bytes, downloaded_bytes, this_loop_time)
+    output_loop(info_hash, uploaded_bytes, this_loop_time)
   end
 
   defp row(name, progress, percent, downloaded, duration) do

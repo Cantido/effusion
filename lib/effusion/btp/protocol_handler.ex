@@ -7,7 +7,6 @@ defmodule Effusion.BTP.ProtocolHandler do
   alias Effusion.PWP.ProtocolHandler
   alias Effusion.THP.Announcer
   alias Effusion.Repo
-  import Ecto.Query
   require Logger
 
   @moduledoc """

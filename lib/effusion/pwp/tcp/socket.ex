@@ -1,7 +1,6 @@
 defmodule Effusion.PWP.TCP.Socket do
   require Logger
   alias Effusion.PWP.Messages
-  alias Effusion.PWP.Messages.Handshake
   alias Effusion.Statistics.Net, as: NetStats
 
   @moduledoc """

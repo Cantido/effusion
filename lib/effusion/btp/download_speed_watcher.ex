@@ -2,8 +2,8 @@ defmodule Effusion.BTP.DownloadSpeedWatcher do
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.ProtocolHandler
   alias Effusion.BTP.PeerSelection
+  alias Effusion.BTP.Torrent
   alias Effusion.Statistics.PeerDownloadAverage
-  alias Effusion.Statistics.Net, as: NetStats
   require Logger
   use GenServer
 
@@ -12,7 +12,6 @@ defmodule Effusion.BTP.DownloadSpeedWatcher do
   """
 
   @watch_interval_ms 5_000
-  @max_bits_per_second :infinity
   @peer_min_bits_per_second 1
 
   def start_link(info_hash) do

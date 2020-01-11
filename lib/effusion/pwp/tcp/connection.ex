@@ -1,4 +1,5 @@
 defmodule Effusion.PWP.TCP.Connection do
+  alias Effusion.BTP.Torrent
   alias Effusion.PWP.Messages
   alias Effusion.PWP.ProtocolHandler
   alias Effusion.PWP.TCP.Socket

@@ -10,6 +10,7 @@ defmodule Effusion.BTP.PeerSelection do
     query = from peer in Peer,
             join: torrent in assoc(peer, :torrent),
             where: not peer.connected,
+            where: peer.info_hash == ^info_hash,
             order_by: [desc: :failcount],
             limit: ^count
     Repo.all(query)

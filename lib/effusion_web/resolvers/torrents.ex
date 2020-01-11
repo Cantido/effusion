@@ -3,7 +3,6 @@ defmodule EffusionWeb.Resolvers.Torrents do
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Torrent
   alias Effusion.Repo
-  import Ecto.Query
 
   def all_torrents(_root, _args, _info) do
     torrents = Repo.all(Torrent)

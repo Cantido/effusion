@@ -3,12 +3,12 @@ defmodule Effusion.DHT.Server do
   alias Effusion.DHT
   alias Effusion.Repo
   import Bitwise
-  import Effusion.DHT, only: [is_node_id: 1, is_info_hash: 1, is_inet_port: 1]
+  import Effusion.DHT, only: [is_node_id: 1]
   import Ecto.Query
 
   @node_id Application.get_env(:effusion, :dht_node_id) |> Base.decode64!()
 
-  def handle_krpc_query({:ping, transaction_id, sender_id}, _context) do
+  def handle_krpc_query({:ping, transaction_id, _sender_id}, _context) do
     {:ping, transaction_id, @node_id}
   end
 
@@ -19,22 +19,6 @@ defmodule Effusion.DHT.Server do
       |> closest_nodes()
       |> Enum.map(&DHT.Node.compact/1)
     {:find_node, transaction_id, @node_id, nodes}
-  end
-
-  defp closest_nodes(target_id) when is_node_id(target_id) do
-    # I really wish I could do this in the DB, it's way easier,
-    # but Postgres does not have a bitwise XOR operator.
-    <<target_id_int::160>> = target_id
-    Repo.all(DHT.Node)
-    |> Enum.map(fn node ->
-      <<node_id::160>> = node.node_id
-      {bxor(node_id, target_id_int), node}
-    end)
-    |> Enum.sort_by(fn {distance, node} ->
-      distance
-    end)
-    |> Enum.take(8)
-    |> Enum.map(&elem(&1, 1))
   end
 
   def handle_krpc_query({:get_peers, transaction_id, sender_id, info_hash},
@@ -73,13 +57,13 @@ defmodule Effusion.DHT.Server do
     end
   end
 
-  def handle_krpc_query({:announce_peer, transaction_id, sender_id, info_hash, port, token}, %{current_timestamp: now}) do
+  def handle_krpc_query({:announce_peer, transaction_id, sender_id, _info_hash, _port, _token}, %{current_timestamp: now}) do
      token_query = from node in DHT.Node,
                    where: node.node_id == ^sender_id,
                    select: {node.sent_token, node.sent_token_timestamp}
 
     case Repo.one(token_query) do
-      {token, timestamp} ->
+      {_token, timestamp} ->
         token_expiry = timestamp |> Timex.shift(minutes: 15)
         if Timex.before?(now, token_expiry) do
           {:announce_peer, transaction_id, @node_id}
@@ -91,11 +75,27 @@ defmodule Effusion.DHT.Server do
     end
   end
 
-  def handle_krpc_query({:announce_peer, transaction_id, sender_id, info_hash, port, token, :implied_port}, _context) do
+  def handle_krpc_query({:announce_peer, transaction_id, _sender_id, _info_hash, _port, _token, :implied_port}, _context) do
     {:announce_peer, transaction_id, @node_id}
   end
 
-  def handle_krpc_response({:ping, transaction_id, node_id}, %{remote_address: {host, port}, current_timestamp: now}) do
+  defp closest_nodes(target_id) when is_node_id(target_id) do
+    # I really wish I could do this in the DB, it's way easier,
+    # but Postgres does not have a bitwise XOR operator.
+    <<target_id_int::160>> = target_id
+    Repo.all(DHT.Node)
+    |> Enum.map(fn node ->
+      <<node_id::160>> = node.node_id
+      {bxor(node_id, target_id_int), node}
+    end)
+    |> Enum.sort_by(fn {distance, _node} ->
+      distance
+    end)
+    |> Enum.take(8)
+    |> Enum.map(&elem(&1, 1))
+  end
+
+  def handle_krpc_response({:ping, _transaction_id, node_id}, %{remote_address: {host, port}, current_timestamp: now}) do
     case Repo.one(from node in Effusion.DHT.Node, where: node.node_id == ^node_id) do
       nil ->
         DHT.Node.changeset(%DHT.Node{}, %{
@@ -112,7 +112,7 @@ defmodule Effusion.DHT.Server do
     :ok
   end
 
-  def handle_krpc_response({:find_node, transaction_id, node_id, nodes}, _context) do
+  def handle_krpc_response({:find_node, _transaction_id, _node_id, nodes}, _context) do
     nodes_to_insert = Enum.map(nodes, fn {node_id, {host, port}} ->
       %{
         node_id: node_id,
@@ -124,7 +124,7 @@ defmodule Effusion.DHT.Server do
     :ok
   end
 
-  def handle_krpc_response({:get_peers_matching, response_transaction_id, node_id, token, peers},
+  def handle_krpc_response({:get_peers_matching, response_transaction_id, _node_id, _token, peers},
                            %{query: {:get_peers, query_transaction_id, _sender_id, info_hash}})
     when response_transaction_id == query_transaction_id do
 
@@ -164,7 +164,7 @@ defmodule Effusion.DHT.Server do
     :ok
   end
 
-  def handle_krpc_response({:announce_peer, transaction_id, node_id}, _context) do
+  def handle_krpc_response({:announce_peer, _transaction_id, _node_id}, _context) do
     :ok
   end
 end

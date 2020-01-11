@@ -24,16 +24,16 @@ defmodule Effusion.BTP.Request do
 
   def valid_requests_from_peer_query(info_hash, peer_id, count) do
     existing_requests = pending_query(info_hash)
-    requests_to_make = from peer_pieces in PeerPiece,
-                        join: piece in assoc(peer_pieces, :piece),
-                        join: block in assoc(piece, :blocks),
-                        join: peer in assoc(peer_pieces, :peer),
-                        join: torrent in assoc(piece, :torrent),
-                        where: torrent.info_hash == ^info_hash and peer.peer_id == ^peer_id,
-                        where: is_nil(block.data),
-                        except: ^existing_requests,
-                        limit: ^count,
-                        select: {piece, block, peer}
+    from peer_pieces in PeerPiece,
+      join: piece in assoc(peer_pieces, :piece),
+      join: block in assoc(piece, :blocks),
+      join: peer in assoc(peer_pieces, :peer),
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^info_hash and peer.peer_id == ^peer_id,
+      where: is_nil(block.data),
+      except: ^existing_requests,
+      limit: ^count,
+      select: {piece, block, peer}
   end
 
   @doc """
