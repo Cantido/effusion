@@ -15,21 +15,26 @@ defmodule Effusion.DHT.Server do
   def handle_krpc_query({:find_node, transaction_id, sender_id, target_id}, _context)
     when is_node_id(sender_id)
      and is_node_id(target_id) do
-    <<target_id_int::160>> = target_id
+    nodes = target_id
+      |> closest_nodes()
+      |> Enum.map(&DHT.Node.compact/1)
+    {:find_node, transaction_id, @node_id, nodes}
+  end
+
+  defp closest_nodes(target_id) when is_node_id(target_id) do
     # I really wish I could do this in the DB, it's way easier,
     # but Postgres does not have a bitwise XOR operator.
-    nodes = Repo.all(DHT.Node)
-            |> Enum.map(fn node ->
-              <<node_id::160>> = node.node_id
-              {bxor(node_id, target_id_int), node}
-            end)
-            |> Enum.sort_by(fn {distance, node} ->
-              distance
-            end)
-            |> Enum.take(8)
-            |> Enum.map(&elem(&1, 1))
-    nodes = Enum.map(nodes, &DHT.Node.compact/1)
-    {:find_node, transaction_id, @node_id, nodes}
+    <<target_id_int::160>> = target_id
+    Repo.all(DHT.Node)
+    |> Enum.map(fn node ->
+      <<node_id::160>> = node.node_id
+      {bxor(node_id, target_id_int), node}
+    end)
+    |> Enum.sort_by(fn {distance, node} ->
+      distance
+    end)
+    |> Enum.take(8)
+    |> Enum.map(&elem(&1, 1))
   end
 
   def handle_krpc_query({:get_peers, transaction_id, sender_id, info_hash},
@@ -54,18 +59,7 @@ defmodule Effusion.DHT.Server do
         }) |> Repo.update()
     end
 
-    <<info_hash_int::160>> = info_hash
-    nodes = Repo.all(DHT.Node)
-            |> Enum.map(fn node ->
-              <<node_id::160>> = node.node_id
-              {bxor(node_id, info_hash_int), node}
-            end)
-            |> Enum.sort_by(fn {distance, node} ->
-              distance
-            end)
-            |> Enum.take(8)
-            |> Enum.map(&elem(&1, 1))
-
+    nodes = closest_nodes(info_hash)
     matching_nodes = Enum.filter(nodes, fn node ->
       node.node_id == info_hash
     end)
