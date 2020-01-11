@@ -45,19 +45,4 @@ defmodule Effusion.Hash do
   def calc(bin) when is_binary(bin) do
     :crypto.hash(:sha, bin)
   end
-
-  @doc """
-  Check a piece of data's SHA-1 hash against another SHA-1 hash.
-
-  ## Examples
-
-      iex> Effusion.Hash.calc("Hello!") |> Effusion.Hash.matches?("Hello!")
-      true
-
-      iex> Effusion.Hash.calc("Hello!") |> Effusion.Hash.matches?("Nope!")
-      false
-  """
-  def matches?(hash, data) when is_hash(hash) and is_binary(data) do
-    calc(data) == hash
-  end
 end
