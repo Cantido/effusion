@@ -51,9 +51,6 @@ defmodule Effusion.BTP.ProtocolHandler do
   ## Callbacks
 
   def init(info_hash) do
-    Repo.delete_all(PeerPiece)
-    Repo.delete_all(Request)
-
     state = %{
       info_hash: info_hash,
       listeners: MapSet.new()

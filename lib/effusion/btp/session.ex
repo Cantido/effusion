@@ -20,6 +20,16 @@ defmodule Effusion.BTP.Session do
   end
 
   def handle_info(:timeout, []) do
+    Repo.delete_all(Effusion.BTP.PeerPiece)
+    Repo.delete_all(Effusion.BTP.Request)
+    Repo.update_all(Effusion.BTP.Peer, set: [
+      failcount: 0,
+      connected: false,
+      peer_choking: true,
+      peer_interested: false,
+      am_choking: true,
+      am_interested: false
+    ])
     :ok = resume_torrents()
     {:noreply, []}
   end
