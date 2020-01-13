@@ -132,9 +132,10 @@ defmodule Effusion.DHT.Server do
       case Torrent.by_info_hash(info_hash) do
         {:ok, torrent}  -> torrent.id
         {:error, _} ->
-          %{info_hash: info_hash}
+          %{info_hash: info_hash,
+            state: "dht_only"}
           |> Torrent.changeset()
-          |> Repo.insert_or_update()
+          |> Repo.insert()
       end
 
     peers_to_insert = Enum.map(peers, fn {address, port} ->

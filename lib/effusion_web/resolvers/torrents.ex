@@ -5,7 +5,7 @@ defmodule EffusionWeb.Resolvers.Torrents do
   alias Effusion.Repo
 
   def all_torrents(_root, _args, _info) do
-    torrents = Repo.all(Torrent)
+    torrents = Torrent.all() |> Repo.all()
 
     {:ok, torrents}
   end

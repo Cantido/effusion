@@ -58,8 +58,12 @@ defmodule Effusion.BTP.Torrent do
     torrent
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
-    |> validate_inclusion(:state, ["paused", "downloading", "finished"])
+    |> validate_inclusion(:state, ["paused", "downloading", "finished", "dht_only"])
     |> unique_constraint(:info_hash)
+  end
+
+  def all() do
+    from torrent in __MODULE__, where: torrent.state != "dht_only"
   end
 
   def by_info_hash_query(info_hash) do
