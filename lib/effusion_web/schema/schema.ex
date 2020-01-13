@@ -39,6 +39,14 @@ defmodule EffusionWeb.Schema do
     field :creation_date, :datetime, description: "The date the torrent file was created."
     field :last_announce, :datetime, description: "The last time the announce server was contacted."
     field :next_announce, :datetime, description: "The next time the announce server should be contacted."
+    field :connected_peers_count, :integer do
+      description "The number of peers we are currently connected to."
+      resolve &Resolvers.Torrents.connected_peers_count/3
+    end
+    field :available_peers_count, :integer do
+      description "The number of peers for this torrent that the application can contact."
+      resolve &Resolvers.Torrents.available_peers_count/3
+    end
   end
 
   object :session do

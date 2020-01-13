@@ -1,5 +1,6 @@
 defmodule EffusionWeb.Resolvers.Torrents do
   alias Effusion.BTP.Metainfo
+  alias Effusion.BTP.Peer
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Torrent
   alias Effusion.Repo
@@ -17,6 +18,26 @@ defmodule EffusionWeb.Resolvers.Torrents do
 
   def downloaded(torrent, _args, _info) do
     {:ok, Pieces.bytes_completed(torrent.info_hash)}
+  end
+
+  def connected_peers_count(torrent, _args, _info) do
+    info_hash = torrent.info_hash
+
+    connected_peers_count = info_hash
+    |> Peer.connected_query()
+    |> Repo.aggregate(:count, [])
+
+    {:ok, connected_peers_count}
+  end
+
+  def available_peers_count(torrent, _args, _info) do
+    info_hash = torrent.info_hash
+
+    available_peers_count = info_hash
+    |> Peer.all()
+    |> Repo.aggregate(:count, [])
+
+    {:ok, available_peers_count}
   end
 
   def add_torrent(_root, %{meta: meta}, _info) do

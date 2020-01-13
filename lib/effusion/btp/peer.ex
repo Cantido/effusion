@@ -1,7 +1,6 @@
 defmodule Effusion.BTP.Peer do
   alias Effusion.BTP.Torrent
   alias Effusion.PWP.ConnectionRegistry
-  alias Effusion.Repo
   import Effusion.Hash, only: [is_hash: 1]
   import Ecto.Changeset
   import Ecto.Query
@@ -77,6 +76,19 @@ defmodule Effusion.BTP.Peer do
 
   def connected?(peer, info_hash) do
     ConnectionRegistry.connected?(info_hash, peer.peer_id)
+  end
+
+  def connected_query(info_hash) when is_hash(info_hash) do
+    from peer in __MODULE__,
+    join: torrent in assoc(peer, :torrent),
+    where: torrent.info_hash == ^info_hash,
+    where: peer.connected
+  end
+
+  def all(info_hash) when is_hash(info_hash) do
+    from peer in __MODULE__,
+    join: torrent in assoc(peer, :torrent),
+    where: torrent.info_hash == ^info_hash
   end
 
   def changeset(peer, params \\ %{}) do
