@@ -260,10 +260,10 @@ defmodule Effusion.PWP.ProtocolHandler do
                                   where: peer.port == ^port)
                         |> Peer.changeset()
 
-    if reason != :normal do
-      Repo.update(disconnected_peer, update: [inc: [failcount: 1], set: [connected: false]])
-    else
+    if reason == :normal do
       Repo.update(disconnected_peer, update: [set: [connected: false]])
+    else
+      Repo.update(disconnected_peer, update: [inc: [failcount: 1], set: [connected: false]])
     end
     :ok
   end
