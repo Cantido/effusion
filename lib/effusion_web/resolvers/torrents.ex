@@ -25,7 +25,7 @@ defmodule EffusionWeb.Resolvers.Torrents do
 
     connected_peers_count = info_hash
     |> Peer.connected_query()
-    |> Repo.aggregate(:count, [])
+    |> Repo.aggregate(:count, :id)
 
     {:ok, connected_peers_count}
   end
@@ -35,7 +35,7 @@ defmodule EffusionWeb.Resolvers.Torrents do
 
     available_peers_count = info_hash
     |> Peer.all()
-    |> Repo.aggregate(:count, [])
+    |> Repo.aggregate(:count, :id)
 
     {:ok, available_peers_count}
   end
