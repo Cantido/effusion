@@ -36,12 +36,10 @@ defmodule Effusion.Statistics.TelemetryHandler do
   def handle_event(event, measurements, metadata, config)
 
   def handle_event([:pwp, :message_sent], _measurements, metadata, _config) do
-    Logger.debug("Sending message #{inspect(metadata.message)} to peer #{metadata.peer}")
-
     SessionStats.inc_outgoing_message(metadata.message)
   end
 
-  def handle_event([:pwp, :message_received], measurements, metadata, _config) do
+  def handle_event([:pwp, :message_received], _measurements, metadata, _config) do
     data = metadata.binary
     data_size = byte_size(data)
     payload_size = Messages.payload_bytes_count(data)
@@ -57,7 +55,6 @@ defmodule Effusion.Statistics.TelemetryHandler do
     end
 
     if Map.has_key?(metadata, :remote_peer_id) do
-      Logger.debug("Receiving message from #{metadata.remote_peer_id}: #{inspect msg}. Process latency: #{measurements.latency} ms.")
       :ets.update_counter(PeerDownloadStatsTable, metadata.remote_peer_id, data_size, {:k, 0})
     end
   end
