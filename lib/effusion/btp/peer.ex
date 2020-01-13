@@ -26,6 +26,23 @@ defmodule Effusion.BTP.Peer do
   """
   defguard is_peer_id(term) when not is_nil(term) and is_binary(term) and byte_size(term) == 20
 
+  @required_fields [
+    :address,
+    :port
+  ]
+
+  @optional_fields [
+    :torrent_id,
+    :peer_id,
+    :failcount,
+    :peer_choking,
+    :peer_interested,
+    :am_choking,
+    :am_interested,
+    :connected,
+    :fast_extension
+  ]
+
   schema "peers" do
     belongs_to :torrent, Torrent
     field :peer_id, :binary, null: true
@@ -50,43 +67,27 @@ defmodule Effusion.BTP.Peer do
     %__MODULE__{address: address, peer_id: peer_id, failcount: 0}
   end
 
+  def get(info_hash, {ip, port}) do
+    from peer in __MODULE__,
+    join: torrent in assoc(peer, :torrent),
+    where: torrent.info_hash == ^info_hash,
+    where: peer.address == ^%Postgrex.INET{address: ip},
+    where: peer.port == ^port
+  end
+
   def connected?(peer, info_hash) do
     ConnectionRegistry.connected?(info_hash, peer.peer_id)
   end
 
   def changeset(peer, params \\ %{}) do
     peer
-    |> cast(params, [:address, :port, :peer_id, :failcount, :peer_choking, :peer_interested, :am_choking, :am_interested])
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> cast_assoc(:torrent, with: &Torrent.changeset/2)
+    |> validate_required(@required_fields)
     |> validate_number(:port, greater_than: 0)
     |> check_constraint(:port, name: :port_must_be_positive)
     |> unique_constraint(:peer_id, name: "peers_torrent_id_peer_id_index")
     |> unique_constraint(:address, name: "peers_address_port_index")
-  end
-
-  def insert(info_hash, peer_id, {ip, port}, connected, extensions) when is_hash(info_hash) and is_peer_id(peer_id) do
-    torrent_id = Repo.one!(from torrent in Torrent,
-                            where: torrent.info_hash == ^info_hash,
-                            select: torrent.id)
-    conflicting_peers_query = from p in __MODULE__,
-                              join: torrent in assoc(p, :torrent),
-                              where: p.address == ^%Postgrex.INET{address: ip}
-                                and torrent.info_hash == ^info_hash
-                                and p.port == ^port
-                                and p.peer_id != ^peer_id
-
-    Repo.delete_all(conflicting_peers_query)
-
-    %__MODULE__{
-      torrent_id: torrent_id,
-      peer_id: peer_id,
-      address: %Postgrex.INET{address: ip},
-      port: port,
-      connected: connected,
-      fast_extension: Enum.member?(extensions, :fast)
-    }
-    |> changeset()
-    |> Repo.insert!(on_conflict: {:replace, [:address, :port, :peer_id]},
-                                  conflict_target: [:torrent_id, :address, :port])
   end
 
   def compact(peer) do

@@ -4,6 +4,7 @@ defmodule Effusion.PWP.ProtocolHandler do
   alias Effusion.BTP.Piece
   alias Effusion.BTP.PeerPiece
   alias Effusion.BTP.Request
+  alias Effusion.BTP.Torrent
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.TCP.OutgoingHandler
   alias Effusion.Repo
@@ -82,9 +83,28 @@ defmodule Effusion.PWP.ProtocolHandler do
   @doc """
   Handle a successful connection.
   """
-  def handle_connect(info_hash, peer_id, address, extensions) when is_hash(info_hash) and is_peer_id(peer_id) do
+  def handle_connect(info_hash, peer_id, {ip, port}, extensions) when is_hash(info_hash) and is_peer_id(peer_id) do
     {:ok, _pid} = ConnectionRegistry.register(info_hash, peer_id)
-    Peer.insert(info_hash, peer_id, address, true, extensions)
+    fast_extension = Enum.member?(extensions, :fast)
+    case Repo.one(Peer.get(info_hash, {ip, port})) do
+      nil ->
+        torrent = Torrent.by_info_hash!(info_hash)
+        %Peer{}
+        |> Peer.changeset(%{
+          torrent_id: torrent.id,
+          peer_id: peer_id,
+          address: %Postgrex.INET{address: ip},
+          port: port,
+          connected: true,
+          failcount: -1,
+          fast_extension: fast_extension
+        })
+        |> Repo.insert()
+      _ ->
+        Peer.get(info_hash, {ip, port})
+        |> update(set: [connected: true], inc: [failcount: -1])
+
+    end
     :ok
   end
 
