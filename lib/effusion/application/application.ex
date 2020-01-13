@@ -14,16 +14,17 @@ defmodule Effusion.Application do
     TelemetryHandler.init()
 
     children = [
+      Effusion.Repo,
+      Effusion.Statistics.Supervisor,
+      Effusion.IOServer,
       Effusion.Application.ConnectionSupervisor,
       Effusion.Application.DownloadsSupervisor,
-      Effusion.IOServer,
-      Effusion.Statistics.Supervisor,
       {Registry, keys: :duplicate, name: ConnectionRegistry},
       {Registry, keys: :unique, name: BTPHandlerRegistry},
       {Registry, keys: :unique, name: VerifierWatchdogRegistry},
       {Registry, keys: :unique, name: AnnouncerRegistry},
-      EffusionWeb.Endpoint,
-      Effusion.Repo
+      Effusion.BTP.Session,
+      EffusionWeb.Endpoint
     ]
 
     {:ok, _listener} =
