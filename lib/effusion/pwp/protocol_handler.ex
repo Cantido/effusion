@@ -103,6 +103,7 @@ defmodule Effusion.PWP.ProtocolHandler do
       _ ->
         Peer.get(info_hash, {ip, port})
         |> update(set: [connected: true], inc: [failcount: -1])
+        |> Repo.update_all([])
 
     end
     :ok
