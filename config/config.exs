@@ -17,6 +17,7 @@ config :effusion,
   # dht_node_id should be generated fresh for new installations,
   # by calling Effusion.DHT.node_id() |> Base.encode64()
   dht_node_id: "zjuXKldLo4rJMGR1Ww/ykZFlXLQ="
+  peers_count_to_add_on_speedup: 10
 
 config :effusion, Effusion.Repo,
   database: "effusion_repo",

@@ -14,6 +14,8 @@ defmodule Effusion.BTP.DownloadSpeedWatcher do
   @watch_interval_ms 5_000
   @peer_min_bits_per_second 1
 
+  @peers_count_to_add_on_speedup Application.get_env(:effusion, :peers_count_to_add_on_speedup)
+
   def start_link(info_hash) do
     GenServer.start_link(__MODULE__, info_hash)
   end
@@ -55,7 +57,7 @@ defmodule Effusion.BTP.DownloadSpeedWatcher do
   end
 
   defp add_peers(info_hash) do
-    PeerSelection.select_lowest_failcount(info_hash, 1)
+    PeerSelection.select_lowest_failcount(info_hash, @peers_count_to_add_on_speedup)
     |> Enum.map(fn peer ->
       address = {peer.address.address, peer.port}
       ProtocolHandler.connect(address, info_hash, peer.peer_id)
