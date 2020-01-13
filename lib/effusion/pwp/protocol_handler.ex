@@ -1,6 +1,5 @@
 defmodule Effusion.PWP.ProtocolHandler do
   alias Effusion.BTP.Peer
-  alias Effusion.BTP.PeerSelection
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Piece
   alias Effusion.BTP.PeerPiece
@@ -247,23 +246,16 @@ defmodule Effusion.PWP.ProtocolHandler do
   Handle a peer disconnection.
   """
   def handle_disconnect(info_hash, {ip, port}, reason) do
-    PeerSelection.select_lowest_failcount(info_hash, 1)
-        |> Enum.map(fn peer ->
-          address = {peer.address.address, peer.port}
-          connect(address, info_hash, peer.peer_id)
-        end)
-
-    disconnected_peer = Repo.one!(from peer in Peer,
-                                  join: torrent in assoc(peer, :torrent),
-                                  where: torrent.info_hash == ^info_hash,
-                                  where: peer.address == ^%Postgrex.INET{address: ip},
-                                  where: peer.port == ^port)
-                        |> Peer.changeset()
+    peer_query = from peer in Peer,
+                  join: torrent in assoc(peer, :torrent),
+                  where: torrent.info_hash == ^info_hash,
+                  where: peer.address == ^%Postgrex.INET{address: ip},
+                  where: peer.port == ^port
 
     if reason == :normal do
-      Repo.update(disconnected_peer, update: [set: [connected: false]])
+      Repo.update_all(peer_query, [set: [connected: false]])
     else
-      Repo.update(disconnected_peer, update: [inc: [failcount: 1], set: [connected: false]])
+      Repo.update_all(peer_query, [inc: [failcount: 1], set: [connected: false]])
     end
     :ok
   end
