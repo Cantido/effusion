@@ -28,17 +28,17 @@ defmodule Effusion do
       {:ok, _torrent} = Torrent.insert(meta)
     end
 
-    {:ok, pid} = DownloadsSupervisor.start_child(info_hash)
     start_download(info_hash)
-    {:ok, pid}
   end
 
   def start_download(info_hash) do
+    {:ok, pid} = DownloadsSupervisor.start_child(info_hash)
     :ok = BTPProtocolHandler.start(info_hash)
+    {:ok, pid}
   end
 
   def pause_download(info_hash) do
-    BTPProtocolHandler.pause(info_hash)
+    Supervisor.terminate_child(DownloadsSupervisor, info_hash)
   end
 
   def stop_download(info_hash) do

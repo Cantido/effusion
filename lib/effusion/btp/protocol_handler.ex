@@ -48,13 +48,6 @@ defmodule Effusion.BTP.ProtocolHandler do
     GenServer.call({:via, Registry, {BTPHandlerRegistry, info_hash}}, :start)
   end
 
-  @doc """
-  Pause a download
-  """
-  def pause(info_hash) do
-    GenServer.call({:via, Registry, {BTPHandlerRegistry, info_hash}}, :pause)
-  end
-
   ## Callbacks
 
   def init(info_hash) do
@@ -94,20 +87,6 @@ defmodule Effusion.BTP.ProtocolHandler do
     |> Repo.update()
 
     :ok = Announcer.announce(state.info_hash, :started)
-    {:reply, :ok, state}
-  end
-
-  def handle_call(:pause, _from, state) do
-    _ = Logger.info("Pausing download #{Effusion.Hash.encode(state.info_hash)}")
-
-    Torrent.by_info_hash!(state.info_hash)
-    |> Torrent.pause()
-    |> Repo.update()
-
-    Effusion.PWP.ConnectionRegistry.disconnect_all(state.info_hash)
-
-    :ok = Announcer.announce(state.info_hash, :stopped)
-
     {:reply, :ok, state}
   end
 
