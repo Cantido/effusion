@@ -208,7 +208,7 @@ defmodule Effusion.PWP.ProtocolHandler do
       }
     end)
 
-    Repo.insert_all(PeerPiece, peer_pieces)
+    Repo.insert_all(PeerPiece, peer_pieces, on_conflict: :nothing)
 
     if !Pieces.all_present?(info_hash) do
       ConnectionRegistry.btp_send(info_hash, remote_peer_id, :interested)
