@@ -42,8 +42,13 @@ defmodule Effusion.PWP.TCP.OutgoingHandler do
   ## Callbacks
 
   @impl true
-  def init(peer) do
-    {:ok, peer, 0}
+  def init({address, info_hash, expected_peer_id}) do
+    state = %{
+      address: address,
+      info_hash: info_hash,
+      expected_peer_id: expected_peer_id
+    }
+    {:ok, state, 0}
   end
 
   @impl true
