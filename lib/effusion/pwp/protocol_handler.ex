@@ -164,6 +164,13 @@ defmodule Effusion.PWP.ProtocolHandler do
 
     Repo.insert_all(PeerPiece, peer_pieces)
 
+    peer_query = from peer in Peer,
+                 join: torrent in assoc(peer, :torrent),
+                 where: peer.peer_id == ^remote_peer_id,
+                 where: torrent.info_hash == ^info_hash
+
+    Repo.update_all(peer_query, set: [am_interested: true])
+
     if !Pieces.has_pieces?(info_hash, bitfield) do
       ConnectionRegistry.btp_send(info_hash, remote_peer_id, :interested)
     end
@@ -185,6 +192,13 @@ defmodule Effusion.PWP.ProtocolHandler do
       peer: peer,
       piece: piece
     })
+
+    peer_query = from peer in Peer,
+                 join: torrent in assoc(peer, :torrent),
+                 where: peer.peer_id == ^remote_peer_id,
+                 where: torrent.info_hash == ^info_hash
+
+    Repo.update_all(peer_query, set: [am_interested: true])
 
     if !Pieces.has_piece?(info_hash, i) do
       ConnectionRegistry.btp_send(info_hash, remote_peer_id, :interested)
@@ -210,6 +224,13 @@ defmodule Effusion.PWP.ProtocolHandler do
 
     Repo.insert_all(PeerPiece, peer_pieces, on_conflict: :nothing)
 
+    peer_query = from peer in Peer,
+                 join: torrent in assoc(peer, :torrent),
+                 where: peer.peer_id == ^remote_peer_id,
+                 where: torrent.info_hash == ^info_hash
+
+    Repo.update_all(peer_query, set: [am_interested: true])
+
     if !Pieces.all_present?(info_hash) do
       ConnectionRegistry.btp_send(info_hash, remote_peer_id, :interested)
     end
@@ -230,10 +251,24 @@ defmodule Effusion.PWP.ProtocolHandler do
                       join: peer in assoc(request, :peer),
                       where: peer.peer_id == ^remote_peer_id)
 
+    peer_query = from peer in Peer,
+                 join: torrent in assoc(peer, :torrent),
+                 where: peer.peer_id == ^remote_peer_id,
+                 where: torrent.info_hash == ^info_hash
+
+    Repo.update_all(peer_query, set: [peer_choking: true])
+
     :ok
   end
 
   def handle_message(info_hash, remote_peer_id, :unchoke) when is_hash(info_hash) and is_peer_id(remote_peer_id) do
+    peer_query = from peer in Peer,
+                 join: torrent in assoc(peer, :torrent),
+                 where: peer.peer_id == ^remote_peer_id,
+                 where: torrent.info_hash == ^info_hash
+
+    Repo.update_all(peer_query, set: [peer_choking: false])
+
     next_request_from_peer(info_hash, remote_peer_id, 100)
     :ok
   end
