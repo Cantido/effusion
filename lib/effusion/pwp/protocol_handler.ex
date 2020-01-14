@@ -273,6 +273,26 @@ defmodule Effusion.PWP.ProtocolHandler do
     :ok
   end
 
+  def handle_message(info_hash, remote_peer_id, :interested) when is_hash(info_hash) and is_peer_id(remote_peer_id) do
+    peer_query = from peer in Peer,
+                 join: torrent in assoc(peer, :torrent),
+                 where: peer.peer_id == ^remote_peer_id,
+                 where: torrent.info_hash == ^info_hash
+
+    Repo.update_all(peer_query, set: [peer_interested: true])
+    :ok
+  end
+
+  def handle_message(info_hash, remote_peer_id, :uninterested) when is_hash(info_hash) and is_peer_id(remote_peer_id) do
+    peer_query = from peer in Peer,
+                 join: torrent in assoc(peer, :torrent),
+                 where: peer.peer_id == ^remote_peer_id,
+                 where: torrent.info_hash == ^info_hash
+
+    Repo.update_all(peer_query, set: [peer_interested: false])
+    :ok
+  end
+
   defp next_request_from_peer(info_hash, peer_id, count) when is_hash(info_hash) do
     requests = Request.valid_requests_from_peer_query(info_hash, peer_id, count)
     |> Repo.all()
