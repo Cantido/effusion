@@ -155,7 +155,7 @@ defmodule EffusionTest do
 
     assert "tiny\n" == contents
 
-    Effusion.stop_download(@info_hash)
+    :ok = Effusion.stop_download(@info_hash)
   end
 
   test "download a file from a peer supporting the fast extension", %{lsock: lsock, destfile: file} do
@@ -219,7 +219,7 @@ defmodule EffusionTest do
 
     assert "tiny\n" == contents
 
-    Effusion.stop_download(@info_hash)
+    :ok = Effusion.stop_download(@info_hash)
   end
 
   test "receive a connection from a peer", %{destfile: file} do
@@ -284,6 +284,6 @@ defmodule EffusionTest do
 
     assert "tiny\n" == contents
 
-    Effusion.stop_download(@info_hash)
+    :ok = Effusion.stop_download(@info_hash)
   end
 end
