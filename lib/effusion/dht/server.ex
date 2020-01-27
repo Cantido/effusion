@@ -157,7 +157,7 @@ defmodule Effusion.DHT.Server do
         address: ip,
         port: port,
         received_token: token,
-        last_contacted: Timex.now()
+        last_contacted: DateTime.utc_now()
       }
     end)
     Repo.insert_all(DHT.Node, nodes_to_insert)

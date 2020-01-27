@@ -8,10 +8,10 @@ defmodule Effusion.Factory do
       announce: "http://example.com/announce",
       size: 1_000_000_000,
       piece_size: 1_000_000,
-      started: Timex.now() |> DateTime.truncate(:second),
+      started: DateTime.utc_now() |> DateTime.truncate(:second),
       comment: "Made with love",
       created_by: "Rosa",
-      creation_date: Timex.now() |> DateTime.truncate(:second)
+      creation_date: DateTime.utc_now() |> DateTime.truncate(:second)
     }
   end
 

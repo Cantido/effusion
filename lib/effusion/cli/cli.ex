@@ -57,7 +57,7 @@ defmodule Effusion.CLI do
                         where: torrent.info_hash == ^info_hash,
                         select: torrent)
 
-    dur = Timex.Interval.new(from: torrent.started, until: Timex.now()) |> Timex.Interval.duration(:duration)
+    dur = Timex.Interval.new(from: torrent.started, until: DateTime.utc_now()) |> Timex.Interval.duration(:duration)
 
     downloaded = Pieces.bytes_completed(info_hash)
     total_to_download = Pieces.torrent_length(info_hash)

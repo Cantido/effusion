@@ -16,7 +16,7 @@ defmodule Effusion.DHT.ServerTest do
       %{
         context: %{
           remote_address: {{10, 0, 0, 1}, 6969},
-          current_timestamp: Timex.now()
+          current_timestamp: DateTime.utc_now()
         }
       }
     }
@@ -33,7 +33,7 @@ defmodule Effusion.DHT.ServerTest do
       node_id: "09876543210987654321",
       address: %Postgrex.INET{address: {192, 168, 1, 1}},
       port: 65535,
-      last_contacted: DateTime.truncate(Timex.now(), :second)
+      last_contacted: DateTime.truncate(DateTime.utc_now(), :second)
     })
     node = Effusion.DHT.Node.compact(node)
 
@@ -50,7 +50,7 @@ defmodule Effusion.DHT.ServerTest do
       node_id: "09876543210987654321",
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
       port: 65535,
-      last_contacted: DateTime.truncate(Timex.now(), :second)
+      last_contacted: DateTime.truncate(DateTime.utc_now(), :second)
     })
     peer = Effusion.BTP.Peer.compact(%{
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
@@ -68,7 +68,7 @@ defmodule Effusion.DHT.ServerTest do
       node_id: "09876543210987654321",
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
       port: 65535,
-      last_contacted: DateTime.truncate(Timex.now(), :second)
+      last_contacted: DateTime.truncate(DateTime.utc_now(), :second)
     })
     peer = Effusion.BTP.Peer.compact(%{
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
@@ -90,7 +90,7 @@ defmodule Effusion.DHT.ServerTest do
       node_id: "abcdefghij1234567890",
       address: %Postgrex.INET{address: {192, 168, 1, 123}},
       port: 7070,
-      last_contacted: DateTime.truncate(Timex.now(), :second)
+      last_contacted: DateTime.truncate(DateTime.utc_now(), :second)
     })
     node = Effusion.DHT.Node.compact(node)
 
@@ -117,8 +117,8 @@ defmodule Effusion.DHT.ServerTest do
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
       port: 6969,
       sent_token: "abcde",
-      sent_token_timestamp: Timex.shift(Timex.now(), minutes: -20) |> DateTime.truncate(:second),
-      last_contacted: Timex.shift(Timex.now(), minutes: -20) |> DateTime.truncate(:second)
+      sent_token_timestamp: Timex.shift(DateTime.utc_now(), minutes: -20) |> DateTime.truncate(:second),
+      last_contacted: Timex.shift(DateTime.utc_now(), minutes: -20) |> DateTime.truncate(:second)
     })
 
     {:error, [203, "token expired"]} = Server.handle_krpc_query({
@@ -137,8 +137,8 @@ defmodule Effusion.DHT.ServerTest do
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
       port: 6969,
       sent_token: "abcde",
-      sent_token_timestamp: Timex.now() |> DateTime.truncate(:second),
-      last_contacted: Timex.now() |> DateTime.truncate(:second)
+      sent_token_timestamp: DateTime.utc_now() |> DateTime.truncate(:second),
+      last_contacted: DateTime.utc_now() |> DateTime.truncate(:second)
     })
 
     {:announce_peer, "abcde", @node_id} = Server.handle_krpc_query({
@@ -158,9 +158,9 @@ defmodule Effusion.DHT.ServerTest do
                                 where: node.node_id == ^"12345678901234567890",
                                 select: node.last_contacted)
 
-    earliest_timestamp_allowed = Timex.shift(Timex.now(), minutes: -1)
+    earliest_timestamp_allowed = Timex.shift(DateTime.utc_now(), minutes: -1)
     assert Timex.after?(last_contacted, earliest_timestamp_allowed)
-    assert Timex.before?(last_contacted, Timex.now())
+    assert Timex.before?(last_contacted, DateTime.utc_now())
   end
 
   test "handle find_node response", %{context: context} do

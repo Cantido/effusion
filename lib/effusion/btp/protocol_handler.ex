@@ -80,7 +80,7 @@ defmodule Effusion.BTP.ProtocolHandler do
     _ = Logger.info("Starting download #{Effusion.Hash.encode(state.info_hash)}")
 
     Torrent.by_info_hash!(state.info_hash)
-    |> Torrent.start(Timex.now())
+    |> Torrent.start(DateTime.utc_now())
     |> Repo.update()
 
     :ok = Announcer.announce(state.info_hash, :started)

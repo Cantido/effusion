@@ -89,8 +89,8 @@ defmodule Effusion.THP.Announcer do
               where: torrent.info_hash == ^info_hash)
     torrent
     |> Ecto.Changeset.change(trackerid: Map.get(res, :trackerid, ""))
-    |> Ecto.Changeset.change(last_announce: Timex.now() |> DateTime.truncate(:second))
-    |> Ecto.Changeset.change(next_announce: Timex.now() |> Timex.shift(seconds: res.interval) |> DateTime.truncate(:second))
+    |> Ecto.Changeset.change(last_announce: DateTime.utc_now() |> DateTime.truncate(:second))
+    |> Ecto.Changeset.change(next_announce: DateTime.utc_now() |> Timex.shift(seconds: res.interval) |> DateTime.truncate(:second))
     |> Repo.update!()
 
     changesets = Enum.map(res.peers, fn peer ->
