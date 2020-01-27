@@ -51,6 +51,7 @@ defmodule Effusion.BTP.ProtocolHandler do
   ## Callbacks
 
   def init(info_hash) do
+    Process.flag(:trap_exit, true)
     state = %{
       info_hash: info_hash,
       listeners: MapSet.new()
@@ -60,11 +61,16 @@ defmodule Effusion.BTP.ProtocolHandler do
   end
 
   def handle_call(:all_pieces_written, _from, d) do
+    :telemetry.execute([:btp, :completed], %{}, %{info_hash: d.info_hash})
     :ok = Announcer.announce(d.info_hash, :completed)
+
+    Torrent.by_info_hash!(d.info_hash)
+    |> Torrent.finish()
+    |> Repo.update()
 
     reply_to_listeners(d, :ok)
 
-    {:stop, :normal, :ok, d}
+    {:reply, :ok, d}
   end
 
   def handle_call(:get, _from, state) do
@@ -89,18 +95,6 @@ defmodule Effusion.BTP.ProtocolHandler do
 
   def handle_info(_, state) do
     {:noreply, state}
-  end
-
-  def terminate(:normal, state) do
-    ProtocolHandler.disconnect_all(state.info_hash)
-
-      if Pieces.all_written?(state.info_hash) do
-        :ok = Announcer.announce(state.info_hash, :completed)
-      else
-        :ok = Announcer.announce(state.info_hash, :stopped)
-      end
-
-    reply_to_listeners(state, :ok)
   end
 
   def terminate(reason, state) do

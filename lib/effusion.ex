@@ -37,12 +37,12 @@ defmodule Effusion do
     {:ok, pid}
   end
 
-  def pause_download(info_hash) do
-    Supervisor.terminate_child(DownloadsSupervisor, info_hash)
+  def pause_download(pid) when is_pid(pid) do
+    DynamicSupervisor.terminate_child(DownloadsSupervisor, pid)
   end
 
-  def stop_download(info_hash) do
-    Supervisor.terminate_child(DownloadsSupervisor, info_hash)
+  def stop_download(pid) when is_pid(pid) do
+    DynamicSupervisor.terminate_child(DownloadsSupervisor, pid)
   end
 
   @doc """

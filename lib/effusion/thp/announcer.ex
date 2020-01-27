@@ -32,6 +32,7 @@ defmodule Effusion.THP.Announcer do
   end
 
   def init(info_hash) do
+    Process.flag(:trap_exit, true)
     {:ok, {info_hash, nil}}
   end
 

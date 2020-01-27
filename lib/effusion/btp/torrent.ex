@@ -101,6 +101,19 @@ defmodule Effusion.BTP.Torrent do
     })
   end
 
+  def finish(torrent) do
+    changeset(torrent, %{
+      state: "finished"
+    })
+  end
+
+  def finished?(info_hash) when is_hash(info_hash) do
+    case by_info_hash(info_hash) do
+      {:ok, torrent} -> torrent.state == "finished"
+      _ -> false
+    end
+  end
+
   def downloading?(info_hash) when is_hash(info_hash) do
     case by_info_hash(info_hash) do
       {:ok, torrent} -> torrent.state == "downloading"

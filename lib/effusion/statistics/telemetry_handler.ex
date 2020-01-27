@@ -18,7 +18,8 @@ defmodule Effusion.Statistics.TelemetryHandler do
     "effusion-handler-incoming-connection-success" => [:pwp, :incoming, :success],
     "effusion-handler-disconnect" => [:pwp, :disconnect],
     "effusion-handler-write-piece-start" => [:io, :write, :piece, :starting],
-    "effusion-handler-write-piece-success" => [:io, :write, :piece, :success]
+    "effusion-handler-write-piece-success" => [:io, :write, :piece, :success],
+    "effusion-handler-torrent-completed" => [:btp, :completed]
   }
 
   @doc """
@@ -103,5 +104,9 @@ defmodule Effusion.Statistics.TelemetryHandler do
 
   def handle_event([:io, :write, :piece, :success], %{latency: latency}, %{index: index, info_hash: info_hash}, _config) do
     Logger.debug("Done writing piece #{index} for #{info_hash |> Effusion.Hash.encode()}. Took #{latency} us.")
+  end
+
+  def handle_event([:btp, :completed], %{}, %{info_hash: info_hash}, _config) do
+    Logger.info("Download #{info_hash |> Effusion.Hash.encode()} finished.")
   end
 end

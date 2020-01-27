@@ -21,6 +21,7 @@ defmodule Effusion.BTP.DownloadSpeedWatcher do
   end
 
   def init(info_hash) do
+    Process.flag(:trap_exit, true)
     timer = Process.send_after(self(), :watch, @watch_interval_ms)
     {:ok, {info_hash, timer}}
   end

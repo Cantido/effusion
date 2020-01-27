@@ -101,9 +101,6 @@ defmodule EffusionTest do
     |> expect(:announce, 3, &stub_tracker/9)
 
     {:ok, pid} = Effusion.start_download(@torrent)
-    on_exit(fn ->
-      Effusion.stop_download(@torrent.info_hash)
-    end)
 
     {:ok, sock, _remote_peer, [:fast]} =
       Socket.accept(
@@ -146,8 +143,6 @@ defmodule EffusionTest do
       assert r2 == 0
     end
 
-    Socket.close(sock)
-
     :timer.sleep(700)
     :file.datasync(file)
 
@@ -155,7 +150,8 @@ defmodule EffusionTest do
 
     assert "tiny\n" == contents
 
-    :ok = Effusion.stop_download(@info_hash)
+    :ok = Effusion.stop_download(pid)
+    Process.sleep(200)
   end
 
   test "download a file from a peer supporting the fast extension", %{lsock: lsock, destfile: file} do
@@ -166,9 +162,6 @@ defmodule EffusionTest do
     |> expect(:announce, 3, &stub_tracker/9)
 
     {:ok, pid} = Effusion.start_download(@torrent)
-    on_exit(fn ->
-      Effusion.stop_download(@torrent.info_hash)
-    end)
 
     {:ok, sock, _remote_peer, [:fast]} =
       Socket.accept(
@@ -210,8 +203,6 @@ defmodule EffusionTest do
       assert r2 == 0
     end
 
-    Socket.close(sock)
-
     :timer.sleep(700)
     :file.datasync(file)
 
@@ -219,7 +210,8 @@ defmodule EffusionTest do
 
     assert "tiny\n" == contents
 
-    :ok = Effusion.stop_download(@info_hash)
+    :ok = Effusion.stop_download(pid)
+    Process.sleep(200)
   end
 
   test "receive a connection from a peer", %{destfile: file} do
@@ -230,9 +222,6 @@ defmodule EffusionTest do
     |> expect(:announce, 3, &stub_tracker_no_peers/9)
 
     {:ok, pid} = Effusion.start_download(@torrent)
-    on_exit(fn ->
-      Effusion.stop_download(@torrent.info_hash)
-    end)
 
     {:ok, sock, _remote_peer, _ext} =
       Socket.connect(
@@ -275,8 +264,6 @@ defmodule EffusionTest do
       assert r2 == 0
     end
 
-    Socket.close(sock)
-
     :timer.sleep(700)
     :file.datasync(file)
 
@@ -284,6 +271,7 @@ defmodule EffusionTest do
 
     assert "tiny\n" == contents
 
-    :ok = Effusion.stop_download(@info_hash)
+    :ok = Effusion.stop_download(pid)
+    Process.sleep(200)
   end
 end

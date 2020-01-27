@@ -1,5 +1,6 @@
 defmodule Effusion.BTP.VerifierWatchdog do
   alias Effusion.BTP.Pieces
+  alias Effusion.BTP.Torrent
   alias Effusion.BTP.Piece
   alias Effusion.BTP.ProtocolHandler
   alias Effusion.PWP.ConnectionRegistry
@@ -23,6 +24,7 @@ defmodule Effusion.BTP.VerifierWatchdog do
   end
 
   def init(info_hash) do
+    Process.flag(:trap_exit, true)
     Logger.debug("VerifierWatchdog started")
     Process.send_after(self(), :watch, @watch_interval_ms)
     {:ok, info_hash}
@@ -48,14 +50,14 @@ defmodule Effusion.BTP.VerifierWatchdog do
 
     Logger.debug("VerifierWatchdog announced & wrote #{Enum.count(verified)} pieces")
 
-    if Pieces.all_written?(info_hash) do
+    if Pieces.all_written?(info_hash) && !Torrent.finished?(info_hash) do
       Logger.debug("All pieces are written, notifying BTP handler")
       ProtocolHandler.notify_all_pieces_written(info_hash)
-      {:stop, :normal, info_hash}
     else
       Process.send_after(self(), :watch, @watch_interval_ms)
-      {:noreply, info_hash}
     end
+
+    {:noreply, info_hash}
   end
 
   def terminate(reason, info_hash) do
