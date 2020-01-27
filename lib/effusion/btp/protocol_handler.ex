@@ -83,7 +83,7 @@ defmodule Effusion.BTP.ProtocolHandler do
   end
 
   def handle_call(:start, _from, state) do
-    _ = Logger.info("Starting download #{Effusion.Hash.encode(state.info_hash)}")
+    :telemetry.execute([:btp, :completed], %{}, %{info_hash: state.info_hash})
 
     Torrent.by_info_hash!(state.info_hash)
     |> Torrent.start(DateTime.utc_now())
