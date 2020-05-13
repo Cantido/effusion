@@ -11,7 +11,7 @@ defmodule Effusion.BTP.Metainfo do
   defstruct [:info_hash, :announce, :announce_list, :comment, :created_by, :creation_date, :info]
 
   @doc """
-  Decide a metadata binary into an Elixir data structure.
+  Decode a metadata binary into an Elixir data structure.
   """
   def decode(bin) do
     with {:ok, decoded} <- ExBencode.decode(bin),
