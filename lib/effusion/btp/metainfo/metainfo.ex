@@ -24,6 +24,7 @@ defmodule Effusion.BTP.Metainfo do
         |> Map.put(:info_hash, info_hash)
         |> Effusion.Map.rename_keys(key_tokens())
         |> Map.update!(:info, &update_info/1)
+        |> Map.update!(:nodes, &update_nodes/1)
 
       meta = struct(Effusion.BTP.Metainfo, result)
       {:ok, meta}
@@ -56,13 +57,21 @@ defmodule Effusion.BTP.Metainfo do
     end
   end
 
+  defp update_nodes(nodes) when is_list(nodes) do
+    Enum.each(nodes, fn [host, port] ->
+      {host, port}
+    end)
+  end
+
   defp key_tokens do
     %{
       "announce" => :announce,
+      "announce-list" => :announce_list,
       "created by" => :created_by,
       "creation date" => :creation_date,
       "encoding" => :encoding,
-      "info" => :info
+      "info" => :info,
+      "nodes" => :nodes
     }
   end
 
