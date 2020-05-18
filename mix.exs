@@ -4,7 +4,7 @@ defmodule Effusion.Mixfile do
   def project do
     [
       app: :effusion,
-      version: "0.1.0",
+      version: "0.2.0",
       elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env()),
       escript: escript(),
@@ -15,6 +15,7 @@ defmodule Effusion.Mixfile do
       escript: [main_module: Effusion.CLI],
       package: package(),
       deps: deps(),
+      docs: docs(),
       aliases: aliases(),
       source_url: "https://github.com/Cantido/effusion",
       dialyzer: [flags: [:error_handling, :race_conditions, :underspecs]]
@@ -83,6 +84,16 @@ defmodule Effusion.Mixfile do
       maintainers: ["Rosa Richter"],
       licenses: ["GPL v3"],
       links: %{"Github" => "https://github.com/Cantido/effusion"}
+    ]
+  end
+
+  def docs do
+    [
+      main: "Effusion",
+      source_url: "https://github.com/cantido/effusion",
+      extras: [
+        "README.md"
+      ]
     ]
   end
 end
