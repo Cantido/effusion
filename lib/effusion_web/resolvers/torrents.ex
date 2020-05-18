@@ -1,5 +1,4 @@
 defmodule EffusionWeb.Resolvers.Torrents do
-  alias Effusion.BTP.Metainfo
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Torrent
@@ -41,7 +40,7 @@ defmodule EffusionWeb.Resolvers.Torrents do
   end
 
   def add_torrent(_root, %{meta: meta}, _info) do
-    {:ok, metainfo} = Metainfo.decode(meta)
+    {:ok, metainfo} = Metatorrent.decode(meta)
     {:ok, info_hash} = Effusion.start_download(metainfo)
 
     Torrent.by_info_hash(info_hash)

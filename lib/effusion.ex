@@ -1,7 +1,6 @@
 defmodule Effusion do
   alias Effusion.Application.DownloadsSupervisor
   alias Effusion.BTP.Torrent
-  alias Effusion.BTP.Metainfo
   alias Effusion.BTP.ProtocolHandler, as: BTPProtocolHandler
   alias Effusion.Repo
   import Ecto.Query
@@ -63,7 +62,7 @@ defmodule Effusion do
   """
   def download_file(torrent_file) do
     {:ok, metabin} = torrent_file |> Path.expand() |> File.read()
-    {:ok, meta} = Metainfo.decode(metabin)
+    {:ok, meta} = Metatorrent.decode(metabin)
 
     {:ok, _info_hash} = Effusion.start_download(meta)
   end

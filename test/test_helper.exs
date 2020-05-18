@@ -15,19 +15,19 @@ defmodule TestHelper do
 
   def mint_meta do
     {:ok, metabin} = File.read("test/linuxmint-18.3-cinnamon-64bit.iso.torrent")
-    {:ok, meta} = Effusion.BTP.Metainfo.decode(metabin)
+    {:ok, meta} = Metatorrent.decode(metabin)
     meta
   end
 
   def hello_meta do
     {:ok, metabin} = File.read("test/hello.txt.torrent")
-    {:ok, meta} = Effusion.BTP.Metainfo.decode(metabin)
+    {:ok, meta} = Metatorrent.decode(metabin)
     meta
   end
 
   def multi_file_meta do
     {:ok, metabin} = File.read("test/hello_world.torrent")
-    {:ok, meta} = Effusion.BTP.Metainfo.decode(metabin)
+    {:ok, meta} = Metatorrent.decode(metabin)
     meta
   end
 
@@ -35,7 +35,7 @@ defmodule TestHelper do
     %{
       announce: "http://localhost:6969/announce",
       created_by: "Lovingly hand-crafted, by Rosa <3",
-      creation_date: 1_517_785_476,
+      creation_date: ~U[2018-02-04 23:04:36Z],
       encoding: "UTF-8",
       info: %{
         :length => 5,

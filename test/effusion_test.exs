@@ -18,27 +18,7 @@ defmodule EffusionTest do
   @local_port 8001
   @remote_port 8002
 
-  @torrent %{
-    announce: "http://localhost:6969/announce",
-    created_by: "Lovingly hand-crafted, by Rosa <3",
-    creation_date: 1_517_785_476,
-    encoding: "UTF-8",
-    info: %{
-      :length => 5,
-      :name => "tiny.txt",
-      :piece_length => 3,
-      # Pieces are "tin" and "y\n"
-      :pieces => [
-        <<242, 105, 25, 118, 134, 197, 108, 67, 163, 82, 84, 216, 119, 167, 25, 148, 192, 181,
-          112, 48>>,
-        <<144, 99, 169, 240, 224, 50, 182, 35, 148, 3, 183, 25, 203, 187, 165, 106, 196, 228, 228,
-          95>>
-      ],
-      "private" => 0
-    },
-    info_hash:
-      <<95, 189, 143, 1, 37, 56, 146, 40, 140, 78, 2, 250, 208, 144, 217, 10, 49, 7, 64, 28>>
-  }
+  @torrent TestHelper.tiny_meta()
 
   @remote_peer Peer.new({{127, 0, 0, 1}, @remote_port})
   @local_peer_id "Fake-Remote-Peer----"

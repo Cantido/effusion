@@ -1,5 +1,4 @@
 defmodule Effusion.CLI do
-  alias Effusion.BTP.Metainfo
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Request
@@ -33,7 +32,7 @@ defmodule Effusion.CLI do
     end)
 
     {:ok, metabin} = file |> Path.expand() |> File.read()
-    {:ok, meta} = Metainfo.decode(metabin)
+    {:ok, meta} = Metatorrent.decode(metabin)
 
     {:ok, info_hash} = Effusion.start_download(meta)
 

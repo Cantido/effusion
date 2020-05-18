@@ -132,7 +132,7 @@ defmodule Effusion.BTP.Torrent do
         announce: meta.announce,
         comment: Map.get(meta, :comment),
         created_by: Map.get(meta, :created_by),
-        creation_date: Map.get(meta, :creation_date) |> Timex.from_unix()
+        creation_date: Map.get(meta, :creation_date)
       })
       |> Repo.insert()
 

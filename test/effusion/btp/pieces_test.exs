@@ -2,7 +2,6 @@ defmodule Effusion.BTP.PiecesTest do
   use ExUnit.Case, async: true
   doctest Effusion.BTP.Pieces
   # alias Effusion.BTP.Pieces
-  # alias Effusion.BTP.Metainfo
   # alias Effusion.BTP.Block
 
   @meta TestHelper.tiny_meta()
@@ -303,7 +302,7 @@ defmodule Effusion.BTP.PiecesTest do
   #
   # test "accepts blocks for multi-file torrents" do
   #   {:ok, metabin} = File.read("test/hello_world.torrent")
-  #   {:ok, meta} = Metainfo.decode(metabin)
+  #   {:ok, meta} = Metatorrent.decode(metabin)
   #
   #   torrent =
   #     meta.info_hash

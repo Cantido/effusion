@@ -1,7 +1,6 @@
 defmodule Effusion.IOTest do
   use ExUnit.Case, async: true
   alias Effusion.BTP.Pieces
-  alias Effusion.BTP.Metainfo
   alias Effusion.BTP.Torrent
   doctest Effusion.IO
 
@@ -22,7 +21,7 @@ defmodule Effusion.IOTest do
 
   setup do
     {:ok, metabin} = File.read("test/hello_world.torrent")
-    {:ok, multi_file_meta} = Metainfo.decode(metabin)
+    {:ok, multi_file_meta} = Metatorrent.decode(metabin)
     Torrent.insert(multi_file_meta)
 
     Pieces.add_block(multi_file_meta.info_hash, %{index: 0, offset: 0, data: "Hello\nworld!\n"})
