@@ -34,10 +34,10 @@ defmodule Effusion.CLI do
     {:ok, metabin} = file |> Path.expand() |> File.read()
     {:ok, meta} = Metatorrent.decode(metabin)
 
-    {:ok, info_hash} = Effusion.start_download(meta)
+    {:ok, _pid} = Effusion.start_download(meta)
 
     Process.sleep(100)
-    output_loop(info_hash)
+    output_loop(meta.info_hash)
   end
 
   @name_width 40
