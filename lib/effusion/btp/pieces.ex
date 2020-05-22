@@ -67,14 +67,14 @@ defmodule Effusion.BTP.Pieces do
   end
 
   def add_block(info_hash, %{index: i, offset: o, data: data}) when is_hash(info_hash) do
-    {:ok, _block} = Repo.one!(from b in Block,
-                      join: p in assoc(b, :piece),
-                      join: torrent in assoc(p, :torrent),
-                      where: torrent.info_hash == ^info_hash,
-                      where: p.index == ^i,
-                      where: b.offset == ^o)
-    |> Ecto.Changeset.change(data: data)
-    |> Repo.update()
+    query = from b in Block,
+            join: p in assoc(b, :piece),
+            join: torrent in assoc(p, :torrent),
+            where: torrent.info_hash == ^info_hash,
+            where: p.index == ^i,
+            where: b.offset == ^o,
+            update: [set: [data: ^data]]
+    Repo.update_all(query, [])
   end
 
   def verify_all(info_hash) do
