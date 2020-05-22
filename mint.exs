@@ -2,4 +2,4 @@
 
 {:ok, meta} = Metatorrent.decode(file)
 
-Effusion.download(meta, File.cwd!)
+Effusion.download(meta)
