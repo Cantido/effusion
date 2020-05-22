@@ -23,7 +23,7 @@ defmodule Effusion.Application do
       {Registry, keys: :unique, name: BTPHandlerRegistry},
       {Registry, keys: :unique, name: VerifierWatchdogRegistry},
       {Registry, keys: :unique, name: AnnouncerRegistry},
-      Effusion.BTP.Session,
+      # Effusion.BTP.Session,
       EffusionWeb.Endpoint
     ]
 
