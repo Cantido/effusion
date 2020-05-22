@@ -3,8 +3,8 @@ defmodule Effusion.DHT.Node do
   import Ecto.Changeset
 
   schema "nodes" do
-    field :node_id, :binary, null: false
     field :address, EctoNetwork.INET, null: false
+    field :node_id, :binary, null: true
     field :port, :integer, null: false
     field :received_token, :binary, null: true
     field :sent_token, :binary, null: true
