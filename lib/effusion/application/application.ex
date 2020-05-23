@@ -16,7 +16,7 @@ defmodule Effusion.Application do
     children = [
       Effusion.Repo,
       Effusion.Statistics.Supervisor,
-      Effusion.IOServer,
+      Effusion.IO.Server,
       Effusion.Application.ConnectionSupervisor,
       Effusion.Application.DownloadsSupervisor,
       {Registry, keys: :duplicate, name: ConnectionRegistry},

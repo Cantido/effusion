@@ -1,4 +1,4 @@
-defmodule Effusion.IOServer do
+defmodule Effusion.IO.Server do
   use GenServer
   require Logger
 
