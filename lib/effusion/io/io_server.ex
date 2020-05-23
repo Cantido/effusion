@@ -1,6 +1,10 @@
 defmodule Effusion.IO.Server do
   use GenStage
+  alias Effusion.BTP.Pieces
+  alias Broadway.Message
   require Logger
+
+  @behaviour Broadway.Acknowledger
 
   @moduledoc """
   A process that performs IO.
@@ -22,10 +26,26 @@ defmodule Effusion.IO.Server do
   end
 
   def handle_cast({:write, info_hash, block}, []) do
-    {:noreply, [{info_hash, block}], []}
+    message = %Message{
+      data: {info_hash, block},
+      acknowledger: {__MODULE__, :ack_id, :ack_data}
+    }
+    {:noreply, [message], []}
   end
 
   def handle_demand(_, _) do
     {:noreply, [], []}
+  end
+
+  @impl true
+  def configure(_, _, _) do
+    {:ok, nil}
+  end
+
+  @impl true
+  def ack(_ack_ref, successful, _failed) do
+    Enum.each(successful, fn %Message{data: {info_hash, %{index: index}}} ->
+      Pieces.mark_piece_written(info_hash, index)
+    end)
   end
 end

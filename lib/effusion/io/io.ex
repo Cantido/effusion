@@ -4,12 +4,12 @@ defmodule Effusion.IO do
   alias Effusion.BTP.Block
   alias Effusion.BTP.File, as: BTPFile
   alias Effusion.Repo
+  alias Broadway.Message
   use GenStage
 
   @moduledoc """
   Functions for reading and writing files described by torrents.
   """
-
 
   def start_link(_opts) do
     GenStage.start_link(__MODULE__, :ok)
@@ -24,7 +24,14 @@ defmodule Effusion.IO do
   """
 
   def handle_events(events, _from, state) do
-    Enum.each(events, &write_piece/1)
+    events
+    Enum.each(events, fn message ->
+      try do
+        write_piece(message.data)
+      rescue
+        reason -> Message.failed(message, reason)
+      end
+    end)
 
     {:noreply, [], []}
   end

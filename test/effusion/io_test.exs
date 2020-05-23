@@ -2,6 +2,7 @@ defmodule Effusion.IOTest do
   use ExUnit.Case, async: true
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Torrent
+  alias Broadway.Message
   doctest Effusion.IO
 
   setup do
