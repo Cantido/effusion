@@ -4,15 +4,35 @@ defmodule Effusion.IO do
   alias Effusion.BTP.Block
   alias Effusion.BTP.File, as: BTPFile
   alias Effusion.Repo
+  use GenStage
 
   @moduledoc """
   Functions for reading and writing files described by torrents.
   """
 
+
+  def start_link(_opts) do
+    GenStage.start_link(__MODULE__, :ok)
+  end
+
+  def init(:ok) do
+    {:consumer, [], subscribe_to: [Effusion.IO.Server]}
+  end
+
+  @doc """
+  Consume a GenStage event to write a piece.
+  """
+
+  def handle_events(events, _from, state) do
+    Enum.each(events, &write_piece/1)
+
+    {:noreply, [], []}
+  end
+
   @doc """
   Pull the piece with the given index out of the database and write it out to the configured file.
   """
-  def write_piece(info_hash, %{index: index}) when is_integer(index) and index >= 0 do
+  def write_piece({info_hash, %{index: index}}) when is_integer(index) and index >= 0 do
     :telemetry.execute(
       [:io, :write, :piece, :starting],
       %{},

@@ -46,8 +46,8 @@ defmodule Effusion.IOTest do
   end
 
   test "writes the contents of the torrent out to a file", %{destfile: file, single_file_meta: meta} do
-    Effusion.IO.write_piece(meta.info_hash, %{index: 0})
-    Effusion.IO.write_piece(meta.info_hash, %{index: 1})
+    Effusion.IO.write_piece({meta.info_hash, %{index: 0}})
+    Effusion.IO.write_piece({meta.info_hash, %{index: 1}})
 
     file = File.read!(Path.join(file, "tiny.txt"))
 
@@ -55,7 +55,7 @@ defmodule Effusion.IOTest do
   end
 
   test "writes the contents of a multi-file torrent out into a directory", %{destfile: file, multi_file_meta: meta} do
-    Effusion.IO.write_piece(meta.info_hash, %{index: 0})
+    Effusion.IO.write_piece({meta.info_hash, %{index: 0}})
 
     hello = File.read!(Path.join(file, "hello_world/hello.txt"))
     world = File.read!(Path.join(file, "hello_world/world.txt"))
