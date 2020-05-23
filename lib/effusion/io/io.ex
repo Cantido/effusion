@@ -15,6 +15,7 @@ defmodule Effusion.IO do
     GenStage.start_link(__MODULE__, :ok)
   end
 
+  @impl true
   def init(:ok) do
     {:consumer, [], subscribe_to: [Effusion.IO.Server]}
   end
@@ -22,9 +23,8 @@ defmodule Effusion.IO do
   @doc """
   Consume a GenStage event to write a piece.
   """
-
-  def handle_events(events, _from, state) do
-    events
+  @impl true
+  def handle_events(events, _from, _state) do
     Enum.each(events, fn message ->
       try do
         write_piece(message.data)

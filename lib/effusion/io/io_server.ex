@@ -14,27 +14,38 @@ defmodule Effusion.IO.Server do
     GenStage.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
-  @doc """
-  Pull the given piece out of the database and write it out to the configured file.
-  """
-  def write_piece(info, block) do
-    GenStage.cast(__MODULE__, {:write, info, block})
-  end
-
+  @impl true
   def init(:ok) do
-    {:producer, []}
+    Process.send_after(self(), :poll, 250)
+    {:producer, 0}
   end
 
-  def handle_cast({:write, info_hash, block}, []) do
-    message = %Message{
-      data: {info_hash, block},
+  @impl true
+  def handle_info(:poll, demand) do
+    events = pop_from_queue(demand)
+    remaining_demand = demand - Enum.count(events)
+
+    Process.send_after(self(), :poll, 250)
+    {:noreply, events, remaining_demand}
+  end
+
+  @impl true
+  def handle_demand(demand, existing_demand) do
+    total_demand = demand + existing_demand
+    events = pop_from_queue(total_demand)
+    remaining_demand = total_demand - Enum.count(events)
+    {:noreply, events, remaining_demand}
+  end
+
+  defp pop_from_queue(demand) do
+    Effusion.IO.PieceQueue.pop(demand) |> Enum.map(&transform/1)
+  end
+
+  defp transform(piece) do
+    %Message{
+      data: piece,
       acknowledger: {__MODULE__, :ack_id, :ack_data}
     }
-    {:noreply, [message], []}
-  end
-
-  def handle_demand(_, _) do
-    {:noreply, [], []}
   end
 
   @impl true

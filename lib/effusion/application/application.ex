@@ -16,6 +16,7 @@ defmodule Effusion.Application do
     children = [
       Effusion.Repo,
       Effusion.Statistics.Supervisor,
+      Effusion.IO.PieceQueue,
       Effusion.IO.Server,
       Effusion.IO,
       Effusion.Application.ConnectionSupervisor,

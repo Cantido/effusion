@@ -44,7 +44,7 @@ defmodule Effusion.BTP.VerifierWatchdog do
 
     verified
     |> Enum.each(fn p ->
-      Effusion.IO.Server.write_piece(info_hash, p)
+      Effusion.IO.PieceQueue.push({info_hash, p})
       Pieces.mark_piece_written(info_hash, p.index)
     end)
 
