@@ -51,7 +51,7 @@ defmodule Effusion.Mixfile do
       {:int_set, "~> 1.4"},
       {:httpotion, "~> 3.0.2"},
       {:httpoison, "~> 1.6"},
-      {:gen_stage, "~> 0.14"},
+      {:gen_stage, "~> 1.0"},
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
       {:logger_file_backend, "~> 0.0.10"},
