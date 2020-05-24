@@ -10,7 +10,7 @@ defmodule Effusion.BTP.VerifiedPieceAnnouncer do
 
   @impl true
   def init(_args) do
-    {:consumer, 0, [subscribe_to: [PieceProducer]]}
+    {:consumer, 0, [subscribe_to: [Effusion.BTP.VerifiedPieceProducer]]}
   end
 
   @doc """
@@ -22,8 +22,8 @@ defmodule Effusion.BTP.VerifiedPieceAnnouncer do
     {:noreply, [], state}
   end
 
-  defp handle_event({info_hash, piece}) do
-    ConnectionRegistry.btp_broadcast(info_hash, {:have, piece.index})
+  defp handle_event(piece) do
+    ConnectionRegistry.btp_broadcast(piece.info_hash, {:have, piece.index})
     Repo.get(Piece, piece.id)
     |> Ecto.Changeset.change(announced: true)
     |> Repo.update!()

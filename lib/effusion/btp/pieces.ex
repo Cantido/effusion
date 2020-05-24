@@ -149,7 +149,11 @@ defmodule Effusion.BTP.Pieces do
                                     where: torrent.info_hash == ^info_hash,
                                     where: piece.verified,
                                     where: not piece.announced,
-                                    select: %{index: piece.index, id: piece.id}
+                                    select: %{
+                                      index: piece.index,
+                                      id: piece.id,
+                                      info_hash: torrent.info_hash
+                                    }
 
     Repo.all(verified_piece_blocks_query)
   end

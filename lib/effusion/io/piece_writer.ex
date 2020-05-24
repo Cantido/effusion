@@ -7,7 +7,7 @@ defmodule Effusion.IO.PieceWriter do
 
   @impl true
   def init(_args) do
-    {:consumer, 0, [subscribe_to: [PieceProducer]]}
+    {:consumer, 0, [subscribe_to: [Effusion.BTP.VerifiedPieceProducer]]}
   end
 
   @doc """
@@ -21,7 +21,6 @@ defmodule Effusion.IO.PieceWriter do
 
   defp handle_event(event) do
     Effusion.IO.write_piece(event)
-    {info_hash, %{index: index}} = event
-    Effusion.BTP.Pieces.mark_piece_written(info_hash, index)
+    Effusion.BTP.Pieces.mark_piece_written(event.info_hash, event.index)
   end
 end

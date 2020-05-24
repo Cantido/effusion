@@ -31,11 +31,6 @@ defmodule Effusion.BTP.VerifierWatchdog do
     Logger.debug("VerifierWatchdog checking for completed pieces")
     verified = Pieces.verified(info_hash)
 
-    verified
-    |> Enum.each(fn p ->
-      Effusion.BlockingQueue.push(PieceQueue, {info_hash, p})
-    end)
-
     Logger.debug("VerifierWatchdog announced & wrote #{Enum.count(verified)} pieces")
 
     if Pieces.all_written?(info_hash) && !Torrent.finished?(info_hash) do

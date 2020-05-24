@@ -12,7 +12,7 @@ defmodule Effusion.IO do
   @doc """
   Pull the piece with the given index out of the database and write it out to the configured file.
   """
-  def write_piece({info_hash, %{index: index}}) when is_integer(index) and index >= 0 do
+  def write_piece(%{info_hash: info_hash, index: index}) when is_integer(index) and index >= 0 do
     :telemetry.execute(
       [:io, :write, :piece, :starting],
       %{},

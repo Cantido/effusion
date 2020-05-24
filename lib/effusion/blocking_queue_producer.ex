@@ -2,10 +2,6 @@ defmodule Effusion.BlockingQueueProducer do
   use GenStage
   require Logger
 
-  @moduledoc """
-  A process that performs IO.
-  """
-
   def start_link(opts) do
     name = Keyword.get(opts, :name, BlockingQueueProducer)
     GenStage.start_link(__MODULE__, opts, name: name)

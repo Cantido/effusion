@@ -16,8 +16,9 @@ defmodule Effusion.Application do
     children = [
       Effusion.Repo,
       Effusion.Statistics.Supervisor,
-      {Effusion.BlockingQueue, name: PieceQueue},
-      {Effusion.BlockingQueueProducer, name: PieceProducer, queue: PieceQueue, dispatcher: GenStage.BroadcastDispatcher},
+      # {Effusion.BlockingQueue, name: PieceQueue},
+      # {Effusion.BlockingQueueProducer, name: PieceProducer, queue: PieceQueue, dispatcher: GenStage.BroadcastDispatcher},
+      Effusion.BTP.VerifiedPieceProducer,
       Effusion.BTP.VerifiedPieceAnnouncer,
       Effusion.IO.PieceWriter,
       Effusion.Application.ConnectionSupervisor,
