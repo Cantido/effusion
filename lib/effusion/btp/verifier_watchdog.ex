@@ -44,7 +44,7 @@ defmodule Effusion.BTP.VerifierWatchdog do
 
     verified
     |> Enum.each(fn p ->
-      Effusion.IO.PieceQueue.push({info_hash, p})
+      Effusion.BlockingQueue.push(PieceQueue, {info_hash, p})
     end)
 
     Logger.debug("VerifierWatchdog announced & wrote #{Enum.count(verified)} pieces")

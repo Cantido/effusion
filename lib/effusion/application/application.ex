@@ -16,7 +16,7 @@ defmodule Effusion.Application do
     children = [
       Effusion.Repo,
       Effusion.Statistics.Supervisor,
-      Effusion.IO.PieceQueue,
+      {Effusion.BlockingQueue, name: PieceQueue},
       Effusion.IO.Broadway,
       Effusion.Application.ConnectionSupervisor,
       Effusion.Application.DownloadsSupervisor,

@@ -38,7 +38,7 @@ defmodule Effusion.IO.Server do
   end
 
   defp pop_from_queue(demand) do
-    Effusion.IO.PieceQueue.pop(demand) |> Enum.map(&transform/1)
+    Effusion.BlockingQueue.pop(PieceQueue, demand) |> Enum.map(&transform/1)
   end
 
   defp transform(piece) do

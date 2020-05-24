@@ -1,22 +1,31 @@
-defmodule Effusion.IO.PieceQueue do
+defmodule Effusion.BlockingQueue do
   use GenServer
 
   @queue_length 100
 
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(opts) do
+    name = Keyword.get(opts, :name)
+    GenServer.start_link(__MODULE__, :ok, name: name)
+  end
+
+  def child_spec(opts) do
+    %{
+      id: Keyword.get(opts, :name, BlockingQueue),
+      start: {__MODULE__, :start_link, [opts]},
+      type: :supervisor
+    }
   end
 
   def init(:ok) do
     {:ok, %{queue: [], waiting: []}}
   end
 
-  def push(msg) do
-    GenServer.call(__MODULE__, {:push, msg})
+  def push(queue, msg) do
+    GenServer.call(queue, {:push, msg})
   end
 
-  def pop(count) do
-    GenServer.call(__MODULE__, {:pop, count})
+  def pop(queue, count) do
+    GenServer.call(queue, {:pop, count})
   end
 
   def handle_call({:push, msg}, from, state) do
