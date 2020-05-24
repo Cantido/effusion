@@ -1,10 +1,7 @@
 defmodule Effusion.BTP.VerifierWatchdog do
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Torrent
-  alias Effusion.BTP.Piece
   alias Effusion.BTP.ProtocolHandler
-  alias Effusion.PWP.ConnectionRegistry
-  alias Effusion.Repo
   require Logger
   use GenServer
   @moduledoc """
@@ -33,14 +30,6 @@ defmodule Effusion.BTP.VerifierWatchdog do
   def handle_info(:watch, info_hash) do
     Logger.debug("VerifierWatchdog checking for completed pieces")
     verified = Pieces.verified(info_hash)
-
-    verified
-    |> Enum.map(fn piece ->
-      ConnectionRegistry.btp_broadcast(info_hash, {:have, piece.index})
-      Repo.get(Piece, piece.id)
-      |> Ecto.Changeset.change(announced: true)
-      |> Repo.update!()
-    end)
 
     verified
     |> Enum.each(fn p ->

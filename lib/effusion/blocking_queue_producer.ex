@@ -22,9 +22,10 @@ defmodule Effusion.BlockingQueueProducer do
   @impl true
   def init(opts) do
     poll_interval = Keyword.get(opts, :poll_interval, 250)
-    Process.send_after(self(), :poll, poll_interval)
+    dispatcher = Keyword.get(opts, :dispatcher, GenStage.DemandDispatcher)
     queue = Keyword.get(opts, :queue, BlockingQueue)
-    {:producer, %{queue: queue, demand: 0, poll_interval: poll_interval}}
+    Process.send_after(self(), :poll, poll_interval)
+    {:producer, %{queue: queue, demand: 0, poll_interval: poll_interval}, dispatcher: dispatcher}
   end
 
   @impl true
