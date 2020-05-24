@@ -113,24 +113,7 @@ defmodule Effusion.PWP.ProtocolHandler do
   def handle_message(info_hash, from, message)
 
   def handle_message(info_hash, from, {:piece, block}) when is_hash(info_hash) and is_peer_id(from) do
-    Request.cancel(block, from)
-    |> Enum.uniq()
-    |> Enum.each(fn {peer_id, index, offset, size} ->
-      ConnectionRegistry.btp_send(info_hash, peer_id, {:cancel, index, offset, size})
-    end)
-
-    Pieces.add_block(info_hash, block)
-
-    peer_request_query = from request in Request,
-                         join: peer in assoc(request, :peer),
-                         where: peer.peer_id == ^from
-    peer_request_count = Repo.aggregate(peer_request_query, :count, :peer_id)
-
-    max_requests = Application.get_env(:effusion, :max_requests_per_peer)
-
-    if peer_request_count <= max_requests / 2 do
-      next_request_from_peer(info_hash, from, max_requests)
-    end
+    Effusion.BlockingQueue.push(MessageQueue, {info_hash, from, {:piece, block}})
     :ok
   end
 

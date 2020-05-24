@@ -111,6 +111,7 @@ defmodule Effusion.CLI do
 
     IO.puts("Total TCP connections: #{PeerStats.num_tcp_peers()}")
     IO.puts("Total half-open connections: #{PeerStats.num_peers_half_open()}")
+    IO.puts("Message queue length: #{Effusion.BlockingQueue.length(MessageQueue)}")
 
     Process.sleep(100)
     output_loop(uploaded_bytes, this_loop_time)
