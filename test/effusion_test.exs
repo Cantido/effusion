@@ -4,6 +4,7 @@ defmodule EffusionTest do
   alias Effusion.BTP.Peer
   alias Effusion.PWP.TCP.Socket
   import Mox
+  import Ecto.Query
   require Logger
 
   setup :verify_on_exit!
@@ -129,6 +130,15 @@ defmodule EffusionTest do
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
 
     assert "tiny\n" == contents
+
+    piece_write_statuses = Effusion.Repo.all(
+      from piece in Effusion.BTP.Piece,
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^@info_hash,
+      select: piece.written
+    )
+
+    assert Enum.all?(piece_write_statuses)
 
     :ok = Effusion.stop_download(pid)
     Process.sleep(200)
