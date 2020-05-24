@@ -55,8 +55,16 @@ defmodule Effusion.IO.Server do
 
   @impl true
   def ack(_ack_ref, successful, _failed) do
-    Enum.each(successful, fn %Message{data: {info_hash, %{index: index}}} ->
-      Pieces.mark_piece_written(info_hash, index)
+    Enum.each(successful, fn %Message{data: {info_hash, %{index: index}}, status: status} ->
+      if status == :ok do
+        Pieces.mark_piece_written(info_hash, index)
+      else
+        failure_message = "Failed to write piece #{index} for #{Effusion.Hash.encode(info_hash)}."
+        case status do
+          {:failed, reason} -> Logger.error("#{failure_message} Reason: #{reason}")
+          {_, _, stacktrace} ->  Logger.error("#{failure_message} Stacktrace: #{inspect stacktrace}")
+        end
+      end
     end)
   end
 end
