@@ -5,35 +5,35 @@ defmodule Effusion.IO do
   alias Effusion.BTP.File, as: BTPFile
   alias Effusion.Repo
   alias Broadway.Message
-  use GenStage
+  use Broadway
 
   @moduledoc """
   Functions for reading and writing files described by torrents.
   """
 
   def start_link(_opts) do
-    GenStage.start_link(__MODULE__, :ok)
-  end
-
-  @impl true
-  def init(:ok) do
-    {:consumer, [], subscribe_to: [Effusion.IO.Server]}
+    Broadway.start_link(__MODULE__,
+      name: __MODULE__,
+      producer: [
+        module: {Effusion.IO.Server, []}
+      ],
+      processors: [
+        default: []
+      ]
+    )
   end
 
   @doc """
   Consume a GenStage event to write a piece.
   """
   @impl true
-  def handle_events(events, _from, _state) do
-    Enum.each(events, fn message ->
-      try do
-        write_piece(message.data)
-      rescue
-        reason -> Message.failed(message, reason)
-      end
-    end)
-
-    {:noreply, [], []}
+  def handle_message(_, message, _context) do
+    try do
+      write_piece(message.data)
+      message
+    rescue
+      reason -> Message.failed(message, reason)
+    end
   end
 
   @doc """

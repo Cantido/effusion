@@ -17,7 +17,6 @@ defmodule Effusion.Application do
       Effusion.Repo,
       Effusion.Statistics.Supervisor,
       Effusion.IO.PieceQueue,
-      Effusion.IO.Server,
       Effusion.IO,
       Effusion.Application.ConnectionSupervisor,
       Effusion.Application.DownloadsSupervisor,

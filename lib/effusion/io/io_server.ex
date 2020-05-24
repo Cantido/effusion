@@ -15,7 +15,7 @@ defmodule Effusion.IO.Server do
   end
 
   @impl true
-  def init(:ok) do
+  def init(_args) do
     Process.send_after(self(), :poll, 250)
     {:producer, 0}
   end
