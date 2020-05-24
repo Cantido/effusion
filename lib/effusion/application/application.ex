@@ -17,7 +17,7 @@ defmodule Effusion.Application do
       Effusion.Repo,
       Effusion.Statistics.Supervisor,
       Effusion.IO.PieceQueue,
-      Effusion.IO,
+      Effusion.IO.Broadway,
       Effusion.Application.ConnectionSupervisor,
       Effusion.Application.DownloadsSupervisor,
       {Registry, keys: :duplicate, name: ConnectionRegistry},
