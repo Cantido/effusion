@@ -10,9 +10,6 @@ defmodule Effusion.IO.PieceWriter do
     {:consumer, 0, [subscribe_to: [Effusion.BTP.VerifiedPieceProducer]]}
   end
 
-  @doc """
-  Consume a GenStage event to write a piece.
-  """
   @impl true
   def handle_events(events, _from, state) do
     Enum.each(events, &handle_event/1)
