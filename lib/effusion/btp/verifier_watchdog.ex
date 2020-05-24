@@ -28,11 +28,6 @@ defmodule Effusion.BTP.VerifierWatchdog do
   end
 
   def handle_info(:watch, info_hash) do
-    Logger.debug("VerifierWatchdog checking for completed pieces")
-    verified = Pieces.verified(info_hash)
-
-    Logger.debug("VerifierWatchdog announced & wrote #{Enum.count(verified)} pieces")
-
     if Pieces.all_written?(info_hash) && !Torrent.finished?(info_hash) do
       Logger.debug("All pieces are written, notifying BTP handler")
       ProtocolHandler.notify_all_pieces_written(info_hash)
