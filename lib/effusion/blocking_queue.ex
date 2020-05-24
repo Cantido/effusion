@@ -1,11 +1,9 @@
 defmodule Effusion.BlockingQueue do
   use GenServer
 
-  @queue_length 100
-
   def start_link(opts) do
     name = Keyword.get(opts, :name)
-    GenServer.start_link(__MODULE__, :ok, name: name)
+    GenServer.start_link(__MODULE__, opts, name: name)
   end
 
   def child_spec(opts) do
@@ -16,8 +14,9 @@ defmodule Effusion.BlockingQueue do
     }
   end
 
-  def init(:ok) do
-    {:ok, %{queue: [], waiting: []}}
+  def init(opts) do
+    max_length = Keyword.get(opts, :max_length, 100)
+    {:ok, %{max_length: max_length, queue: [], waiting: []}}
   end
 
   def push(queue, msg) do
@@ -28,8 +27,16 @@ defmodule Effusion.BlockingQueue do
     GenServer.call(queue, {:pop, count})
   end
 
+  def length(queue) do
+    GenServer.call(queue, :length)
+  end
+
+  def handle_call(:length, _from, state) do
+    {:reply, Enum.count(state.queue), state}
+  end
+
   def handle_call({:push, msg}, from, state) do
-    if Enum.count(state.queue) >= @queue_length do
+    if Enum.count(state.queue) >= state.max_length do
       waiting = state.waiting ++ [{from, msg}]
       {:noreply, %{state | waiting: waiting}}
     else
