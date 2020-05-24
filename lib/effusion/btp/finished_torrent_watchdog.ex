@@ -1,4 +1,4 @@
-defmodule Effusion.BTP.VerifierWatchdog do
+defmodule Effusion.BTP.FinishedTorrentWatchdog do
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.ProtocolHandler
@@ -16,13 +16,13 @@ defmodule Effusion.BTP.VerifierWatchdog do
     GenServer.start_link(
       __MODULE__,
       info_hash,
-      name: {:via, Registry, {VerifierWatchdogRegistry, info_hash}}
+      name: {:via, Registry, {FinishedTorrentWatchdogRegistry, info_hash}}
     )
   end
 
   def init(info_hash) do
     Process.flag(:trap_exit, true)
-    Logger.debug("VerifierWatchdog started")
+    Logger.debug("FinishedTorrentWatchdog started")
     Process.send_after(self(), :watch, @watch_interval_ms)
     {:ok, info_hash}
   end

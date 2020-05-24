@@ -25,7 +25,7 @@ defmodule Effusion.Application do
       Effusion.Application.DownloadsSupervisor,
       {Registry, keys: :duplicate, name: ConnectionRegistry},
       {Registry, keys: :unique, name: BTPHandlerRegistry},
-      {Registry, keys: :unique, name: VerifierWatchdogRegistry},
+      {Registry, keys: :unique, name: FinishedTorrentWatchdogRegistry},
       {Registry, keys: :unique, name: AnnouncerRegistry},
       # Effusion.BTP.Session,
       EffusionWeb.Endpoint
