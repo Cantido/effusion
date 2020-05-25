@@ -67,9 +67,11 @@ defmodule Effusion.CLI do
          last_timestamp \\ System.monotonic_time(:millisecond)
        ) do
 
-    info_hashes = Repo.all(from torrent in Torrent,
-                           where: torrent.state == "downloading",
-                           select: torrent.info_hash)
+    info_hashes = Repo.all(
+      from torrent in Torrent,
+      where: torrent.state == "downloading",
+      select: torrent.info_hash
+    )
 
     torrent_rows = Enum.map(info_hashes, fn info_hash ->
       torrent_row(info_hash)
