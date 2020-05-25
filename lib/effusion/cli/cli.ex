@@ -40,7 +40,10 @@ defmodule Effusion.CLI do
           state: "paused"
         ])
 
-        Repo.get_by!(Effusion.BTP.Torrent, [info_hash: meta.info_hash])
+        case Repo.get_by(Effusion.BTP.Torrent, [info_hash: meta.info_hash]) do
+          nil -> Effusion.BTP.Torrent.insert(meta)
+          torrent -> torrent
+        end
         |> Ecto.Changeset.change(state: "downloading")
         |> Effusion.Repo.update!()
       end)
