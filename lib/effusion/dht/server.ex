@@ -58,9 +58,10 @@ defmodule Effusion.DHT.Server do
   end
 
   def handle_krpc_query({:announce_peer, transaction_id, sender_id, _info_hash, _port, _token}, %{current_timestamp: now}) do
-     token_query = from node in DHT.Node,
-                   where: node.node_id == ^sender_id,
-                   select: {node.sent_token, node.sent_token_timestamp}
+    token_query =
+      from node in DHT.Node,
+      where: node.node_id == ^sender_id,
+      select: {node.sent_token, node.sent_token_timestamp}
 
     case Repo.one(token_query) do
       {_token, timestamp} ->
@@ -124,8 +125,9 @@ defmodule Effusion.DHT.Server do
     :ok
   end
 
-  def handle_krpc_response({:get_peers_matching, response_transaction_id, _node_id, _token, peers},
-                           %{query: {:get_peers, query_transaction_id, _sender_id, info_hash}})
+  def handle_krpc_response(
+    {:get_peers_matching, response_transaction_id, _node_id, _token, peers},
+    %{query: {:get_peers, query_transaction_id, _sender_id, info_hash}})
     when response_transaction_id == query_transaction_id do
 
     torrent_id =

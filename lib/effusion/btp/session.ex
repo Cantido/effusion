@@ -39,9 +39,11 @@ defmodule Effusion.BTP.Session do
   end
 
   def resume_torrents() do
-    torrents_to_resume = Repo.all(from torrent in Torrent,
-                                  where: torrent.state == "downloading",
-                                  select: torrent.info_hash)
+    torrents_to_resume = Repo.all(
+      from torrent in Torrent,
+      where: torrent.state == "downloading",
+      select: torrent.info_hash
+    )
     Enum.each(torrents_to_resume, fn info_hash ->
       Logger.info("Resuming torrent #{info_hash |> Effusion.Hash.encode()}")
       Task.async(fn ->

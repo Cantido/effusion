@@ -33,13 +33,15 @@ defmodule Effusion.BTP.Pieces do
     i = block.index
     o = block.offset
 
-    Repo.exists?(from b in block,
-                 join: p in assoc(b, :piece),
-                 join: torrent in assoc(p, :torrent),
-                 where: torrent.info_hash == ^info_hash,
-                 where: p.index == ^i,
-                 where: b.offset == ^o,
-                 where: not is_nil(b.data))
+    Repo.exists?(
+      from b in block,
+      join: p in assoc(b, :piece),
+      join: torrent in assoc(p, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      where: p.index == ^i,
+      where: b.offset == ^o,
+      where: not is_nil(b.data)
+    )
   end
 
   def has_piece?(info_hash, index) when is_hash(info_hash) and is_integer(index) and index > 0 do
@@ -67,41 +69,49 @@ defmodule Effusion.BTP.Pieces do
   end
 
   def add_block(info_hash, %{index: i, offset: o, data: data}) when is_hash(info_hash) do
-    query = from b in Block,
-            join: p in assoc(b, :piece),
-            join: torrent in assoc(p, :torrent),
-            where: torrent.info_hash == ^info_hash,
-            where: p.index == ^i,
-            where: b.offset == ^o,
-            update: [set: [data: ^data]]
+    query =
+      from b in Block,
+      join: p in assoc(b, :piece),
+      join: torrent in assoc(p, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      where: p.index == ^i,
+      where: b.offset == ^o,
+      update: [set: [data: ^data]]
     Repo.update_all(query, [])
   end
 
   def verify_all(info_hash) do
-    blocks_per_piece_query = from piece in Piece,
-                              join: block in assoc(piece, :blocks),
-                              join: torrent in assoc(piece, :torrent),
-                              where: torrent.info_hash == ^info_hash,
-                              where: not piece.verified,
-                              group_by: piece.id,
-                              select: {piece.id, count(block.id)}
+    blocks_per_piece_query =
+      from piece in Piece,
+      join: block in assoc(piece, :blocks),
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      where: not piece.verified,
+      group_by: piece.id,
+      select: {piece.id, count(block.id)}
 
-    blocks_per_piece_with_data_query = from piece in Piece,
-                                        join: block in assoc(piece, :blocks),
-                                        join: torrent in assoc(piece, :torrent),
-                                        where: torrent.info_hash == ^info_hash,
-                                        where: not is_nil(block.data),
-                                        where: not piece.verified,
-                                        group_by: piece.id,
-                                        select: {piece.id, count(block.id)}
+    blocks_per_piece_with_data_query =
+      from piece in Piece,
+      join: block in assoc(piece, :blocks),
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      where: not is_nil(block.data),
+      where: not piece.verified,
+      group_by: piece.id,
+      select: {piece.id, count(block.id)}
 
     pieces_with_all_blocks = Repo.all(blocks_per_piece_query |> intersect(^blocks_per_piece_with_data_query))
 
     pieces_with_all_blocks |> Enum.each(fn {piece_dbid, _block_count} ->
-      data_query = from block in Block,
-                    join: piece in assoc(block, :piece),
-                    where: piece.id == ^piece_dbid,
-                    select: fragment("digest(string_agg(?, '' ORDER BY ?), 'sha1')", block.data, block.offset)
+      data_query =
+        from block in Block,
+        join: piece in assoc(block, :piece),
+        where: piece.id == ^piece_dbid,
+        select: fragment(
+          "digest(string_agg(?, '' ORDER BY ?), 'sha1')",
+          block.data,
+          block.offset
+        )
 
       piece_actual_hash = Repo.one!(data_query)
 
@@ -129,13 +139,14 @@ defmodule Effusion.BTP.Pieces do
   Get the set of blocks cached by this torrent.
   """
   def unfinished(info_hash) when is_hash(info_hash) do
-    unfinished_piece_blocks_query = from block in Block,
-                                    join: piece in assoc(block, :piece),
-                                    join: torrent in assoc(piece, :torrent),
-                                    where: torrent.info_hash == ^info_hash,
-                                    where: not piece.verified,
-                                    where: not is_nil(block.data),
-                                    select: block
+    unfinished_piece_blocks_query =
+      from block in Block,
+      join: piece in assoc(block, :piece),
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      where: not piece.verified,
+      where: not is_nil(block.data),
+      select: block
 
     Repo.all(unfinished_piece_blocks_query)
   end
@@ -143,28 +154,30 @@ defmodule Effusion.BTP.Pieces do
   def verified(info_hash) when is_hash(info_hash) do
     verify_all(info_hash)
 
-    verified_piece_blocks_query = from block in Block,
-                                    join: piece in assoc(block, :piece),
-                                    join: torrent in assoc(piece, :torrent),
-                                    where: torrent.info_hash == ^info_hash,
-                                    where: piece.verified,
-                                    where: not piece.announced,
-                                    select: %{
-                                      index: piece.index,
-                                      id: piece.id,
-                                      info_hash: torrent.info_hash
-                                    }
+    verified_piece_blocks_query =
+      from block in Block,
+      join: piece in assoc(block, :piece),
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      where: piece.verified,
+      where: not piece.announced,
+      select: %{
+        index: piece.index,
+        id: piece.id,
+        info_hash: torrent.info_hash
+      }
 
     Repo.all(verified_piece_blocks_query)
   end
 
   def written(info_hash) when is_hash(info_hash) do
-    written_piece_blocks_query = from block in Block,
-                                    join: piece in assoc(block, :piece),
-                                    join: torrent in assoc(piece, :torrent),
-                                    where: torrent.info_hash == ^info_hash,
-                                    where: piece.written,
-                                    select: piece.index
+    written_piece_blocks_query =
+      from block in Block,
+      join: piece in assoc(block, :piece),
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      where: piece.written,
+      select: piece.index
 
     Repo.all(written_piece_blocks_query) |> IntSet.new()
   end
@@ -189,17 +202,21 @@ defmodule Effusion.BTP.Pieces do
   end
 
   def piece_count(info_hash) when is_hash(info_hash) do
-    Repo.one(from piece in Piece,
-                            join: torrent in assoc(piece, :torrent),
-                            where: torrent.info_hash == ^info_hash,
-                            select: count(piece.index))
+    Repo.one(
+      from piece in Piece,
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      select: count(piece.index)
+    )
   end
 
   def torrent_length(info_hash) when is_hash(info_hash) do
-    Repo.one(from piece in Piece,
-              join: torrent in assoc(piece, :torrent),
-              where: torrent.info_hash == ^info_hash,
-              select: sum(piece.size))
+    Repo.one(
+      from piece in Piece,
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      select: sum(piece.size)
+    )
   end
 
   @doc """
@@ -208,7 +225,9 @@ defmodule Effusion.BTP.Pieces do
   This includes bytes in blocks that have not yet been verified.
   """
   def bytes_completed(info_hash) when is_hash(info_hash) do
-    unfinished_bytes(info_hash) + verified_bytes(info_hash) + bytes_written(info_hash)
+    unfinished_bytes(info_hash) +
+      verified_bytes(info_hash) +
+      bytes_written(info_hash)
   end
 
   defp unfinished_bytes(info_hash) when is_hash(info_hash) do
@@ -220,19 +239,23 @@ defmodule Effusion.BTP.Pieces do
   end
 
   defp verified_bytes(info_hash) when is_hash(info_hash) do
-    Repo.one(from piece in Piece,
-              join: torrent in assoc(piece, :torrent),
-              where: torrent.info_hash == ^info_hash,
-              where: piece.verified,
-              select: coalesce(sum(piece.size), 0))
+    Repo.one(
+      from piece in Piece,
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      where: piece.verified,
+      select: coalesce(sum(piece.size), 0)
+    )
   end
 
   defp bytes_written(info_hash) when is_hash(info_hash) do
-    Repo.one(from piece in Piece,
-              join: torrent in assoc(piece, :torrent),
-              where: torrent.info_hash == ^info_hash,
-              where: piece.written,
-              select: coalesce(sum(piece.size), 0))
+    Repo.one(
+      from piece in Piece,
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      where: piece.written,
+      select: coalesce(sum(piece.size), 0)
+    )
   end
 
   @doc """
@@ -251,10 +274,12 @@ defmodule Effusion.BTP.Pieces do
   end
 
   def mark_piece_written(info_hash, i) when is_integer(i) do
-    Repo.one!(from piece in Piece,
-               join: torrent in assoc(piece, :torrent),
-               where: torrent.info_hash == ^info_hash,
-               where: piece.index == ^i)
+    Repo.one!(
+      from piece in Piece,
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      where: piece.index == ^i
+    )
     |> Ecto.Changeset.change([written: true])
     |> Repo.update()
   end

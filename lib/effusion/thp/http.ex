@@ -48,15 +48,15 @@ defmodule Effusion.THP.HTTP do
     sanitized_opts = Keyword.take(opts, @allowed_opts) |> Map.new()
 
     tracker_request = %{
-        info_hash: info_hash,
-        peer_id: peer_id,
-        port: peer_port,
-        uploaded: uploaded,
-        downloaded: downloaded,
-        left: left,
-        ip: to_string(:inet.ntoa(peer_host))
-      }
-      |> Map.merge(sanitized_opts)
+      info_hash: info_hash,
+      peer_id: peer_id,
+      port: peer_port,
+      uploaded: uploaded,
+      downloaded: downloaded,
+      left: left,
+      ip: to_string(:inet.ntoa(peer_host))
+    }
+    |> Map.merge(sanitized_opts)
 
     Logger.debug("Making announce to #{tracker_url}")
 

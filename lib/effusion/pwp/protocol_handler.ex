@@ -122,11 +122,12 @@ defmodule Effusion.PWP.ProtocolHandler do
   Handle a peer disconnection.
   """
   def handle_disconnect(info_hash, {ip, port}, reason) do
-    peer_query = from peer in Peer,
-                  join: torrent in assoc(peer, :torrent),
-                  where: torrent.info_hash == ^info_hash,
-                  where: peer.address == ^%Postgrex.INET{address: ip},
-                  where: peer.port == ^port
+    peer_query =
+      from peer in Peer,
+      join: torrent in assoc(peer, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      where: peer.address == ^%Postgrex.INET{address: ip},
+      where: peer.port == ^port
 
     if reason == :normal do
       Repo.update_all(peer_query, [set: [connected: false]])

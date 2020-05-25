@@ -29,8 +29,7 @@ defmodule Effusion.BTP.Piece do
   def all_indicies_query(info_hash, indicies) do
     from p in __MODULE__,
       join: torrent in assoc(p, :torrent),
-      where: torrent.info_hash == ^info_hash
-       and p.index in ^indicies
+      where: torrent.info_hash == ^info_hash and p.index in ^indicies
   end
 
   def piece_size(index, info) do

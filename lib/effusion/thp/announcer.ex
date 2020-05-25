@@ -86,8 +86,10 @@ defmodule Effusion.THP.Announcer do
     end
     timer = Process.send_after(self(), :interval_expired, res.interval * 1_000)
 
-    torrent = Repo.one!(from torrent in Torrent,
-              where: torrent.info_hash == ^info_hash)
+    torrent = Repo.one!(
+      from torrent in Torrent,
+      where: torrent.info_hash == ^info_hash
+    )
     torrent
     |> Ecto.Changeset.change(trackerid: Map.get(res, :trackerid, ""))
     |> Ecto.Changeset.change(last_announce: DateTime.utc_now() |> DateTime.truncate(:second))
