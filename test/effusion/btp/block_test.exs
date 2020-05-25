@@ -1,5 +1,5 @@
 defmodule Effusion.BTP.BlockTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   alias Effusion.BTP.Block
   alias Effusion.Repo
   alias Effusion.Factory
@@ -7,6 +7,7 @@ defmodule Effusion.BTP.BlockTest do
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, {:shared, self()})
     :ok
   end
 

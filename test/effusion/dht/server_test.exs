@@ -6,6 +6,7 @@ defmodule Effusion.DHT.ServerTest do
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, {:shared, self()})
   end
 
   @node_id Application.get_env(:effusion, :dht_node_id) |> Base.decode64!()
