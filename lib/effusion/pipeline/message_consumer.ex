@@ -1,6 +1,13 @@
 defmodule Effusion.Pipeline.MessageConsumer do
   use GenStage
+  alias Effusion.BTP.Piece
+  alias Effusion.PWP.ProtocolHandler
+  alias Effusion.Repo
   require Logger
+
+  @moduledoc """
+  Handles messages that come in from peers.
+  """
 
   def start_link(_opts) do
     GenStage.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -14,12 +21,12 @@ defmodule Effusion.Pipeline.MessageConsumer do
   @impl true
   def handle_events(events, _from, state) do
     updated_pieces = Enum.map(events, fn event ->
-      Effusion.PWP.ProtocolHandler.handle_message(event)
+      ProtocolHandler.handle_message(event)
 
       case event do
         {info_hash, _from, {:piece, block}} ->
-          Effusion.BTP.Piece.get(info_hash, block.index)
-          |> Effusion.Repo.one()
+          Piece.get(info_hash, block.index)
+          |> Repo.one()
         _ -> nil
       end
     end)

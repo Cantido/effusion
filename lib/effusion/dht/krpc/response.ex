@@ -1,4 +1,9 @@
 defmodule Effusion.DHT.KRPC.Response do
+
+  @moduledoc """
+  Encodes and decodes KRPC responses.
+  """
+
   def encode({:ping, transaction_id, node_id}) do
     response(transaction_id, node_id, "ping")
   end

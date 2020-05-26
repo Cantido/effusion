@@ -1,6 +1,10 @@
 defmodule Effusion.BlockingQueue do
   use GenServer
 
+  @moduledoc """
+  A queue with a fixed length that blocks on `pop/1` if the queue is full.
+  """
+
   def start_link(opts) do
     name = Keyword.get(opts, :name)
     GenServer.start_link(__MODULE__, opts, name: name)

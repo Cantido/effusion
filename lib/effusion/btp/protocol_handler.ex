@@ -2,10 +2,10 @@ defmodule Effusion.BTP.ProtocolHandler do
   use GenServer
   alias Effusion.BTP.Piece
   alias Effusion.BTP.Torrent
-  alias Effusion.PWP.ProtocolHandler
   alias Effusion.PWP.ConnectionRegistry
-  alias Effusion.THP.Announcer
+  alias Effusion.PWP.ProtocolHandler
   alias Effusion.Repo
+  alias Effusion.THP.Announcer
   require Logger
 
   @moduledoc """

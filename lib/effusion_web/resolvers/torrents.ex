@@ -4,6 +4,10 @@ defmodule EffusionWeb.Resolvers.Torrents do
   alias Effusion.BTP.Torrent
   alias Effusion.Repo
 
+  @moduledoc """
+  Absinthe resolvers for torrents.
+  """
+
   def all_torrents(_root, _args, _info) do
     torrents = Torrent.all() |> Repo.all()
 

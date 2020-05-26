@@ -1,10 +1,14 @@
 defmodule Effusion.DHT.Server do
-  alias Effusion.BTP.{Torrent, Peer}
+  alias Effusion.BTP.{Peer, Torrent}
   alias Effusion.DHT
   alias Effusion.Repo
   import Bitwise
   import Effusion.DHT, only: [is_node_id: 1]
   import Ecto.Query
+
+  @moduledoc """
+  Handles incoming KRPC queries and responses.
+  """
 
   @node_id Application.get_env(:effusion, :dht_node_id) |> Base.decode64!()
 

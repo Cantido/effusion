@@ -2,6 +2,7 @@ defmodule Effusion.BTP.PeerSelection do
   alias Effusion.BTP.Peer
   alias Effusion.Repo
   import Ecto.Query
+
   @moduledoc """
   Selects which peers to connect to.
   """

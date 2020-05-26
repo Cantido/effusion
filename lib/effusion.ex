@@ -1,7 +1,7 @@
 defmodule Effusion do
   alias Effusion.Application.DownloadsSupervisor
-  alias Effusion.BTP.Torrent
   alias Effusion.BTP.ProtocolHandler, as: BTPProtocolHandler
+  alias Effusion.BTP.Torrent
   alias Effusion.Repo
   import Ecto.Query
 

@@ -28,7 +28,6 @@ defmodule Effusion.PWP.TCP.Connection do
     send(pid, {:disconnect, reason})
   end
 
-
   defp successful_handshake(socket, info_hash, peer_id, extensions) do
     with {:ok, address} <- :inet.peername(socket),
          :ok <- ProtocolHandler.handle_connect(info_hash, peer_id, address, extensions),
@@ -84,9 +83,7 @@ defmodule Effusion.PWP.TCP.Connection do
     when is_peer_id(remote_peer_id)
      and is_hash(info_hash) do
 
-    if not Torrent.downloading?(info_hash) do
-      {:stop, :normal, state}
-    else
+    if Torrent.downloading?(info_hash) do
       :telemetry.execute(
         [:pwp, :incoming, :starting],
         %{},
@@ -112,6 +109,8 @@ defmodule Effusion.PWP.TCP.Connection do
           :telemetry.execute([:pwp, :incoming, :failure], %{}, state)
           {:stop, :handshake_failure, state}
       end
+    else
+      {:stop, :normal, state}
     end
   end
 
@@ -172,11 +171,11 @@ defmodule Effusion.PWP.TCP.Connection do
       |> Map.put(:reason, reason)
     )
 
-    if(Map.has_key?(state, :socket)) do
+    if Map.has_key?(state, :socket) do
       Socket.close(state.socket)
     end
 
-    if(Map.has_key?(state, :info_hash) && Map.has_key?(state, :address)) do
+    if Map.has_key?(state, :info_hash) && Map.has_key?(state, :address) do
       ProtocolHandler.handle_disconnect(state.info_hash, state.address, reason)
     end
 

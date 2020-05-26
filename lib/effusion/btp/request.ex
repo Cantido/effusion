@@ -4,6 +4,10 @@ defmodule Effusion.BTP.Request do
   alias Effusion.Repo
   import Ecto.Query
 
+  @moduledoc """
+  A request for a block sent by the local client to a remote peer.
+  """
+
   schema "requests" do
     belongs_to :block, Block
     belongs_to :peer, Peer

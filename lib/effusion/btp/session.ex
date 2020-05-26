@@ -38,7 +38,7 @@ defmodule Effusion.BTP.Session do
     {:noreply, state}
   end
 
-  def resume_torrents() do
+  def resume_torrents do
     torrents_to_resume = Repo.all(
       from torrent in Torrent,
       where: torrent.state == "downloading",

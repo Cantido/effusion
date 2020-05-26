@@ -1,7 +1,7 @@
 defmodule Effusion.BTP.Pieces do
   require Logger
-  alias Effusion.BTP.Piece
   alias Effusion.BTP.Block
+  alias Effusion.BTP.Piece
   alias Effusion.Repo
   import Effusion.Hash, only: [is_hash: 1]
   import Ecto.Query
@@ -9,7 +9,6 @@ defmodule Effusion.BTP.Pieces do
   @moduledoc """
   Functions for assembling the file that results from a torrent download.
   """
-
 
   @doc """
   Check if we have downloaded and verified the given piece.

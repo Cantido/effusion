@@ -2,8 +2,8 @@ defmodule Effusion.PWP.ProtocolHandler do
   alias Effusion.BTP.Block
   alias Effusion.BTP.Peer
   alias Effusion.BTP.PeerPiece
-  alias Effusion.BTP.Pieces
   alias Effusion.BTP.Piece
+  alias Effusion.BTP.Pieces
   alias Effusion.BTP.Request
   alias Effusion.BTP.Torrent
   alias Effusion.PWP.ConnectionRegistry

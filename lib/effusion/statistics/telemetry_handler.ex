@@ -1,7 +1,7 @@
 defmodule Effusion.Statistics.TelemetryHandler do
   alias Effusion.PWP.Messages
-  alias Effusion.Statistics.Session, as: SessionStats
   alias Effusion.Statistics.Peer, as: PeerStats
+  alias Effusion.Statistics.Session, as: SessionStats
   require Logger
 
   @moduledoc """
@@ -46,7 +46,6 @@ defmodule Effusion.Statistics.TelemetryHandler do
     data_size = byte_size(data)
     payload_size = Messages.payload_bytes_count(data)
     msg = metadata.message
-
 
     SessionStats.inc_incoming_message(msg)
     :ets.update_counter(NetStatsTable, :recv_payload_bytes, payload_size, {:k, 0})

@@ -1,12 +1,24 @@
 defmodule Effusion.BTP.Piece do
-  alias Effusion.BTP.Torrent
   alias Effusion.BTP.Block
   alias Effusion.BTP.PeerPiece
+  alias Effusion.BTP.Torrent
   alias Effusion.Repo
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query
   import Effusion.Math
+
+  @moduledoc """
+  A segment of a `Effusion.BTP.Torrent` file or files.
+
+  First, a piece is broken up into `Effusion.BTP.Block`s.
+  Then, each block must be requested from a peer, which creates a `Effusion.BTP.Request` in the database.
+  When a peer sends us a message containing that block, it is inserted as an `Effusion.BTP.Block`.
+  Once we have all of a piece's blocks, we must then compare the aggregated block data's SHA1 hash against the expected hash given to us in the torrent's metadata file.
+  When the hashes match, the `:verified` flag is flipped to `true`,
+  then we must announce it to peers, setting `:announced` to true,
+  and then write it out to the destination file, setting `:written` to true, and clearing the data from the database to save space.
+  """
 
   schema "pieces" do
     belongs_to :torrent, Torrent

@@ -1,14 +1,16 @@
 defmodule Effusion.CLI do
+  alias Ecto.Changeset
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Request
+  alias Effusion.BTP.Session
   alias Effusion.BTP.Torrent
   alias Effusion.Format
+  alias Effusion.Repo
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
   alias Effusion.Statistics.PeerDownloadAverage
   alias Effusion.Statistics.SessionDownloadAverage
-  alias Effusion.Repo
   import Ecto.Query
   use Timex
 
@@ -31,29 +33,33 @@ defmodule Effusion.CLI do
       IO.warn("Invalid option #{i}")
     end)
 
-    if(Enum.any?(files)) do
+    if Enum.any?(files) do
       Enum.each(files, fn file ->
-        {:ok, metabin} = file |> Path.expand() |> File.read()
-        {:ok, meta} = Metatorrent.decode(metabin)
-
-        Repo.update_all(Effusion.BTP.Torrent, set: [
+        Repo.update_all(Torrent, set: [
           state: "paused"
         ])
 
-        case Repo.get_by(Effusion.BTP.Torrent, [info_hash: meta.info_hash]) do
-          nil -> Effusion.BTP.Torrent.insert(meta)
-          torrent -> torrent
-        end
-        |> Ecto.Changeset.change(state: "downloading")
-        |> Effusion.Repo.update!()
+        {:ok, metabin} = file |> Path.expand() |> File.read()
+        {:ok, meta} = Metatorrent.decode(metabin)
+
+        insert_or_get_torrent(meta)
+        |> Changeset.change(state: "downloading")
+        |> Repo.update!()
       end)
     end
 
-    Effusion.BTP.Session.start_link([])
+    Session.start_link([])
 
     Process.sleep(100)
 
     output_loop()
+  end
+
+  defp insert_or_get_torrent(meta) do
+    case Repo.get_by(Effusion.BTP.Torrent, [info_hash: meta.info_hash]) do
+      nil -> Torrent.insert(meta)
+      torrent -> torrent
+    end
   end
 
   @name_width 40

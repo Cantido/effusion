@@ -1,6 +1,10 @@
 defmodule Effusion.DHT.Bucket do
   use Ecto.Schema
 
+  @moduledoc """
+  A range of DHT node IDs.
+  """
+
   schema "buckets" do
     field :minimum, :binary, null: false
     field :maximum, :binary, null: false

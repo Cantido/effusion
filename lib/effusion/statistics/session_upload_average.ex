@@ -13,7 +13,7 @@ defmodule Effusion.Statistics.SessionUploadAverage do
   @doc """
   Get the overall download speed for the current session.
   """
-  def session_20sec_upload_avg() do
+  def session_20sec_upload_avg do
     GenServer.call(__MODULE__, :session_20sec_upload_avg)
   end
 
@@ -47,10 +47,10 @@ defmodule Effusion.Statistics.SessionUploadAverage do
   end
 
   defp avg(list) when is_list(list) and length(list) > 0 do
-    Enum.sort(list) |> Enum.at((length(list)/2) |> trunc())
+    Enum.sort(list) |> Enum.at((length(list) / 2) |> trunc())
   end
 
-  defp avg(list) when is_list(list) and length(list) == 0 do
+  defp avg([]) do
     0
   end
 end

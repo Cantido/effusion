@@ -1,9 +1,9 @@
 defmodule Effusion.IO do
   require Logger
-  alias Effusion.BTP.Piece
-  alias Effusion.BTP.Torrent
   alias Effusion.BTP.Block
   alias Effusion.BTP.File, as: BTPFile
+  alias Effusion.BTP.Piece
+  alias Effusion.BTP.Torrent
   alias Effusion.Repo
 
   @moduledoc """

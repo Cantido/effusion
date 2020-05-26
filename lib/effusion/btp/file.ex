@@ -7,6 +7,12 @@ defmodule Effusion.BTP.File do
   import Ecto.Query
   use Ecto.Schema
 
+  @moduledoc """
+  A downloadable file within a torrent.
+
+  Some torrents describe only a single file, while others describe many.
+  """
+
   schema "files" do
     belongs_to :torrent, Torrent
     field :size, :integer, null: false

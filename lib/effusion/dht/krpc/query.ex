@@ -1,6 +1,10 @@
 defmodule Effusion.DHT.KRPC.Query do
   import Effusion.DHT
 
+  @moduledoc """
+  Encodes and decodes KRPC queries.
+  """
+
   def encode({:ping, transaction_id, sender_id}) when is_node_id(sender_id) do
     query(transaction_id, sender_id, "ping")
   end
@@ -54,11 +58,11 @@ defmodule Effusion.DHT.KRPC.Query do
     {:ping, transaction_id, sender_id}
   end
 
-  def decode(%{"q" => "find_node", "t" => transaction_id,"a" => %{"id" => sender_id, "target" => target_id}}) do
+  def decode(%{"q" => "find_node", "t" => transaction_id, "a" => %{"id" => sender_id, "target" => target_id}}) do
     {:find_node, transaction_id, sender_id, target_id}
   end
 
-  def decode(%{"q" => "get_peers", "t" => transaction_id,"a" => %{"id" => sender_id, "info_hash" => info_hash}}) do
+  def decode(%{"q" => "get_peers", "t" => transaction_id, "a" => %{"id" => sender_id, "info_hash" => info_hash}}) do
     {:get_peers, transaction_id, sender_id, info_hash}
   end
 

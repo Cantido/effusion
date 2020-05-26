@@ -2,6 +2,10 @@ defmodule EffusionWeb.Schema do
   use Absinthe.Schema
   alias EffusionWeb.Resolvers
 
+  @moduledoc """
+  Absinthe schema.
+  """
+
   import_types Absinthe.Type.Custom
   import_types Effusion.Schema.Binary
 

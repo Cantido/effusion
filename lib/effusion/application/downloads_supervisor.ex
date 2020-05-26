@@ -1,6 +1,10 @@
 defmodule Effusion.Application.DownloadsSupervisor do
   use DynamicSupervisor
 
+  @moduledoc """
+  A `DyanmicSupervisor` that supervises all `Effusion.Application.DownloadSupervisor`s.
+  """
+
   def start_link([]) do
     DynamicSupervisor.start_link(__MODULE__, :ok, name: __MODULE__)
   end

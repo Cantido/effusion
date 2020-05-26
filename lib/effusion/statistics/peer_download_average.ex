@@ -56,7 +56,7 @@ defmodule Effusion.Statistics.PeerDownloadAverage do
     Enum.sum(list) / length(list)
   end
 
-  defp avg(list) when is_list(list) and length(list) == 0 do
+  defp avg([]) do
     0
   end
 end

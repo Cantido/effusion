@@ -2,6 +2,10 @@ defmodule Effusion.DHT.Node do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @moduledoc """
+  A peer in the DHT network.
+  """
+
   schema "nodes" do
     field :address, EctoNetwork.INET, null: false
     field :node_id, :binary, null: true

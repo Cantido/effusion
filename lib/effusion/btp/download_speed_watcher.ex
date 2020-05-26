@@ -1,8 +1,8 @@
 defmodule Effusion.BTP.DownloadSpeedWatcher do
-  alias Effusion.PWP.ConnectionRegistry
-  alias Effusion.PWP.ProtocolHandler
   alias Effusion.BTP.PeerSelection
   alias Effusion.BTP.Torrent
+  alias Effusion.PWP.ConnectionRegistry
+  alias Effusion.PWP.ProtocolHandler
   alias Effusion.Statistics.PeerDownloadAverage
   require Logger
   use GenServer
@@ -45,7 +45,7 @@ defmodule Effusion.BTP.DownloadSpeedWatcher do
     all_peers = ConnectionRegistry.all_connected(info_hash)
 
     all_peers
-    |> Enum.map(fn peer_id ->
+    |> Enum.each(fn peer_id ->
       dl_speed = PeerDownloadAverage.peer_20sec_download_avg(peer_id)
 
       if dl_speed < @peer_min_bits_per_second do
@@ -59,7 +59,7 @@ defmodule Effusion.BTP.DownloadSpeedWatcher do
 
   defp add_peers(info_hash) do
     PeerSelection.select_lowest_failcount(info_hash, @peers_count_to_add_on_speedup)
-    |> Enum.map(fn peer ->
+    |> Enum.each(fn peer ->
       address = {peer.address.address, peer.port}
       ProtocolHandler.connect(address, info_hash, peer.peer_id)
     end)

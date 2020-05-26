@@ -2,6 +2,11 @@ defmodule Effusion.BlockingQueueProducer do
   use GenStage
   require Logger
 
+  @moduledoc """
+  A `GenStage` producer that polls a `Effusion.BlockingQueue` at a fixed interval,
+  emitting any events on the queue.
+  """
+
   def start_link(opts) do
     name = Keyword.get(opts, :name, BlockingQueueProducer)
     GenStage.start_link(__MODULE__, opts, name: name)

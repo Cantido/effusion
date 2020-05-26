@@ -7,7 +7,7 @@ defmodule Effusion.DHT do
 
   defguard is_node_id(binary) when is_binary(binary) and byte_size(binary) == 20
   defguard is_info_hash(binary) when is_binary(binary) and byte_size(binary) == 20
-  defguard is_inet_port(n) when is_integer(n) and n in 1..65535
+  defguard is_inet_port(n) when is_integer(n) and n in 1..65_535
 
   @doc """
   Generates twenty-byte node ID.

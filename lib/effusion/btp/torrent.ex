@@ -1,16 +1,20 @@
 defmodule Effusion.BTP.Torrent do
-  alias Effusion.BTP.File
-  alias Effusion.BTP.Piece
-  alias Effusion.BTP.Peer
-  alias Effusion.BTP.Block
-  alias Effusion.Repo
   use Ecto.Schema
+  alias Effusion.BTP.Block
+  alias Effusion.BTP.File
+  alias Effusion.BTP.Peer
+  alias Effusion.BTP.Piece
+  alias Effusion.Repo
   import Effusion.Hash
   import Ecto.Changeset
   import Ecto.Query
   require Logger
 
   @block_size Application.get_env(:effusion, :block_size)
+
+  @moduledoc """
+  A downloadable file or set of files.
+  """
 
   schema "torrents" do
     field :info_hash, :binary, null: false
@@ -33,6 +37,7 @@ defmodule Effusion.BTP.Torrent do
   @required_fields [
     :info_hash
   ]
+
   @optional_fields [
     :name,
     :state,
@@ -47,12 +52,13 @@ defmodule Effusion.BTP.Torrent do
     :last_announce,
     :next_announce
   ]
+
   def changeset(torrent = %__MODULE__{}, params \\ %{}) do
     # :started should be set only once
-    params = if not is_nil(torrent.started) do
-      Map.drop(params, [:started])
-    else
+    params = if is_nil(torrent.started) do
       params
+    else
+      Map.drop(params, [:started])
     end
 
     torrent
@@ -62,7 +68,7 @@ defmodule Effusion.BTP.Torrent do
     |> unique_constraint(:info_hash)
   end
 
-  def all() do
+  def all do
     from torrent in __MODULE__, where: torrent.state != "dht_only"
   end
 
@@ -157,15 +163,7 @@ defmodule Effusion.BTP.Torrent do
         {_count, more_pieces} = Repo.insert_all(Piece, piece_entry_chunk, returning: true)
         more_pieces ++ returned_pieces
       end)
-      |> Enum.flat_map(fn piece ->
-        Enum.map(Block.split(piece, @block_size), fn block ->
-            %{
-              piece_id: piece.id,
-              offset: block.offset,
-              size: block.size
-            }
-        end)
-      end)
+      |> Enum.flat_map(&create_blocks/1)
       # Each block has three parameters, so we must insert in chunks of 65535/3 = 21345.
       |> Enum.chunk_every(21_845)
       |> Enum.each(fn block_entry_op ->
@@ -174,6 +172,16 @@ defmodule Effusion.BTP.Torrent do
       end)
 
       torrent
+    end)
+  end
+
+  defp create_blocks(piece) do
+    Enum.map(Block.split(piece, @block_size), fn block ->
+        %{
+          piece_id: piece.id,
+          offset: block.offset,
+          size: block.size
+        }
     end)
   end
 end
