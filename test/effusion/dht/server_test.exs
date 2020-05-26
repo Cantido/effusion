@@ -47,7 +47,7 @@ defmodule Effusion.DHT.ServerTest do
   end
 
   test "handle get_peers query with matching peers", %{context: context} do
-    {:ok, node} = Repo.insert(%Effusion.DHT.Node{
+    {:ok, _node} = Repo.insert(%Effusion.DHT.Node{
       node_id: "09876543210987654321",
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
       port: 65535,
@@ -59,19 +59,19 @@ defmodule Effusion.DHT.ServerTest do
     })
 
     query = {:get_peers, "abcde", "12345678901234567890", "09876543210987654321"}
-    {:get_peers_matching, transaction_id, node_id, token, peers} = Server.handle_krpc_query(query, context)
+    {:get_peers_matching, _transaction_id, _node_id, _token, peers} = Server.handle_krpc_query(query, context)
 
     assert peers == [peer]
   end
 
   test "get_peers saves token", %{context: context} do
-    {:ok, node} = Repo.insert(%Effusion.DHT.Node{
+    {:ok, _node} = Repo.insert(%Effusion.DHT.Node{
       node_id: "09876543210987654321",
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
       port: 65535,
       last_contacted: DateTime.truncate(DateTime.utc_now(), :second)
     })
-    peer = Effusion.BTP.Peer.compact(%{
+    _peer = Effusion.BTP.Peer.compact(%{
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
       port: 65535
     })
@@ -80,9 +80,11 @@ defmodule Effusion.DHT.ServerTest do
     response = Server.handle_krpc_query(query, context)
     {:get_peers_matching, _transaction_id, _node_id, token, _matching_peers} = response
 
-    {actual_token, actual_timestamp} = Repo.one!(from node in Effusion.DHT.Node,
-                                        where: node.node_id == ^"12345678901234567890",
-                                        select: {node.sent_token, node.sent_token_timestamp})
+    {actual_token, _actual_timestamp} = Repo.one!(
+      from node in Effusion.DHT.Node,
+      where: node.node_id == ^"12345678901234567890",
+      select: {node.sent_token, node.sent_token_timestamp}
+    )
     assert token == actual_token
   end
 
@@ -96,7 +98,7 @@ defmodule Effusion.DHT.ServerTest do
     node = Effusion.DHT.Node.compact(node)
 
     query = {:get_peers, "abcde", "12345678901234567890", "09876543210987654321"}
-    {:get_peers_nearest, transaction_id, node_id, token, nodes} = Server.handle_krpc_query(query, context)
+    {:get_peers_nearest, _transaction_id, _node_id, _token, nodes} = Server.handle_krpc_query(query, context)
 
     assert node in nodes
   end
