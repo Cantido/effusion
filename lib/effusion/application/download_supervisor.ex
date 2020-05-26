@@ -2,7 +2,6 @@ defmodule Effusion.Application.DownloadSupervisor do
   use Supervisor
   alias Effusion.BTP.{
     ProtocolHandler,
-    FinishedTorrentWatchdog,
     DownloadSpeedWatcher
   }
   alias Effusion.THP.Announcer
@@ -14,7 +13,6 @@ defmodule Effusion.Application.DownloadSupervisor do
   @impl true
   def init(info_hash) do
     children = [
-      {FinishedTorrentWatchdog, info_hash},
       {Announcer, info_hash},
       {DownloadSpeedWatcher, info_hash},
       {ProtocolHandler, info_hash}
