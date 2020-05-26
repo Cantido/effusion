@@ -10,76 +10,36 @@ defmodule Effusion.BTP.Pieces do
   Functions for assembling the file that results from a torrent download.
   """
 
-  @doc """
-  Create a map that describes a torrent download.
-  """
-  def new(info_hash) do
-    info_hash
-  end
 
   @doc """
-  Get the bitfield value representing the torrent's finished pieces.
-
-  This bitfield includes both in-memory as well as on-disk pieces.
+  Check if we have downloaded and verified the given piece.
   """
-  def bitfield(info_hash) do
-    written = written(info_hash)
-    cached = Enum.map(verified(info_hash), fn p -> p.index end) |> IntSet.new()
-
-    IntSet.union(written, cached)
-  end
-
-  def has_block?(info_hash, block) when is_hash(info_hash) do
-    i = block.index
-    o = block.offset
-
+  def has_piece?(info_hash, index) when is_hash(info_hash) and is_integer(index) and index > 0 do
     Repo.exists?(
-      from b in block,
-      join: p in assoc(b, :piece),
-      join: torrent in assoc(p, :torrent),
+      from piece in Piece,
+      join: torrent in assoc(piece, :torrent),
       where: torrent.info_hash == ^info_hash,
-      where: p.index == ^i,
-      where: b.offset == ^o,
-      where: not is_nil(b.data)
+      where: piece.index == ^index,
+      where: piece.verified
     )
   end
 
-  def has_piece?(info_hash, index) when is_hash(info_hash) and is_integer(index) and index > 0 do
-    bitfield(info_hash) |> Enum.member?(index)
-  end
-
-  def has_pieces?(info_hash, bits) when is_hash(info_hash) do
-    we_have = bitfield(info_hash)
-    do_we_have = IntSet.new(bits)
-
-    IntSet.difference(do_we_have, we_have)
-    |> Enum.empty?()
+  @doc """
+  Check if we have donwloaded and verified pieces at all the given indices.
+  """
+  def has_pieces?(info_hash, indices) when is_hash(info_hash) do
+    Repo.exists?(
+      from piece in Piece,
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      where: piece.index in ^indices,
+      where: piece.verified
+    )
   end
 
   @doc """
-  Add a block of data to `torrent`.
-
-  If the addition of the block finishes a piece,
-  the piece will then be verified and moved to the `:pieces` set.
+  Verify all pieces for a given torrent.
   """
-  def add_block(torrent, block)
-
-  def add_block(torrent, block) when is_map(torrent) do
-    add_block(torrent.info_hash, block)
-  end
-
-  def add_block(info_hash, %{index: i, offset: o, data: data}) when is_hash(info_hash) do
-    query =
-      from b in Block,
-      join: p in assoc(b, :piece),
-      join: torrent in assoc(p, :torrent),
-      where: torrent.info_hash == ^info_hash,
-      where: p.index == ^i,
-      where: b.offset == ^o,
-      update: [set: [data: ^data]]
-    Repo.update_all(query, [])
-  end
-
   def verify_all(info_hash) do
     blocks_per_piece_query =
       from piece in Piece,

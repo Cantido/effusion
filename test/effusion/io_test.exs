@@ -1,5 +1,6 @@
 defmodule Effusion.IOTest do
   use ExUnit.Case
+  alias Effusion.BTP.Block
   alias Effusion.BTP.Piece
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Torrent
@@ -14,8 +15,8 @@ defmodule Effusion.IOTest do
     single_file_meta = TestHelper.tiny_meta()
     Torrent.insert(single_file_meta)
 
-    Pieces.add_block(single_file_meta.info_hash, %{index: 0, offset: 0, data: "tin"})
-    Pieces.add_block(single_file_meta.info_hash, %{index: 1, offset: 0, data: "y\n"})
+    Block.put(single_file_meta.info_hash, %{index: 0, offset: 0, data: "tin"})
+    Block.put(single_file_meta.info_hash, %{index: 1, offset: 0, data: "y\n"})
     Pieces.verify_all(single_file_meta.info_hash)
 
     %{single_file_meta: single_file_meta}
@@ -26,7 +27,7 @@ defmodule Effusion.IOTest do
     {:ok, multi_file_meta} = Metatorrent.decode(metabin)
     Torrent.insert(multi_file_meta)
 
-    Pieces.add_block(multi_file_meta.info_hash, %{index: 0, offset: 0, data: "Hello\nworld!\n"})
+    Block.put(multi_file_meta.info_hash, %{index: 0, offset: 0, data: "Hello\nworld!\n"})
     Pieces.verify_all(multi_file_meta.info_hash)
 
     %{multi_file_meta: multi_file_meta}

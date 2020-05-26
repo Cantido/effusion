@@ -1,4 +1,5 @@
 defmodule Effusion.PWP.ProtocolHandler do
+  alias Effusion.BTP.Block
   alias Effusion.BTP.Peer
   alias Effusion.BTP.PeerPiece
   alias Effusion.BTP.Pieces
@@ -119,7 +120,7 @@ defmodule Effusion.PWP.ProtocolHandler do
       ConnectionRegistry.btp_send(info_hash, peer_id, {:cancel, index, offset, size})
     end)
 
-    Pieces.add_block(info_hash, block)
+    Block.put(info_hash, block)
 
     peer_request_query =
       from request in Request,
@@ -152,8 +153,9 @@ defmodule Effusion.PWP.ProtocolHandler do
   end
 
   def handle_message({info_hash, remote_peer_id, {:bitfield, bitfield}}) when is_hash(info_hash) and is_peer_id(remote_peer_id) do
-    peer = Repo.one!(from p in Peer, where: [peer_id: ^remote_peer_id])
     indicies = IntSet.new(bitfield) |> Enum.to_list()
+
+    peer = Repo.one!(from p in Peer, where: [peer_id: ^remote_peer_id])
     pieces_query = Piece.all_indicies_query(info_hash, indicies)
     pieces = Repo.all(pieces_query)
     peer_pieces = Enum.map(pieces, fn p ->
@@ -173,7 +175,7 @@ defmodule Effusion.PWP.ProtocolHandler do
 
     Repo.update_all(peer_query, set: [am_interested: true])
 
-    if !Pieces.has_pieces?(info_hash, bitfield) do
+    if !Pieces.has_pieces?(info_hash, indicies) do
       ConnectionRegistry.btp_send(info_hash, remote_peer_id, :interested)
     end
 

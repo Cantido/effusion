@@ -1,6 +1,7 @@
 defmodule Effusion.BTP.Block do
   alias Effusion.BTP.Piece
   alias Effusion.BTP.Request
+  alias Effusion.Repo
   import Effusion.Math
   import Effusion.Hash
   import Ecto.Query
@@ -69,5 +70,29 @@ defmodule Effusion.BTP.Block do
       last_block = %__MODULE__{piece: piece, offset: last_block_offset, size: block_size}
       Stream.concat(whole_blocks, [last_block])
     end
+  end
+
+  @doc """
+  Add a block of data to `torrent`.
+
+  If the addition of the block finishes a piece,
+  the piece will then be verified and moved to the `:pieces` set.
+  """
+  def add_block(torrent, block)
+
+  def add_block(torrent, block) when is_map(torrent) do
+    add_block(torrent.info_hash, block)
+  end
+
+  def put(info_hash, %{index: i, offset: o, data: data}) when is_hash(info_hash) do
+    query =
+      from b in __MODULE__,
+      join: p in assoc(b, :piece),
+      join: torrent in assoc(p, :torrent),
+      where: torrent.info_hash == ^info_hash,
+      where: p.index == ^i,
+      where: b.offset == ^o,
+      update: [set: [data: ^data]]
+    Repo.update_all(query, [])
   end
 end
