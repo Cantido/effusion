@@ -1,8 +1,6 @@
 defmodule Effusion.Pipeline.VerifiedPieceProducer do
   alias Effusion.BTP.Pieces
-  alias Effusion.Repo
   use GenStage
-  import Ecto.Query
   require Logger
 
   @poll_interval 250
@@ -36,15 +34,7 @@ defmodule Effusion.Pipeline.VerifiedPieceProducer do
   end
 
   defp get_events(count) do
-    Repo.transaction(fn ->
-      Repo.stream(
-        from torrent in Effusion.BTP.Torrent,
-        select: torrent.info_hash
-      )
-      |> Stream.flat_map(&Pieces.verified/1)
-      |> Stream.take(count)
-      |> Enum.to_list()
-    end)
+    Pieces.verified_stream(count)
     |> case do
       {:ok, result} -> result
       _ -> []

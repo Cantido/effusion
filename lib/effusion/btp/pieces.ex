@@ -170,6 +170,18 @@ defmodule Effusion.BTP.Pieces do
     Repo.all(verified_piece_blocks_query)
   end
 
+  def verified_stream(count) do
+    Repo.transaction(fn ->
+      Repo.stream(
+        from torrent in Effusion.BTP.Torrent,
+        select: torrent.info_hash
+      )
+      |> Stream.flat_map(&verified/1)
+      |> Stream.take(count)
+      |> Enum.to_list()
+    end)
+  end
+
   def written(info_hash) when is_hash(info_hash) do
     written_piece_blocks_query =
       from block in Block,
