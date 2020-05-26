@@ -31,9 +31,10 @@ defmodule Effusion do
   end
 
   def start_download(info_hash) do
-    {:ok, pid} = DownloadsSupervisor.start_child(info_hash)
-    :ok = BTPProtocolHandler.start(info_hash)
-    {:ok, pid}
+    with {:ok, pid} <- DownloadsSupervisor.start_child(info_hash),
+         :ok <- BTPProtocolHandler.start(info_hash) do
+      {:ok, pid}
+    end
   end
 
   def pause_download(pid) when is_pid(pid) do

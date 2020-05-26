@@ -1,9 +1,6 @@
 defmodule Effusion.BTP.ProtocolHandler do
   use GenServer
   alias Effusion.BTP.Piece
-  alias Effusion.BTP.Pieces
-  alias Effusion.BTP.PeerPiece
-  alias Effusion.BTP.Request
   alias Effusion.BTP.Torrent
   alias Effusion.PWP.ProtocolHandler
   alias Effusion.PWP.ConnectionRegistry
@@ -43,6 +40,7 @@ defmodule Effusion.BTP.ProtocolHandler do
   @doc """
   Wait on a download managed by a session server to complete.
   """
+  @spec await(binary()) :: :ok | {:error, term()}
   def await(info_hash) do
     GenServer.call({:via, Registry, {BTPHandlerRegistry, info_hash}}, :await, :infinity)
   end

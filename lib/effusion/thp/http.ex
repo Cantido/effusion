@@ -104,6 +104,6 @@ defmodule Effusion.THP.HTTP do
     {length, ""} = Integer.parse(val)
     length |> NetStats.add_recv_bytes()
     length |> NetStats.add_recv_tracker_bytes()
-    headers
+    Map.new(headers)
   end
 end

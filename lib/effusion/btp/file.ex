@@ -15,7 +15,7 @@ defmodule Effusion.BTP.File do
     field :md5sum, :binary, null: true
   end
 
-  def changeset(file, params \\ {}) do
+  def changeset(file, params \\ %{}) do
     file
     |> cast(params, [:size, :path, :md5sum])
     |> validate_required([:size, :path])
