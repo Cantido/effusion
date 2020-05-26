@@ -19,7 +19,7 @@ defmodule Effusion.Application do
       {Effusion.BlockingQueue, name: MessageQueue, max_length: 10_000},
       {Effusion.BlockingQueueProducer, name: MessageProducer, queue: MessageQueue},
       Effusion.Pipeline.MessageConsumer,
-      Effusion.Pipeline.VerifiedPieceProducer,
+      Effusion.Pipeline.PieceVerifier,
       Effusion.Pipeline.VerifiedPieceAnnouncer,
       Effusion.Pipeline.PieceWriter,
       Effusion.Application.ConnectionSupervisor,

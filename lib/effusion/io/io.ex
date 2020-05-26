@@ -1,5 +1,6 @@
 defmodule Effusion.IO do
   require Logger
+  alias Effusion.BTP.Piece
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Block
   alias Effusion.BTP.File, as: BTPFile
@@ -12,13 +13,18 @@ defmodule Effusion.IO do
   @doc """
   Pull the piece with the given index out of the database and write it out to the configured file.
   """
-  def write_piece(%{info_hash: info_hash, index: index}) when is_integer(index) and index >= 0 do
+  def write_piece(piece = %Piece{}) do
+    piece = Repo.preload(piece, [:torrent])
+    info_hash = piece.torrent.info_hash
+    index = piece.index
+
     :telemetry.execute(
       [:io, :write, :piece, :starting],
       %{},
       %{info_hash: info_hash, index: index})
 
     piece_data = Block.aggregate_data(info_hash, index) |> Repo.one!()
+    Logger.debug("Data for piece #{index}: #{inspect piece_data}")
     torrent = Torrent.get(info_hash) |> Repo.one!()
     files = BTPFile.get(info_hash) |> Repo.all()
 

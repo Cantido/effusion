@@ -67,11 +67,12 @@ defmodule Effusion.BTP.ProtocolHandler do
   end
 
   def handle_call({:have_piece, piece}, _from, d) do
+    Logger.debug("Telling peers that we have piece #{piece.index} of #{Effusion.Hash.encode d.info_hash}")
     ConnectionRegistry.btp_broadcast(d.info_hash, {:have, piece.index})
     Repo.get(Piece, piece.id)
     |> Ecto.Changeset.change(announced: true)
     |> Repo.update!()
-    
+
     {:reply, :ok, d}
   end
 

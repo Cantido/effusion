@@ -2,6 +2,7 @@ defmodule Effusion.BTP.Piece do
   alias Effusion.BTP.Torrent
   alias Effusion.BTP.Block
   alias Effusion.BTP.PeerPiece
+  alias Effusion.Repo
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query
@@ -40,6 +41,42 @@ defmodule Effusion.BTP.Piece do
       last_piece_size
     else
       info.piece_length
+    end
+  end
+
+  def get(info_hash, index) do
+    from p in __MODULE__,
+    join: torrent in assoc(p, :torrent),
+    where: torrent.info_hash == ^info_hash,
+    where: p.index == ^index
+  end
+
+  def has_all_blocks?(piece) do
+    from piece in __MODULE__,
+    join: block in assoc(piece, :blocks),
+    where: piece.id == ^piece.id,
+    group_by: piece.id,
+    having: count(block.data) == count(block.id)
+  end
+
+  def verify(piece) do
+    case Repo.one(has_all_blocks?(piece)) do
+      nil -> piece
+      piece ->
+        piece_query =
+          from piece in __MODULE__,
+          join: block in assoc(piece, :blocks),
+          where: piece.id == ^piece.id,
+          group_by: piece.id,
+          having: fragment(
+            "digest(string_agg(?, '' ORDER BY ?), 'sha1')",
+            block.data,
+            block.offset
+          ) == piece.hash
+        case Repo.one!(piece_query) do
+          nil -> piece
+          piece -> Ecto.Changeset.change(piece, [verified: true]) |> Repo.update!()
+        end
     end
   end
 end

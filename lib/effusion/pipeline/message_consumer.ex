@@ -8,12 +8,22 @@ defmodule Effusion.Pipeline.MessageConsumer do
 
   @impl true
   def init(_args) do
-    {:consumer, 0, [subscribe_to: [MessageProducer]]}
+    {:producer_consumer, 0, [subscribe_to: [MessageProducer]]}
   end
 
   @impl true
   def handle_events(events, _from, state) do
-    Enum.each(events, &Effusion.PWP.ProtocolHandler.handle_message/1)
-    {:noreply, [], state}
+    updated_pieces = Enum.map(events, fn event ->
+      Effusion.PWP.ProtocolHandler.handle_message(event)
+
+      case event do
+        {info_hash, _from, {:piece, block}} ->
+          Effusion.BTP.Piece.get(info_hash, block.index)
+          |> Effusion.Repo.one()
+        _ -> nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
+    {:noreply, updated_pieces, state}
   end
 end

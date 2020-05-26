@@ -7,7 +7,7 @@ defmodule Effusion.Pipeline.VerifiedPieceAnnouncer do
 
   @impl true
   def init(_args) do
-    {:consumer, 0, [subscribe_to: [Effusion.Pipeline.VerifiedPieceProducer]]}
+    {:consumer, 0, [subscribe_to: [Effusion.Pipeline.PieceVerifier]]}
   end
 
   @impl true
@@ -17,6 +17,7 @@ defmodule Effusion.Pipeline.VerifiedPieceAnnouncer do
   end
 
   defp handle_event(piece) do
-    Effusion.BTP.ProtocolHandler.have_piece(piece.info_hash, piece)
+    piece = Effusion.Repo.preload(piece, [:torrent])
+    Effusion.BTP.ProtocolHandler.have_piece(piece.torrent.info_hash, piece)
   end
 end
