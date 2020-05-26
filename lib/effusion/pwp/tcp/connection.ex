@@ -118,7 +118,7 @@ defmodule Effusion.PWP.TCP.Connection do
   def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id})
     when is_hash(info_hash)
      and is_peer_id(peer_id) do
-    :ok = ProtocolHandler.handle_message(info_hash, peer_id, msg)
+    :ok = Effusion.BlockingQueue.push(MessageQueue, {info_hash, peer_id, msg})
     {:noreply, state}
   end
 
