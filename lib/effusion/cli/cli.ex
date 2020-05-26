@@ -1,15 +1,12 @@
 defmodule Effusion.CLI do
   alias Ecto.Changeset
-  alias Effusion.BTP.Peer
   alias Effusion.BTP.Pieces
-  alias Effusion.BTP.Request
   alias Effusion.BTP.Session
   alias Effusion.BTP.Torrent
   alias Effusion.Format
   alias Effusion.Repo
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
-  alias Effusion.Statistics.PeerDownloadAverage
   alias Effusion.Statistics.SessionDownloadAverage
   import Ecto.Query
   use Timex
