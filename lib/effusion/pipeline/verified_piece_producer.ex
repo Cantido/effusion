@@ -34,7 +34,7 @@ defmodule Effusion.Pipeline.VerifiedPieceProducer do
   end
 
   defp get_events(count) do
-    Pieces.verified_stream(count)
+    Pieces.verified(count)
     |> case do
       {:ok, result} -> result
       _ -> []

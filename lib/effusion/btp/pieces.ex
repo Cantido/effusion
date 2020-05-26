@@ -170,7 +170,7 @@ defmodule Effusion.BTP.Pieces do
     Repo.all(verified_piece_blocks_query)
   end
 
-  def verified_stream(count) do
+  def verified(count) when is_integer(count) do
     Repo.transaction(fn ->
       Repo.stream(
         from torrent in Effusion.BTP.Torrent,
