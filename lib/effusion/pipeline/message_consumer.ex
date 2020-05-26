@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.MessageConsumer do
+defmodule Effusion.Pipeline.MessageConsumer do
   use GenStage
   require Logger
 

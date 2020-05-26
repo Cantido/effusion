@@ -1,4 +1,4 @@
-defmodule Effusion.IO.PieceWriter do
+defmodule Effusion.Pipeline.PieceWriter do
   use GenStage
 
   def start_link(_opts) do
@@ -7,7 +7,7 @@ defmodule Effusion.IO.PieceWriter do
 
   @impl true
   def init(_args) do
-    {:consumer, 0, [subscribe_to: [Effusion.BTP.VerifiedPieceProducer]]}
+    {:consumer, 0, [subscribe_to: [Effusion.Pipeline.VerifiedPieceProducer]]}
   end
 
   @impl true

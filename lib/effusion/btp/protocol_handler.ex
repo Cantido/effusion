@@ -1,10 +1,12 @@
 defmodule Effusion.BTP.ProtocolHandler do
   use GenServer
+  alias Effusion.BTP.Piece
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.PeerPiece
   alias Effusion.BTP.Request
   alias Effusion.BTP.Torrent
   alias Effusion.PWP.ProtocolHandler
+  alias Effusion.PWP.ConnectionRegistry
   alias Effusion.THP.Announcer
   alias Effusion.Repo
   require Logger
@@ -28,6 +30,10 @@ defmodule Effusion.BTP.ProtocolHandler do
 
   def get(info_hash) do
     GenServer.call({:via, Registry, {BTPHandlerRegistry, info_hash}}, :get, 10_000)
+  end
+
+  def have_piece(info_hash, piece) do
+    GenServer.call({:via, Registry, {BTPHandlerRegistry, info_hash}}, {:have_piece, piece})
   end
 
   def notify_all_pieces_written(info_hash) do
@@ -58,6 +64,15 @@ defmodule Effusion.BTP.ProtocolHandler do
     }
 
     {:ok, state}
+  end
+
+  def handle_call({:have_piece, piece}, _from, d) do
+    ConnectionRegistry.btp_broadcast(d.info_hash, {:have, piece.index})
+    Repo.get(Piece, piece.id)
+    |> Ecto.Changeset.change(announced: true)
+    |> Repo.update!()
+    
+    {:reply, :ok, d}
   end
 
   def handle_call(:all_pieces_written, _from, d) do

@@ -1,4 +1,4 @@
-defmodule Effusion.BTP.VerifiedPieceProducer do
+defmodule Effusion.Pipeline.VerifiedPieceProducer do
   alias Effusion.BTP.Pieces
   alias Effusion.Repo
   use GenStage
