@@ -2,6 +2,7 @@ defmodule Effusion.BTP.Block do
   alias Effusion.BTP.Piece
   alias Effusion.BTP.Request
   import Effusion.Math
+  import Effusion.Hash
   import Ecto.Query
   use Ecto.Schema
 
@@ -28,7 +29,7 @@ defmodule Effusion.BTP.Block do
 
   defguardp is_size(x) when is_integer(x) and x > 0
 
-  def aggregate_data(info_hash, index) when is_integer(index) and index >= 0 do
+  def aggregate_data(info_hash, index) when is_hash(info_hash) and is_integer(index) and index >= 0 do
     from block in __MODULE__,
     join: piece in assoc(block, :piece),
     join: torrent in assoc(piece, :torrent),
