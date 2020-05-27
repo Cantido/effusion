@@ -20,35 +20,15 @@ defmodule Effusion.PWP.TCP.Connection do
   """
 
   @doc """
-  The `start_link` implementation for `:ranch_protocol` behaviour
-  """
-  def start_link(ref, socket, transport, _opts) do
-    pid = :proc_lib.spawn_link(__MODULE__, :incoming_init, [ref, socket, transport])
-    {:ok, pid}
-  end
-
-  @doc """
-  Start a connection to a `peer`, and link the resulting process to the current process.
-  """
-  def start_link(peer = {{_host, port}, info_hash, expected_peer_id}) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id)  do
-    GenServer.start_link(__MODULE__, peer)
-  end
-
-  def incoming_init(ref, socket, transport) do
-    _ = Logger.debug("Starting protocol")
-
-    :ok = :ranch.accept_ack(ref)
-    :ok = transport.setopts(socket, active: :once)
-    :gen_server.enter_loop(__MODULE__, [], %{socket: socket, transport: transport})
-  end
-
-  @doc """
   Start a connection to a `peer` in the Connection supervision hierarchy.
   """
   def connect(peer = {{_host, port}, info_hash, expected_peer_id}) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id) do
     ConnectionSupervisor.start_child(peer)
   end
 
+  @doc """
+  Break the connection with the given reason.
+  """
   def disconnect(info_hash, peer_id, reason) do
     pid = ConnectionRegistry.get_pid(info_hash, peer_id)
     disconnect(pid, reason)
@@ -66,6 +46,36 @@ defmodule Effusion.PWP.TCP.Connection do
   """
   def disconnect(pid, reason) do
     send(pid, {:disconnect, reason})
+  end
+
+  @doc """
+  The `start_link` implementation for `:ranch_protocol` behaviour
+  """
+  def start_link(ref, socket, transport, _opts) do
+    pid = :proc_lib.spawn_link(__MODULE__, :incoming_init, [ref, socket, transport])
+    {:ok, pid}
+  end
+
+  @doc """
+  Start a connection to a `peer`, and link the resulting process to the current process.
+  """
+  def start_link(peer = {{_host, port}, info_hash, expected_peer_id}) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id)  do
+    GenServer.start_link(__MODULE__, peer)
+  end
+  
+  def init({address, info_hash, expected_peer_id}) do
+    state = %{
+      address: address,
+      info_hash: info_hash,
+      expected_peer_id: expected_peer_id
+    }
+    {:ok, state, 0}
+  end
+
+  def incoming_init(ref, socket, transport) do
+    :ok = :ranch.accept_ack(ref)
+    :ok = transport.setopts(socket, active: :once)
+    :gen_server.enter_loop(__MODULE__, [], %{socket: socket, transport: transport})
   end
 
   defp successful_handshake(socket, info_hash, peer_id, extensions) do
@@ -159,15 +169,6 @@ defmodule Effusion.PWP.TCP.Connection do
      and is_peer_id(peer_id) do
     :ok = Queutils.BlockingProducer.push(MessageProducer, {info_hash, peer_id, msg})
     {:noreply, state}
-  end
-
-  def init({address, info_hash, expected_peer_id}) do
-    state = %{
-      address: address,
-      info_hash: info_hash,
-      expected_peer_id: expected_peer_id
-    }
-    {:ok, state, 0}
   end
 
   def handle_info(
