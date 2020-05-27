@@ -8,12 +8,22 @@ defmodule Effusion.PWP.TCP.Connection do
   import Effusion.Hash, only: [is_hash: 1]
   require Logger
 
+  @behaviour :ranch_protocol
+
   @moduledoc """
   Protocol handler for the Peer Wire Protocol.
 
   This amounts to performing the handshake, and then forwarding any messages
   to the associated download.
   """
+
+  @doc """
+  The `start_link` implementation for `:ranch_protocol` behaviour
+  """
+  def start_link(ref, socket, transport, _opts) do
+    pid = :proc_lib.spawn_link(__MODULE__, :incoming_init, [ref, socket, transport])
+    {:ok, pid}
+  end
 
   def incoming_init(ref, socket, transport) do
     _ = Logger.debug("Starting protocol")

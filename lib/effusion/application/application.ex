@@ -32,7 +32,7 @@ defmodule Effusion.Application do
     ]
 
     {:ok, _listener} =
-      :ranch.start_listener(:pwp, 100, :ranch_tcp, [port: 8001], Effusion.PWP.TCP.IncomingHandler, [])
+      :ranch.start_listener(:pwp, 100, :ranch_tcp, [port: 8001], Effusion.PWP.TCP.Connection, [])
 
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]
     Supervisor.start_link(children, opts)
