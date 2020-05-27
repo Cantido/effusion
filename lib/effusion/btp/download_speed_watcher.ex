@@ -11,7 +11,7 @@ defmodule Effusion.BTP.DownloadSpeedWatcher do
   Connects/disconnects peers based on their download speed.
   """
 
-  @watch_interval_ms 5_000
+  @watch_interval_ms 250
   @peer_min_bits_per_second 1
 
   @peers_count_to_add_on_speedup Application.get_env(:effusion, :peers_count_to_add_on_speedup)

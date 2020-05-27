@@ -110,13 +110,6 @@ defmodule Effusion.THP.Announcer do
 
     Repo.insert_all(Peer, changesets, on_conflict: :nothing)
 
-    max_peers = Application.get_env(:effusion, :max_peers)
-    eligible_peers = PeerSelection.select_lowest_failcount(info_hash, max_peers)
-
-    Enum.each(eligible_peers, fn p ->
-      address = {p.address.address, p.port}
-      OutgoingHandler.connect({address, info_hash, p.peer_id})
-    end)
     {:noreply, {info_hash, timer}}
   end
 
