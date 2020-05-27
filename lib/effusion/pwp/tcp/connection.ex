@@ -1,6 +1,8 @@
 defmodule Effusion.PWP.TCP.Connection do
   use GenServer, restart: :temporary
+  alias Effusion.Application.ConnectionSupervisor
   alias Effusion.BTP.Torrent
+  alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.Messages
   alias Effusion.PWP.ProtocolHandler
   alias Effusion.PWP.TCP.Socket
@@ -41,6 +43,18 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   @doc """
+  Start a connection to a `peer` in the Connection supervision hierarchy.
+  """
+  def connect(peer = {{_host, port}, info_hash, expected_peer_id}) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id) do
+    ConnectionSupervisor.start_child(peer)
+  end
+
+  def disconnect(info_hash, peer_id, reason) do
+    pid = ConnectionRegistry.get_pid(info_hash, peer_id)
+    disconnect(pid, reason)
+  end
+
+  @doc """
   Break the connection.
   """
   def disconnect(pid) do
@@ -64,7 +78,7 @@ defmodule Effusion.PWP.TCP.Connection do
     end
   end
 
-  defp connect(%{
+  defp start_connection(%{
       address: address = {host, port},
       info_hash: info_hash,
       expected_peer_id: expected_peer_id
@@ -188,7 +202,7 @@ defmodule Effusion.PWP.TCP.Connection do
     ret
   end
 
-  def handle_info(:timeout, state), do: connect(state)
+  def handle_info(:timeout, state), do: start_connection(state)
   def handle_info({:tcp_closed, _socket}, state), do: {:stop, :normal, state}
   def handle_info(:disconnect, state), do: {:stop, :normal, state}
   def handle_info({:disconnect, reason}, state), do: {:stop, reason, state}

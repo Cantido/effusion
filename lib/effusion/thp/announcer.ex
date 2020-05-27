@@ -4,7 +4,6 @@ defmodule Effusion.THP.Announcer do
   alias Effusion.BTP.PeerSelection
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Torrent
-  alias Effusion.PWP.TCP.OutgoingHandler
   alias Effusion.Repo
   import Effusion.Hash, only: [is_hash: 1]
   import Ecto.Query

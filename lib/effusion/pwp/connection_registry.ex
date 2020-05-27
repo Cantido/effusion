@@ -1,5 +1,5 @@
 defmodule Effusion.PWP.ConnectionRegistry do
-  alias Effusion.PWP.TCP.OutgoingHandler
+  alias Effusion.PWP.TCP.Connection
   import Effusion.Hash, only: [is_hash: 1]
   import Effusion.BTP.Peer
   require Logger
@@ -62,7 +62,7 @@ defmodule Effusion.PWP.ConnectionRegistry do
   def disconnect_all(info_hash) do
     Registry.dispatch(ConnectionRegistry, info_hash, fn connections ->
       connections
-      |> Enum.map(fn {c, _p} -> OutgoingHandler.disconnect(c) end)
+      |> Enum.map(fn {c, _p} -> Connection.disconnect(c) end)
     end)
   end
 

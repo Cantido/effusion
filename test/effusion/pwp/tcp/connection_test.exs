@@ -38,7 +38,6 @@ defmodule Effusion.PWP.TCP.ConnectionTest do
     local_info_hash = @torrent.info_hash
     expected_peer_id = @remote_peer.peer_id
 
-    # OutgoingHandler is acting as our local peer
     {:ok, cpid} = start_supervised({Connection, {address, local_info_hash, expected_peer_id}})
 
     # This socket is acting as a connection from the remote peer
