@@ -2,7 +2,7 @@ defmodule Effusion.PWP.TCP.ConnectionTest do
   use ExUnit.Case
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Torrent
-  alias Effusion.PWP.TCP.OutgoingHandler
+  alias Effusion.PWP.TCP.Connection
   alias Effusion.PWP.TCP.Socket
 
   doctest Effusion.PWP.TCP.Connection
@@ -39,7 +39,7 @@ defmodule Effusion.PWP.TCP.ConnectionTest do
     expected_peer_id = @remote_peer.peer_id
 
     # OutgoingHandler is acting as our local peer
-    {:ok, cpid} = start_supervised({OutgoingHandler, {address, local_info_hash, expected_peer_id}})
+    {:ok, cpid} = start_supervised({Connection, {address, local_info_hash, expected_peer_id}})
 
     # This socket is acting as a connection from the remote peer
     {:ok, _sock, _remote_peer, _extensions} =

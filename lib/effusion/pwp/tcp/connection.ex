@@ -25,6 +25,13 @@ defmodule Effusion.PWP.TCP.Connection do
     {:ok, pid}
   end
 
+  @doc """
+  Start a connection to a `peer`, and link the resulting process to the current process.
+  """
+  def start_link(peer = {{_host, port}, info_hash, expected_peer_id}) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id)  do
+    GenServer.start_link(__MODULE__, peer)
+  end
+
   def incoming_init(ref, socket, transport) do
     _ = Logger.debug("Starting protocol")
 
@@ -140,9 +147,13 @@ defmodule Effusion.PWP.TCP.Connection do
     {:noreply, state}
   end
 
-
-  def init(args) do
-    {:ok, args}
+  def init({address, info_hash, expected_peer_id}) do
+    state = %{
+      address: address,
+      info_hash: info_hash,
+      expected_peer_id: expected_peer_id
+    }
+    {:ok, state, 0}
   end
 
   def handle_info(
