@@ -1,4 +1,5 @@
 defmodule Effusion.PWP.TCP.Connection do
+  use GenServer, restart: :temporary
   alias Effusion.BTP.Torrent
   alias Effusion.PWP.Messages
   alias Effusion.PWP.ProtocolHandler
@@ -13,6 +14,14 @@ defmodule Effusion.PWP.TCP.Connection do
   This amounts to performing the handshake, and then forwarding any messages
   to the associated download.
   """
+
+  def outgoing_init(ref, socket, transport) do
+    _ = Logger.debug("Starting protocol")
+
+    :ok = :ranch.accept_ack(ref)
+    :ok = transport.setopts(socket, active: :once)
+    :gen_server.enter_loop(__MODULE__, [], %{socket: socket, transport: transport})
+  end
 
   @doc """
   Break the connection.
@@ -119,6 +128,11 @@ defmodule Effusion.PWP.TCP.Connection do
      and is_peer_id(peer_id) do
     :ok = Queutils.BlockingProducer.push(MessageProducer, {info_hash, peer_id, msg})
     {:noreply, state}
+  end
+
+
+  def init(args) do
+    {:ok, args}
   end
 
   def handle_info(
