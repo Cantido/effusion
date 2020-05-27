@@ -15,7 +15,7 @@ defmodule Effusion.PWP.TCP.Connection do
   to the associated download.
   """
 
-  def outgoing_init(ref, socket, transport) do
+  def incoming_init(ref, socket, transport) do
     _ = Logger.debug("Starting protocol")
 
     :ok = :ranch.accept_ack(ref)

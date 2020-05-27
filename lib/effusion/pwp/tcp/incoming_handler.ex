@@ -10,7 +10,7 @@ defmodule Effusion.PWP.TCP.IncomingHandler do
 
   @impl true
   def start_link(ref, socket, transport, _opts) do
-    pid = :proc_lib.spawn_link(Connection, :outgoing_init, [ref, socket, transport])
+    pid = :proc_lib.spawn_link(Connection, :incoming_init, [ref, socket, transport])
     {:ok, pid}
   end
 end
