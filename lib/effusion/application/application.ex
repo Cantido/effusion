@@ -16,8 +16,7 @@ defmodule Effusion.Application do
     children = [
       Effusion.Repo,
       Effusion.Statistics.Supervisor,
-      {Effusion.BlockingQueue, name: MessageQueue, max_length: 10_000},
-      {Effusion.BlockingQueueProducer, name: MessageProducer, queue: MessageQueue},
+      {Effusion.BlockingProducer, name: MessageProducer, max_length: 10_000},
       Effusion.Pipeline.MessageConsumer,
       Effusion.Pipeline.PieceVerifier,
       Effusion.Pipeline.VerifiedPieceAnnouncer,
