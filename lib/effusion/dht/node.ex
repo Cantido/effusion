@@ -1,5 +1,6 @@
 defmodule Effusion.DHT.Node do
   use Ecto.Schema
+  alias Effusion.DHT.Bucket
   import Ecto.Changeset
 
   @moduledoc """
@@ -7,6 +8,7 @@ defmodule Effusion.DHT.Node do
   """
 
   schema "nodes" do
+    belongs_to :bucket, Bucket
     field :address, EctoNetwork.INET, null: false
     field :node_id, :binary, null: true
     field :port, :integer, null: false
