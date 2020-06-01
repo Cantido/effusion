@@ -23,7 +23,7 @@ defmodule Effusion.DHT.BucketTest do
   end
 
   test "buckets can be split" do
-    bucket = %Bucket{}
+    %Bucket{}
     |> Bucket.changeset(%{
       range: [0, @bucket_max+1]
     })
@@ -63,7 +63,6 @@ defmodule Effusion.DHT.BucketTest do
       })
     |> Repo.insert!
 
-    {:ok, range_to_split} = Effusion.Numrange.dump(bucket.range)
     Ecto.Adapters.SQL.query!(Effusion.Repo, "SELECT * FROM split_bucket($1);", [@bucket_middle])
 
     [lower_bucket, upper_bucket] = Repo.all(from bucket in Bucket, order_by: fragment("lower(?)",bucket.range))
@@ -76,8 +75,6 @@ defmodule Effusion.DHT.BucketTest do
   end
 
   test "can insert multiple, but still spanning, buckets in a transaction" do
-    pivot = @bucket_max/2
-
     Repo.insert_all(Bucket, [
       %{range: [0, @bucket_middle]},
       %{range: [@bucket_middle, @bucket_max+1]
@@ -86,7 +83,10 @@ defmodule Effusion.DHT.BucketTest do
 
   test "insert a bucket that doesn't span the range" do
     Repo.delete_all(Bucket)
-    assert_raise Postgrex.Error, fn ->
+
+    expected_message = "ERROR P0001 (raise_exception) Bucket ranges must completely cover the range from 0 to 2^160 (inclusive). Coverage after inserting was [0,1)"
+
+    assert_raise Postgrex.Error, expected_message, fn ->
       %Bucket{}
       |> Bucket.changeset(%{
         range: [0, 1]
