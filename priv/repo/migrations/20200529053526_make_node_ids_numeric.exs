@@ -99,7 +99,7 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
     """
 
     execute """
-    CREATE OR REPLACE FUNCTION split_bucket(numeric) RETURNS void AS $$
+    CREATE OR REPLACE FUNCTION split_bucket(numeric) RETURNS SETOF buckets AS $$
     DECLARE
         range_to_split numrange := numrange(0,0);
         new_range_lower numrange := numrange(0,0);
@@ -144,6 +144,13 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
 
         SET CONSTRAINTS enforce_bucket_coverage IMMEDIATE;
         SET CONSTRAINTS buckets_do_not_overlap IMMEDIATE;
+
+        RETURN QUERY
+          SELECT *
+          FROM buckets
+          WHERE range = new_range_lower
+            OR range = new_range_upper
+          ORDER BY lower(range);
     END;
     $$ LANGUAGE plpgsql;
     """

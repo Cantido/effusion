@@ -29,13 +29,12 @@ defmodule Effusion.DHT.BucketTest do
     })
     |> Repo.insert!()
 
-    Ecto.Adapters.SQL.query!(Effusion.Repo, "SELECT * FROM split_bucket($1);", [@bucket_middle])
+    [lower, upper] = Bucket.split(<<@bucket_middle::160>>)
 
-    [lower, upper] = Repo.all(from bucket in Bucket, order_by: fragment("lower(?)",bucket.range))
-    assert Enum.at(lower.range, 0) == 0
-    assert Enum.at(lower.range, 1) == @bucket_middle
-    assert Enum.at(upper.range, 0) == @bucket_middle
-    assert Enum.at(upper.range, 1) == @bucket_max
+    assert lower.range.lower == Decimal.new(0)
+    assert lower.range.upper == Decimal.new(@bucket_middle)
+    assert upper.range.lower == Decimal.new(@bucket_middle)
+    assert upper.range.upper == Decimal.new(@bucket_max+1)
   end
 
   test "splitting a bucket maintains node references" do
