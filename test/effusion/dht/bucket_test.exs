@@ -49,7 +49,7 @@ defmodule Effusion.DHT.BucketTest do
     |> Node.changeset(%{
         node_id: 1,
         bucket_id: bucket.id,
-        address: %Postgrex.INET{address: {127, 0, 0, 1}},
+        address: {127, 0, 0, 1},
         port: 5000
       })
     |> Repo.insert!
@@ -58,7 +58,7 @@ defmodule Effusion.DHT.BucketTest do
     |> Node.changeset(%{
         node_id: @bucket_max - 1,
         bucket_id: bucket.id,
-        address: %Postgrex.INET{address: {127, 0, 0, 2}},
+        address: {127, 0, 0, 2},
         port: 5000
       })
     |> Repo.insert!
