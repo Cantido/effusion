@@ -1,7 +1,7 @@
 defmodule Effusion.DHT.Server do
   alias Effusion.BTP.{Peer, Torrent}
   alias Effusion.DHT
-  alias Effusion.DHT.{Bucket, Node}
+  alias Effusion.DHT.Node
   alias Effusion.Repo
   import Bitwise
   import Effusion.DHT, only: [is_node_id: 1]
@@ -32,22 +32,20 @@ defmodule Effusion.DHT.Server do
 
     case Repo.one(from node in Node, where: node.node_id == ^sender_id) do
       nil ->
-        bucket = Bucket.for_node_id(sender_id) |> Repo.one!()
         Node.changeset(%Node{}, %{
           node_id: sender_id,
-          bucket_id: bucket.id,
           address: host,
           port: port,
           sent_token: token,
           sent_token_timestamp: now,
           last_contacted: now
-        }) |> Repo.insert()
+        }) |> Repo.insert!()
       node ->
         Node.changeset(node, %{
           sent_token: token,
           sent_token_timestamp: now,
           last_contacted: now
-        }) |> Repo.update()
+        }) |> Repo.update!()
     end
 
     nodes = closest_nodes(info_hash)
@@ -106,10 +104,8 @@ defmodule Effusion.DHT.Server do
   def handle_krpc_response({:ping, _transaction_id, node_id}, %{remote_address: {host, port}, current_timestamp: now}) do
     case Repo.one(from node in Node, where: node.node_id == ^node_id) do
       nil ->
-        bucket = Bucket.for_node_id(node_id) |> Repo.one!()
         Node.changeset(%Node{}, %{
           node_id: node_id,
-          bucket_id: bucket.id,
           address: host,
           port: port,
           last_contacted: now
@@ -123,17 +119,17 @@ defmodule Effusion.DHT.Server do
   end
 
   def handle_krpc_response({:find_node, _transaction_id, _node_id, nodes}, _context) do
-    nodes_to_insert = Enum.map(nodes, fn {node_id, {host, port}} ->
-      bucket = Bucket.for_node_id(node_id) |> Repo.one!()
-      %{
+    nodes
+    |> Enum.map(fn {node_id, {host, port}} ->
+      Node.changeset(%Node{}, %{
         node_id: node_id,
-        bucket_id: bucket.id,
         address: %Postgrex.INET{address: host},
         port: port
-      }
+      })
     end)
-    Repo.insert_all(Node, nodes_to_insert, on_conflict: :nothing)
-    :ok
+    |> Enum.each(fn changeset ->
+      Repo.insert!(changeset, on_conflict: :nothing)
+    end)
   end
 
   def handle_krpc_response(

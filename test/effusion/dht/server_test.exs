@@ -40,14 +40,15 @@ defmodule Effusion.DHT.ServerTest do
     assert node_id == @node_id
   end
 
-  test "handle find_node query", %{context: context, bucket: bucket} do
-    {:ok, node} = Repo.insert(%Node{
-      node_id: "09876543210987654321",
-      bucket_id: bucket.id,
-      address: %Postgrex.INET{address: {192, 168, 1, 1}},
-      port: 65535,
-      last_contacted: DateTime.truncate(DateTime.utc_now(), :second)
-    })
+  test "handle find_node query", %{context: context} do
+    node = 
+      Node.changeset(%Node{}, %{
+        node_id: "09876543210987654321",
+        address: %Postgrex.INET{address: {192, 168, 1, 1}},
+        port: 65535,
+        last_contacted: DateTime.truncate(DateTime.utc_now(), :second)
+      })
+      |> Repo.insert!()
     node = Node.compact(node)
 
     query = {:find_node, "abcde", "12345678901234567890", "09876543210987654321"}

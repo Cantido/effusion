@@ -31,13 +31,14 @@ defmodule Effusion.DHT.NodeTest do
       "[730750818665451459101842416358141509827966271488,1461501637330902918203684832716283019655932542977)"
 
     assert_raise Postgrex.Error, expected_message, fn ->
-      %Node{}
-      |> Node.changeset(%{
+      %Node{
         node_id: <<1::160>>,
         bucket_id: upper.id,
-        address: {127, 0, 0, 1},
+        address: %Postgrex.INET{address: {127, 0, 0, 1}},
         port: 5000
-      })
+      }
+      # Just wrap it in a changeset since Node.changeset automatically inserts it into the correct bucket
+      |> Ecto.Changeset.change([])
       |> Repo.insert!
     end
   end

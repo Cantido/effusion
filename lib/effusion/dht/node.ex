@@ -21,11 +21,11 @@ defmodule Effusion.DHT.Node do
 
   @required_fields [
     :node_id,
-    :bucket_id,
     :address,
     :port,
   ]
   @optional_fields [
+    :bucket_id,
     :received_token,
     :sent_token,
     :sent_token_timestamp,
@@ -39,7 +39,17 @@ defmodule Effusion.DHT.Node do
     |> update_change(:address, &wrap_address/1)
     |> update_change(:sent_token_timestamp, &truncate_timestamp/1)
     |> update_change(:last_contacted, &truncate_timestamp/1)
+    |> prepare_changes(&put_in_bucket/1)
     |> validate_required(@required_fields)
+  end
+
+  defp put_in_bucket(changeset) do
+    if node_id = get_change(changeset, :node_id) do
+      bucket = Bucket.for_node_id(node_id) |> changeset.repo.one!()
+      put_change(changeset, :bucket_id, bucket.id)
+    else
+      changeset
+    end
   end
 
   defp wrap_address(address) when is_tuple(address) do
