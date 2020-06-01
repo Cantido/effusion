@@ -10,7 +10,7 @@ defmodule Effusion.DHT.Node do
   schema "nodes" do
     belongs_to :bucket, Bucket
     field :address, EctoNetwork.INET, null: false
-    field :node_id, :integer, null: true
+    field :node_id, :decimal, null: true
     field :port, :integer, null: false
     field :received_token, :binary, null: true
     field :sent_token, :binary, null: true

@@ -45,6 +45,7 @@ defmodule Effusion.Mixfile do
       {:absinthe_phoenix, "~> 1.4"},
       {:broadway, "~> 0.6"},
       {:cors_plug, "~> 2.0"},
+      {:decimal, "~> 1.0"},
       {:ecto_sql, "~> 3.0"},
       {:ecto_network, "~> 1.2.0"},
       {:postgrex, ">= 0.0.0"},

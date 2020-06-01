@@ -9,9 +9,6 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
     alter table(:nodes) do
       remove :node_id
       add :node_id, :"numeric(49)", null: true
-
-      remove :bucket_id
-      add :bucket_id, references(:buckets, on_delete: :delete_all, on_update: :update_all), null: false
     end
     create constraint(:nodes, :node_id_must_be_within_160_bits, check: "node_id <= 1461501637330902918203684832716283019655932542976")
     create constraint(:nodes, :node_id_must_be_non_negative, check: "node_id >= 0")
@@ -42,7 +39,12 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
     """
 
     # makes sure that buckets do not overlap
-    execute "alter table buckets add constraint buckets_do_not_overlap exclude using gist (range with &&);"
+    execute """
+      alter table buckets
+      add constraint buckets_do_not_overlap
+      exclude using gist (range with &&)
+      DEFERRABLE;
+    """
 
     # makes sure that buckets completely cover [0,2^160]
     execute """
@@ -104,9 +106,13 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
         lower_bound numeric(49) := 0;
         middle_bound numeric(49) := 0;
         upper_bound numeric(49) := 0;
+        lower_bucket bigint := 0;
+        upper_bucket bigint := 0;
     BEGIN
         LOCK TABLE buckets IN EXCLUSIVE MODE;
         SET CONSTRAINTS enforce_bucket_coverage DEFERRED;
+        SET CONSTRAINTS buckets_do_not_overlap DEFERRED;
+
 
         lower_bound = lower($1);
         middle_bound = div(upper($1), 2);
@@ -115,12 +121,20 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
         new_range_lower = numrange(lower_bound, middle_bound);
         new_range_upper = numrange(middle_bound, upper_bound);
 
+        INSERT INTO buckets(range) VALUES (new_range_lower) RETURNING id INTO lower_bucket;
+        INSERT INTO buckets(range) VALUES (new_range_upper) RETURNING id INTO upper_bucket;
+
+        UPDATE nodes SET bucket_id = lower_bucket
+        WHERE node_id < middle_bound;
+
+        UPDATE nodes SET bucket_id = upper_bucket
+        WHERE node_id >= middle_bound;
+
         DELETE FROM buckets
         WHERE range = $1;
 
-        INSERT INTO buckets(range) VALUES (new_range_lower), (new_range_upper);
-
         SET CONSTRAINTS enforce_bucket_coverage IMMEDIATE;
+        SET CONSTRAINTS buckets_do_not_overlap IMMEDIATE;
     END;
     $$ LANGUAGE plpgsql;
     """
