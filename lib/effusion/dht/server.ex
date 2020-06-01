@@ -22,7 +22,7 @@ defmodule Effusion.DHT.Server do
      and is_node_id(target_id) do
     nodes = target_id
       |> closest_nodes()
-      |> Enum.map(&DHT.Node.compact/1)
+      |> Enum.map(&Node.compact/1)
     {:find_node, transaction_id, @node_id, nodes}
   end
 
@@ -30,10 +30,10 @@ defmodule Effusion.DHT.Server do
                         %{remote_address: {host, port}, current_timestamp: now}) do
     token = DHT.token()
 
-    case Repo.one(from node in Effusion.DHT.Node, where: node.node_id == ^sender_id) do
+    case Repo.one(from node in Node, where: node.node_id == ^sender_id) do
       nil ->
         bucket = Bucket.for_node_id(sender_id) |> Repo.one!()
-        DHT.Node.changeset(%DHT.Node{}, %{
+        Node.changeset(%Node{}, %{
           node_id: sender_id,
           bucket_id: bucket.id,
           address: host,
@@ -43,7 +43,7 @@ defmodule Effusion.DHT.Server do
           last_contacted: now
         }) |> Repo.insert()
       node ->
-        DHT.Node.changeset(node, %{
+        Node.changeset(node, %{
           sent_token: token,
           sent_token_timestamp: now,
           last_contacted: now
@@ -56,7 +56,7 @@ defmodule Effusion.DHT.Server do
     end)
 
     if Enum.empty?(matching_nodes) do
-      nodes = Enum.map(nodes, &DHT.Node.compact/1)
+      nodes = Enum.map(nodes, &Node.compact/1)
       {:get_peers_nearest, transaction_id, @node_id, token, nodes}
     else
       matching_peers = Enum.map(matching_nodes, &Peer.compact/1)
@@ -66,7 +66,7 @@ defmodule Effusion.DHT.Server do
 
   def handle_krpc_query({:announce_peer, transaction_id, sender_id, _info_hash, _port, _token}, %{current_timestamp: now}) do
     token_query =
-      from node in DHT.Node,
+      from node in Node,
       where: node.node_id == ^sender_id,
       select: {node.sent_token, node.sent_token_timestamp}
 
@@ -91,7 +91,7 @@ defmodule Effusion.DHT.Server do
     # I really wish I could do this in the DB, it's way easier,
     # but Postgres does not have a bitwise XOR operator for numerics
     <<target_id_int::160>> = target_id
-    Repo.all(DHT.Node)
+    Repo.all(Node)
     |> Enum.map(fn node ->
       <<node_id::160>> = node.node_id
       {bxor(node_id, target_id_int), node}
@@ -104,10 +104,10 @@ defmodule Effusion.DHT.Server do
   end
 
   def handle_krpc_response({:ping, _transaction_id, node_id}, %{remote_address: {host, port}, current_timestamp: now}) do
-    case Repo.one(from node in Effusion.DHT.Node, where: node.node_id == ^node_id) do
+    case Repo.one(from node in Node, where: node.node_id == ^node_id) do
       nil ->
         bucket = Bucket.for_node_id(node_id) |> Repo.one!()
-        DHT.Node.changeset(%DHT.Node{}, %{
+        Node.changeset(%Node{}, %{
           node_id: node_id,
           bucket_id: bucket.id,
           address: host,
@@ -115,7 +115,7 @@ defmodule Effusion.DHT.Server do
           last_contacted: now
         }) |> Repo.insert()
       node ->
-        DHT.Node.changeset(node, %{
+        Node.changeset(node, %{
           last_contacted: now
         }) |> Repo.update()
     end
@@ -132,7 +132,7 @@ defmodule Effusion.DHT.Server do
         port: port
       }
     end)
-    Repo.insert_all(DHT.Node, nodes_to_insert, on_conflict: :nothing)
+    Repo.insert_all(Node, nodes_to_insert, on_conflict: :nothing)
     :ok
   end
 
@@ -175,7 +175,7 @@ defmodule Effusion.DHT.Server do
         last_contacted: DateTime.utc_now()
       }
     end)
-    Repo.insert_all(DHT.Node, nodes_to_insert)
+    Repo.insert_all(Node, nodes_to_insert)
 
     :ok
   end
