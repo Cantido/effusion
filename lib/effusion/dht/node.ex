@@ -10,7 +10,7 @@ defmodule Effusion.DHT.Node do
   schema "nodes" do
     belongs_to :bucket, Bucket
     field :address, EctoNetwork.INET, null: false
-    field :node_id, :binary, null: true
+    field :node_id, :integer, null: true
     field :port, :integer, null: false
     field :received_token, :binary, null: true
     field :sent_token, :binary, null: true
@@ -20,6 +20,7 @@ defmodule Effusion.DHT.Node do
 
   @required_fields [
     :node_id,
+    :bucket_id,
     :address,
     :port,
   ]
@@ -33,6 +34,7 @@ defmodule Effusion.DHT.Node do
   def changeset(model, params \\ %{}) do
     model
     |> cast(params, @required_fields ++ @optional_fields)
+    |> cast_assoc(:bucket, with: &Bucket.changeset/2)
     |> update_change(:address, &wrap_address/1)
     |> update_change(:sent_token_timestamp, &truncate_timestamp/1)
     |> update_change(:last_contacted, &truncate_timestamp/1)

@@ -8,7 +8,10 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
   def up do
     alter table(:nodes) do
       remove :node_id
-      add :node_id, :"numeric(49)"
+      add :node_id, :"numeric(49)", null: true
+
+      remove :bucket_id
+      add :bucket_id, references(:buckets, on_delete: :delete_all, on_update: :update_all), null: false
     end
     create constraint(:nodes, :node_id_must_be_within_160_bits, check: "node_id <= 1461501637330902918203684832716283019655932542976")
     create constraint(:nodes, :node_id_must_be_non_negative, check: "node_id >= 0")
@@ -17,7 +20,7 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
       remove :minimum
       remove :maximum
 
-      add :range, :numrange
+      add :range, :numrange, null: false
     end
 
     create constraint(:buckets, :must_be_within_range, check: "range <@ numrange(0,1461501637330902918203684832716283019655932542977)")
@@ -66,6 +69,31 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
         AFTER INSERT OR UPDATE ON buckets
         DEFERRABLE
         FOR EACH ROW EXECUTE PROCEDURE enforce_bucket_coverage();
+    """
+
+    execute """
+    CREATE OR REPLACE FUNCTION nodes_must_be_in_buckets() RETURNS trigger AS $$
+    DECLARE
+      target_bucket buckets%ROWTYPE := NULL;
+    BEGIN
+        SELECT *
+        INTO target_bucket
+        FROM buckets
+        WHERE id = NEW.bucket_id;
+
+        IF target_bucket IS NULL OR NOT target_bucket.range @> NEW.node_id THEN
+            RAISE EXCEPTION 'Node must be inserted into a bucket that contains its node ID. Node ID was % but target bucket range was %', NEW.node_id, target_bucket.range;
+        END IF;
+
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+    """
+
+    execute """
+    CREATE CONSTRAINT TRIGGER nodes_must_be_in_buckets
+        AFTER INSERT OR UPDATE ON nodes
+        FOR EACH ROW EXECUTE PROCEDURE nodes_must_be_in_buckets();
     """
 
     execute """
