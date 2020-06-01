@@ -29,8 +29,7 @@ defmodule Effusion.DHT.BucketTest do
     })
     |> Repo.insert!()
 
-    {:ok, range_to_split} = Effusion.Numrange.dump(bucket.range)
-    Ecto.Adapters.SQL.query!(Effusion.Repo, "SELECT * FROM split_bucket($1::numrange);", [range_to_split])
+    Ecto.Adapters.SQL.query!(Effusion.Repo, "SELECT * FROM split_bucket($1);", [@bucket_middle])
 
     [lower, upper] = Repo.all(from bucket in Bucket, order_by: fragment("lower(?)",bucket.range))
     assert Enum.at(lower.range, 0) == 0
@@ -65,7 +64,7 @@ defmodule Effusion.DHT.BucketTest do
     |> Repo.insert!
 
     {:ok, range_to_split} = Effusion.Numrange.dump(bucket.range)
-    Ecto.Adapters.SQL.query!(Effusion.Repo, "SELECT * FROM split_bucket($1::numrange);", [range_to_split])
+    Ecto.Adapters.SQL.query!(Effusion.Repo, "SELECT * FROM split_bucket($1);", [@bucket_middle])
 
     [lower_bucket, upper_bucket] = Repo.all(from bucket in Bucket, order_by: fragment("lower(?)",bucket.range))
     # If the next line is returning an empty list,

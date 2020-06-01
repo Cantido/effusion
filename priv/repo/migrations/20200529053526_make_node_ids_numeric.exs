@@ -99,8 +99,9 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
     """
 
     execute """
-    CREATE OR REPLACE FUNCTION split_bucket(numrange) RETURNS void AS $$
+    CREATE OR REPLACE FUNCTION split_bucket(numeric) RETURNS void AS $$
     DECLARE
+        range_to_split numrange := numrange(0,0);
         new_range_lower numrange := numrange(0,0);
         new_range_upper numrange := numrange(0,0);
         lower_bound numeric(49) := 0;
@@ -113,10 +114,18 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
         SET CONSTRAINTS enforce_bucket_coverage DEFERRED;
         SET CONSTRAINTS buckets_do_not_overlap DEFERRED;
 
+        SELECT range
+        INTO range_to_split
+        FROM buckets
+        WHERE range @> $1;
 
-        lower_bound = lower($1);
-        middle_bound = div(upper($1), 2);
-        upper_bound = upper($1);
+        IF range_to_split IS NULL THEN
+          RAISE 'No range exists for node_id %', $1;
+        END IF;
+
+        lower_bound = lower(range_to_split);
+        middle_bound = div(upper(range_to_split), 2);
+        upper_bound = upper(range_to_split);
 
         new_range_lower = numrange(lower_bound, middle_bound);
         new_range_upper = numrange(middle_bound, upper_bound);
@@ -131,7 +140,7 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
         WHERE node_id >= middle_bound;
 
         DELETE FROM buckets
-        WHERE range = $1;
+        WHERE range = range_to_split;
 
         SET CONSTRAINTS enforce_bucket_coverage IMMEDIATE;
         SET CONSTRAINTS buckets_do_not_overlap IMMEDIATE;
