@@ -47,7 +47,7 @@ defmodule Effusion.DHT.BucketTest do
 
     %Node{}
     |> Node.changeset(%{
-        node_id: 1,
+        node_id: <<1::160>>,
         bucket_id: bucket.id,
         address: {127, 0, 0, 1},
         port: 5000
@@ -56,7 +56,7 @@ defmodule Effusion.DHT.BucketTest do
 
     %Node{}
     |> Node.changeset(%{
-        node_id: @bucket_max - 1,
+        node_id: <<(@bucket_max - 1)::160>>,
         bucket_id: bucket.id,
         address: {127, 0, 0, 2},
         port: 5000

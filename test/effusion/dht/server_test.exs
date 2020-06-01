@@ -1,8 +1,10 @@
 defmodule Effusion.DHT.ServerTest do
   use ExUnit.Case
-  alias Effusion.DHT.Server
+  alias Effusion.DHT.{Bucket, Node, Server}
   alias Effusion.Repo
   import Ecto.Query
+
+  @bucket_max 1461501637330902918203684832716283019655932542976
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
@@ -10,6 +12,15 @@ defmodule Effusion.DHT.ServerTest do
   end
 
   @node_id Application.get_env(:effusion, :dht_node_id) |> Base.decode64!()
+
+  setup do
+    {:ok, bucket} = %Bucket{}
+    |> Bucket.changeset(%{
+      range: [0, @bucket_max+1]
+    })
+    |> Repo.insert()
+    {:ok, %{bucket: bucket}}
+  end
 
   setup do
     {
@@ -29,14 +40,15 @@ defmodule Effusion.DHT.ServerTest do
     assert node_id == @node_id
   end
 
-  test "handle find_node query", %{context: context} do
-    {:ok, node} = Repo.insert(%Effusion.DHT.Node{
+  test "handle find_node query", %{context: context, bucket: bucket} do
+    {:ok, node} = Repo.insert(%Node{
       node_id: "09876543210987654321",
+      bucket_id: bucket.id,
       address: %Postgrex.INET{address: {192, 168, 1, 1}},
       port: 65535,
       last_contacted: DateTime.truncate(DateTime.utc_now(), :second)
     })
-    node = Effusion.DHT.Node.compact(node)
+    node = Node.compact(node)
 
     query = {:find_node, "abcde", "12345678901234567890", "09876543210987654321"}
     {:find_node, transaction_id, node_id, nodes} = Server.handle_krpc_query(query, context)
@@ -46,9 +58,10 @@ defmodule Effusion.DHT.ServerTest do
     assert nodes == [node]
   end
 
-  test "handle get_peers query with matching peers", %{context: context} do
-    {:ok, _node} = Repo.insert(%Effusion.DHT.Node{
+  test "handle get_peers query with matching peers", %{context: context, bucket: bucket} do
+    {:ok, _node} = Repo.insert(%Node{
       node_id: "09876543210987654321",
+      bucket_id: bucket.id,
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
       port: 65535,
       last_contacted: DateTime.truncate(DateTime.utc_now(), :second)
@@ -64,9 +77,10 @@ defmodule Effusion.DHT.ServerTest do
     assert peers == [peer]
   end
 
-  test "get_peers saves token", %{context: context} do
-    {:ok, _node} = Repo.insert(%Effusion.DHT.Node{
+  test "get_peers saves token", %{context: context, bucket: bucket} do
+    {:ok, _node} = Repo.insert(%Node{
       node_id: "09876543210987654321",
+      bucket_id: bucket.id,
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
       port: 65535,
       last_contacted: DateTime.truncate(DateTime.utc_now(), :second)
@@ -81,21 +95,22 @@ defmodule Effusion.DHT.ServerTest do
     {:get_peers_matching, _transaction_id, _node_id, token, _matching_peers} = response
 
     {actual_token, _actual_timestamp} = Repo.one!(
-      from node in Effusion.DHT.Node,
+      from node in Node,
       where: node.node_id == ^"12345678901234567890",
       select: {node.sent_token, node.sent_token_timestamp}
     )
     assert token == actual_token
   end
 
-  test "handle get_peers query with nearest nodes", %{context: context} do
-    {:ok, node} = Repo.insert(%Effusion.DHT.Node{
+  test "handle get_peers query with nearest nodes", %{context: context, bucket: bucket} do
+    {:ok, node} = Repo.insert(%Node{
       node_id: "abcdefghij1234567890",
+      bucket_id: bucket.id,
       address: %Postgrex.INET{address: {192, 168, 1, 123}},
       port: 7070,
       last_contacted: DateTime.truncate(DateTime.utc_now(), :second)
     })
-    node = Effusion.DHT.Node.compact(node)
+    node = Node.compact(node)
 
     query = {:get_peers, "abcde", "12345678901234567890", "09876543210987654321"}
     {:get_peers_nearest, _transaction_id, _node_id, _token, nodes} = Server.handle_krpc_query(query, context)
@@ -114,9 +129,10 @@ defmodule Effusion.DHT.ServerTest do
       }, context)
   end
 
-  test "handle announce_peer query rejects queries for expired tokens", %{context: context} do
-    Repo.insert(%Effusion.DHT.Node{
+  test "handle announce_peer query rejects queries for expired tokens", %{context: context, bucket: bucket} do
+    Repo.insert(%Node{
       node_id: "12345678901234567890",
+      bucket_id: bucket.id,
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
       port: 6969,
       sent_token: "abcde",
@@ -134,9 +150,10 @@ defmodule Effusion.DHT.ServerTest do
       }, context)
   end
 
-  test "handle announce_peer query success", %{context: context} do
-    Repo.insert(%Effusion.DHT.Node{
+  test "handle announce_peer query success", %{context: context, bucket: bucket} do
+    Repo.insert(%Node{
       node_id: "12345678901234567890",
+      bucket_id: bucket.id,
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
       port: 6969,
       sent_token: "abcde",
@@ -157,9 +174,11 @@ defmodule Effusion.DHT.ServerTest do
   test "handle ping response", %{context: context} do
     :ok = Server.handle_krpc_response({:ping, "abcde", "12345678901234567890"}, context)
 
-    last_contacted = Repo.one!(from node in Effusion.DHT.Node,
-                                where: node.node_id == ^"12345678901234567890",
-                                select: node.last_contacted)
+    last_contacted = Repo.one!(
+      from node in Node,
+      where: node.node_id == ^"12345678901234567890",
+      select: node.last_contacted
+    )
 
     earliest_timestamp_allowed = Timex.shift(DateTime.utc_now(), minutes: -1)
     assert Timex.after?(last_contacted, earliest_timestamp_allowed)
@@ -170,7 +189,9 @@ defmodule Effusion.DHT.ServerTest do
     nodes = [{"abcdefghij1234567890", {{10, 0, 0, 69}, 4200}}]
     :ok = Server.handle_krpc_response({:find_node, "abcde", "12345678901234567890", nodes}, context)
 
-    Repo.one!(from node in Effusion.DHT.Node,
-              where: node.node_id == ^"abcdefghij1234567890")
+    Repo.one!(
+      from node in Node,
+      where: node.node_id == ^"abcdefghij1234567890"
+    )
   end
 end

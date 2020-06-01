@@ -33,7 +33,7 @@ defmodule Effusion.DHT.NodeTest do
     assert_raise Postgrex.Error, expected_message, fn ->
       %Node{}
       |> Node.changeset(%{
-        node_id: 1,
+        node_id: <<1::160>>,
         bucket_id: upper.id,
         address: {127, 0, 0, 1},
         port: 5000

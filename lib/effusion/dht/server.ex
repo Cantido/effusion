@@ -1,6 +1,7 @@
 defmodule Effusion.DHT.Server do
   alias Effusion.BTP.{Peer, Torrent}
   alias Effusion.DHT
+  alias Effusion.DHT.{Bucket, Node}
   alias Effusion.Repo
   import Bitwise
   import Effusion.DHT, only: [is_node_id: 1]
@@ -31,8 +32,10 @@ defmodule Effusion.DHT.Server do
 
     case Repo.one(from node in Effusion.DHT.Node, where: node.node_id == ^sender_id) do
       nil ->
+        bucket = Bucket.for_node_id(sender_id) |> Repo.one!()
         DHT.Node.changeset(%DHT.Node{}, %{
           node_id: sender_id,
+          bucket_id: bucket.id,
           address: host,
           port: port,
           sent_token: token,
@@ -86,7 +89,7 @@ defmodule Effusion.DHT.Server do
 
   defp closest_nodes(target_id) when is_node_id(target_id) do
     # I really wish I could do this in the DB, it's way easier,
-    # but Postgres does not have a bitwise XOR operator.
+    # but Postgres does not have a bitwise XOR operator for numerics
     <<target_id_int::160>> = target_id
     Repo.all(DHT.Node)
     |> Enum.map(fn node ->
@@ -103,8 +106,10 @@ defmodule Effusion.DHT.Server do
   def handle_krpc_response({:ping, _transaction_id, node_id}, %{remote_address: {host, port}, current_timestamp: now}) do
     case Repo.one(from node in Effusion.DHT.Node, where: node.node_id == ^node_id) do
       nil ->
+        bucket = Bucket.for_node_id(node_id) |> Repo.one!()
         DHT.Node.changeset(%DHT.Node{}, %{
           node_id: node_id,
+          bucket_id: bucket.id,
           address: host,
           port: port,
           last_contacted: now
@@ -119,8 +124,10 @@ defmodule Effusion.DHT.Server do
 
   def handle_krpc_response({:find_node, _transaction_id, _node_id, nodes}, _context) do
     nodes_to_insert = Enum.map(nodes, fn {node_id, {host, port}} ->
+      bucket = Bucket.for_node_id(node_id) |> Repo.one!()
       %{
         node_id: node_id,
+        bucket_id: bucket.id,
         address: %Postgrex.INET{address: host},
         port: port
       }

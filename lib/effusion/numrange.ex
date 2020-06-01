@@ -1,5 +1,5 @@
 defmodule Effusion.Numrange do
-  @behaviour Ecto.Type
+  use Ecto.Type
 
   def type, do: :numrange
   def embed_as(_), do: :self
