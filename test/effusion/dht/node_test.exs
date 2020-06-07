@@ -6,8 +6,8 @@ defmodule Effusion.DHT.NodeTest do
   import Ecto.Query
   doctest Effusion.DHT.Node
 
-  @bucket_max 1461501637330902918203684832716283019655932542976
-  @bucket_middle 730750818665451459101842416358141509827966271488
+  @bucket_max Bucket.max_bucket_upper_value()
+  @bucket_middle trunc(Bucket.max_bucket_upper_value() / 2)
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
@@ -17,7 +17,7 @@ defmodule Effusion.DHT.NodeTest do
   setup do
     Repo.insert_all(Bucket, [
       %{range: [0, @bucket_middle]},
-      %{range: [@bucket_middle, @bucket_max+1]
+      %{range: [@bucket_middle, @bucket_max]
     }])
     :ok
   end
@@ -28,7 +28,7 @@ defmodule Effusion.DHT.NodeTest do
     expected_message =
       "ERROR P0001 (raise_exception) Node must be inserted into a bucket that contains its node ID. " <>
       "Node ID was 1 but target bucket range was " <>
-      "[730750818665451459101842416358141509827966271488,1461501637330902918203684832716283019655932542977)"
+      "[#{@bucket_middle},#{@bucket_max})"
 
     assert_raise Postgrex.Error, expected_message, fn ->
       %Node{

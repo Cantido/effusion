@@ -15,6 +15,15 @@ defmodule Effusion.DHT.Bucket do
     field :last_changed, :utc_datetime, null: false
   end
 
+  def max_bucket_upper_value do
+    # Bucket range upper limit is exclusive
+    Node.max_node_id_value() + 1
+  end
+
+  def initial_bucket_range do
+    [0, max_bucket_upper_value()]
+  end
+
   def changeset(bucket, params \\ %{}) do
     bucket
     |> cast(params, [:range, :last_changed])

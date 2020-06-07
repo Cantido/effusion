@@ -1,7 +1,7 @@
 defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
   use Ecto.Migration
 
-  # The magic number 1461501637330902918203684832716283019655932542976 is just 2^160
+  # The magic number 1461501637330902918203684832716283019655932542975 is just 2^160 -1, 2^160-1 is the maximum value of a 20-byte hash
   # note that numrange(a, b) makes b an EXCLUSIVE boundary.
   # We must make boundaries exclusive so that they can overlap, since numrange is technically a floating-point range
 
@@ -10,7 +10,7 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
       remove :node_id
       add :node_id, :"numeric(49)", null: true
     end
-    create constraint(:nodes, :node_id_must_be_within_160_bits, check: "node_id <= 1461501637330902918203684832716283019655932542976")
+    create constraint(:nodes, :node_id_must_be_within_160_bits, check: "node_id <= 1461501637330902918203684832716283019655932542975")
     create constraint(:nodes, :node_id_must_be_non_negative, check: "node_id >= 0")
 
     alter table(:buckets) do
@@ -20,7 +20,7 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
       add :range, :numrange, null: false
     end
 
-    create constraint(:buckets, :must_be_within_range, check: "range <@ numrange(0,1461501637330902918203684832716283019655932542977)")
+    create constraint(:buckets, :must_be_within_range, check: "range <@ numrange(0,1461501637330902918203684832716283019655932542976)")
 
     execute """
     CREATE FUNCTION numrange_accum_sfunc(numrange, numrange)
@@ -58,7 +58,7 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
         FROM buckets
         INTO bucket_range;
 
-        IF bucket_range <> numrange(0,1461501637330902918203684832716283019655932542977) THEN
+        IF bucket_range <> numrange(0,1461501637330902918203684832716283019655932542976) THEN
             RAISE EXCEPTION 'Bucket ranges must completely cover the range from 0 to 2^160 (inclusive). Coverage after inserting was %', bucket_range;
         END IF;
 

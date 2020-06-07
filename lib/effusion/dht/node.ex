@@ -43,6 +43,14 @@ defmodule Effusion.DHT.Node do
     |> validate_required(@required_fields)
   end
 
+  def max_node_id_value do
+    trunc(:math.pow(2, 160)) - 1
+  end
+
+  def max_node_id_binary do
+    <<max_node_id_value::160>>
+  end
+
   defp put_in_bucket(changeset) do
     if node_id = get_change(changeset, :node_id) do
       bucket = Bucket.for_node_id(node_id) |> changeset.repo.one!()

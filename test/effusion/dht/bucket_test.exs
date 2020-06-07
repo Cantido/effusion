@@ -6,8 +6,9 @@ defmodule Effusion.DHT.BucketTest do
   import Ecto.Query
   doctest Effusion.DHT.Bucket
 
-  @bucket_max 1461501637330902918203684832716283019655932542976
-  @bucket_middle 730750818665451459101842416358141509827966271488
+  @node_id_max Node.max_node_id_value()
+  @bucket_max Bucket.max_bucket_upper_value()
+  @bucket_middle trunc(Bucket.max_bucket_upper_value() / 2)
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
@@ -17,7 +18,7 @@ defmodule Effusion.DHT.BucketTest do
   test "insert the first bucket" do
     %Bucket{}
     |> Bucket.changeset(%{
-      range: [0, @bucket_max+1]
+      range: [0, @bucket_max]
     })
     |> Repo.insert!()
   end
@@ -25,7 +26,7 @@ defmodule Effusion.DHT.BucketTest do
   test "buckets can be split" do
     %Bucket{}
     |> Bucket.changeset(%{
-      range: [0, @bucket_max+1]
+      range: [0, @bucket_max]
     })
     |> Repo.insert!()
 
@@ -34,13 +35,13 @@ defmodule Effusion.DHT.BucketTest do
     assert lower.range.lower == Decimal.new(0)
     assert lower.range.upper == Decimal.new(@bucket_middle)
     assert upper.range.lower == Decimal.new(@bucket_middle)
-    assert upper.range.upper == Decimal.new(@bucket_max+1)
+    assert upper.range.upper == Decimal.new(@bucket_max)
   end
 
   test "splitting a bucket maintains node references" do
     bucket = %Bucket{}
     |> Bucket.changeset(%{
-      range: [0, @bucket_max+1]
+      range: [0, @bucket_max]
     })
     |> Repo.insert!()
 
@@ -55,7 +56,7 @@ defmodule Effusion.DHT.BucketTest do
 
     %Node{}
     |> Node.changeset(%{
-        node_id: <<(@bucket_max - 1)::160>>,
+        node_id: <<(@node_id_max)::160>>,
         bucket_id: bucket.id,
         address: {127, 0, 0, 2},
         port: 5000
@@ -73,11 +74,25 @@ defmodule Effusion.DHT.BucketTest do
     assert upper_node.bucket_id == upper_bucket.id
   end
 
-  test "can insert multiple, but still spanning, buckets in a transaction" do
+  test "can insert two  buckets in a transaction" do
     Repo.insert_all(Bucket, [
       %{range: [0, @bucket_middle]},
-      %{range: [@bucket_middle, @bucket_max+1]
+      %{range: [@bucket_middle, @bucket_max]
     }])
+  end
+
+  test "can insert three buckets in a transaction" do
+    # There is the possibility of these being aggregated out-of-order,
+    # in which case our custom aggregate in our constraint needs to sort them.
+    # The two-bucket case is trivial, the three-bucket case is where the magic needs to happen.
+    first_third = trunc(@bucket_max / 3)
+    second_third = trunc(@bucket_max * (2 / 3))
+
+    Repo.insert_all(Bucket, [
+      %{range: [0, first_third]},
+      %{range: [first_third, second_third]},
+      %{range: [second_third, @bucket_max]}
+    ])
   end
 
   test "insert a bucket that doesn't span the range" do

@@ -4,19 +4,15 @@ defmodule Effusion.DHT.ServerTest do
   alias Effusion.Repo
   import Ecto.Query
 
-  @bucket_max 1461501637330902918203684832716283019655932542976
-
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
     Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, {:shared, self()})
   end
 
-  @node_id Application.get_env(:effusion, :dht_node_id) |> Base.decode64!()
-
   setup do
     {:ok, bucket} = %Bucket{}
     |> Bucket.changeset(%{
-      range: [0, @bucket_max+1]
+      range: Bucket.initial_bucket_range()
     })
     |> Repo.insert()
     {:ok, %{bucket: bucket}}
@@ -27,6 +23,7 @@ defmodule Effusion.DHT.ServerTest do
       :ok,
       %{
         context: %{
+          local_node_id: Node.max_node_id_binary(),
           remote_address: {{10, 0, 0, 1}, 6969},
           current_timestamp: DateTime.utc_now()
         }
@@ -37,7 +34,7 @@ defmodule Effusion.DHT.ServerTest do
   test "ping query", %{context: context} do
     {:ping, transaction_id, node_id} = Server.handle_krpc_query({:ping, "abcde", "12345678901234567890"}, context)
     assert transaction_id == "abcde"
-    assert node_id == @node_id
+    assert node_id == context.local_node_id
   end
 
   test "handle find_node query", %{context: context} do
@@ -55,7 +52,7 @@ defmodule Effusion.DHT.ServerTest do
     {:find_node, transaction_id, node_id, nodes} = Server.handle_krpc_query(query, context)
 
     assert transaction_id == "abcde"
-    assert node_id == @node_id
+    assert node_id == context.local_node_id
     assert nodes == [node]
   end
 
@@ -162,7 +159,8 @@ defmodule Effusion.DHT.ServerTest do
       last_contacted: DateTime.utc_now() |> DateTime.truncate(:second)
     })
 
-    {:announce_peer, "abcde", @node_id} = Server.handle_krpc_query({
+    local_node_id = context.local_node_id
+    {:announce_peer, "abcde", ^local_node_id} = Server.handle_krpc_query({
       :announce_peer,
       "abcde",
       "12345678901234567890",
