@@ -1,4 +1,4 @@
-defmodule Effusion.DHT.Server do
+defmodule Effusion.DHT.ProtocolHandler do
   alias Effusion.BTP.{Peer, Torrent}
   alias Effusion.DHT
   alias Effusion.DHT.{Bucket, Node}

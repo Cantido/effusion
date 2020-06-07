@@ -1,6 +1,6 @@
-defmodule Effusion.DHT.ServerTest do
+defmodule Effusion.DHT.ProtocolHandlerTest do
   use ExUnit.Case
-  alias Effusion.DHT.{Bucket, Node, Server}
+  alias Effusion.DHT.{Bucket, Node, ProtocolHandler}
   alias Effusion.Repo
   import Ecto.Query
 
@@ -32,7 +32,7 @@ defmodule Effusion.DHT.ServerTest do
   end
 
   test "ping query", %{context: context} do
-    {:ping, transaction_id, node_id} = Server.handle_krpc_query({:ping, "abcde", "12345678901234567890"}, context)
+    {:ping, transaction_id, node_id} = ProtocolHandler.handle_krpc_query({:ping, "abcde", "12345678901234567890"}, context)
     assert transaction_id == "abcde"
     assert node_id == context.local_node_id
   end
@@ -49,7 +49,7 @@ defmodule Effusion.DHT.ServerTest do
     node = Node.compact(node)
 
     query = {:find_node, "abcde", "12345678901234567890", "09876543210987654321"}
-    {:find_node, transaction_id, node_id, nodes} = Server.handle_krpc_query(query, context)
+    {:find_node, transaction_id, node_id, nodes} = ProtocolHandler.handle_krpc_query(query, context)
 
     assert transaction_id == "abcde"
     assert node_id == context.local_node_id
@@ -70,7 +70,7 @@ defmodule Effusion.DHT.ServerTest do
     })
 
     query = {:get_peers, "abcde", "12345678901234567890", "09876543210987654321"}
-    {:get_peers_matching, _transaction_id, _node_id, _token, peers} = Server.handle_krpc_query(query, context)
+    {:get_peers_matching, _transaction_id, _node_id, _token, peers} = ProtocolHandler.handle_krpc_query(query, context)
 
     assert peers == [peer]
   end
@@ -89,7 +89,7 @@ defmodule Effusion.DHT.ServerTest do
     })
 
     query = {:get_peers, "abcde", "12345678901234567890", "09876543210987654321"}
-    response = Server.handle_krpc_query(query, context)
+    response = ProtocolHandler.handle_krpc_query(query, context)
     {:get_peers_matching, _transaction_id, _node_id, token, _matching_peers} = response
 
     {actual_token, _actual_timestamp} = Repo.one!(
@@ -111,13 +111,13 @@ defmodule Effusion.DHT.ServerTest do
     node = Node.compact(node)
 
     query = {:get_peers, "abcde", "12345678901234567890", "09876543210987654321"}
-    {:get_peers_nearest, _transaction_id, _node_id, _token, nodes} = Server.handle_krpc_query(query, context)
+    {:get_peers_nearest, _transaction_id, _node_id, _token, nodes} = ProtocolHandler.handle_krpc_query(query, context)
 
     assert node in nodes
   end
 
   test "handle announce_peer query rejects queries for tokens it hasn't seen before", %{context: context} do
-    {:error, [203, "token not recognized"]} = Server.handle_krpc_query({
+    {:error, [203, "token not recognized"]} = ProtocolHandler.handle_krpc_query({
       :announce_peer,
       "abcde",
       "12345678901234567890",
@@ -138,7 +138,7 @@ defmodule Effusion.DHT.ServerTest do
       last_contacted: Timex.shift(context.current_timestamp, minutes: -20) |> DateTime.truncate(:second)
     })
 
-    {:error, [203, "token expired"]} = Server.handle_krpc_query({
+    {:error, [203, "token expired"]} = ProtocolHandler.handle_krpc_query({
       :announce_peer,
       "abcde",
       "12345678901234567890",
@@ -160,7 +160,7 @@ defmodule Effusion.DHT.ServerTest do
     })
 
     local_node_id = context.local_node_id
-    {:announce_peer, "abcde", ^local_node_id} = Server.handle_krpc_query({
+    {:announce_peer, "abcde", ^local_node_id} = ProtocolHandler.handle_krpc_query({
       :announce_peer,
       "abcde",
       "12345678901234567890",
@@ -171,7 +171,7 @@ defmodule Effusion.DHT.ServerTest do
   end
 
   test "handle ping response", %{context: context} do
-    :ok = Server.handle_krpc_response({:ping, "abcde", "12345678901234567890"}, context)
+    :ok = ProtocolHandler.handle_krpc_response({:ping, "abcde", "12345678901234567890"}, context)
 
     last_contacted = Repo.one!(
       from node in Node,
@@ -186,7 +186,7 @@ defmodule Effusion.DHT.ServerTest do
 
   test "handle find_node response", %{context: context} do
     nodes = [{"abcdefghij1234567890", {{10, 0, 0, 69}, 4200}}]
-    :ok = Server.handle_krpc_response({:find_node, "abcde", "12345678901234567890", nodes}, context)
+    :ok = ProtocolHandler.handle_krpc_response({:find_node, "abcde", "12345678901234567890", nodes}, context)
 
     Repo.one!(
       from node in Node,
@@ -220,7 +220,7 @@ defmodule Effusion.DHT.ServerTest do
 
       # our own node ID is in the context map, it's set to the highest possible node ID
       nodes = [{<<(Node.max_node_id_value - 5)::160>>, {{10, 0, 0, 69}, 4200}}]
-      :ok = Server.handle_krpc_response({:find_node, "abcde", "12345678901234567890", nodes}, context)
+      :ok = ProtocolHandler.handle_krpc_response({:find_node, "abcde", "12345678901234567890", nodes}, context)
 
       Repo.one!(
         from node in Node,
@@ -259,7 +259,7 @@ defmodule Effusion.DHT.ServerTest do
       # our own node ID is in the context map, it's set to the highest possible node ID
       # node ID <<1::160>> should be dropped since it's the oldest
       nodes = [{<<9::160>>, {{10, 0, 0, 69}, 4200}}]
-      :ok = Server.handle_krpc_response({:find_node, "abcde", "12345678901234567890", nodes}, context)
+      :ok = ProtocolHandler.handle_krpc_response({:find_node, "abcde", "12345678901234567890", nodes}, context)
 
       Repo.one!(
         from node in Node,
