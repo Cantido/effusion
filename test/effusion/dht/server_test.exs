@@ -25,7 +25,7 @@ defmodule Effusion.DHT.ServerTest do
         context: %{
           local_node_id: Node.max_node_id_binary(),
           remote_address: {{10, 0, 0, 1}, 6969},
-          current_timestamp: DateTime.utc_now()
+          current_timestamp: ~U[2020-06-01 12:00:00Z]
         }
       }
     }
@@ -38,7 +38,7 @@ defmodule Effusion.DHT.ServerTest do
   end
 
   test "handle find_node query", %{context: context} do
-    node = 
+    node =
       Node.changeset(%Node{}, %{
         node_id: "09876543210987654321",
         address: %Postgrex.INET{address: {192, 168, 1, 1}},
@@ -134,8 +134,8 @@ defmodule Effusion.DHT.ServerTest do
       address: %Postgrex.INET{address: {192, 168, 1, 2}},
       port: 6969,
       sent_token: "abcde",
-      sent_token_timestamp: Timex.shift(DateTime.utc_now(), minutes: -20) |> DateTime.truncate(:second),
-      last_contacted: Timex.shift(DateTime.utc_now(), minutes: -20) |> DateTime.truncate(:second)
+      sent_token_timestamp: Timex.shift(context.current_timestamp, minutes: -20) |> DateTime.truncate(:second),
+      last_contacted: Timex.shift(context.current_timestamp, minutes: -20) |> DateTime.truncate(:second)
     })
 
     {:error, [203, "token expired"]} = Server.handle_krpc_query({
@@ -179,7 +179,7 @@ defmodule Effusion.DHT.ServerTest do
       select: node.last_contacted
     )
 
-    earliest_timestamp_allowed = Timex.shift(DateTime.utc_now(), minutes: -1)
+    earliest_timestamp_allowed = Timex.shift(context.current_timestamp, minutes: -1)
     assert Timex.after?(last_contacted, earliest_timestamp_allowed)
     assert Timex.before?(last_contacted, DateTime.utc_now())
   end
@@ -192,5 +192,83 @@ defmodule Effusion.DHT.ServerTest do
       from node in Node,
       where: node.node_id == ^"abcdefghij1234567890"
     )
+  end
+
+  describe "find_node when the target bucket is full" do
+    test "splits the bucket before inserting the node if our local node ID is in the bucket", %{context: context} do
+      [
+        {<<1::160>>, {{127, 0, 0, 1}, 5000}, ~U[2020-06-01 11:30:00Z]},
+        {<<2::160>>, {{127, 0, 0, 2}, 5000}, ~U[2020-06-01 12:00:00Z]},
+        {<<3::160>>, {{127, 0, 0, 3}, 5000}, ~U[2020-06-01 12:00:00Z]},
+        {<<4::160>>, {{127, 0, 0, 4}, 5000}, ~U[2020-06-01 12:00:00Z]},
+        {<<(Node.max_node_id_value - 4)::160>>, {{127, 0, 0, 5}, 5000}, ~U[2020-06-01 12:00:00Z]},
+        {<<(Node.max_node_id_value - 3)::160>>, {{127, 0, 0, 6}, 5000}, ~U[2020-06-01 12:00:00Z]},
+        {<<(Node.max_node_id_value - 2)::160>>, {{127, 0, 0, 7}, 5000}, ~U[2020-06-01 12:00:00Z]},
+        {<<(Node.max_node_id_value - 1)::160>>, {{127, 0, 0, 8}, 5000}, ~U[2020-06-01 12:00:00Z]}
+      ]
+      |> Enum.map(fn {node_id, {host, port}, last_contacted} ->
+        Node.changeset(%Node{}, %{
+          node_id: node_id,
+          address: %Postgrex.INET{address: host},
+          port: port,
+          last_contacted: last_contacted
+        })
+      end)
+      |> Enum.each(fn changeset ->
+        Repo.insert!(changeset, on_conflict: :nothing)
+      end)
+
+      # our own node ID is in the context map, it's set to the highest possible node ID
+      nodes = [{<<(Node.max_node_id_value - 5)::160>>, {{10, 0, 0, 69}, 4200}}]
+      :ok = Server.handle_krpc_response({:find_node, "abcde", "12345678901234567890", nodes}, context)
+
+      Repo.one!(
+        from node in Node,
+        where: node.node_id == ^<<(Node.max_node_id_value - 5)::160>>
+      )
+
+      buckets = Repo.all(Bucket)
+      assert Enum.count(buckets) == 2
+    end
+
+    test "drops old nodes if our local node ID isn't in the bucket", %{context: context} do
+      [
+        {<<1::160>>, {{127, 0, 0, 1}, 5000}, ~U[2020-06-01 11:30:00Z]},
+        {<<2::160>>, {{127, 0, 0, 2}, 5000}, ~U[2020-06-01 12:00:00Z]},
+        {<<3::160>>, {{127, 0, 0, 3}, 5000}, ~U[2020-06-01 12:00:00Z]},
+        {<<4::160>>, {{127, 0, 0, 4}, 5000}, ~U[2020-06-01 12:00:00Z]},
+        {<<5::160>>, {{127, 0, 0, 5}, 5000}, ~U[2020-06-01 12:00:00Z]},
+        {<<6::160>>, {{127, 0, 0, 6}, 5000}, ~U[2020-06-01 12:00:00Z]},
+        {<<7::160>>, {{127, 0, 0, 7}, 5000}, ~U[2020-06-01 12:00:00Z]},
+        {<<8::160>>, {{127, 0, 0, 8}, 5000}, ~U[2020-06-01 12:00:00Z]}
+      ]
+      |> Enum.map(fn {node_id, {host, port}, last_contacted} ->
+        Node.changeset(%Node{}, %{
+          node_id: node_id,
+          address: %Postgrex.INET{address: host},
+          port: port,
+          last_contacted: last_contacted
+        })
+      end)
+      |> Enum.each(fn changeset ->
+        Repo.insert!(changeset, on_conflict: :nothing)
+      end)
+
+      Bucket.split(context.local_node_id)
+
+      # our own node ID is in the context map, it's set to the highest possible node ID
+      # node ID <<1::160>> should be dropped since it's the oldest
+      nodes = [{<<9::160>>, {{10, 0, 0, 69}, 4200}}]
+      :ok = Server.handle_krpc_response({:find_node, "abcde", "12345678901234567890", nodes}, context)
+
+      Repo.one!(
+        from node in Node,
+        where: node.node_id == ^<<9::160>>
+      )
+
+      nodes = Repo.all(Node)
+      # the old node was replaced, so we still have eight
+      assert Enum.count(nodes) == 8
+    end
   end
 end

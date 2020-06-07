@@ -2,6 +2,7 @@ defmodule Effusion.DHT.Node do
   use Ecto.Schema
   alias Effusion.DHT.Bucket
   alias Effusion.DHT.NodeId
+  alias Timex.Duration
   import Ecto.Changeset
 
   @moduledoc """
@@ -49,6 +50,11 @@ defmodule Effusion.DHT.Node do
 
   def max_node_id_binary do
     <<max_node_id_value::160>>
+  end
+
+  def expired?(node, now) do
+    latest_valid_time = Timex.subtract(now, Duration.from_minutes(15))
+    Timex.before?(node.last_contacted, latest_valid_time)
   end
 
   defp put_in_bucket(changeset) do
