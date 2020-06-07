@@ -130,13 +130,12 @@ defmodule Effusion.DHT.Server do
         # does our own node ID fit within this bucket?
         our_bucket = Bucket.for_node_id(local_node_id) |> Repo.one!()
 
-
         if bucket.id == our_bucket.id do
           Logger.debug("Node exists in our own bucket (we are #{inspect local_node_id_int}); splitting bucket #{inspect bucket.range}")
           Bucket.split(local_node_id)
           insert_node({node_id, {host, port}})
         else
-          # ping all older nodes in the bucket, see if they are still active, or drop the node if they're all still active
+          # ping all older nodes in the bucket, see if they are still active, or drop the node we're inserting if they're all still active
           deleted_buckets_count = bucket.nodes
           |> Enum.filter(&Node.expired?(&1, now))
           |> Enum.filter(fn node ->
@@ -151,6 +150,7 @@ defmodule Effusion.DHT.Server do
           if deleted_buckets_count > 0 do
             insert_node({node_id, {host, port}})
           end
+          # If all our nodes are active, just drop what we're inserting
         end
       else
         # when bucket is not full
