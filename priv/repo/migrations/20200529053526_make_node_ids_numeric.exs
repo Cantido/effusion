@@ -54,8 +54,9 @@ defmodule Effusion.Repo.Migrations.MakeNodeIdsNumeric do
     BEGIN
         LOCK TABLE buckets IN EXCLUSIVE MODE;
 
-        SELECT INTO bucket_range numrange_accum(range)
-        FROM buckets;
+        SELECT numrange_accum(range order by lower(range))
+        FROM buckets
+        INTO bucket_range;
 
         IF bucket_range <> numrange(0,1461501637330902918203684832716283019655932542977) THEN
             RAISE EXCEPTION 'Bucket ranges must completely cover the range from 0 to 2^160 (inclusive). Coverage after inserting was %', bucket_range;
