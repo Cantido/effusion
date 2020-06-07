@@ -141,8 +141,7 @@ defmodule Effusion.DHT.Server do
           |> Enum.filter(&Node.expired?(&1, now))
           |> Enum.filter(fn node ->
             Logger.debug("Expired node: #{inspect node}")
-            # ping the node, drop them if they don't respond
-
+            # TODO: ping the node, drop them if they don't respond
             # returning true right now means we drop this old node
             true
           end)
