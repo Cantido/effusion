@@ -59,12 +59,9 @@ defmodule Effusion.DHT.Server do
         response =
           ProtocolHandler.handle_krpc_query(query, context)
           |> Response.encode()
-
-        encoded_response =
-          response
           |> Bento.encode!()
 
-        _ = :gen_udp.send(state.socket, ip, in_port_no, encoded_response)
+        _ = :gen_udp.send(state.socket, ip, in_port_no, response)
 
         {:noreply, state}
       "r" ->
