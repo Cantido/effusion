@@ -39,7 +39,8 @@ defmodule Effusion.CLI do
         {:ok, metabin} = file |> Path.expand() |> File.read()
         {:ok, meta} = Metatorrent.decode(metabin)
 
-        insert_or_get_torrent(meta)
+        {:ok, torrent} = insert_or_get_torrent(meta)
+        torrent
         |> Changeset.change(state: "downloading")
         |> Repo.update!()
       end)
@@ -55,7 +56,7 @@ defmodule Effusion.CLI do
   defp insert_or_get_torrent(meta) do
     case Repo.get_by(Effusion.BTP.Torrent, [info_hash: meta.info_hash]) do
       nil -> Torrent.insert(meta)
-      torrent -> torrent
+      torrent -> {:ok, torrent}
     end
   end
 
@@ -119,7 +120,6 @@ defmodule Effusion.CLI do
 
     IO.puts("Total TCP connections: #{PeerStats.num_tcp_peers()}")
     IO.puts("Total half-open connections: #{PeerStats.num_peers_half_open()}")
-    IO.puts("Message queue length: #{Queutils.BlockingQueue.length(MessageQueue)}")
 
     Process.sleep(100)
     output_loop(uploaded_bytes, this_loop_time)

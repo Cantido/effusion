@@ -34,7 +34,7 @@ defmodule Effusion.Mixfile do
 
   defp aliases do
   [
-    test: ["ecto.create --quiet", "ecto.migrate", "test"]
+    test: ["ecto.create --quiet", "ecto.migrate", "run priv/repo/seeds.exs", "test"]
   ]
   end
 
@@ -43,13 +43,13 @@ defmodule Effusion.Mixfile do
       {:absinthe, "~> 1.4"},
       {:absinthe_plug, "~> 1.4"},
       {:absinthe_phoenix, "~> 1.4"},
+      {:bento, "~> 0.9"},
       {:broadway, "~> 0.6"},
       {:cors_plug, "~> 2.0"},
       {:decimal, "~> 1.0"},
       {:ecto_sql, "~> 3.0"},
       {:ecto_network, "~> 1.2.0"},
       {:postgrex, ">= 0.0.0"},
-      {:ex_bencode, "~> 2.0"},
       {:int_set, "~> 1.4"},
       {:httpotion, "~> 3.0.2"},
       {:httpoison, "~> 1.6"},

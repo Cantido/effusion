@@ -20,17 +20,22 @@ defmodule Effusion.Pipeline.MessageConsumer do
 
   @impl true
   def handle_events(events, _from, state) do
-    updated_pieces = Enum.map(events, fn event ->
-      ProtocolHandler.handle_message(event)
+    updated_pieces =
+      events
+      |> Enum.map(&handle_event/1)
+      |> Enum.reject(&is_nil/1)
 
-      case event do
-        {info_hash, _from, {:piece, block}} ->
-          Piece.get(info_hash, block.index)
-          |> Repo.one()
-        _ -> nil
-      end
-    end)
-    |> Enum.reject(&is_nil/1)
     {:noreply, updated_pieces, state}
+  end
+
+  defp handle_event(event) do
+    ProtocolHandler.handle_message(event)
+
+    case event do
+      {info_hash, _from, {:piece, block}} ->
+        Piece.get(info_hash, block.index)
+        |> Repo.one()
+      _ -> nil
+    end
   end
 end

@@ -2,6 +2,8 @@ defmodule EffusionTest do
   use ExUnit.Case
   doctest Effusion
   alias Effusion.BTP.Peer
+  alias Effusion.DHT
+  alias Effusion.DHT.KRPC.{Query, Response}
   alias Effusion.PWP.TCP.Socket
   import Mox
   import Ecto.Query
@@ -83,7 +85,7 @@ defmodule EffusionTest do
 
     {:ok, pid} = Effusion.start_download(@torrent)
 
-    {:ok, sock, _remote_peer, [:fast]} =
+    {:ok, sock, _remote_peer, [:fast, :dht]} =
       Socket.accept(
         lsock,
         @info_hash,
@@ -153,7 +155,7 @@ defmodule EffusionTest do
 
     {:ok, pid} = Effusion.start_download(@torrent)
 
-    {:ok, sock, _remote_peer, [:fast]} =
+    {:ok, sock, _remote_peer, [:fast, :dht]} =
       Socket.accept(
         lsock,
         @info_hash,
@@ -263,5 +265,35 @@ defmodule EffusionTest do
 
     :ok = Effusion.stop_download(pid)
     Process.sleep(200)
+  end
+
+  test "dht node" do
+    Effusion.THP.Mock
+    |> expect(:announce, 1, &stub_tracker_no_peers/9)
+
+    {:ok, pid} = Effusion.start_download(@torrent)
+    on_exit(fn ->
+      :ok = Effusion.stop_download(pid)
+    end)
+
+    # The server will accept a DHT request, so let's send one
+    {:ok, sock} = :gen_udp.open(@local_port + 5, active: :once)
+    on_exit(fn ->
+      :gen_udp.close(sock)
+    end)
+
+    mock_node_id = DHT.node_id()
+    mock_transaction_id = DHT.transaction_id()
+    {:ok, request} = Query.encode({:ping, mock_transaction_id, mock_node_id}) |> Bento.encode()
+
+    :ok = :gen_udp.send(sock, {127, 0, 0, 1}, @local_port, request)
+
+    packet = receive do
+      {:udp, socket, ip, _in_port_no, packet} -> packet
+    after
+      500 -> flunk "No KRPC response"
+    end
+
+    {:ping, ^mock_transaction_id, server_node_id} = Bento.decode!(packet) |> Response.decode()
   end
 end

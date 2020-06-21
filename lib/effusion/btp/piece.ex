@@ -63,7 +63,7 @@ defmodule Effusion.BTP.Piece do
     where: p.index == ^index
   end
 
-  def has_all_blocks?(piece) do
+  def has_all_blocks?(piece = %__MODULE__{}) do
     from piece in __MODULE__,
     join: block in assoc(piece, :blocks),
     where: piece.id == ^piece.id,

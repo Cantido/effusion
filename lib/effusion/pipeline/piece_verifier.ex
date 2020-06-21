@@ -2,7 +2,6 @@ defmodule Effusion.Pipeline.PieceVerifier do
   use GenStage
   alias Effusion.BTP.Piece
   alias Effusion.Pipeline.MessageConsumer
-  alias Effusion.Repo
   alias GenStage.BroadcastDispatcher
   require Logger
 
@@ -22,16 +21,10 @@ defmodule Effusion.Pipeline.PieceVerifier do
   @impl true
   def handle_events(events, _from, state) do
     verified_pieces =
-      Enum.map(events, &handle_event/1)
+      events
+      |> Enum.map(&Piece.verify/1)
       |> Enum.reject(&is_nil/1)
 
     {:noreply, verified_pieces, state}
-  end
-
-  def handle_event(piece = %Piece{}) do
-    Logger.debug("Verifying piece #{piece.index}")
-    Piece.has_all_blocks?(piece)
-    |> Repo.one()
-    |> Piece.verify()
   end
 end

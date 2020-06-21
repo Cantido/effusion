@@ -49,7 +49,7 @@ defmodule Effusion.DHT.Node do
   end
 
   def max_node_id_binary do
-    <<max_node_id_value::160>>
+    <<max_node_id_value()::160>>
   end
 
   def expired?(node, now) do

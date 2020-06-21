@@ -13,6 +13,8 @@ defmodule Effusion.Application do
     SessionStats.init()
     TelemetryHandler.init()
 
+    port = Application.get_env(:effusion, :port)
+
     children = [
       Effusion.Repo,
       Effusion.Statistics.Supervisor,
@@ -28,11 +30,12 @@ defmodule Effusion.Application do
       {Registry, keys: :unique, name: FinishedTorrentWatchdogRegistry},
       {Registry, keys: :unique, name: AnnouncerRegistry},
       # Effusion.BTP.Session,
+      {Effusion.DHT.Server, port: port},
       EffusionWeb.Endpoint
     ]
 
     {:ok, _listener} =
-      :ranch.start_listener(:pwp, 100, :ranch_tcp, [port: 8001], Effusion.PWP.TCP.Connection, [])
+      :ranch.start_listener(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Connection, [])
 
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]
     Supervisor.start_link(children, opts)

@@ -24,6 +24,12 @@ defmodule Effusion.DHT.Bucket do
     [0, max_bucket_upper_value()]
   end
 
+  def seed_bucket() do
+    changeset(%__MODULE__{}, %{
+      range: initial_bucket_range()
+    })
+  end
+
   def changeset(bucket, params \\ %{}) do
     bucket
     |> cast(params, [:range, :last_changed])

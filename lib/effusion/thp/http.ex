@@ -88,7 +88,7 @@ defmodule Effusion.THP.HTTP do
   """
   @impl true
   def process_response_body(body) do
-    case ExBencode.decode(body) do
+    case Bento.decode(body) do
       {:ok, bterm} ->
           bterm
           |> Effusion.Map.rename_keys(@body_names)

@@ -10,11 +10,7 @@ defmodule Effusion.DHT.ProtocolHandlerTest do
   end
 
   setup do
-    {:ok, bucket} = %Bucket{}
-    |> Bucket.changeset(%{
-      range: Bucket.initial_bucket_range()
-    })
-    |> Repo.insert()
+    {:ok, bucket} = Bucket.for_node_id(<<1:160>>) |> Repo.one()
     {:ok, %{bucket: bucket}}
   end
 

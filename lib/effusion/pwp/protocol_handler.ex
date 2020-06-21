@@ -19,7 +19,7 @@ defmodule Effusion.PWP.ProtocolHandler do
   """
 
   @local_peer_id Application.get_env(:effusion, :peer_id)
-  @supported_extensions [:fast]
+  @supported_extensions [:fast, :dht]
 
   @doc """
   Connect to the remote address, expecting the given peer ID.
@@ -165,7 +165,7 @@ defmodule Effusion.PWP.ProtocolHandler do
       }
     end)
 
-    Repo.insert_all(PeerPiece, peer_pieces)
+    Repo.insert_all(PeerPiece, peer_pieces, on_conflict: :nothing)
 
     peer_query =
       from peer in Peer,
