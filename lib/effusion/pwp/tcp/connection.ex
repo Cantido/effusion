@@ -164,6 +164,17 @@ defmodule Effusion.PWP.TCP.Connection do
     end
   end
 
+  def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id}) do
+    :ok = Queutils.BlockingProducer.push(MessageProducer, {info_hash, peer_id, msg})
+
+    {:noreply, state}
+  end
+
+  def handle_btp(msg, state) do
+    Logger.error("Connection not able to handle message #{inspect msg}.")
+    {:stop, :unexpected_message, state}
+  end
+
   def handle_continue(:connect, state), do: start_connection(state)
 
   def handle_info(
@@ -179,9 +190,8 @@ defmodule Effusion.PWP.TCP.Connection do
     end
   end
 
-  def handle_info({:tcp, _tcp_socket, data}, state = %{info_hash: info_hash, remote_peer_id: peer_id}) when is_binary(data) do
+  def handle_info({:tcp, _tcp_socket, data}, state) when is_binary(data) do
     {:ok, msg} = Messages.decode(data)
-    :ok = Queutils.BlockingProducer.push(MessageProducer, {info_hash, peer_id, msg})
 
     :telemetry.execute(
       [:pwp, :message_received],
@@ -191,9 +201,12 @@ defmodule Effusion.PWP.TCP.Connection do
       |> Map.put(:message, msg)
     )
 
+    ret = handle_btp(msg, state)
+
     :ok = :inet.setopts(state.socket, active: :once)
-    {:noreply, state}
+    ret
   end
+
   def handle_info({:tcp_closed, _socket}, state), do: {:stop, :normal, state}
   def handle_info(:disconnect, state), do: {:stop, :normal, state}
   def handle_info({:disconnect, reason}, state), do: {:stop, reason, state}
