@@ -62,7 +62,7 @@ defmodule Effusion.PWP.TCP.Connection do
   def start_link(peer = {{_host, port}, info_hash, expected_peer_id}) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id)  do
     GenServer.start_link(__MODULE__, peer)
   end
-  
+
   def init({address, info_hash, expected_peer_id}) do
     state = %{
       address: address,
@@ -164,13 +164,6 @@ defmodule Effusion.PWP.TCP.Connection do
     end
   end
 
-  def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id})
-    when is_hash(info_hash)
-     and is_peer_id(peer_id) do
-    :ok = Queutils.BlockingProducer.push(MessageProducer, {info_hash, peer_id, msg})
-    {:noreply, state}
-  end
-
   def handle_info(
         {:btp_send, dest_peer_id, msg},
         state = %{socket: socket, remote_peer_id: peer_id}
@@ -184,23 +177,20 @@ defmodule Effusion.PWP.TCP.Connection do
     end
   end
 
-  def handle_info({:tcp, _tcp_socket, data}, state) when is_binary(data) do
-    {latency, {msg, ret}} = :timer.tc(fn ->
-      {:ok, msg} = Messages.decode(data)
-      ret = handle_btp(msg, state)
-      {msg, ret}
-    end)
+  def handle_info({:tcp, _tcp_socket, data}, state = %{info_hash: info_hash, remote_peer_id: peer_id}) when is_binary(data) do
+    {:ok, msg} = Messages.decode(data)
+    :ok = Queutils.BlockingProducer.push(MessageProducer, {info_hash, peer_id, msg})
 
     :telemetry.execute(
       [:pwp, :message_received],
-      %{latency: latency / 1_000},
+      %{},
       Map.take(state, [:remote_peer_id, :info_hash])
       |> Map.put(:binary, data)
       |> Map.put(:message, msg)
     )
 
     :ok = :inet.setopts(state.socket, active: :once)
-    ret
+    {:noreply, state}
   end
 
   def handle_info(:timeout, state), do: start_connection(state)
