@@ -65,7 +65,7 @@ defmodule Effusion.Mixfile do
       {:telemetry, "~> 0.4.1"},
       {:timex, "~> 3.6"},
       {:tzdata, "~> 0.1.7"},
-      {:queutils, "~> 1.0"},
+      {:queutils, "~> 1.2"},
       {:temp, "~> 0.4", only: :test},
       {:mox, "~> 0.3", only: :test},
       {:credo, "~> 1.1.0", only: [:dev, :test], runtime: false},

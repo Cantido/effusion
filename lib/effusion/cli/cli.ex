@@ -48,7 +48,9 @@ defmodule Effusion.CLI do
 
     Session.start_link([])
 
-    Process.sleep(100)
+    {:ok, _} = Application.ensure_all_started(:effusion)
+
+    Process.sleep(1000)
 
     output_loop()
   end
@@ -68,7 +70,8 @@ defmodule Effusion.CLI do
 
   defp output_loop(
          last_uploaded_bytes \\ 0,
-         last_timestamp \\ System.monotonic_time(:millisecond)
+         last_timestamp \\ System.monotonic_time(:millisecond),
+         last_messages_processed_count \\ 0
        ) do
 
     info_hashes = Repo.all(
@@ -82,12 +85,15 @@ defmodule Effusion.CLI do
     end)
 
     this_loop_time = System.monotonic_time(:millisecond)
-    time_since_last_loop = max(this_loop_time - last_timestamp, 1)
+    seconds_since_last_loop = max(this_loop_time - last_timestamp, 1) / 1_000
+    total_messages_processed = Queutils.BlockingQueue.popped_count(MessageProducer)
+    this_loop_messages_processed = total_messages_processed - last_messages_processed_count
+    messages_processed_per_second = this_loop_messages_processed / seconds_since_last_loop
 
     downloaded_bytes = NetStats.recv_bytes()
     uploaded_bytes = NetStats.sent_bytes()
     dl_speed = SessionDownloadAverage.session_20sec_download_avg()
-    ul_speed = (uploaded_bytes - last_uploaded_bytes) / time_since_last_loop * 1_000
+    ul_speed = (uploaded_bytes - last_uploaded_bytes) / seconds_since_last_loop
 
     dl_speed_formatted = dl_speed |> trunc() |> Format.bytes()
     ul_speed_formatted = ul_speed |> trunc() |> Format.bytes()
@@ -121,8 +127,10 @@ defmodule Effusion.CLI do
     IO.puts("Total TCP connections: #{PeerStats.num_tcp_peers()}")
     IO.puts("Total half-open connections: #{PeerStats.num_peers_half_open()}")
 
+    IO.puts("PWP messages processed per second: #{messages_processed_per_second}")
+
     Process.sleep(100)
-    output_loop(uploaded_bytes, this_loop_time)
+    output_loop(uploaded_bytes, this_loop_time, total_messages_processed)
   end
 
   defp torrent_row(info_hash) do
