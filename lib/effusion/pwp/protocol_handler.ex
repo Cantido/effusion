@@ -19,7 +19,7 @@ defmodule Effusion.PWP.ProtocolHandler do
   """
 
   @local_peer_id Application.get_env(:effusion, :peer_id)
-  @supported_extensions [:fast, :dht]
+  @supported_extensions []
 
   @doc """
   Connect to the remote address, expecting the given peer ID.
