@@ -69,7 +69,7 @@ defmodule Effusion.PWP.TCP.Connection do
       info_hash: info_hash,
       expected_peer_id: expected_peer_id
     }
-    {:ok, state, 0}
+    {:ok, state, {:continue, :connect}}
   end
 
   def incoming_init(ref, socket, transport) do
@@ -101,7 +101,7 @@ defmodule Effusion.PWP.TCP.Connection do
 
     :telemetry.execute([:pwp, :outgoing, :starting], %{}, state)
 
-    with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 10_000),
+    with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000),
 
          :ok <- Socket.send_msg(socket, ProtocolHandler.get_handshake(info_hash)),
          {:ok, handshake = {:handshake, remote_peer_id, _remote_info_hash, extensions}} <- Socket.recv(socket, 68),
@@ -164,6 +164,8 @@ defmodule Effusion.PWP.TCP.Connection do
     end
   end
 
+  def handle_continue(:connect, state), do: start_connection(state)
+
   def handle_info(
         {:btp_send, dest_peer_id, msg},
         state = %{socket: socket, remote_peer_id: peer_id}
@@ -192,8 +194,6 @@ defmodule Effusion.PWP.TCP.Connection do
     :ok = :inet.setopts(state.socket, active: :once)
     {:noreply, state}
   end
-
-  def handle_info(:timeout, state), do: start_connection(state)
   def handle_info({:tcp_closed, _socket}, state), do: {:stop, :normal, state}
   def handle_info(:disconnect, state), do: {:stop, :normal, state}
   def handle_info({:disconnect, reason}, state), do: {:stop, reason, state}
