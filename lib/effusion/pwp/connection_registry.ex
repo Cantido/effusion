@@ -87,7 +87,9 @@ defmodule Effusion.PWP.ConnectionRegistry do
     _ =
       case connections do
         [{conn_pid, ^peer_id}] -> send(conn_pid, {:btp_send, peer_id, message})
-        [] -> []
+        [] ->
+          Logger.warn("No connection process for peer ID #{inspect peer_id} found")
+          []
       end
   end
 end
