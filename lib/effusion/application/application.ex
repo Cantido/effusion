@@ -30,9 +30,15 @@ defmodule Effusion.Application do
       {Registry, keys: :unique, name: FinishedTorrentWatchdogRegistry},
       {Registry, keys: :unique, name: AnnouncerRegistry},
       # Effusion.BTP.Session,
-      {Effusion.DHT.Server, port: port},
       EffusionWeb.Endpoint
     ]
+
+    children = if :dht in Application.fetch_env!(:effusion, :enabled_extensions) do
+      children ++ [{Effusion.DHT.Server, port: port}]
+    else
+      children
+    end
+
 
     {:ok, _listener} =
       :ranch.start_listener(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Connection, [])
