@@ -80,7 +80,7 @@ defmodule Effusion.Statistics.Net do
     :ets.update_counter(NetStatsTable, :recv_payload_bytes, n, {:k, 0})
   end
 
-  def add_recv_payload_bytes(info_hash, n) when is_integer(n) and n >= 0 do
+  def add_torrent_recv_payload_bytes(info_hash, n) when is_integer(n) and n >= 0 do
     :ets.update_counter(TorrentDownloadStatsTable, info_hash, n, {:k, 0})
     :ets.update_counter(NetStatsTable, :recv_payload_bytes, n, {:k, 0})
   end
@@ -101,7 +101,7 @@ defmodule Effusion.Statistics.Net do
     :ets.update_counter(NetStatsTable, :recv_bytes, n, {:k, 0})
   end
 
-  def add_recv_bytes(peer_id, n) when is_integer(n) and n >= 0 do
+  def add_peer_recv_bytes(peer_id, n) when is_integer(n) and n >= 0 do
     :ets.update_counter(PeerDownloadStatsTable, peer_id, n, {:k, 0})
   end
 

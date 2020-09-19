@@ -47,7 +47,8 @@ defmodule Effusion.Statistics.SessionDownloadAverage do
   end
 
   defp avg(list) when is_list(list) and length(list) > 0 do
-    Enum.sort(list) |> Enum.at((length(list) / 2) |> trunc())
+    # arithmetic mean
+    Enum.sum(list) / length(list)
   end
 
   defp avg([]) do

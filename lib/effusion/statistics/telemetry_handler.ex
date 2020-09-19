@@ -2,6 +2,7 @@ defmodule Effusion.Statistics.TelemetryHandler do
   alias Effusion.PWP.Messages
   alias Effusion.Statistics.Peer, as: PeerStats
   alias Effusion.Statistics.Session, as: SessionStats
+  alias Effusion.Statistics.Net, as: NetStats
   require Logger
 
   @moduledoc """
@@ -48,15 +49,15 @@ defmodule Effusion.Statistics.TelemetryHandler do
     msg = metadata.message
 
     SessionStats.inc_incoming_message(msg)
-    :ets.update_counter(NetStatsTable, :recv_payload_bytes, payload_size, {:k, 0})
-    :ets.update_counter(NetStatsTable, :recv_bytes, data_size, {:k, 0})
+    NetStats.add_recv_bytes(data_size)
+    NetStats.add_recv_payload_bytes(payload_size)
 
     if Map.has_key?(metadata, :info_hash) do
-      :ets.update_counter(TorrentDownloadStatsTable, data_size, data_size, {:k, 0})
+      NetStats.add_torrent_recv_payload_bytes(metadata.info_hash, payload_size)
     end
 
     if Map.has_key?(metadata, :remote_peer_id) do
-      :ets.update_counter(PeerDownloadStatsTable, metadata.remote_peer_id, data_size, {:k, 0})
+      NetStats.add_peer_recv_bytes(metadata.remote_peer_id, data_size)
     end
   end
 
