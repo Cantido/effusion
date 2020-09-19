@@ -27,7 +27,7 @@ defmodule Effusion.Mixfile do
 
   def application do
     [
-      extra_applications: [:logger, :crypto, :ranch, :runtime_tools, :timex],
+      extra_applications: [:crypto, :logger, :ranch, :runtime_tools, :timex],
       mod: {Effusion.Application, []}
     ]
   end
