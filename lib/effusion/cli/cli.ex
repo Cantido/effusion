@@ -7,6 +7,7 @@ defmodule Effusion.CLI do
   alias Effusion.Repo
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
+  alias Effusion.Statistics.Session, as: SessionStats
   alias Effusion.Statistics.SessionDownloadAverage
   import Ecto.Query
   use Timex
@@ -128,6 +129,29 @@ defmodule Effusion.CLI do
     IO.puts("Total half-open connections: #{PeerStats.num_peers_half_open()}")
 
     IO.puts("PWP messages processed per second: #{messages_processed_per_second}")
+
+    IO.puts("---INCOMING---")
+    IO.puts("choke:          #{SessionStats.num_incoming_choke()}")
+    IO.puts("unchoke:        #{SessionStats.num_incoming_unchoke()}")
+    IO.puts("interested:     #{SessionStats.num_incoming_interested()}")
+    IO.puts("not interested: #{SessionStats.num_incoming_not_interested()}")
+    IO.puts("have:           #{SessionStats.num_incoming_have()}")
+    IO.puts("bitfield:       #{SessionStats.num_incoming_bitfield()}")
+    IO.puts("request:        #{SessionStats.num_incoming_request()}")
+    IO.puts("piece:          #{SessionStats.num_incoming_piece()}")
+    IO.puts("cancel:         #{SessionStats.num_incoming_cancel()}")
+
+    IO.puts("---OUTGOING---")
+    IO.puts("choke:          #{SessionStats.num_outgoing_choke()}")
+    IO.puts("unchoke:        #{SessionStats.num_outgoing_unchoke()}")
+    IO.puts("interested:     #{SessionStats.num_outgoing_interested()}")
+    IO.puts("not interested: #{SessionStats.num_outgoing_not_interested()}")
+    IO.puts("have:           #{SessionStats.num_outgoing_have()}")
+    IO.puts("bitfield:       #{SessionStats.num_outgoing_bitfield()}")
+    IO.puts("request:        #{SessionStats.num_outgoing_request()}")
+    IO.puts("piece:          #{SessionStats.num_outgoing_piece()}")
+    IO.puts("cancel:         #{SessionStats.num_outgoing_cancel()}")
+
 
     Process.sleep(100)
     output_loop(uploaded_bytes, this_loop_time, total_messages_processed)
