@@ -77,6 +77,12 @@ defmodule EffusionTest do
   end
 
   test "download a file", %{lsock: lsock, destfile: file} do
+    old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
+    Application.put_env(:effusion, :enabled_extensions, [])
+    on_exit(fn ->
+      Application.put_env(:effusion, :enabled_extensions, old_supported_extensions)
+    end)
+
     Application.put_env(:effusion, :download_destination, file)
 
     # Expect started, completed, and stopped messages
@@ -85,7 +91,7 @@ defmodule EffusionTest do
 
     {:ok, pid} = Effusion.start_download(@torrent)
 
-    {:ok, sock, _remote_peer, [:fast, :dht]} =
+    {:ok, sock, _remote_peer, []} =
       Socket.accept(
         lsock,
         @info_hash,
