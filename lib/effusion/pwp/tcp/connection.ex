@@ -101,6 +101,8 @@ defmodule Effusion.PWP.TCP.Connection do
 
     :telemetry.execute([:pwp, :outgoing, :starting], %{}, state)
 
+    {:ok, _pid} = ConnectionRegistry.register(info_hash, expected_peer_id)
+
     with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000),
 
          :ok <- Socket.send_msg(socket, ProtocolHandler.get_handshake(info_hash)),
@@ -139,6 +141,8 @@ defmodule Effusion.PWP.TCP.Connection do
         %{},
         Map.put(state, :remote_peer_id, remote_peer_id)
       )
+
+      {:ok, _pid} = ConnectionRegistry.register(info_hash, remote_peer_id)
 
       with :ok <- ProtocolHandler.recv_handshake(handshake),
            :ok <- Socket.send_msg(socket, ProtocolHandler.get_handshake(info_hash)),

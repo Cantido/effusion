@@ -85,7 +85,6 @@ defmodule Effusion.PWP.ProtocolHandler do
   Handle a successful connection.
   """
   def handle_connect(info_hash, peer_id, {ip, port}, extensions) when is_hash(info_hash) and is_peer_id(peer_id) do
-    {:ok, _pid} = ConnectionRegistry.register(info_hash, peer_id)
     fast_extension = Enum.member?(extensions, :fast)
     case Repo.one(Peer.get(info_hash, {ip, port})) do
       nil ->

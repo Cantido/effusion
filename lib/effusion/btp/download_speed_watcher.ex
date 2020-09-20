@@ -11,7 +11,7 @@ defmodule Effusion.BTP.DownloadSpeedWatcher do
   Connects/disconnects peers based on their download speed.
   """
 
-  @watch_interval_ms 10_000
+  @watch_interval_ms 1_000
   @peer_min_bits_per_second 1
 
   @peers_count_to_add_on_speedup Application.fetch_env!(:effusion, :peers_count_to_add_on_speedup)
@@ -58,7 +58,12 @@ defmodule Effusion.BTP.DownloadSpeedWatcher do
   end
 
   defp add_peers(info_hash) do
-    PeerSelection.select_lowest_failcount(info_hash, @peers_count_to_add_on_speedup)
+    connected_peers = ConnectionRegistry.all_connected(info_hash)
+    max_connected_peers = Application.fetch_env!(:effusion, :max_peers)
+    max_new_peers = max_connected_peers - Enum.count(connected_peers)
+    peer_count_to_add = max(max_new_peers, @peers_count_to_add_on_speedup)
+
+    PeerSelection.select_lowest_failcount(info_hash, peer_count_to_add, connected_peers)
     |> Enum.each(fn peer ->
       address = {peer.address.address, peer.port}
       ProtocolHandler.connect(address, info_hash, peer.peer_id)
