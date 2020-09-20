@@ -72,7 +72,8 @@ defmodule Effusion.Statistics.TelemetryHandler do
     PeerStats.dec_num_peers_half_open()
   end
 
-  def handle_event([:pwp, :outgoing, :failure], _measurements, _metadata, _config) do
+  def handle_event([:pwp, :outgoing, :failure], _measurements, metadata, _config) do
+    Logger.warn("Failed to connect to #{metadata.address}")
     PeerStats.dec_num_peers_half_open()
   end
 
