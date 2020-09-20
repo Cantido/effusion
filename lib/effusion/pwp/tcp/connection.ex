@@ -169,7 +169,7 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id}) do
-    :ok = Queutils.BlockingProducer.push(MessageProducer, {info_hash, peer_id, msg})
+    :ok = Effusion.PWP.MessageDispatcher.dispatch(msg, info_hash, peer_id)
 
     {:noreply, state}
   end
