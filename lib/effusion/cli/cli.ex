@@ -93,7 +93,7 @@ defmodule Effusion.CLI do
 
     downloaded_payload_bytes = NetStats.recv_payload_bytes()
     uploaded_bytes = NetStats.sent_bytes()
-    dl_speed = SessionDownloadAverage.session_20sec_download_avg()
+    dl_speed = SessionDownloadAverage.session_01sec_download_avg()
     ul_speed = (uploaded_bytes - last_uploaded_bytes) / seconds_since_last_loop
 
     dl_speed_formatted = dl_speed |> trunc() |> Format.bytes()
@@ -114,9 +114,8 @@ defmodule Effusion.CLI do
     IO.puts("")
 
     IO.puts(
-      "Down: #{dl_speed_formatted}/s (#{dl_bytes_formatted}); Up: #{ul_speed_formatted}/s (#{
-        ul_bytes_formatted
-      })"
+      "Down: #{dl_speed_formatted}/s (#{dl_bytes_formatted}); " <>
+      "Up: #{ul_speed_formatted}/s (#{ul_bytes_formatted})"
     )
 
     if NetStats.has_incoming_connections?() do
@@ -128,7 +127,7 @@ defmodule Effusion.CLI do
     IO.puts("Total TCP connections: #{PeerStats.num_tcp_peers()}")
     IO.puts("Total half-open connections: #{PeerStats.num_peers_half_open()}")
 
-    IO.puts("PWP messages processed per second: #{messages_processed_per_second}")
+    IO.puts("PWP messages processed per second: #{Float.round(messages_processed_per_second, 0) |> trunc()}")
 
     IO.puts("---INCOMING---")
     IO.puts("choke:          #{SessionStats.num_incoming_choke()}")

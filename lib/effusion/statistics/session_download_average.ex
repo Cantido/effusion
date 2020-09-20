@@ -17,6 +17,10 @@ defmodule Effusion.Statistics.SessionDownloadAverage do
     GenServer.call(__MODULE__, :session_20sec_download_avg)
   end
 
+  def session_01sec_download_avg do
+    GenServer.call(__MODULE__, :session_01sec_download_avg)
+  end
+
   @doc """
   Initialize the download speed tracker.
   """
@@ -27,6 +31,10 @@ defmodule Effusion.Statistics.SessionDownloadAverage do
 
   def handle_call(:session_20sec_download_avg, _from, state) do
     {:reply, avg(state.bytes_per_second), state}
+  end
+
+  def handle_call(:session_01sec_download_avg, _from, state) do
+    {:reply, state.bytes_per_second |> Enum.at(0), state}
   end
 
   def handle_info(:accumulate, state) do
