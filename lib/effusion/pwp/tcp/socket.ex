@@ -29,7 +29,7 @@ defmodule Effusion.PWP.TCP.Socket do
   and performs a PWP handshake as the given `peer`.
   """
   def accept(lsock, local_info_hash, local_peer_id, expected_peer_id, our_extensions \\ []) do
-    case :gen_tcp.accept(lsock, 1_000) do
+    case :gen_tcp.accept(lsock, 5_000) do
       {:ok, socket} -> perform_handshake(socket, local_peer_id, expected_peer_id, local_info_hash, our_extensions)
       err -> err
     end
