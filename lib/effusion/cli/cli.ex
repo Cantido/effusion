@@ -91,7 +91,7 @@ defmodule Effusion.CLI do
     this_loop_messages_processed = total_messages_processed - last_messages_processed_count
     messages_processed_per_second = this_loop_messages_processed / seconds_since_last_loop
 
-    downloaded_bytes = NetStats.recv_bytes()
+    downloaded_payload_bytes = NetStats.recv_payload_bytes()
     uploaded_bytes = NetStats.sent_bytes()
     dl_speed = SessionDownloadAverage.session_20sec_download_avg()
     ul_speed = (uploaded_bytes - last_uploaded_bytes) / seconds_since_last_loop
@@ -99,7 +99,7 @@ defmodule Effusion.CLI do
     dl_speed_formatted = dl_speed |> trunc() |> Format.bytes()
     ul_speed_formatted = ul_speed |> trunc() |> Format.bytes()
 
-    dl_bytes_formatted = downloaded_bytes |> Format.bytes()
+    dl_bytes_formatted = downloaded_payload_bytes |> Format.bytes()
     ul_bytes_formatted = uploaded_bytes |> Format.bytes()
 
     IO.write(IO.ANSI.clear())
