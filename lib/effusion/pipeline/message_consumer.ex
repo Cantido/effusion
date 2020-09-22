@@ -29,13 +29,17 @@ defmodule Effusion.Pipeline.MessageConsumer do
   end
 
   defp handle_event(event) do
-    ProtocolHandler.handle_message(event)
 
     case event do
       {info_hash, _from, {:piece, block}} ->
+        ProtocolHandler.handle_message(event)
         Piece.get(info_hash, block.index)
         |> Repo.one()
-      _ -> nil
+      _ ->
+        Task.start(fn ->
+          ProtocolHandler.handle_message(event)
+        end)
+        nil
     end
   end
 end
