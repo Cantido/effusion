@@ -132,7 +132,7 @@ defmodule EffusionTest do
       assert r2 == 0
     end
 
-    :timer.sleep(700)
+    Effusion.BTP.ProtocolHandler.await(@info_hash)
     :file.datasync(file)
 
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
@@ -149,7 +149,6 @@ defmodule EffusionTest do
     assert Enum.all?(piece_write_statuses)
 
     :ok = Effusion.stop_download(pid)
-    Process.sleep(200)
   end
 
   test "download a file from a peer supporting the fast extension", %{lsock: lsock, destfile: file} do
@@ -206,7 +205,7 @@ defmodule EffusionTest do
       assert r2 == 0
     end
 
-    :timer.sleep(700)
+    Effusion.BTP.ProtocolHandler.await(@info_hash)
     :file.datasync(file)
 
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
@@ -272,7 +271,7 @@ defmodule EffusionTest do
       assert r2 == 0
     end
 
-    :timer.sleep(700)
+    Effusion.BTP.ProtocolHandler.await(@info_hash)
     :file.datasync(file)
 
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
