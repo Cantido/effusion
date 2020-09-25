@@ -311,11 +311,11 @@ defmodule EffusionTest do
     :ok = :gen_udp.send(sock, {127, 0, 0, 1}, @local_port, request)
 
     packet = receive do
-      {:udp, socket, ip, _in_port_no, packet} -> packet
+      {:udp, _socket, _ip, _in_port_no, packet} -> packet
     after
       500 -> flunk "No KRPC response"
     end
 
-    {:ping, ^mock_transaction_id, server_node_id} = Bento.decode!(packet) |> Response.decode()
+    {:ping, ^mock_transaction_id, _server_node_id} = Bento.decode!(packet) |> Response.decode()
   end
 end
