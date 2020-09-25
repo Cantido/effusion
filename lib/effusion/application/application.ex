@@ -29,7 +29,7 @@ defmodule Effusion.Application do
       {Registry, keys: :unique, name: BTPHandlerRegistry},
       {Registry, keys: :unique, name: FinishedTorrentWatchdogRegistry},
       {Registry, keys: :unique, name: AnnouncerRegistry},
-      # Effusion.BTP.Session,
+      Effusion.DHT.Server,
       EffusionWeb.Endpoint
     ]
 

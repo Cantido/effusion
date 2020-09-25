@@ -18,8 +18,13 @@ defmodule Effusion.PWP.ProtocolHandler do
   Handles Peer Wire Protocol messages.
   """
 
-  @local_peer_id Application.get_env(:effusion, :peer_id)
-  @supported_extensions Application.fetch_env!(:effusion, :enabled_extensions)
+  defp local_peer_id do
+    Application.get_env(:effusion, :peer_id)
+  end
+
+  defp supported_extensions do
+    Application.fetch_env!(:effusion, :enabled_extensions)
+  end
 
   @doc """
   Connect to the remote address, expecting the given peer ID.
@@ -40,7 +45,7 @@ defmodule Effusion.PWP.ProtocolHandler do
   Get the handshake tuple for this connection.
   """
   def get_handshake(info_hash) do
-    {:handshake, @local_peer_id, info_hash, @supported_extensions}
+    {:handshake, local_peer_id(), info_hash, supported_extensions()}
   end
 
   @doc """

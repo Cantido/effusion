@@ -10,7 +10,7 @@ defmodule Effusion.DHT.ProtocolHandlerTest do
   end
 
   setup do
-    {:ok, bucket} = Bucket.for_node_id(<<1::160>>) |> Repo.one()
+    bucket = Bucket.for_node_id(<<1::160>>) |> Repo.one()
     {:ok, %{bucket: bucket}}
   end
 

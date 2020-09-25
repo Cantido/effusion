@@ -15,10 +15,7 @@ defmodule Effusion.DHT.NodeTest do
   end
 
   setup do
-    Repo.insert_all(Bucket, [
-      %{range: [0, @bucket_middle]},
-      %{range: [@bucket_middle, @bucket_max]
-    }])
+    Bucket.split(<<@bucket_middle::160>>)
     :ok
   end
 
