@@ -87,7 +87,7 @@ defmodule Effusion.CLI do
 
     this_loop_time = System.monotonic_time(:millisecond)
     seconds_since_last_loop = max(this_loop_time - last_timestamp, 1) / 1_000
-    total_messages_processed = Queutils.BlockingQueue.popped_count(MessageProducer)
+    total_messages_processed = Queutils.BlockingQueue.popped_count(MessageQueue)
     this_loop_messages_processed = total_messages_processed - last_messages_processed_count
     messages_processed_per_second = this_loop_messages_processed / seconds_since_last_loop
 
