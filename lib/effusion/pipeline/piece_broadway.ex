@@ -1,35 +1,31 @@
-defmodule Effusion.Pipeline.PieceWriter do
+defmodule Effusion.Pipeline.PieceBroadway do
+  use Broadway
   alias Effusion.BTP.Piece
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.ProtocolHandler
   alias Effusion.BTP.Torrent
   alias Effusion.IO
-  alias Effusion.Pipeline.PieceVerifier
   alias Effusion.Repo
+  alias Broadway.Message
   require Logger
-  use GenStage
-
-  @moduledoc """
-  Writes pieces and notifies the protocol handler when we've finished a torrent.
-  """
 
   def start_link(_opts) do
-    GenStage.start_link(__MODULE__, :ok, name: __MODULE__)
+    Broadway.start_link(__MODULE__,
+      name: __MODULE__,
+      producer: [
+        module: {Queutils.BlockingQueueProducer, queue: PieceQueue},
+        transformer: {Effusion.Pipeline.Transformer, :transform, []}
+      ],
+      processors: [
+        default: []
+      ]
+    )
   end
 
-  @impl true
-  def init(_args) do
-    {:consumer, 0, [subscribe_to: [PieceVerifier]]}
-  end
+  def handle_message(_, %Message{data:  piece} = message, _) do
+    piece = Effusion.Repo.preload(piece, [:torrent])
+    ProtocolHandler.have_piece(piece.torrent.info_hash, piece)
 
-  @impl true
-  def handle_events(events, _from, state) do
-    Enum.each(events, &handle_event/1)
-    {:noreply, [], state}
-  end
-
-  defp handle_event(piece = %Piece{}) do
-    piece = Repo.preload(piece, [:torrent])
     info_hash = piece.torrent.info_hash
     index = piece.index
 
