@@ -43,21 +43,36 @@ defmodule Effusion.Statistics.TelemetryHandler do
   end
 
   def handle_event([:pwp, :message_received], _measurements, metadata, _config) do
-    data = metadata.binary
-    data_size = byte_size(data)
-    payload_size = Messages.payload_bytes_count(data)
-    msg = metadata.message
-
-    SessionStats.inc_incoming_message(msg)
-    NetStats.add_recv_bytes(data_size)
-    NetStats.add_recv_payload_bytes(payload_size)
-
-    if Map.has_key?(metadata, :info_hash) do
-      NetStats.add_torrent_recv_payload_bytes(metadata.info_hash, payload_size)
+    data_size = cond do
+      Map.has_key?(metadata, :binary) ->
+        byte_size(metadata.binary)
+      Map.has_key?(metadata, :binary_size) ->
+        metadata.binary_size
+      true -> 0
     end
+
+    NetStats.add_recv_bytes(data_size)
 
     if Map.has_key?(metadata, :remote_peer_id) do
       NetStats.add_peer_recv_bytes(metadata.remote_peer_id, data_size)
+    end
+
+    payload_size = cond do
+      Map.has_key?(metadata, :binary) ->
+        Messages.payload_bytes_count(metadata.binary)
+      Map.has_key?(metadata, :payload_size) ->
+        metadata.payload_size
+      true -> 0
+    end
+
+    NetStats.add_recv_payload_bytes(payload_size)
+
+    if Map.has_key?(metadata, :message) do
+      SessionStats.inc_incoming_message(metadata.message)
+    end
+
+    if Map.has_key?(metadata, :info_hash) do
+      NetStats.add_torrent_recv_payload_bytes(metadata.info_hash, payload_size)
     end
   end
 

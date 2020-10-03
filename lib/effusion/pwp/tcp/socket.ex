@@ -84,8 +84,6 @@ defmodule Effusion.PWP.TCP.Socket do
   def recv(socket, size \\ 0) do
     case :gen_tcp.recv(socket, size) do
       {:ok, packet} ->
-        Messages.payload_bytes_count(packet) |> NetStats.add_recv_payload_bytes()
-        byte_size(packet) |> NetStats.add_recv_bytes()
         decode(packet)
 
       err ->

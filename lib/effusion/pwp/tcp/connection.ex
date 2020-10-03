@@ -110,6 +110,10 @@ defmodule Effusion.PWP.TCP.Connection do
          :ok <- ProtocolHandler.recv_handshake(handshake, info_hash, expected_peer_id),
          :ok <- successful_handshake(socket, info_hash, remote_peer_id, extensions) do
 
+      :telemetry.execute(
+        [:pwp, :message_received],
+        Map.take(state, [:remote_peer_id, :info_hash])
+        |> Map.merge(%{message: handshake, binary_size: 68}))
       :telemetry.execute([:pwp, :outgoing, :success], %{}, state)
 
       {:ok, address} = :inet.peername(socket)
