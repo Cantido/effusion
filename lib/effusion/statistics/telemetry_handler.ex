@@ -104,8 +104,8 @@ defmodule Effusion.Statistics.TelemetryHandler do
     Logger.debug("Writing piece #{index} for #{info_hash |> Effusion.Hash.encode()}...")
   end
 
-  def handle_event([:io, :write, :piece, :success], %{latency: latency}, %{index: index, info_hash: info_hash}, _config) do
-    Logger.debug("Done writing piece #{index} for #{info_hash |> Effusion.Hash.encode()}. Took #{latency} us.")
+  def handle_event([:io, :write, :piece, :success], %{duration: duration}, %{index: index, info_hash: info_hash}, _config) do
+    Logger.debug("Done writing piece #{index} for #{info_hash |> Effusion.Hash.encode()}. Took #{duration} us.")
   end
 
   def handle_event([:btp, :started], %{}, %{info_hash: info_hash}, _config) do

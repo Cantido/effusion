@@ -28,13 +28,13 @@ defmodule Effusion.IO do
     torrent = Torrent.get(info_hash) |> Repo.one!()
     files = BTPFile.get(info_hash) |> Repo.all()
 
-    {latency, results} = :timer.tc(fn ->
+    {duration, results} = :timer.tc(fn ->
       write_files(files, torrent.name, torrent.piece_size, index, piece_data)
     end)
 
     :telemetry.execute(
       [:io, :write, :piece, :success],
-      %{latency: latency},
+      %{duration: duration},
       %{info_hash: info_hash, index: index})
 
     results
