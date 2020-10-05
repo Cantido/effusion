@@ -290,7 +290,7 @@ defmodule EffusionTest do
     end)
 
     Effusion.THP.Mock
-    |> expect(:announce, 1, &stub_tracker_no_peers/9)
+    |> stub(:announce, &stub_tracker_no_peers/9)
 
     {:ok, pid} = Effusion.start_download(@torrent)
     on_exit(fn ->

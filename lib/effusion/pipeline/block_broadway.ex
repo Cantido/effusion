@@ -1,5 +1,6 @@
 defmodule Effusion.Pipeline.BlockBroadway do
   use Broadway
+  alias Effusion.CQRS.Contexts.Pieces, as: PiecesContext
   alias Effusion.BTP.Piece
   alias Effusion.Repo
   alias Broadway.Message
@@ -17,7 +18,7 @@ defmodule Effusion.Pipeline.BlockBroadway do
     )
   end
 
-  def handle_message(_, %Message{data:  {info_hash, _from, {:piece, block}}}, _) do
+  def handle_message(_, %Message{data:  {info_hash, _from, {:piece, block}}} = message, _) do
     piece =
       Piece.get(info_hash, block.index)
       |> Repo.one()
@@ -26,5 +27,7 @@ defmodule Effusion.Pipeline.BlockBroadway do
     unless is_nil(piece) do
       Queutils.BlockingQueue.push(PieceQueue, piece)
     end
+
+    message
   end
 end

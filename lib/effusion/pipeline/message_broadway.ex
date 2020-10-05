@@ -16,11 +16,14 @@ defmodule Effusion.Pipeline.MessageBroadway do
     )
   end
 
-  def handle_message(_, %Message{data: data}, _) do
+  def handle_message(_, %Message{data: data} = message, _) do
     ProtocolHandler.handle_message(data)
 
-    if {_info_hash, _from, {:piece, _block}} = data do
-      Queutils.BlockingQueue.push(BlockQueue, data)
+    case data do
+      {_info_hash, _from, {:piece, _block}} -> Queutils.BlockingQueue.push(BlockQueue, data)
+      _ -> nil
     end
+
+    message
   end
 end

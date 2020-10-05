@@ -36,5 +36,6 @@ defmodule Effusion.Pipeline.PieceBroadway do
       Logger.debug("All pieces are written, notifying BTP handler")
       ProtocolHandler.notify_all_pieces_written(info_hash)
     end
+    message
   end
 end
