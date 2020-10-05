@@ -1,11 +1,15 @@
 defmodule Effusion.Application do
   @moduledoc false
+  use Commanded.Application,
+    otp_app: :effusion,
+    event_store: [
+      adapter: Commanded.EventSture.Adapters.EventStore,
+      event_store: Effusion.CQRS.EventStore
+    ]
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
   alias Effusion.Statistics.Session, as: SessionStats
   alias Effusion.Statistics.TelemetryHandler
-
-  use Application
 
   def start(_type, _args) do
     NetStats.init()

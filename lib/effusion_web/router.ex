@@ -8,10 +8,10 @@ defmodule EffusionWeb.Router do
   scope "/api" do
     pipe_through :api
 
-    forward "/graphiql", Absinthe.Plug.GraphiQL,
-      schema: EffusionWeb.Schema
-
-    forward "/", Absinthe.Plug,
-      schema: EffusionWeb.Schema
+    # forward "/graphiql", Absinthe.Plug.GraphiQL,
+    #   schema: EffusionWeb.Schema
+    #
+    # forward "/", Absinthe.Plug,
+    #   schema: EffusionWeb.Schema
   end
 end

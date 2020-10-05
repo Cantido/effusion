@@ -40,11 +40,13 @@ defmodule Effusion.Mixfile do
 
   defp deps do
     [
-      {:absinthe, "~> 1.4"},
-      {:absinthe_plug, "~> 1.4"},
-      {:absinthe_phoenix, "~> 1.4"},
+      # {:absinthe, "~> 1.4"},
+      # {:absinthe_plug, "~> 1.4"},
+      # {:absinthe_phoenix, "~> 1.4"},
       {:bento, "~> 0.9"},
       {:broadway, "~> 0.6"},
+      {:commanded, "~> 1.2"},
+      {:commanded_eventstore_adapter, "~> 1.2"},
       {:cors_plug, "~> 2.0"},
       {:decimal, "~> 1.0"},
       {:ecto_sql, "~> 3.0"},
@@ -58,7 +60,8 @@ defmodule Effusion.Mixfile do
       {:jason, "~> 1.2"},
       {:logger_file_backend, "~> 0.0.10"},
       {:metatorrent, "~> 1.0"},
-      {:phoenix, "~> 1.4.11"},
+      {:phoenix, "~> 1.5"},
+      # {:phoenix_pubsub, "~> 2.0", override: true},
       {:plug_cowboy, "~> 2.0"},
       {:ranch, "~> 1.7"},
       {:telemetry, "~> 0.4.1"},

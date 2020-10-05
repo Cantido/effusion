@@ -19,13 +19,22 @@ config :effusion,
   # by calling Effusion.DHT.node_id() |> Base.encode64()
   dht_node_id: "zjuXKldLo4rJMGR1Ww/ykZFlXLQ=",
   peers_count_to_add_on_speedup: 10,
-  enabled_extensions: []
+  enabled_extensions: [],
+  event_stores: [Effusion.CQRS.EventStore]
 
 config :effusion, Effusion.Repo,
   database: "effusion_repo",
   username: "effusion",
   password: "zkwNw2P8t&Vec#ebMr5&cjzj",
   hostname: "localhost"
+
+config :effusion, Effusion.CQRS.EventStore,
+  serializer: Commanded.Serialization.JsonSerializer,
+  database: "event_store",
+  username: "effusion",
+  password: "zkwNw2P8t&Vec#ebMr5&cjzj",
+  hostname: "localhost",
+  pool_size: 10
 
 # Configures the endpoint
 config :effusion, EffusionWeb.Endpoint,
