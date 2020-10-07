@@ -15,6 +15,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     PieceHashFailed,
     TorrentAdded
   }
+  alias Commanded.Aggregate.Multi
   require Logger
 
   defstruct [
@@ -70,26 +71,35 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
 
 
   def execute(
-    %__MODULE__{info_hash: torrent_info_hash, pieces: pieces, info: info, verified: verified},
+    %__MODULE__{} = torrent,
     %StoreBlock{info_hash: info_hash, from: from, index: index, offset: offset, data: block_data}
-  ) when not is_nil(torrent_info_hash) do
+  ) do
+    torrent
+    |> Multi.new()
+    |> Multi.execute(&store_block(&1, from, index, offset, block_data))
+    |> Multi.execute(&check_for_finished_piece(&1, index))
+    |> Multi.execute(&check_for_finished_torrent/1)
+  end
+
+  defp store_block(%__MODULE__{info_hash: info_hash, pieces: pieces}, from, index, offset, data) do
     pieces =
       Map.update(
         pieces,
         index,
-        [%{offset: offset, data: block_data}],
-        & [%{offset: offset, data: block_data} | &1])
+        [%{offset: offset, data: data}],
+        & [%{offset: offset, data: data} | &1])
 
-    block_stored_event =
-      %BlockStored{
-        from: from,
-        info_hash: info_hash,
-        index: index,
-        offset: offset,
-        data: block_data,
-        pieces: pieces
-      }
+    %BlockStored{
+      from: from,
+      info_hash: info_hash,
+      index: index,
+      offset: offset,
+      data: data,
+      pieces: pieces
+    }
+  end
 
+  defp check_for_finished_piece(%__MODULE__{info_hash: info_hash, pieces: pieces, info: info}, index) do
     piece_size =
       pieces[index]
       |> Enum.map(& &1.data)
@@ -102,41 +112,24 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     normal_piece_done = index < (expected_piece_count - 1) and piece_size == info.piece_length
     last_piece_done = index == (expected_piece_count - 1) and last_piece_size
 
-    completion_messages =
-      if normal_piece_done or last_piece_done do
-        piece_data =
-          pieces[index]
-          |> Enum.map(& &1.data)
-          |> Enum.join()
+    if normal_piece_done or last_piece_done do
+      piece_data =
+        pieces[index]
+        |> Enum.map(& &1.data)
+        |> Enum.join()
 
-        if Effusion.Hash.calc(piece_data) == Enum.at(info.pieces, index) do
-          Logger.debug "********* CQRS Validated piece number #{index}!!!"
-          piece_hash_succeeded_msg =
-            %PieceHashSucceeded{
-              info_hash: info_hash,
-              index: index,
-              data: piece_data
-            }
-
-          if Enum.count(IntSet.put(verified, index)) == Enum.count(info.pieces) do
-            Logger.debug "********* CQRS validated, torrent complete for #{info_hash}!!!"
-            [
-              piece_hash_succeeded_msg,
-              %AllPiecesVerified{info_hash: info_hash},
-            ]
-          else
-            Logger.debug "********* We don't have enough pieces yet!!! wanted #{Enum.count(info.pieces)}, have #{Enum.count(IntSet.put(verified, index))}"
-            [piece_hash_succeeded_msg]
-          end
-        else
-          Logger.debug "********* CQRS failed validation for piece number #{index}!!!, data was #{piece_data}"
-          [%PieceHashFailed{info_hash: info_hash, index: index}]
-        end
+      if Effusion.Hash.calc(piece_data) == Enum.at(info.pieces, index) do
+        %PieceHashSucceeded{info_hash: info_hash, index: index, data: piece_data}
       else
-        []
+        %PieceHashFailed{info_hash: info_hash, index: index}
       end
+    end
+  end
 
-    [block_stored_event] ++ completion_messages
+  defp check_for_finished_torrent(%__MODULE__{info_hash: info_hash, verified: verified, info: info}) do
+    if Enum.count(verified) == Enum.count(info.pieces) do
+      %AllPiecesVerified{info_hash: info_hash}
+    end
   end
 
   def execute(
