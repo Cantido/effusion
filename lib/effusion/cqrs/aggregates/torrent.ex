@@ -126,7 +126,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
   end
 
   def execute(
-    %__MODULE__{state: :downloading},
+    %__MODULE__{state: :stopped},
     %StopDownload{}
   ) do
     {:error, :download_already_stopped}
