@@ -1,9 +1,8 @@
-defmodule Effusion.CQRS.Events.PeerRequestCancelled do
+defmodule Effusion.CQRS.Commands.RequestBlock do
   defstruct [
     :internal_peer_id,
     :info_hash,
     :index,
-    :peer_id,
     :offset,
     :size
   ]

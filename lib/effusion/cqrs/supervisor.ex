@@ -12,7 +12,8 @@ defmodule Effusion.CQRS.Supervisor do
       ProcessManagers.DownloadTorrent,
       ProcessManagers.PeerConnection,
       Effusion.CQRS.EventHandlers.DbWriter,
-      Effusion.CQRS.EventHandlers.TrackerAnnouncer
+      Effusion.CQRS.EventHandlers.TrackerAnnouncer,
+      Effusion.CQRS.EventHandlers.PeerMessenger
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.CQRS.Supervisor]

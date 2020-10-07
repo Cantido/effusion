@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.Events.PeerUnchokedUs do
+defmodule Effusion.CQRS.Events.InterestedSent do
   defstruct [
     :internal_peer_id,
     :info_hash,

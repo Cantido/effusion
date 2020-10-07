@@ -7,7 +7,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   alias Effusion.PWP.TCP.Connection
   alias Effusion.CQRS.Commands.{
     StopDownload,
-    StoreBlock
+    StoreBlock,
+    SendInterested
   }
   alias Effusion.CQRS.Events.{
     DownloadStarted,
@@ -92,24 +93,16 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def handle(
     %__MODULE__{pieces: pieces},
-    %PeerHasBitfield{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
+    %PeerHasBitfield{internal_peer_id: internal_peer_id, bitfield: bitfield}
   ) do
     bitfield = bitfield |> Base.decode16!() |> IntSet.new()
 
     if IntSet.difference(bitfield, pieces) |> Enum.any?() do
       Logger.debug("***** Got bitfield, sending :interested")
-      ConnectionRegistry.btp_send(Effusion.Hash.decode(info_hash), peer_id, :interested)
+      %SendInterested{
+        internal_peer_id: internal_peer_id
+      }
     end
-    []
-  end
-
-  def handle(
-    %__MODULE__{},
-    %PieceHashSucceeded{info_hash: info_hash, index: index}
-  ) do
-    Logger.debug("***** Piece has succeeded, sending :have")
-    ConnectionRegistry.btp_broadcast(Effusion.Hash.decode(info_hash), {:have, index})
-    []
   end
 
   def handle(

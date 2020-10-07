@@ -13,7 +13,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     HandleRequest,
     HandleUnchoke,
     HandleInterested,
-    HandleUninterested
+    HandleUninterested,
+    SendInterested
   }
   alias Effusion.CQRS.Events.{
     PeerAdded,
@@ -28,7 +29,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     PeerRequestedBlock,
     PeerRequestCancelled,
     PeerSentBlock,
-    SuccessfulHandshake
+    SuccessfulHandshake,
+    InterestedSent
   }
 
   defstruct [
@@ -58,9 +60,9 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def execute(
     %__MODULE__{connection_status: :disconnected},
-    %AddConnectedPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
+    %AddConnectedPeer{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
   ) do
-    %PeerConnected{info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
+    %PeerConnected{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
   end
 
   def execute(
@@ -72,9 +74,9 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def execute(
     %__MODULE__{connection_status: :connected},
-    %RemoveConnectedPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port, reason: reason}
+    %RemoveConnectedPeer{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, reason: reason}
   ) do
-    %PeerDisconnected{info_hash: info_hash, peer_id: peer_id, host: host, port: port, reason: reason}
+    %PeerDisconnected{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, reason: reason}
   end
 
   def execute(
@@ -86,9 +88,9 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def execute(
     %__MODULE__{connection_status: :disconnected},
-    %HandleHandshake{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+    %HandleHandshake{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port}
   ) do
-    %SuccessfulHandshake{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+    %SuccessfulHandshake{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port}
   end
 
   def execute(
@@ -100,65 +102,72 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def execute(
     %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleChoke{info_hash: info_hash, peer_id: peer_id}
+    %HandleChoke{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id}
   ) do
-    %PeerChokedUs{info_hash: info_hash, peer_id: peer_id}
+    %PeerChokedUs{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id}
   end
 
   def execute(
     %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleUnchoke{info_hash: info_hash, peer_id: peer_id}
+    %HandleUnchoke{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id}
   ) do
-    %PeerUnchokedUs{info_hash: info_hash, peer_id: peer_id}
+    %PeerUnchokedUs{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id}
   end
 
   def execute(
     %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleInterested{info_hash: info_hash, peer_id: peer_id}
+    %HandleInterested{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id}
   ) do
-    %PeerInterestedInUs{info_hash: info_hash, peer_id: peer_id}
+    %PeerInterestedInUs{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id}
   end
 
   def execute(
     %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleUninterested{info_hash: info_hash, peer_id: peer_id}
+    %HandleUninterested{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id}
   ) do
-    %PeerUninterestedInUs{info_hash: info_hash, peer_id: peer_id}
+    %PeerUninterestedInUs{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id}
   end
 
   def execute(
     %__MODULE__{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield},
-    %HandleHave{info_hash: info_hash, peer_id: peer_id, index: index}
+    %HandleHave{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, index: index}
   ) do
-    %PeerHasPiece{info_hash: info_hash, peer_id: peer_id, index: index, bitfield: IntSet.put(bitfield, index)}
+    %PeerHasPiece{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, index: index, bitfield: IntSet.put(bitfield, index)}
   end
 
   def execute(
     %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandlePiece{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, data: data}
+    %HandlePiece{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, data: data}
   ) do
-    %PeerSentBlock{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, data: data}
+    %PeerSentBlock{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, data: data}
   end
 
   def execute(
     %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleBitfield{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
+    %HandleBitfield{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
   ) do
-    %PeerHasBitfield{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
+    %PeerHasBitfield{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
   end
 
   def execute(
     %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleRequest{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+    %HandleRequest{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
   ) do
-    %PeerRequestedBlock{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+    %PeerRequestedBlock{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
   end
 
   def execute(
     %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleCancel{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+    %HandleCancel{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
   ) do
-    %PeerRequestCancelled{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+    %PeerRequestCancelled{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+  end
+
+  def execute(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
+    %SendInterested{internal_peer_id: internal_peer_id}
+  ) do
+    %InterestedSent{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id}
   end
 
   def apply(
@@ -263,6 +272,15 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %PeerSentBlock{info_hash: info_hash, peer_id: peer_id}
   ) do
     peer
+  end
+
+  def apply(
+    %__MODULE__{} = peer,
+    %InterestedSent{}
+  ) do
+    %__MODULE__{peer |
+      am_interested: true
+    }
   end
 
 end

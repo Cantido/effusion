@@ -4,48 +4,31 @@ defmodule Effusion.CQRS.Router do
     Torrent,
     Peer
   }
-  alias Effusion.CQRS.Commands.{
-    AddTorrent,
-    AddPeer,
-    AddConnectedPeer,
-    RemoveConnectedPeer,
-    StartDownload,
-    StopDownload,
-    StoreBlock,
-    HandleCompletedDownload,
-    HandleBitfield,
-    HandleCancel,
-    HandleChoke,
-    HandleHandshake,
-    HandleHave,
-    HandleInterested,
-    HandlePiece,
-    HandleRequest,
-    HandleUnchoke,
-    HandleUninterested
-  }
+  alias Effusion.CQRS.Commands
 
   dispatch [
-    AddTorrent,
-    StartDownload,
-    StopDownload,
-    StoreBlock,
-    HandleCompletedDownload
+    Commands.AddTorrent,
+    Commands.StartDownload,
+    Commands.StopDownload,
+    Commands.StoreBlock,
+    Commands.HandleCompletedDownload
   ], to: Torrent, identity: :info_hash
 
   dispatch [
-    AddPeer,
-    AddConnectedPeer,
-    RemoveConnectedPeer,
-    HandleBitfield,
-    HandleCancel,
-    HandleChoke,
-    HandleHandshake,
-    HandleHave,
-    HandleInterested,
-    HandlePiece,
-    HandleRequest,
-    HandleUnchoke,
-    HandleUninterested
+    Commands.AddPeer,
+    Commands.AddConnectedPeer,
+    Commands.RemoveConnectedPeer,
+    Commands.HandleBitfield,
+    Commands.HandleCancel,
+    Commands.HandleChoke,
+    Commands.HandleHandshake,
+    Commands.HandleHave,
+    Commands.HandleInterested,
+    Commands.HandlePiece,
+    Commands.HandleRequest,
+    Commands.HandleUnchoke,
+    Commands.HandleUninterested,
+    Commands.RequestBlock,
+    Commands.SendInterested
   ], to: Peer, identity: :internal_peer_id
 end
