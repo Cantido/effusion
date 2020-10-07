@@ -32,6 +32,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   }
 
   defstruct [
+    internal_peer_id: nil,
     info_hash: nil,
     peer_id: nil,
     host: nil,
@@ -45,10 +46,10 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   ]
 
   def execute(
-    %__MODULE__{info_hash: nil, peer_id: nil},
-    %AddPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: source}
+    %__MODULE__{internal_peer_id: nil},
+    %AddPeer{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: source}
   ) do
-    %PeerAdded{info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: source}
+    %PeerAdded{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: source}
   end
 
   def execute(
@@ -158,9 +159,10 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def apply(
     %__MODULE__{info_hash: nil, host: nil, port: nil} = peer,
-    %PeerAdded{info_hash: info_hash, host: host, port: port}
+    %PeerAdded{internal_peer_id: internal_peer_id, info_hash: info_hash, host: host, port: port}
   ) do
     %__MODULE__{peer |
+      internal_peer_id: internal_peer_id,
       info_hash: info_hash,
       host: host,
       port: port

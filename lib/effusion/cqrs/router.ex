@@ -45,5 +45,5 @@ defmodule Effusion.CQRS.Router do
     HandleRequest,
     HandleUnchoke,
     HandleUninterested
-  ], to: Peer, identity: :peer_id
+  ], to: Peer, identity: :internal_peer_id
 end

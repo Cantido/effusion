@@ -114,9 +114,11 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     )
 
     Enum.map(res.peers, fn peer ->
+      host = :inet.ntoa(peer.ip)
       %AddPeer{
+        internal_peer_id: "#{info_hash}:#{host}:#{peer.port}",
         info_hash: info_hash,
-        host: :inet.ntoa(peer.ip),
+        host: host,
         port: peer.port,
         peer_id: Map.get(peer, :peer_id, nil),
         from: :tracker
@@ -195,9 +197,11 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
     peers =
       Enum.map(res.peers, fn peer ->
+        host = to_string(:inet.ntoa(peer.ip))
         %AddPeer{
+          internal_peer_id: "#{info_hash}:#{host}:#{peer.port}",
           info_hash: info_hash,
-          host: peer.ip,
+          host: host,
           port: peer.port,
           peer_id: Map.get(peer, :peer_id, nil),
           from: :tracker
