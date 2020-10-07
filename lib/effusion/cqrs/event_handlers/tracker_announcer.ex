@@ -3,10 +3,57 @@ defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
     application: Effusion.CQRS.Application,
     name: __MODULE__
 
+  alias Effusion.CQRS.Application, as: CQRS
   alias Effusion.CQRS.Events.{
+    DownloadStarted,
     DownloadStopped
   }
+  alias Effusion.CQRS.Commands.AddPeer
   require Logger
+
+  def handle(
+    %DownloadStarted{
+      info_hash: info_hash,
+      announce: announce_uri,
+      bytes_left: bytes_left
+    },
+    _metadata
+  ) do
+    thp_client  = Application.fetch_env!(:effusion, :thp_client)
+    peer_id = Application.fetch_env!(:effusion, :peer_id)
+    {local_host, local_port} = Application.fetch_env!(:effusion, :server_address)
+    tracker_numwant = Application.fetch_env!(:effusion, :max_peers)
+
+    opts = [event: "started", numwant: tracker_numwant]
+
+    {:ok, res} = thp_client.announce(
+      announce_uri,
+      local_host,
+      local_port,
+      peer_id,
+      info_hash,
+      0,
+      0,
+      bytes_left,
+      opts
+    )
+
+    Enum.map(res.peers, fn peer ->
+      host = to_string(:inet.ntoa(peer.ip))
+      %AddPeer{
+        internal_peer_id: "#{info_hash}:#{host}:#{peer.port}",
+        info_hash: info_hash,
+        host: host,
+        port: peer.port,
+        peer_id: Map.get(peer, :peer_id, nil),
+        from: :tracker
+      }
+    end)
+    |> Enum.filter(fn peer ->
+      peer.port > 0
+    end)
+    |> Enum.each(&CQRS.dispatch/1)
+  end
 
   def handle(
     %DownloadStopped{
