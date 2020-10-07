@@ -1,15 +1,11 @@
 defmodule Effusion.Application do
   @moduledoc false
-  use Commanded.Application,
-    otp_app: :effusion,
-    event_store: [
-      adapter: Commanded.EventSture.Adapters.EventStore,
-      event_store: Effusion.CQRS.EventStore
-    ]
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
   alias Effusion.Statistics.Session, as: SessionStats
   alias Effusion.Statistics.TelemetryHandler
+
+   use Application
 
   def start(_type, _args) do
     NetStats.init()
@@ -22,12 +18,14 @@ defmodule Effusion.Application do
     children = [
       Effusion.Repo,
       Effusion.Statistics.Supervisor,
+      Effusion.CQRS.Application,
+      Effusion.CQRS.Supervisor,
       {Queutils.BlockingQueue, name: MessageQueue, max_length: 10_000},
       {Queutils.BlockingQueue, name: BlockQueue, max_length: 10_000},
-      {Queutils.BlockingQueue, name: PieceQueue, max_length: 10_000},
+      # {Queutils.BlockingQueue, name: PieceQueue, max_length: 10_000},
       Effusion.Pipeline.MessageBroadway,
       Effusion.Pipeline.BlockBroadway,
-      Effusion.Pipeline.PieceBroadway,
+      # Effusion.Pipeline.PieceBroadway,
       Effusion.Application.ConnectionSupervisor,
       Effusion.Application.DownloadsSupervisor,
       {Registry, keys: :duplicate, name: ConnectionRegistry},

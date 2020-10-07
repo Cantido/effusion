@@ -22,6 +22,9 @@ config :effusion,
   enabled_extensions: [],
   event_stores: [Effusion.CQRS.EventStore]
 
+
+config :commanded, event_store_adapter: Commanded.EventStore.Adapters.EventStore
+
 config :effusion, Effusion.Repo,
   database: "effusion_repo",
   username: "effusion",

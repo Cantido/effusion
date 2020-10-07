@@ -22,12 +22,8 @@ defmodule Effusion do
   """
   def start_download(meta) when is_map(meta) do
     info_hash = meta.info_hash
-    torrent = Repo.one(from t in Torrent, where: t.info_hash == ^info_hash)
-    if is_nil(torrent) do
-      {:ok, _torrent} = Torrent.insert(meta)
-    end
-
-    start_download(info_hash)
+    Effusion.CQRS.Contexts.Downloads.add(meta)
+    Effusion.CQRS.Contexts.Downloads.start(info_hash)
   end
 
   def start_download(info_hash) do

@@ -1,0 +1,213 @@
+defmodule Effusion.CQRS.Aggregates.Peer do
+  alias Effusion.CQRS.Commands.{
+    AddPeer,
+    HandleBitfield,
+    HandleCancel,
+    HandleChoke,
+    HandleHave,
+    HandleHandshake,
+    HandleInterested,
+    HandlePiece,
+    HandleRequest,
+    HandleUnchoke,
+    HandleInterested,
+    HandleUninterested
+  }
+  alias Effusion.CQRS.Events.{
+    PeerAdded,
+    PeerChokedUs,
+    PeerUnchokedUs,
+    PeerInterestedInUs,
+    PeerUninterestedInUs,
+    PeerHasPiece,
+    PeerHasBitfield,
+    PeerRequestedBlock,
+    PeerRequestCancelled,
+    PeerSentBlock,
+    SuccessfulHandshake
+  }
+
+  defstruct [
+    :info_hash,
+    :peer_id,
+    :host,
+    :port,
+    :bitfield,
+    :am_choking,
+    :am_interested,
+    :peer_choking,
+    :peer_interested
+  ]
+
+  defimpl String.Chars do
+    def to_string(%Effusion.CQRS.Aggregates.Peer{info_hash: info_hash, host: host, port: port}) do
+      unless is_nil(info_hash) and is_nil(host) and is_nil(port) do
+        "#{info_hash}:#{:inet.ntoa(host)}:#{port}"
+      end
+    end
+  end
+
+  def execute(
+    %__MODULE__{info_hash: nil, peer_id: nil},
+    %AddPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+  ) do
+    %PeerAdded{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+  end
+
+  def execute(
+    %__MODULE__{info_hash: info_hash},
+    %HandleHandshake{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+  ) do
+    %SuccessfulHandshake{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+  end
+
+  def execute(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
+    %HandleChoke{info_hash: info_hash, peer_id: peer_id}
+  ) do
+    %PeerChokedUs{info_hash: info_hash, peer_id: peer_id}
+  end
+
+  def execute(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
+    %HandleUnchoke{info_hash: info_hash, peer_id: peer_id}
+  ) do
+    %PeerUnchokedUs{info_hash: info_hash, peer_id: peer_id}
+  end
+
+  def execute(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
+    %HandleInterested{info_hash: info_hash, peer_id: peer_id}
+  ) do
+    %PeerInterestedInUs{info_hash: info_hash, peer_id: peer_id}
+  end
+
+  def execute(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
+    %HandleUninterested{info_hash: info_hash, peer_id: peer_id}
+  ) do
+    %PeerUninterestedInUs{info_hash: info_hash, peer_id: peer_id}
+  end
+
+  def execute(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield},
+    %HandleHave{info_hash: info_hash, peer_id: peer_id, index: index}
+  ) do
+    %PeerHasPiece{info_hash: info_hash, peer_id: peer_id, index: index, bitfield: IntSet.put(bitfield, index)}
+  end
+
+  def execute(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
+    %HandlePiece{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, data: data}
+  ) do
+    %PeerSentBlock{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, data: data}
+  end
+
+  def execute(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
+    %HandleBitfield{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
+  ) do
+    %PeerHasBitfield{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
+  end
+
+  def execute(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
+    %HandleRequest{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+  ) do
+    %PeerRequestedBlock{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+  end
+
+  def execute(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
+    %HandleCancel{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+  ) do
+    %PeerRequestCancelled{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+  end
+
+  def apply(
+    %__MODULE__{info_hash: nil, host: nil, port: nil} = peer,
+    %PeerAdded{info_hash: info_hash, host: host, port: port}
+  ) do
+    %__MODULE__{peer |
+      info_hash: info_hash,
+      host: host,
+      port: port,
+      bitfield: IntSet.new(),
+      am_choking: true,
+      am_interested: false,
+      peer_choking: true,
+      peer_interested: false
+    }
+  end
+
+  def apply(
+    %__MODULE__{info_hash: info_hash} = peer,
+    %SuccessfulHandshake{info_hash: info_hash, peer_id: peer_id}
+  ) do
+    %__MODULE__{peer |
+      peer_id: peer_id
+    }
+  end
+
+  def apply(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
+    %PeerChokedUs{info_hash: info_hash, peer_id: peer_id}
+  ) do
+    %__MODULE__{peer |
+      peer_choking: true
+    }
+  end
+
+  def apply(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
+    %PeerUnchokedUs{info_hash: info_hash, peer_id: peer_id}
+  ) do
+    %__MODULE__{peer |
+      peer_choking: false
+    }
+  end
+
+  def apply(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
+    %PeerInterestedInUs{info_hash: info_hash, peer_id: peer_id}
+  ) do
+    %__MODULE__{peer |
+      peer_interested: true
+    }
+  end
+
+  def apply(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
+    %PeerUninterestedInUs{info_hash: info_hash, peer_id: peer_id}
+  ) do
+    %__MODULE__{peer |
+      peer_interested: false
+    }
+  end
+
+  def apply(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
+    %PeerHasPiece{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
+  ) do
+    %__MODULE__{peer |
+      bitfield: bitfield
+    }
+  end
+
+  def apply(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
+    %PeerHasBitfield{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
+  ) do
+    %__MODULE__{peer |
+      bitfield: bitfield
+    }
+  end
+
+  def apply(
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
+    %PeerSentBlock{info_hash: info_hash, peer_id: peer_id}
+  ) do
+    peer
+  end
+
+end

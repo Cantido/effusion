@@ -79,8 +79,13 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   defp successful_handshake(socket, info_hash, peer_id, extensions) do
-    with {:ok, address} <- :inet.peername(socket),
-         :ok <- ProtocolHandler.handle_connect(info_hash, peer_id, address, extensions),
+    with {:ok, {host, port}} <- :inet.peername(socket),
+         :ok <- Effusion.CQRS.Application.dispatch(
+                  %Effusion.CQRS.Commands.HandleHandshake{
+                    info_hash: Effusion.Hash.encode(info_hash),
+                    peer_id: peer_id,
+                    host: to_string(:inet.ntoa(host)),
+                    port: port}),
          :ok <- :inet.setopts(socket, active: :once, packet: 4) do
       :ok
     else

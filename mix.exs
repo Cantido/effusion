@@ -46,6 +46,7 @@ defmodule Effusion.Mixfile do
       {:bento, "~> 0.9"},
       {:broadway, "~> 0.6"},
       {:commanded, "~> 1.2"},
+      {:commanded_ecto_projections, "~> 1.2"},
       {:commanded_eventstore_adapter, "~> 1.2"},
       {:cors_plug, "~> 2.0"},
       {:decimal, "~> 1.0"},
