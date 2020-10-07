@@ -69,7 +69,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def interested?(%DownloadCompleted{info_hash: info_hash}) do
-    {:continue!, info_hash}
+    {:stop, info_hash}
   end
 
   def interested?(_) do
