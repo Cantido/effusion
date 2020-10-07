@@ -40,16 +40,9 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     am_choking: true,
     am_interested: false,
     peer_choking: true,
-    peer_interested: false
+    peer_interested: false,
+    connection_status: :disconnected
   ]
-
-  defimpl String.Chars do
-    def to_string(%Effusion.CQRS.Aggregates.Peer{info_hash: info_hash, host: host, port: port}) do
-      unless is_nil(info_hash) and is_nil(host) and is_nil(port) do
-        "#{info_hash}:#{:inet.ntoa(host)}:#{port}"
-      end
-    end
-  end
 
   def execute(
     %__MODULE__{info_hash: nil, peer_id: nil},
@@ -59,24 +52,45 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{},
+    %__MODULE__{connection_status: :disconnected},
     %AddConnectedPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
   ) do
     %PeerConnected{info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
   end
 
   def execute(
-    %__MODULE__{},
+    %__MODULE__{connection_status: :connected},
+    %AddConnectedPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
+  ) do
+    {:error, :peer_already_connected}
+  end
+
+  def execute(
+    %__MODULE__{connection_status: :connected},
     %RemoveConnectedPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port, reason: reason}
   ) do
     %PeerDisconnected{info_hash: info_hash, peer_id: peer_id, host: host, port: port, reason: reason}
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash},
+    %__MODULE__{connection_status: :disconnected},
+    %RemoveConnectedPeer{}
+  ) do
+    {:error, :peer_already_disconnected}
+  end
+
+  def execute(
+    %__MODULE__{connection_status: :disconnected},
     %HandleHandshake{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
   ) do
     %SuccessfulHandshake{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+  end
+
+  def execute(
+    %__MODULE__{connection_status: :connected},
+    %HandleHandshake{}
+  ) do
+    {:error, :peer_already_connected}
   end
 
   def execute(
@@ -161,7 +175,17 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       info_hash: info_hash,
       peer_id: peer_id,
       host: host,
-      port: port
+      port: port,
+      connection_status: :connected
+    }
+  end
+
+  def apply(
+    %__MODULE__{} = peer,
+    %PeerDisconnected{}
+  ) do
+    %__MODULE__{peer |
+      connection_status: :disconnected
     }
   end
 
