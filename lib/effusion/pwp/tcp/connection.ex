@@ -1,7 +1,6 @@
 defmodule Effusion.PWP.TCP.Connection do
   use GenServer, restart: :temporary
   alias Effusion.Application.ConnectionSupervisor
-  alias Effusion.BTP.Torrent
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.Messages
   alias Effusion.PWP.ProtocolHandler
@@ -80,7 +79,7 @@ defmodule Effusion.PWP.TCP.Connection do
 
   defp successful_handshake(socket, info_hash, peer_id, initiated_by, extensions) do
     with {:ok, {host, port}} <- :inet.peername(socket),
-         :ok <- Effusion.CQRS.Contexts.Peers.successful_handshake(info_hash, peer_id, host, port, initiated_by),
+         :ok <- Effusion.CQRS.Contexts.Peers.successful_handshake(info_hash, peer_id, host, port, initiated_by, extensions),
          :ok <- :inet.setopts(socket, active: :once, packet: 4) do
       :ok
     else
@@ -135,11 +134,10 @@ defmodule Effusion.PWP.TCP.Connection do
   """
   def handle_btp(btp_message, state)
 
-  def handle_btp(handshake = {:handshake, remote_peer_id, info_hash, extensions}, state = %{socket: socket})
+  def handle_btp({:handshake, remote_peer_id, info_hash, extensions}, state = %{socket: socket})
     when is_peer_id(remote_peer_id)
      and is_hash(info_hash) do
 
-    # if Torrent.downloading?(info_hash) do
     :telemetry.execute(
       [:pwp, :incoming, :starting],
       %{},
@@ -166,9 +164,6 @@ defmodule Effusion.PWP.TCP.Connection do
         :telemetry.execute([:pwp, :incoming, :failure], %{}, state)
         {:stop, {:handshake_failure, err}, state}
     end
-    # else
-    #   {:stop, :torrent_not_found, state}
-    # end
   end
 
   def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id, socket: socket}) do

@@ -1,17 +1,9 @@
 defmodule Effusion.PWP.ProtocolHandler do
-  alias Effusion.BTP.Block
-  alias Effusion.BTP.Peer
-  alias Effusion.BTP.PeerPiece
-  alias Effusion.BTP.Piece
-  alias Effusion.BTP.Pieces
   alias Effusion.BTP.Request
-  alias Effusion.BTP.Torrent
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.TCP.Connection
   alias Effusion.Repo
-  import Effusion.BTP.Peer
   import Effusion.Hash, only: [is_hash: 1]
-  import Ecto.Query
   require Logger
 
   @moduledoc """
@@ -84,13 +76,6 @@ defmodule Effusion.PWP.ProtocolHandler do
     else
       {:error, {:mismatched_peer_id, [expected: expected_peer_id, actual: remote_peer_id]}}
     end
-  end
-
-  @doc """
-  Handle a successful connection.
-  """
-  def handle_connect(info_hash, peer_id, {ip, port}, extensions) when is_hash(info_hash) and is_peer_id(peer_id) do
-    :ok
   end
 
   def next_request_from_peer(info_hash, peer_id, count) when is_hash(info_hash) do

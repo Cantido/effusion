@@ -5,6 +5,7 @@ defmodule Effusion.CQRS.Commands.HandleHandshake do
     :peer_id,
     :host,
     :port,
-    :initiated_by
+    :initiated_by,
+    :extensions
   ]
 end

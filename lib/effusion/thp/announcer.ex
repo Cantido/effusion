@@ -1,7 +1,6 @@
 defmodule Effusion.THP.Announcer do
   use GenServer
   alias Effusion.BTP.Peer
-  alias Effusion.BTP.PeerSelection
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Torrent
   alias Effusion.Repo

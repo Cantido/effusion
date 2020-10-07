@@ -52,7 +52,7 @@ defmodule EffusionWeb.Resolvers.Torrents do
 
   def pause_torrent(_root, %{id: id}, _info) do
     binary_id = Effusion.Hash.decode(id)
-    Effusion.pause_download(binary_id)
+    Effusion.stop_download(binary_id)
     Torrent.by_info_hash(binary_id)
   end
 

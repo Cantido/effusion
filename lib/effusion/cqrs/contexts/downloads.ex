@@ -2,13 +2,11 @@ defmodule Effusion.CQRS.Contexts.Downloads do
   alias Effusion.CQRS.Commands.{
     AddTorrent,
     StartDownload,
-    PauseDownload,
     StopDownload,
     StoreBlock,
     HandleBitfield,
     HandleCancel,
     HandleChoke,
-    HandleHandshake,
     HandleHave,
     HandleInterested,
     HandlePiece,
@@ -32,13 +30,6 @@ defmodule Effusion.CQRS.Contexts.Downloads do
 
   def start(info_hash) do
     %StartDownload{
-      info_hash: Effusion.Hash.encode(info_hash)
-    }
-    |> Application.dispatch()
-  end
-
-  def pause(info_hash) do
-    %PauseDownload{
       info_hash: Effusion.Hash.encode(info_hash)
     }
     |> Application.dispatch()

@@ -9,7 +9,6 @@ defmodule Effusion.CQRS.Router do
     AddPeer,
     AddConnectedPeer,
     RemoveConnectedPeer,
-    PauseDownload,
     StartDownload,
     StopDownload,
     StoreBlock,
@@ -28,7 +27,6 @@ defmodule Effusion.CQRS.Router do
 
   dispatch [
     AddTorrent,
-    PauseDownload,
     StartDownload,
     StopDownload,
     StoreBlock,

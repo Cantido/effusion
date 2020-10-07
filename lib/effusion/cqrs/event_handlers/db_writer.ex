@@ -24,16 +24,16 @@ defmodule Effusion.CQRS.EventHandlers.DbWriter do
     :ok
   end
 
-  # def handle(
-  #   %DownloadStarted{info_hash: info_hash},
-  #   _metadata
-  # ) do
-  #   Effusion.Hash.decode(info_hash)
-  #   |> Effusion.BTP.Torrent.by_info_hash!()
-  #   |> Effusion.BTP.Torrent.start(DateTime.utc_now())
-  #   |> Effusion.Repo.update()
-  #   :ok
-  # end
+  def handle(
+    %DownloadStarted{info_hash: info_hash},
+    _metadata
+  ) do
+    Effusion.Hash.decode(info_hash)
+    |> Effusion.BTP.Torrent.by_info_hash!()
+    |> Effusion.BTP.Torrent.start(DateTime.utc_now())
+    |> Effusion.Repo.update()
+    :ok
+  end
 
   def handle(
     %BlockStored{from: from, index: index, offset: offset} = event,

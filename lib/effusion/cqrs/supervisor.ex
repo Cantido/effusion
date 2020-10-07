@@ -12,7 +12,6 @@ defmodule Effusion.CQRS.Supervisor do
       ProcessManagers.DownloadTorrent,
       ProcessManagers.PeerConnection,
       Effusion.CQRS.EventHandlers.DbWriter,
-      Effusion.CQRS.EventHandlers.PeerAnnouncer,
       Effusion.CQRS.EventHandlers.TrackerAnnouncer
     ]
 

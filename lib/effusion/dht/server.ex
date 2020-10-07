@@ -7,7 +7,6 @@ defmodule Effusion.DHT.Server do
   require Logger
 
   @node_id Base.decode64!(Application.get_env(:effusion, :dht_node_id))
-  @port Application.get_env(:effusion, :port)
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -23,7 +22,7 @@ defmodule Effusion.DHT.Server do
     }}
   end
 
-  def handle_info({:udp, socket, ip, in_port_no, packet}, state) do
+  def handle_info({:udp, _socket, ip, in_port_no, packet}, state) do
     Logger.debug("received DHT packet from #{inspect ip}")
     {:ok, de_bencoded} = Bento.decode(packet)
 

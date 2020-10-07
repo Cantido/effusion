@@ -1,9 +1,6 @@
 defmodule Effusion do
   alias Effusion.Application.DownloadsSupervisor
   alias Effusion.BTP.ProtocolHandler, as: BTPProtocolHandler
-  alias Effusion.BTP.Torrent
-  alias Effusion.Repo
-  import Ecto.Query
   import Effusion.Hash, only: [is_hash: 1]
 
   @moduledoc """
@@ -32,10 +29,6 @@ defmodule Effusion do
          :ok <- BTPProtocolHandler.start(info_hash) do
       {:ok, pid}
     end
-  end
-
-  def pause_download(info_hash) when is_hash(info_hash) do
-    Effusion.CQRS.Contexts.Downloads.pause(info_hash)
   end
 
   def stop_download(info_hash) when is_hash(info_hash) do

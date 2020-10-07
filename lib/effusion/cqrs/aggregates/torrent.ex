@@ -3,7 +3,6 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     HandleCompletedDownload,
     AddTorrent,
     StartDownload,
-    PauseDownload,
     StopDownload,
     StoreBlock
   }
@@ -36,40 +35,52 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
 
   def execute(
     %__MODULE__{info_hash: nil},
-    %AddTorrent{info_hash: info_hash} = command
+    %AddTorrent{
+      info_hash: info_hash,
+      announce: announce,
+      announce_list: announce_list,
+      comment: comment,
+      created_by: created_by,
+      info: info
+    }
   ) do
     %TorrentAdded{
-      announce: command.announce,
-      announce_list: command.announce_list,
-      comment: command.comment,
-      created_by: command.created_by,
-      info: command.info,
-      info_hash: command.info_hash
+      announce: announce,
+      announce_list: announce_list,
+      comment: comment,
+      created_by: created_by,
+      info: info,
+      info_hash: info_hash
     }
   end
 
-  def execute(
-    %__MODULE__{info_hash: aggregate_info_hash},
-    %AddTorrent{info_hash: command_info_hash} = command
-  ) when aggregate_info_hash == command_info_hash do
+  def execute(%__MODULE__{}, %AddTorrent{}) do
     {:error, :torrent_already_exists}
   end
 
   def execute(
-    %__MODULE__{info_hash: torrent_info_hash, verified: verified, info: info, announce: announce, state: :stopped} = torrent,
-    %StartDownload{info_hash: info_hash} = command
-  ) when not is_nil(torrent_info_hash) do
+    %__MODULE__{
+      info_hash: info_hash,
+      verified: verified,
+      info: info,
+      announce: announce,
+      announce_list: announce_list,
+      comment: comment,
+      created_by: created_by,
+      state: :stopped
+    },
+    %StartDownload{}
+  ) do
     bytes_left = info.length - (Enum.count(verified) * info.piece_length)
 
     %DownloadStarted{
-      info_hash: command.info_hash,
+      info_hash: info_hash,
       announce: announce,
       bytes_left: bytes_left,
-      announce_list: torrent.announce_list,
-      comment: torrent.comment,
-      created_by: torrent.created_by,
-      info: torrent.info,
-      info_hash: torrent.info_hash,
+      announce_list: announce_list,
+      comment: comment,
+      created_by: created_by,
+      info: info
     }
   end
 
@@ -88,20 +99,28 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
   end
 
   def execute(
-    %__MODULE__{info_hash: torrent_info_hash, verified: verified, info: info, announce: announce, state: :downloading} = torrent,
-    %StopDownload{info_hash: info_hash, tracker_event: tracker_event} = command
-  ) when not is_nil(torrent_info_hash) do
+    %__MODULE__{
+      info_hash: info_hash,
+      verified: verified,
+      info: info,
+      announce: announce,
+      announce_list: announce_list,
+      comment: comment,
+      created_by: created_by,
+      state: :downloading
+    } = torrent,
+    %StopDownload{tracker_event: tracker_event}
+  ) do
     bytes_left = info.length - (Enum.count(verified) * info.piece_length)
 
     %DownloadStopped{
-      info_hash: command.info_hash,
+      info_hash: info_hash,
       announce: announce,
       bytes_left: bytes_left,
-      announce_list: torrent.announce_list,
-      comment: torrent.comment,
-      created_by: torrent.created_by,
+      announce_list: announce_list,
+      comment: comment,
+      created_by: created_by,
       info: torrent.info,
-      info_hash: torrent.info_hash,
       tracker_event: tracker_event
     }
   end
@@ -122,7 +141,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
 
   def execute(
     %__MODULE__{} = torrent,
-    %StoreBlock{info_hash: info_hash, from: from, index: index, offset: offset, data: block_data}
+    %StoreBlock{from: from, index: index, offset: offset, data: block_data}
   ) do
     torrent
     |> Multi.new()
@@ -130,6 +149,15 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     |> Multi.execute(&check_for_finished_piece(&1, index))
     |> Multi.execute(&check_for_finished_torrent/1)
   end
+
+  def execute(
+    %__MODULE__{},
+    %HandleCompletedDownload{info_hash: info_hash}
+  ) do
+    %DownloadCompleted{info_hash: info_hash}
+  end
+
+
 
   defp store_block(%__MODULE__{info_hash: info_hash, pieces: pieces}, from, index, offset, data) do
     pieces =
@@ -182,26 +210,19 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     end
   end
 
-  def execute(
-    %__MODULE__{},
-    %HandleCompletedDownload{info_hash: info_hash}
-  ) do
-    %DownloadCompleted{info_hash: info_hash}
-  end
-
-  def apply(%__MODULE__{} = torrent, %DownloadStarted{} = event) do
+  def apply(%__MODULE__{} = torrent, %DownloadStarted{}) do
     %__MODULE__{torrent|
       state: :downloading
     }
   end
 
-  def apply(%__MODULE__{} = torrent, %DownloadCompleted{} = event) do
+  def apply(%__MODULE__{} = torrent, %DownloadCompleted{}) do
     %__MODULE__{torrent|
       state: :completed
     }
   end
 
-  def apply(%__MODULE__{} = torrent, %DownloadStopped{} = event) do
+  def apply(%__MODULE__{} = torrent, %DownloadStopped{}) do
     %__MODULE__{torrent|
       state: :stopped
     }
@@ -219,19 +240,19 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     }
   end
 
-  def apply(%__MODULE__{} = torrent, %PieceHashSucceeded{} = event) do
+  def apply(%__MODULE__{} = torrent, %PieceHashSucceeded{index: index}) do
     %__MODULE__{torrent |
-      verified: IntSet.put(torrent.verified, event.index)
+      verified: IntSet.put(torrent.verified, index)
     }
   end
 
-  def apply(%__MODULE__{} = torrent, %PieceHashFailed{info_hash: info_hash, index: index} = event) do
+  def apply(%__MODULE__{} = torrent, %PieceHashFailed{index: index}) do
     %__MODULE__{torrent |
       pieces: Map.drop(torrent.pieces, index)
     }
   end
 
-  def apply(%__MODULE__{} = torrent, %AllPiecesVerified{info_hash: info_hash}) do
+  def apply(%__MODULE__{} = torrent, %AllPiecesVerified{}) do
     torrent
   end
 
@@ -248,12 +269,5 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     %__MODULE__{torrent |
       pieces: []
     }
-  end
-
-  def apply(
-    %__MODULE__{} = torrent,
-    %DownloadCompleted{}
-  ) do
-    torrent
   end
 end
