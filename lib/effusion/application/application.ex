@@ -27,7 +27,8 @@ defmodule Effusion.Application do
       {Registry, keys: :unique, name: FinishedTorrentWatchdogRegistry},
       {Registry, keys: :unique, name: AnnouncerRegistry},
       Effusion.DHT.Server,
-      EffusionWeb.Endpoint
+      EffusionWeb.Endpoint,
+      :ranch.child_spec(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Connection, [])
     ]
 
     children = if :dht in Application.fetch_env!(:effusion, :enabled_extensions) do
@@ -35,10 +36,6 @@ defmodule Effusion.Application do
     else
       children
     end
-
-
-    {:ok, _listener} =
-      :ranch.start_listener(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Connection, [])
 
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]
     Supervisor.start_link(children, opts)
