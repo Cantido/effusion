@@ -27,17 +27,16 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   @derive Jason.Encoder
   defstruct [
-    :info_hash,
-    :target_piece_count,
-    :pieces,
-    :status,
-    :connecting_count,
-    :connected_count,
-    :announce,
-    :annouce_list,
-    :bytes_uploaded,
-    :bytes_downloaded,
-    :bytes_left
+    info_hash: nil,
+    target_piece_count: nil,
+    pieces: IntSet.new(),
+    connecting_count: 0,
+    connected_count: 0,
+    announce: nil,
+    annouce_list: [],
+    bytes_uploaded: 0,
+    bytes_downloaded: 0,
+    bytes_left: nil
   ]
 
   def interested?(%DownloadStarted{info_hash: info_hash}) do
@@ -108,7 +107,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
         info_hash: info_hash,
         host: :inet.ntoa(peer.ip),
         port: peer.port,
-        peer_id: Map.get(peer, :peer_id, nil)
+        peer_id: Map.get(peer, :peer_id, nil),
+        from: :tracker
       }
     end)
     |> Enum.filter(fn peer ->
@@ -188,14 +188,15 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
           info_hash: info_hash,
           host: peer.ip,
           port: peer.port,
-          peer_id: Map.get(peer, :peer_id, nil)
+          peer_id: Map.get(peer, :peer_id, nil),
+          from: :tracker
         }
       end)
       |> Enum.filter(fn peer ->
         peer.port > 0
       end)
 
-    [peers | %HandleCompletedDownload{info_hash: info_hash}]
+    peers ++ [%HandleCompletedDownload{info_hash: info_hash}]
   end
 
 
@@ -206,27 +207,21 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   ) do
     %__MODULE__{download |
       info_hash: info_hash,
-      status: :downloading,
       target_piece_count: Enum.count(info.pieces),
-      pieces: IntSet.new(),
-      connecting_count: 0,
-      connected_count: 0,
       announce: announce,
       annouce_list: announce_list,
-      bytes_uploaded: 0,
-      bytes_downloaded: 0,
       bytes_left: bytes_left
     }
   end
 
   def apply(
     %__MODULE__{info_hash: info_hash, connecting_count: connecting_count, connected_count: connected_count} = download,
-    %PeerAdded{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+    %PeerAdded{info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: :tracker}
   ) do
 
     if connecting_count < @max_half_open_connections and connected_count < @max_connections do
       Logger.debug "**** CQRS is opening a connection to #{host}:#{port}"
-      {:ok, host} = :inet.parse_address(host)
+      {:ok, host} = :inet.parse_address(host |> String.to_charlist())
       info_hash = Effusion.Hash.decode(info_hash)
       Connection.connect({{host, port}, info_hash, peer_id})
     else

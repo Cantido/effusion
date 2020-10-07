@@ -139,7 +139,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     [block_stored_event] ++ completion_messages
   end
 
-  def handle(
+  def execute(
     %__MODULE__{},
     %HandleCompletedDownload{info_hash: info_hash}
   ) do
@@ -191,5 +191,12 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     %__MODULE__{torrent |
       pieces: []
     }
+  end
+
+  def apply(
+    %__MODULE__{} = torrent,
+    %DownloadCompleted{}
+  ) do
+    torrent
   end
 end

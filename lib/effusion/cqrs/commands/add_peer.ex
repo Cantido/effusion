@@ -3,6 +3,7 @@ defmodule Effusion.CQRS.Commands.AddPeer do
     :info_hash,
     :peer_id,
     :host,
-    :port
+    :port,
+    :from
   ]
 end

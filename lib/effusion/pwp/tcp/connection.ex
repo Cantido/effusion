@@ -144,37 +144,42 @@ defmodule Effusion.PWP.TCP.Connection do
     when is_peer_id(remote_peer_id)
      and is_hash(info_hash) do
 
-    if Torrent.downloading?(info_hash) do
-      :telemetry.execute(
-        [:pwp, :incoming, :starting],
-        %{},
-        Map.put(state, :remote_peer_id, remote_peer_id)
-      )
+    # if Torrent.downloading?(info_hash) do
+    :telemetry.execute(
+      [:pwp, :incoming, :starting],
+      %{},
+      Map.put(state, :remote_peer_id, remote_peer_id)
+    )
 
-      {:ok, _pid} = ConnectionRegistry.register(info_hash, remote_peer_id)
+    {:ok, _pid} = ConnectionRegistry.register(info_hash, remote_peer_id)
 
-      with :ok <- ProtocolHandler.recv_handshake(handshake),
-           :ok <- Socket.send_msg(socket, ProtocolHandler.get_handshake(info_hash)),
-           :ok <- successful_handshake(socket, info_hash, remote_peer_id, extensions),
-           {:ok, address} <- :inet.peername(socket) do
+    with :ok <- Socket.send_msg(socket, ProtocolHandler.get_handshake(info_hash)),
+         {:ok, {host, port}} <- :inet.peername(socket),
+         :ok <- Effusion.CQRS.Application.dispatch(
+                  %Effusion.CQRS.Commands.AddPeer{
+                    info_hash: Effusion.Hash.encode(info_hash),
+                    peer_id: remote_peer_id,
+                    host: to_string(:inet.ntoa(host)),
+                    port: port},
+                    from: :connection),
+         :ok <- successful_handshake(socket, info_hash, remote_peer_id, extensions) do
+      :telemetry.execute([:pwp, :incoming, :success], %{}, state)
 
-        :telemetry.execute([:pwp, :incoming, :success], %{}, state)
-
-        {:noreply,
-         %{
-           socket: socket,
-           info_hash: info_hash,
-           remote_peer_id: remote_peer_id,
-           address: address
-         }}
-      else
-        _ ->
-          :telemetry.execute([:pwp, :incoming, :failure], %{}, state)
-          {:stop, :handshake_failure, state}
-      end
+      {:noreply,
+       %{
+         socket: socket,
+         info_hash: info_hash,
+         remote_peer_id: remote_peer_id,
+         address: {host, port}
+       }}
     else
-      {:stop, :normal, state}
+      err ->
+        :telemetry.execute([:pwp, :incoming, :failure], %{}, state)
+        {:stop, {:handshake_failure, err}, state}
     end
+    # else
+    #   {:stop, :torrent_not_found, state}
+    # end
   end
 
   def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id}) do

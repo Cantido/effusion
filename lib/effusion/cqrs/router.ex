@@ -7,6 +7,7 @@ defmodule Effusion.CQRS.Router do
   alias Effusion.CQRS.Commands.{
     AddTorrent,
     AddPeer,
+    AddConnectedPeer,
     PauseDownload,
     StartDownload,
     StoreBlock,
@@ -33,6 +34,7 @@ defmodule Effusion.CQRS.Router do
 
   dispatch [
     AddPeer,
+    AddConnectedPeer,
     HandleBitfield,
     HandleCancel,
     HandleChoke,

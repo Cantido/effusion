@@ -1,6 +1,7 @@
 defmodule Effusion.CQRS.Aggregates.Peer do
   alias Effusion.CQRS.Commands.{
     AddPeer,
+    AddConnectedPeer,
     HandleBitfield,
     HandleCancel,
     HandleChoke,
@@ -15,6 +16,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   }
   alias Effusion.CQRS.Events.{
     PeerAdded,
+    PeerConnected,
     PeerChokedUs,
     PeerUnchokedUs,
     PeerInterestedInUs,
@@ -28,15 +30,15 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   }
 
   defstruct [
-    :info_hash,
-    :peer_id,
-    :host,
-    :port,
-    :bitfield,
-    :am_choking,
-    :am_interested,
-    :peer_choking,
-    :peer_interested
+    info_hash: nil,
+    peer_id: nil,
+    host: nil,
+    port: nil,
+    bitfield: IntSet.new(),
+    am_choking: true,
+    am_interested: false,
+    peer_choking: true,
+    peer_interested: false
   ]
 
   defimpl String.Chars do
@@ -52,6 +54,13 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %AddPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
   ) do
     %PeerAdded{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+  end
+
+  def execute(
+    %__MODULE__{},
+    %AddConnectedPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+  ) do
+    %PeerConnected{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
   end
 
   def execute(
@@ -131,12 +140,19 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %__MODULE__{peer |
       info_hash: info_hash,
       host: host,
-      port: port,
-      bitfield: IntSet.new(),
-      am_choking: true,
-      am_interested: false,
-      peer_choking: true,
-      peer_interested: false
+      port: port
+    }
+  end
+
+  def apply(
+    %__MODULE__{} = peer,
+    %PeerConnected{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+  ) do
+    %__MODULE__{peer |
+      info_hash: info_hash,
+      peer_id: peer_id,
+      host: host,
+      port: port
     }
   end
 
