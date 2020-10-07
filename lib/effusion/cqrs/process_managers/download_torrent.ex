@@ -16,6 +16,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     PieceHashSucceeded,
     PeerAdded,
     PeerConnected,
+    PeerDisconnected,
     PeerHasBitfield,
     PeerSentBlock,
     PeerUnchokedUs,
@@ -37,7 +38,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     bytes_uploaded: 0,
     bytes_downloaded: 0,
     bytes_left: nil,
-    connected_peers: MapSet.new()
+    connected_peers: MapSet.new(),
+    failcounts: Map.new()
   ]
 
   def interested?(%DownloadStarted{info_hash: info_hash}) do
@@ -49,6 +51,10 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def interested?(%PeerConnected{info_hash: info_hash}) do
+    {:continue!, info_hash}
+  end
+
+  def interested?(%PeerDisconnected{info_hash: info_hash}) do
     {:continue!, info_hash}
   end
 
@@ -246,6 +252,17 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{download |
       connecting_count: connecting_count - 1,
       connected_peers: MapSet.put(connected_peers, {host, port})
+    }
+  end
+
+  def apply(
+    %__MODULE__{info_hash: info_hash, connecting_count: connecting_count, connected_peers: connected_peers, failcounts: failcounts} = download,
+    %PeerDisconnected{info_hash: info_hash, peer_id: peer_id, host: host, port: port, reason: reason}
+  ) do
+
+    %__MODULE__{download |
+      connected_peers: MapSet.delete(connected_peers, {host, port}),
+      failcounts: if(reason == :normal, do: failcounts, else: Map.update(failcounts, {host, port}, -1, &(&1 - 1)))
     }
   end
 

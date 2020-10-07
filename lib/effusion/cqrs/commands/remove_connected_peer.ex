@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.Events.PeerDisconnected do
+defmodule Effusion.CQRS.Commands.RemoveConnectedPeer do
   defstruct [
     :info_hash,
     :peer_id,

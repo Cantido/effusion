@@ -80,13 +80,7 @@ defmodule Effusion.PWP.TCP.Connection do
 
   defp successful_handshake(socket, info_hash, peer_id, initiated_by, extensions) do
     with {:ok, {host, port}} <- :inet.peername(socket),
-         :ok <- Effusion.CQRS.Application.dispatch(
-                  %Effusion.CQRS.Commands.HandleHandshake{
-                    info_hash: Effusion.Hash.encode(info_hash),
-                    peer_id: peer_id,
-                    host: to_string(:inet.ntoa(host)),
-                    port: port,
-                    initiated_by: initiated_by}),
+         :ok <- Effusion.CQRS.Contexts.Peers.successful_handshake(info_hash, peer_id, host, port, initiated_by),
          :ok <- :inet.setopts(socket, active: :once, packet: 4) do
       :ok
     else
@@ -156,13 +150,7 @@ defmodule Effusion.PWP.TCP.Connection do
 
     with :ok <- Socket.send_msg(socket, ProtocolHandler.get_handshake(info_hash)),
          {:ok, {host, port}} <- :inet.peername(socket),
-         :ok <- Effusion.CQRS.Application.dispatch(
-                  %Effusion.CQRS.Commands.AddPeer{
-                    info_hash: Effusion.Hash.encode(info_hash),
-                    peer_id: remote_peer_id,
-                    host: to_string(:inet.ntoa(host)),
-                    port: port},
-                    from: :connection),
+         :ok <- Effusion.CQRS.Contexts.Peers.add(info_hash, remote_peer_id, host, port, :connection),
          :ok <- successful_handshake(socket, info_hash, remote_peer_id, :them, extensions) do
       :telemetry.execute([:pwp, :incoming, :success], %{}, state)
 
@@ -184,8 +172,7 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id}) do
-    :ok = Effusion.PWP.MessageDispatcher.dispatch(msg, info_hash, peer_id)
-
+    :ok = Effusion.CQRS.Contexts.Downloads.handle_message(info_hash, peer_id, msg)
     {:noreply, state}
   end
 
@@ -247,9 +234,13 @@ defmodule Effusion.PWP.TCP.Connection do
       Socket.close(state.socket)
     end
 
-    if Map.has_key?(state, :info_hash) && Map.has_key?(state, :address) do
-      ProtocolHandler.handle_disconnect(state.info_hash, state.address, reason)
-    end
+    Effusion.CQRS.Contexts.Peers.disconnected(
+        Map.get(state, :info_hash),
+        Map.get(state, :peer_id),
+        Map.get(state, :address) |> elem(0),
+        Map.get(state, :address) |> elem(1),
+        reason
+      )
 
     :ok
   end
