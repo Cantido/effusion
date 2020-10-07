@@ -53,6 +53,13 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
+    %__MODULE__{internal_peer_id: existing_internal_id},
+    %AddPeer{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: source}
+  ) when existing_internal_id == internal_peer_id do
+    {:error, :peer_already_exists}
+  end
+
+  def execute(
     %__MODULE__{connection_status: :disconnected},
     %AddConnectedPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
   ) do

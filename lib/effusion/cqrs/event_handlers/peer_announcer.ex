@@ -1,7 +1,7 @@
 defmodule Effusion.CQRS.EventHandlers.PeerAnnouncer do
   use Commanded.Event.Handler,
     application: Effusion.CQRS.Application,
-    name: "Effusion.CQRS.EventHandlers.PeerAnnouncer"
+    name: __MODULE__
 
   alias Effusion.CQRS.Events.{
     BlockStored,

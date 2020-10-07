@@ -8,10 +8,12 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   alias Effusion.CQRS.Commands.{
     AddPeer,
     HandleCompletedDownload,
+    StopDownload,
     StoreBlock
   }
   alias Effusion.CQRS.Events.{
     DownloadStarted,
+    DownloadStopped,
     DownloadCompleted,
     PieceHashSucceeded,
     PeerAdded,
@@ -78,6 +80,10 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     {:continue!, info_hash}
   end
 
+  def interested?(%DownloadStopped{info_hash: info_hash}) do
+    {:stop, info_hash}
+  end
+
   def interested?(%DownloadCompleted{info_hash: info_hash}) do
     {:stop, info_hash}
   end
@@ -114,7 +120,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     )
 
     Enum.map(res.peers, fn peer ->
-      host = :inet.ntoa(peer.ip)
+      host = to_string(:inet.ntoa(peer.ip))
       %AddPeer{
         internal_peer_id: "#{info_hash}:#{host}:#{peer.port}",
         info_hash: info_hash,
@@ -171,50 +177,12 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def handle(
-    %__MODULE__{announce: announce},
+    %__MODULE__{},
     %AllPiecesVerified{info_hash: info_hash}
   ) do
-    Logger.debug("***** All pieces verified, contacting tracker")
-
-    thp_client  = Application.fetch_env!(:effusion, :thp_client)
-    peer_id = Application.fetch_env!(:effusion, :peer_id)
-    {local_host, local_port} = Application.fetch_env!(:effusion, :server_address)
-    tracker_numwant = Application.fetch_env!(:effusion, :max_peers)
-
-    opts = [event: "completed", numwant: 0]
-
-    {:ok, res} = thp_client.announce(
-      announce,
-      local_host,
-      local_port,
-      peer_id,
-      info_hash,
-      0,
-      0,
-      0,
-      opts
-    )
-
-    peers =
-      Enum.map(res.peers, fn peer ->
-        host = to_string(:inet.ntoa(peer.ip))
-        %AddPeer{
-          internal_peer_id: "#{info_hash}:#{host}:#{peer.port}",
-          info_hash: info_hash,
-          host: host,
-          port: peer.port,
-          peer_id: Map.get(peer, :peer_id, nil),
-          from: :tracker
-        }
-      end)
-      |> Enum.filter(fn peer ->
-        peer.port > 0
-      end)
-
-    peers ++ [%HandleCompletedDownload{info_hash: info_hash}]
+    Logger.debug("***** All pieces verified, stopping download")
+    %StopDownload{info_hash: info_hash, tracker_event: "completed"}
   end
-
-
 
   def apply(
     %__MODULE__{info_hash: nil} = download,

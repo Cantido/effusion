@@ -8,8 +8,10 @@ defmodule Effusion.CQRS.Router do
     AddTorrent,
     AddPeer,
     AddConnectedPeer,
+    RemoveConnectedPeer,
     PauseDownload,
     StartDownload,
+    StopDownload,
     StoreBlock,
     HandleCompletedDownload,
     HandleBitfield,
@@ -28,6 +30,7 @@ defmodule Effusion.CQRS.Router do
     AddTorrent,
     PauseDownload,
     StartDownload,
+    StopDownload,
     StoreBlock,
     HandleCompletedDownload
   ], to: Torrent, identity: :info_hash
@@ -35,6 +38,7 @@ defmodule Effusion.CQRS.Router do
   dispatch [
     AddPeer,
     AddConnectedPeer,
+    RemoveConnectedPeer,
     HandleBitfield,
     HandleCancel,
     HandleChoke,

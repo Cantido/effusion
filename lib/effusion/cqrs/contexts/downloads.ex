@@ -2,6 +2,8 @@ defmodule Effusion.CQRS.Contexts.Downloads do
   alias Effusion.CQRS.Commands.{
     AddTorrent,
     StartDownload,
+    PauseDownload,
+    StopDownload,
     StoreBlock,
     HandleBitfield,
     HandleCancel,
@@ -33,6 +35,21 @@ defmodule Effusion.CQRS.Contexts.Downloads do
       info_hash: Effusion.Hash.encode(info_hash)
     }
     |> Application.dispatch()
+  end
+
+  def pause(info_hash) do
+    %PauseDownload{
+      info_hash: Effusion.Hash.encode(info_hash)
+    }
+    |> Application.dispatch()
+  end
+
+  def stop(info_hash) do
+    %StopDownload{
+      info_hash: Effusion.Hash.encode(info_hash),
+      tracker_event: "stopped"
+    }
+    |> Application.dispatch(consistency: :strong)
   end
 
   def store_block(info_hash, from, index, offset, data)

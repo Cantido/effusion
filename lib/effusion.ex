@@ -4,6 +4,7 @@ defmodule Effusion do
   alias Effusion.BTP.Torrent
   alias Effusion.Repo
   import Ecto.Query
+  import Effusion.Hash, only: [is_hash: 1]
 
   @moduledoc """
   A BitTorrent library.
@@ -33,12 +34,12 @@ defmodule Effusion do
     end
   end
 
-  def pause_download(pid) when is_pid(pid) do
-    DynamicSupervisor.terminate_child(DownloadsSupervisor, pid)
+  def pause_download(info_hash) when is_hash(info_hash) do
+    Effusion.CQRS.Contexts.Downloads.pause(info_hash)
   end
 
-  def stop_download(pid) when is_pid(pid) do
-    DynamicSupervisor.terminate_child(DownloadsSupervisor, pid)
+  def stop_download(info_hash) when is_hash(info_hash) do
+    Effusion.CQRS.Contexts.Downloads.stop(info_hash)
   end
 
   @doc """

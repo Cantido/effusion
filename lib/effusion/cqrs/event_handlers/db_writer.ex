@@ -1,7 +1,8 @@
 defmodule Effusion.CQRS.EventHandlers.DbWriter do
   use Commanded.Event.Handler,
     application: Effusion.CQRS.Application,
-    name: __MODULE__
+    name: __MODULE__,
+    consistency: :strong
 
   alias Effusion.CQRS.Events.{
     BlockStored,

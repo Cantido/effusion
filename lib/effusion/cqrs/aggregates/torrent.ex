@@ -3,12 +3,15 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     HandleCompletedDownload,
     AddTorrent,
     StartDownload,
+    PauseDownload,
+    StopDownload,
     StoreBlock
   }
   alias Effusion.CQRS.Events.{
     BlockStored,
     AllPiecesVerified,
     DownloadStarted,
+    DownloadStopped,
     DownloadFailed,
     DownloadCompleted,
     PieceHashSucceeded,
@@ -27,7 +30,8 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     info: nil,
     info_hash: nil,
     pieces: %{},
-    verified: IntSet.new()
+    verified: IntSet.new(),
+    state: :stopped
   ]
 
   def execute(
@@ -52,7 +56,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
   end
 
   def execute(
-    %__MODULE__{info_hash: torrent_info_hash, verified: verified, info: info, announce: announce} = torrent,
+    %__MODULE__{info_hash: torrent_info_hash, verified: verified, info: info, announce: announce, state: :stopped} = torrent,
     %StartDownload{info_hash: info_hash} = command
   ) when not is_nil(torrent_info_hash) do
     bytes_left = info.length - (Enum.count(verified) * info.piece_length)
@@ -69,6 +73,52 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     }
   end
 
+  def execute(
+    %__MODULE__{state: :downloading},
+    %StartDownload{}
+  ) do
+    {:error, :download_already_downloading}
+  end
+
+  def execute(
+    %__MODULE__{state: :completed},
+    %StartDownload{}
+  ) do
+    {:error, :download_completed}
+  end
+
+  def execute(
+    %__MODULE__{info_hash: torrent_info_hash, verified: verified, info: info, announce: announce, state: :downloading} = torrent,
+    %StopDownload{info_hash: info_hash, tracker_event: tracker_event} = command
+  ) when not is_nil(torrent_info_hash) do
+    bytes_left = info.length - (Enum.count(verified) * info.piece_length)
+
+    %DownloadStopped{
+      info_hash: command.info_hash,
+      announce: announce,
+      bytes_left: bytes_left,
+      announce_list: torrent.announce_list,
+      comment: torrent.comment,
+      created_by: torrent.created_by,
+      info: torrent.info,
+      info_hash: torrent.info_hash,
+      tracker_event: tracker_event
+    }
+  end
+
+  def execute(
+    %__MODULE__{state: :downloading},
+    %StopDownload{}
+  ) do
+    {:error, :download_already_stopped}
+  end
+
+  def execute(
+    %__MODULE__{state: :completed},
+    %StopDownload{}
+  ) do
+    {:error, :download_completed}
+  end
 
   def execute(
     %__MODULE__{} = torrent,
@@ -140,7 +190,21 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
   end
 
   def apply(%__MODULE__{} = torrent, %DownloadStarted{} = event) do
-    torrent
+    %__MODULE__{torrent|
+      state: :downloading
+    }
+  end
+
+  def apply(%__MODULE__{} = torrent, %DownloadCompleted{} = event) do
+    %__MODULE__{torrent|
+      state: :completed
+    }
+  end
+
+  def apply(%__MODULE__{} = torrent, %DownloadStopped{} = event) do
+    %__MODULE__{torrent|
+      state: :stopped
+    }
   end
 
   def apply(%__MODULE__{} = torrent, %TorrentAdded{} = event) do

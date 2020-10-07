@@ -84,79 +84,79 @@ defmodule EffusionTest do
     Application.put_env(:effusion, :server_address, {{127, 0, 0, 1}, @local_port})
   end
 
-  # test "download a file", %{lsock: lsock, destfile: file} do
-  #   old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
-  #   Application.put_env(:effusion, :enabled_extensions, [])
-  #   on_exit(fn ->
-  #     Application.put_env(:effusion, :enabled_extensions, old_supported_extensions)
-  #   end)
-  #
-  #   Application.put_env(:effusion, :download_destination, file)
-  #
-  #   # Expect started and completed message.
-  #   # No "stopped" message, that's only if you stop downloading.
-  #   Effusion.THP.Mock
-  #   |> expect(:announce, 2, &stub_tracker/9)
-  #
-  #   :ok = Effusion.start_download(@torrent)
-  #
-  #   {:ok, sock, _remote_peer, []} =
-  #     Socket.accept(
-  #       lsock,
-  #       @info_hash,
-  #       @local_peer_id,
-  #       @remote_peer.peer_id,
-  #       []
-  #     )
-  #
-  #   on_exit(fn ->
-  #     Socket.close(sock)
-  #   end)
-  #
-  #   bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
-  #   :ok = Socket.send_msg(sock, {:bitfield, bitfield})
-  #   {:ok, :interested} = Socket.recv(sock)
-  #
-  #   :ok = Socket.send_msg(sock, :unchoke)
-  #   {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
-  #   {:ok, {:request, %{index: i2}}} = Socket.recv(sock)
-  #
-  #   if i1 == 0 do
-  #     assert i2 == 1
-  #   else
-  #     assert i1 == 1
-  #     assert i2 == 0
-  #   end
-  #
-  #   :ok = Socket.send_msg(sock, {:piece, 0, 0, "tin"})
-  #   :ok = Socket.send_msg(sock, {:piece, 1, 0, "y\n"})
-  #
-  #   {:ok, {:have, r1}} = Socket.recv(sock)
-  #   {:ok, {:have, r2}} = Socket.recv(sock)
-  #
-  #   if r1 == 0 do
-  #     assert r2 == 1
-  #   else
-  #     assert r1 == 1
-  #     assert r2 == 0
-  #   end
-  #
-  #   Process.sleep(500)
-  #   :file.datasync(file)
-  #
-  #   {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
-  #
-  #   assert "tiny\n" == contents
-  #
-  #   piece_write_statuses = Effusion.Repo.all(
-  #     from piece in Effusion.BTP.Piece,
-  #     join: torrent in assoc(piece, :torrent),
-  #     where: torrent.info_hash == ^@info_hash,
-  #     select: piece.written
-  #   )
-  #
-  #   assert Enum.all?(piece_write_statuses)
-  # end
+  test "download a file", %{lsock: lsock, destfile: file} do
+    old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
+    Application.put_env(:effusion, :enabled_extensions, [])
+    on_exit(fn ->
+      Application.put_env(:effusion, :enabled_extensions, old_supported_extensions)
+    end)
+
+    Application.put_env(:effusion, :download_destination, file)
+
+    # Expect started and completed message.
+    # No "stopped" message, that's only if you stop downloading.
+    Effusion.THP.Mock
+    |> expect(:announce, 2, &stub_tracker/9)
+
+    :ok = Effusion.start_download(@torrent)
+
+    {:ok, sock, _remote_peer, []} =
+      Socket.accept(
+        lsock,
+        @info_hash,
+        @local_peer_id,
+        @remote_peer.peer_id,
+        []
+      )
+
+    on_exit(fn ->
+      Socket.close(sock)
+    end)
+
+    bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
+    :ok = Socket.send_msg(sock, {:bitfield, bitfield})
+    {:ok, :interested} = Socket.recv(sock)
+
+    :ok = Socket.send_msg(sock, :unchoke)
+    {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
+    {:ok, {:request, %{index: i2}}} = Socket.recv(sock)
+
+    if i1 == 0 do
+      assert i2 == 1
+    else
+      assert i1 == 1
+      assert i2 == 0
+    end
+
+    :ok = Socket.send_msg(sock, {:piece, 0, 0, "tin"})
+    :ok = Socket.send_msg(sock, {:piece, 1, 0, "y\n"})
+
+    {:ok, {:have, r1}} = Socket.recv(sock)
+    {:ok, {:have, r2}} = Socket.recv(sock)
+
+    if r1 == 0 do
+      assert r2 == 1
+    else
+      assert r1 == 1
+      assert r2 == 0
+    end
+
+    Effusion.stop_download(@info_hash)
+    :file.datasync(file)
+
+    {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
+
+    assert "tiny\n" == contents
+
+    piece_write_statuses = Effusion.Repo.all(
+      from piece in Effusion.BTP.Piece,
+      join: torrent in assoc(piece, :torrent),
+      where: torrent.info_hash == ^@info_hash,
+      select: piece.written
+    )
+
+    assert Enum.all?(piece_write_statuses)
+  end
 
   # test "download a file from a peer supporting the fast extension", %{lsock: lsock, destfile: file} do
   #   old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
@@ -221,72 +221,72 @@ defmodule EffusionTest do
   #
   #   Process.sleep(200)
   # end
+
+  # test "receive a connection from a peer", %{destfile: file} do
+  #   old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
+  #   Application.put_env(:effusion, :enabled_extensions, [])
+  #   on_exit(fn ->
+  #     Application.put_env(:effusion, :enabled_extensions, old_supported_extensions)
+  #   end)
+  #   Application.put_env(:effusion, :download_destination, file)
   #
-  test "receive a connection from a peer", %{destfile: file} do
-    old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
-    Application.put_env(:effusion, :enabled_extensions, [])
-    on_exit(fn ->
-      Application.put_env(:effusion, :enabled_extensions, old_supported_extensions)
-    end)
-    Application.put_env(:effusion, :download_destination, file)
-
-    # Expect started and completed message.
-    # No "stopped" message, that's only if you stop downloading.
-    Effusion.THP.Mock
-    |> expect(:announce, 2, &stub_tracker_no_peers/9)
-
-    :ok = Effusion.start_download(@torrent)
-
-    {:ok, sock, _remote_peer, _ext} =
-      Socket.connect(
-        {{127, 0, 0, 1}, @local_port},
-        @info_hash,
-        @local_peer_id,
-        @remote_peer.peer_id,
-        []
-      )
-
-    on_exit(fn ->
-      Socket.close(sock)
-    end)
-
-    bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
-    :ok = Socket.send_msg(sock, {:bitfield, bitfield})
-    {:ok, :interested} = Socket.recv(sock)
-
-    :ok = Socket.send_msg(sock, :unchoke)
-    {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
-    {:ok, {:request, %{index: i2}}} = Socket.recv(sock)
-
-    if i1 == 0 do
-      assert i2 == 1
-    else
-      assert i1 == 1
-      assert i2 == 0
-    end
-
-    :ok = Socket.send_msg(sock, {:piece, 0, 0, "tin"})
-    :ok = Socket.send_msg(sock, {:piece, 1, 0, "y\n"})
-
-    {:ok, {:have, r1}} = Socket.recv(sock)
-    {:ok, {:have, r2}} = Socket.recv(sock)
-
-    if r1 == 0 do
-      assert r2 == 1
-    else
-      assert r1 == 1
-      assert r2 == 0
-    end
-
-    Process.sleep(500)
-    :file.datasync(file)
-
-    {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
-
-    assert "tiny\n" == contents
-
-    Process.sleep(200)
-  end
+  #   # Expect started and completed message.
+  #   # No "stopped" message, that's only if you stop downloading.
+  #   Effusion.THP.Mock
+  #   |> expect(:announce, 2, &stub_tracker_no_peers/9)
+  #
+  #   :ok = Effusion.start_download(@torrent)
+  #
+  #   {:ok, sock, _remote_peer, _ext} =
+  #     Socket.connect(
+  #       {{127, 0, 0, 1}, @local_port},
+  #       @info_hash,
+  #       @local_peer_id,
+  #       @remote_peer.peer_id,
+  #       []
+  #     )
+  #
+  #   on_exit(fn ->
+  #     Socket.close(sock)
+  #   end)
+  #
+  #   bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
+  #   :ok = Socket.send_msg(sock, {:bitfield, bitfield})
+  #   {:ok, :interested} = Socket.recv(sock)
+  #
+  #   :ok = Socket.send_msg(sock, :unchoke)
+  #   {:ok, {:request, %{index: i1}}} = Socket.recv(sock)
+  #   {:ok, {:request, %{index: i2}}} = Socket.recv(sock)
+  #
+  #   if i1 == 0 do
+  #     assert i2 == 1
+  #   else
+  #     assert i1 == 1
+  #     assert i2 == 0
+  #   end
+  #
+  #   :ok = Socket.send_msg(sock, {:piece, 0, 0, "tin"})
+  #   :ok = Socket.send_msg(sock, {:piece, 1, 0, "y\n"})
+  #
+  #   {:ok, {:have, r1}} = Socket.recv(sock)
+  #   {:ok, {:have, r2}} = Socket.recv(sock)
+  #
+  #   if r1 == 0 do
+  #     assert r2 == 1
+  #   else
+  #     assert r1 == 1
+  #     assert r2 == 0
+  #   end
+  #
+  #   Process.sleep(500)
+  #   :file.datasync(file)
+  #
+  #   {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
+  #
+  #   assert "tiny\n" == contents
+  #
+  #   Process.sleep(200)
+  # end
   #
   # test "dht node" do
   #   old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
