@@ -138,7 +138,9 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{pieces: pieces},
     %PeerHasBitfield{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
   ) do
-    unless IntSet.disjoint?(bitfield, pieces) do
+    bitfield = bitfield |> Base.decode16!() |> IntSet.new()
+
+    if IntSet.difference(bitfield, pieces) |> Enum.any?() do
       Logger.debug("***** Got bitfield, sending :interested")
       ConnectionRegistry.btp_send(Effusion.Hash.decode(info_hash), peer_id, :interested)
     end
