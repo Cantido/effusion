@@ -15,6 +15,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     DownloadCompleted,
     PieceHashSucceeded,
     PeerAdded,
+    PeerConnected,
     PeerHasBitfield,
     PeerSentBlock,
     PeerUnchokedUs,
@@ -31,12 +32,12 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     target_piece_count: nil,
     pieces: IntSet.new(),
     connecting_count: 0,
-    connected_count: 0,
     announce: nil,
     annouce_list: [],
     bytes_uploaded: 0,
     bytes_downloaded: 0,
-    bytes_left: nil
+    bytes_left: nil,
+    connected_peers: MapSet.new()
   ]
 
   def interested?(%DownloadStarted{info_hash: info_hash}) do
@@ -44,6 +45,10 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def interested?(%PeerAdded{info_hash: info_hash}) do
+    {:continue!, info_hash}
+  end
+
+  def interested?(%PeerConnected{info_hash: info_hash}) do
     {:continue!, info_hash}
   end
 
@@ -215,11 +220,11 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def apply(
-    %__MODULE__{info_hash: info_hash, connecting_count: connecting_count, connected_count: connected_count} = download,
+    %__MODULE__{info_hash: info_hash, connecting_count: connecting_count, connected_peers: connected_peers} = download,
     %PeerAdded{info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: :tracker}
   ) do
 
-    if connecting_count < @max_half_open_connections and connected_count < @max_connections do
+    if not Enum.member?(connected_peers, {host, port}) and connecting_count < @max_half_open_connections and Enum.count(connected_peers) < @max_connections do
       Logger.debug "**** CQRS is opening a connection to #{host}:#{port}"
       {:ok, host} = :inet.parse_address(host |> String.to_charlist())
       info_hash = Effusion.Hash.decode(info_hash)
@@ -230,6 +235,28 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
     %__MODULE__{download |
       connecting_count: connecting_count + 1
+    }
+  end
+
+  def apply(
+    %__MODULE__{info_hash: info_hash, connecting_count: connecting_count, connected_peers: connected_peers} = download,
+    %PeerConnected{info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: :us}
+  ) do
+
+    %__MODULE__{download |
+      connecting_count: connecting_count - 1,
+      connected_peers: MapSet.put(connected_peers, {host, port})
+    }
+  end
+
+  def apply(
+    %__MODULE__{info_hash: info_hash, connecting_count: connecting_count, connected_peers: connected_peers} = download,
+    %PeerConnected{info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: :them}
+  ) do
+
+    %__MODULE__{download |
+      connecting_count: connecting_count - 1,
+      connected_peers: MapSet.put(connected_peers, {host, port})
     }
   end
 

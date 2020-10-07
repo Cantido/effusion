@@ -51,16 +51,16 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def execute(
     %__MODULE__{info_hash: nil, peer_id: nil},
-    %AddPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+    %AddPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: source}
   ) do
-    %PeerAdded{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+    %PeerAdded{info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: source}
   end
 
   def execute(
     %__MODULE__{},
-    %AddConnectedPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+    %AddConnectedPeer{info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
   ) do
-    %PeerConnected{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+    %PeerConnected{info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
   end
 
   def execute(

@@ -3,6 +3,7 @@ defmodule Effusion.CQRS.Events.PeerConnected do
     :info_hash,
     :peer_id,
     :host,
-    :port
+    :port,
+    :initiated_by
   ]
 end

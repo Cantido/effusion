@@ -9,11 +9,16 @@ defmodule Effusion.CQRS.ProcessManagers.PeerConnection do
     AddConnectedPeer
   }
   alias Effusion.CQRS.Events.{
-    SuccessfulHandshake
+    SuccessfulHandshake,
+    PeerDisconnected
   }
 
   def interested?(%SuccessfulHandshake{info_hash: info_hash}) do
     {:start!, info_hash}
+  end
+
+  def interested?(%PeerDisconnected{info_hash: info_hash}) do
+    {:stop, info_hash}
   end
 
   def handle(
