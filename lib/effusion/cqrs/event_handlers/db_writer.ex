@@ -80,7 +80,6 @@ defmodule Effusion.CQRS.EventHandlers.DbWriter do
       |> Effusion.BTP.Piece.verify()
 
     Effusion.IO.write_piece(piece)
-    Effusion.BTP.Pieces.mark_piece_written(info_hash, index)
 
     :ok
   end

@@ -239,19 +239,4 @@ defmodule Effusion.BTP.Pieces do
       torrent_length(info_hash) - bytes_completed(info_hash)
     end
   end
-
-  def mark_piece_written(torrent, %{index: i}) do
-    mark_piece_written(torrent.info_hash, i)
-  end
-
-  def mark_piece_written(info_hash, i) when is_integer(i) do
-    Repo.one!(
-      from piece in Piece,
-      join: torrent in assoc(piece, :torrent),
-      where: torrent.info_hash == ^info_hash,
-      where: piece.index == ^i
-    )
-    |> Ecto.Changeset.change([written: true])
-    |> Repo.update()
-  end
 end
