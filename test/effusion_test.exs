@@ -237,8 +237,7 @@ defmodule EffusionTest do
       Socket.close(sock)
     end)
 
-    {:ok, {:bitfield, remote_bitfield}} = Socket.recv(sock)
-    assert IntSet.new(remote_bitfield) |> Enum.empty?()
+    {:ok, {:bitfield, ""}} = Socket.recv(sock)
 
     bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
     :ok = Socket.send_msg(sock, {:bitfield, bitfield})

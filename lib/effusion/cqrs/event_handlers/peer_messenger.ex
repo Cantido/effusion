@@ -3,15 +3,18 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     application: Effusion.CQRS.Application,
     name: __MODULE__
 
-    alias Effusion.PWP.TCP.Connection
+  alias Effusion.PWP.TCP.Connection
   alias Effusion.PWP.ConnectionRegistry
+  alias Effusion.CQRS.Commands.HandleHandshake
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
     PieceHashSucceeded,
     InterestedSent,
     BlockRequested,
     RequestCancelled,
-    BitfieldSent
+    BitfieldSent,
+    SendingHandshake,
+    SuccessfulHandshake
   }
   import Ecto.Query
   require Logger
@@ -27,6 +30,76 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     info_hash = Effusion.Hash.decode(info_hash)
 
     Connection.connect({{host, port}, info_hash, peer_id})
+  end
+
+  def handle(
+    %SendingHandshake{
+      internal_peer_id: internal_peer_id,
+      info_hash: info_hash,
+      peer_id: peer_id,
+      host: host,
+      port: port,
+      our_peer_id: our_peer_id,
+      our_extensions: our_extensions,
+      initiated_by: :them
+    },
+    _metadata
+  ) do
+    Logger.debug("***** Sending handshake")
+    info_hash = Effusion.Hash.decode(info_hash)
+    ConnectionRegistry.btp_send(
+      info_hash,
+      peer_id,
+      {:handshake, our_peer_id, info_hash, our_extensions}
+    )
+
+    :ok
+  end
+
+  def handle(
+    %SendingHandshake{
+      internal_peer_id: internal_peer_id,
+      info_hash: info_hash,
+      peer_id: peer_id,
+      host: host,
+      port: port,
+      our_peer_id: our_peer_id,
+      our_extensions: our_extensions,
+      initiated_by: :us
+    },
+    _metadata
+  ) do
+    Logger.debug("***** Sending handshake")
+    decoded_info_hash = Effusion.Hash.decode(info_hash)
+    ConnectionRegistry.btp_send(
+      decoded_info_hash,
+      peer_id,
+      {:handshake, our_peer_id, decoded_info_hash, our_extensions}
+    )
+
+    {:handshake, info_hash, their_peer_id, their_extensions} =
+      Connection.recv_handshake(decoded_info_hash, peer_id)
+
+    %HandleHandshake{
+      internal_peer_id: internal_peer_id,
+      info_hash: info_hash,
+      peer_id: their_peer_id,
+      host: host,
+      port: port,
+      initiated_by: :us,
+      extensions: their_extensions}
+    |> CQRS.dispatch()
+  end
+
+
+  def handle(
+    %SuccessfulHandshake{
+      info_hash: info_hash,
+      peer_id: peer_id
+    },
+    _metadata
+  ) do
+    Connection.handshake_successful(Effusion.Hash.decode(info_hash), peer_id)
   end
 
   def handle(
@@ -62,7 +135,8 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     %BitfieldSent{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield},
     _metadata
   ) do
-    {:ok, bitfield} = Base.decode16(bitfield)
-    Effusion.PWP.ConnectionRegistry.btp_send(Effusion.Hash.decode(info_hash), peer_id, {:bitfield, bitfield})
+    Logger.debug("******* Sending bitfield")
+    {:ok, decoded_bitfield} = Base.decode16(bitfield)
+    Effusion.PWP.ConnectionRegistry.btp_send(Effusion.Hash.decode(info_hash), peer_id, {:bitfield, decoded_bitfield})
   end
 end

@@ -31,6 +31,7 @@ defmodule Effusion.CQRS.Router do
     Commands.HandleUninterested,
     Commands.RequestBlock,
     Commands.SendInterested,
-    Commands.SendBitfield
+    Commands.SendBitfield,
+    Commands.SendHandshake
   ], to: Peer, identity: :internal_peer_id
 end

@@ -57,7 +57,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     {:start!, info_hash}
   end
 
-  def interested?(%PeerAdded{info_hash: info_hash}) do
+  def interested?(%PeerAdded{info_hash: info_hash, from: :tracker}) do
     {:continue!, info_hash}
   end
 
@@ -107,7 +107,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def handle(
     %__MODULE__{connected_peers: connected_peers, connecting_to_peers: connecting_to_peers},
-    %PeerAdded{internal_peer_id: internal_peer_id}
+    %PeerAdded{internal_peer_id: internal_peer_id, from: :tracker}
   ) do
     conn_count = Enum.count(connected_peers)
     half_open_count = Enum.count(connecting_to_peers)
@@ -116,6 +116,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       %AttemptToConnect{internal_peer_id: internal_peer_id}
     end
   end
+
   def handle(
     %__MODULE__{pieces: pieces},
     %PeerConnected{internal_peer_id: internal_peer_id}

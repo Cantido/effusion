@@ -47,6 +47,16 @@ defmodule Effusion.PWP.TCP.Connection do
     send(pid, {:disconnect, reason})
   end
 
+  def recv_handshake(info_hash, peer_id) do
+    pid = ConnectionRegistry.get_pid(info_hash, peer_id)
+    GenServer.call(pid, :recv_handshake)
+  end
+
+  def handshake_successful(info_hash, peer_id) do
+    pid = ConnectionRegistry.get_pid(info_hash, peer_id)
+    GenServer.call(pid, :handshake_successful)
+  end
+
   @doc """
   The `start_link` implementation for `:ranch_protocol` behaviour
   """
@@ -77,9 +87,8 @@ defmodule Effusion.PWP.TCP.Connection do
     :gen_server.enter_loop(__MODULE__, [], %{socket: socket, transport: transport})
   end
 
-  defp successful_handshake(socket, info_hash, peer_id, initiated_by, extensions) do
+  defp successful_handshake(socket) do
     with {:ok, {host, port}} <- :inet.peername(socket),
-         :ok <- Effusion.CQRS.Contexts.Peers.successful_handshake(info_hash, peer_id, host, port, initiated_by, extensions),
          :ok <- :inet.setopts(socket, active: :once, packet: 4) do
       :ok
     else
@@ -103,11 +112,11 @@ defmodule Effusion.PWP.TCP.Connection do
     {:ok, _pid} = ConnectionRegistry.register(info_hash, expected_peer_id)
 
     with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000),
-
+         {:ok, {host, port}} = :inet.peername(socket),
          :ok <- Socket.send_msg(socket, ProtocolHandler.get_handshake(info_hash)),
          {:ok, handshake = {:handshake, remote_peer_id, _remote_info_hash, extensions}} <- Socket.recv(socket, 68),
-         :ok <- ProtocolHandler.recv_handshake(handshake, info_hash, expected_peer_id),
-         :ok <- successful_handshake(socket, info_hash, remote_peer_id, :us, extensions) do
+         :ok <- Effusion.CQRS.Contexts.Peers.handle_handshake(info_hash, remote_peer_id, host, port, :us, extensions),
+         :ok <- successful_handshake(socket) do
 
       :telemetry.execute(
         [:pwp, :message_received],
@@ -146,10 +155,9 @@ defmodule Effusion.PWP.TCP.Connection do
 
     {:ok, _pid} = ConnectionRegistry.register(info_hash, remote_peer_id)
 
-    with :ok <- Socket.send_msg(socket, ProtocolHandler.get_handshake(info_hash)),
-         {:ok, {host, port}} <- :inet.peername(socket),
+    with {:ok, {host, port}} <- :inet.peername(socket),
          :ok <- Effusion.CQRS.Contexts.Peers.add(info_hash, remote_peer_id, host, port, :connection),
-         :ok <- successful_handshake(socket, info_hash, remote_peer_id, :them, extensions) do
+         :ok <- Effusion.CQRS.Contexts.Peers.handle_handshake(info_hash, remote_peer_id, host, port, :them, extensions) do
       :telemetry.execute([:pwp, :incoming, :success], %{}, state)
 
       {:noreply,
@@ -177,6 +185,18 @@ defmodule Effusion.PWP.TCP.Connection do
     {:stop, :unexpected_message, state}
   end
 
+  def handle_call(:recv_handshake, _from, %{socket: socket} = state) do
+    handshake = Socket.recv(socket, 68)
+
+    {:reply, handshake, state}
+  end
+
+  def handle_call(:handshake_successful, _from, %{socket: socket} = state) do
+    successful_handshake(socket)
+
+    {:reply, :ok, state}
+  end
+
   def handle_continue(:connect, state), do: start_connection(state)
 
   def handle_info(
@@ -185,6 +205,8 @@ defmodule Effusion.PWP.TCP.Connection do
       )
       when dest_peer_id == peer_id do
     :telemetry.execute([:pwp, :message_sent], %{}, %{message: msg, peer: peer_id})
+
+    Logger.debug("******** Connection sending message #{inspect msg}")
 
     case Socket.send_msg(socket, msg) do
       :ok -> {:noreply, state}

@@ -8,15 +8,21 @@ defmodule Effusion.CQRS.ProcessManagers.IncomingPeerConnection do
   defstruct []
 
   alias Effusion.CQRS.Commands.{
-    AddConnectedPeer
+    AddConnectedPeer,
+    SendHandshake
   }
   alias Effusion.CQRS.Events.{
+    PeerSentHandshake,
     SuccessfulHandshake,
     PeerDisconnected
   }
 
-  def interested?(%SuccessfulHandshake{internal_peer_id: internal_peer_id, initiated_by: :them}) do
+  def interested?(%PeerSentHandshake{internal_peer_id: internal_peer_id, initiated_by: :them}) do
     {:start!, internal_peer_id}
+  end
+
+  def interested?(%SuccessfulHandshake{internal_peer_id: internal_peer_id, initiated_by: :them}) do
+    {:continue!, internal_peer_id}
   end
 
   def interested?(%PeerDisconnected{internal_peer_id: internal_peer_id}) do
@@ -25,8 +31,45 @@ defmodule Effusion.CQRS.ProcessManagers.IncomingPeerConnection do
 
   def handle(
     %__MODULE__{},
-    %SuccessfulHandshake{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+    %PeerSentHandshake{
+      internal_peer_id: internal_peer_id,
+      info_hash: info_hash,
+      peer_id: peer_id,
+      host: host,
+      port: port,
+      initiated_by: :them
+    }
   ) do
-    %AddConnectedPeer{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+    Logger.debug("****** Peer sent a handshake, dispatching send handshake command")
+    %SendHandshake{
+      internal_peer_id: internal_peer_id,
+      info_hash: info_hash,
+      peer_id: peer_id,
+      host: host,
+      port: port,
+      our_peer_id: Application.fetch_env!(:effusion, :peer_id),
+      our_extensions: Application.fetch_env!(:effusion, :enabled_extensions),
+      initiated_by: :them
+    }
+  end
+
+  def handle(
+    %__MODULE__{},
+    %SuccessfulHandshake{
+      internal_peer_id: internal_peer_id,
+      info_hash: info_hash,
+      peer_id: peer_id,
+      host: host,
+      port: port,
+    }
+  ) do
+    Logger.debug("****** Handshake successful")
+    %AddConnectedPeer{
+      internal_peer_id: internal_peer_id,
+      info_hash: info_hash,
+      peer_id: peer_id,
+      host: host,
+      port: port
+    }
   end
 end
