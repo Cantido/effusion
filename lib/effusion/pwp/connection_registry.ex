@@ -84,12 +84,12 @@ defmodule Effusion.PWP.ConnectionRegistry do
   def btp_send(info_hash, peer_id, message) when is_hash(info_hash) and is_peer_id(peer_id) do
     connections = Registry.match(ConnectionRegistry, info_hash, peer_id)
 
-    _ =
-      case connections do
-        [{conn_pid, ^peer_id}] -> send(conn_pid, {:btp_send, peer_id, message})
-        [] ->
-          Logger.warn("No connection process for peer ID #{inspect peer_id} found")
-          []
-      end
+    case connections do
+      [{conn_pid, ^peer_id}] ->
+        send(conn_pid, {:btp_send, peer_id, message})
+        :ok
+      [] ->
+        {:error, :peer_not_connected}
+    end
   end
 end

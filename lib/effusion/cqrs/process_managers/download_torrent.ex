@@ -10,7 +10,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     StoreBlock,
     SendInterested,
     RequestBlock,
-    CancelRequest
+    CancelRequest,
+    SendBitfield
   }
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
@@ -114,6 +115,12 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     if (conn_count + half_open_count) < @max_connections and half_open_count < @max_half_open_connections do
       %AttemptToConnect{internal_peer_id: internal_peer_id}
     end
+  end
+  def handle(
+    %__MODULE__{pieces: pieces},
+    %PeerConnected{internal_peer_id: internal_peer_id}
+  ) do
+    %SendBitfield{internal_peer_id: internal_peer_id, bitfield: IntSet.bitstring(pieces)}
   end
 
   def handle(
@@ -282,16 +289,6 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     }
   end
 
-  def apply(
-    %__MODULE__{connected_peers: connected_peers} = download,
-    %PeerConnected{internal_peer_id: internal_peer_id, initiated_by: :them}
-  ) do
-
-    %__MODULE__{download |
-      connected_peers: MapSet.put(connected_peers, internal_peer_id)
-    }
-  end
-
 
   def apply(%__MODULE__{pieces: pieces, blocks: blocks} = download, %PieceHashSucceeded{index: index}) do
     %__MODULE__{download |
@@ -320,7 +317,6 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{blocks: blocks} = download,
     %PeerSentBlock{internal_peer_id: internal_peer_id, index: index, offset: offset, data: data}
   ) do
-    size = byte_size(data)
     %__MODULE__{download |
       blocks: Map.update(blocks, index, IntSet.new(offset), &MapSet.put(&1, offset))
     }

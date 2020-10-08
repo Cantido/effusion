@@ -16,7 +16,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     HandleInterested,
     HandleUninterested,
     SendInterested,
-    RequestBlock
+    RequestBlock,
+    SendBitfield
   }
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
@@ -34,7 +35,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     PeerSentBlock,
     SuccessfulHandshake,
     InterestedSent,
-    BlockRequested
+    BlockRequested,
+    BitfieldSent
   }
 
   defstruct [
@@ -172,6 +174,22 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %BlockRequested{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
   end
 
+  def execute(
+    %__MODULE__{
+      internal_peer_id: internal_peer_id,
+      info_hash: info_hash,
+      peer_id: peer_id
+    },
+    %SendBitfield{bitfield: bitfield}
+  ) do
+    %BitfieldSent{
+      internal_peer_id: internal_peer_id,
+      info_hash: info_hash,
+      peer_id: peer_id,
+      bitfield: bitfield
+    }
+  end
+
   def apply(
     %__MODULE__{info_hash: nil, host: nil, port: nil} = peer,
     %PeerAdded{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port}
@@ -287,6 +305,13 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   def apply(
     %__MODULE__{} = peer,
     %BlockRequested{}
+  ) do
+    peer
+  end
+
+  def apply(
+    %__MODULE__{} = peer,
+    %BitfieldSent{}
   ) do
     peer
   end

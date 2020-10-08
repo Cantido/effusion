@@ -106,6 +106,9 @@ defmodule EffusionTest do
       Socket.close(sock)
     end)
 
+    {:ok, {:bitfield, remote_bitfield}} = Socket.recv(sock)
+    assert IntSet.new(remote_bitfield) |> Enum.empty?()
+
     bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
     :ok = Socket.send_msg(sock, {:bitfield, bitfield})
     {:ok, :interested} = Socket.recv(sock)
@@ -233,6 +236,9 @@ defmodule EffusionTest do
     on_exit(fn ->
       Socket.close(sock)
     end)
+
+    {:ok, {:bitfield, remote_bitfield}} = Socket.recv(sock)
+    assert IntSet.new(remote_bitfield) |> Enum.empty?()
 
     bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
     :ok = Socket.send_msg(sock, {:bitfield, bitfield})
