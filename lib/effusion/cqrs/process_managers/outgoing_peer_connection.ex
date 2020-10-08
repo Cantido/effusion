@@ -11,12 +11,17 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
     AddConnectedPeer
   }
   alias Effusion.CQRS.Events.{
+    AttemptingToConnect,
     SuccessfulHandshake,
     PeerDisconnected
   }
 
-  def interested?(%SuccessfulHandshake{internal_peer_id: internal_peer_id, initiated_by: :us}) do
+  def interested?(%AttemptingToConnect{internal_peer_id: internal_peer_id}) do
     {:start!, internal_peer_id}
+  end
+
+  def interested?(%SuccessfulHandshake{internal_peer_id: internal_peer_id, initiated_by: :us}) do
+    {:continue!, internal_peer_id}
   end
 
   def interested?(%PeerDisconnected{internal_peer_id: internal_peer_id}) do
