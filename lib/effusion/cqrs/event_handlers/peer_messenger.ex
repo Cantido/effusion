@@ -73,8 +73,6 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
       Effusion.PWP.ConnectionRegistry.btp_send(block.info_hash, peer_id, {:cancel, index, offset, size})
     end)
 
-    Effusion.BTP.Block.put(block.info_hash, block)
-
     peer_request_query =
       from request in Effusion.BTP.Request,
       join: peer in assoc(request, :peer),
