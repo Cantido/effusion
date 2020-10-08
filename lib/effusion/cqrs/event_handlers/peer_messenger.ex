@@ -17,6 +17,19 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
   require Logger
 
   def handle(
+    %AttemptingToConnect{info_hash: info_hash, peer_id: peer_id, host: host, port: port},
+    _metadata
+  ) do
+
+    Logger.debug "**** CQRS is opening a connection to #{host}:#{port}"
+
+    {:ok, host} = :inet.parse_address(String.to_charlist(host))
+    info_hash = Effusion.Hash.decode(info_hash)
+
+    Connection.connect({{host, port}, info_hash, peer_id})
+  end
+
+  def handle(
     %PieceHashSucceeded{info_hash: info_hash, index: index},
     _metadata
   ) do
@@ -36,19 +49,6 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     _metadata
   ) do
     ConnectionRegistry.btp_send(Effusion.Hash.decode(info_hash), peer_id, {:request, index, offset, size})
-  end
-
-  def handle(
-    %AttemptingToConnect{info_hash: info_hash, peer_id: peer_id, host: host, port: port},
-    _metadata
-  ) do
-
-    Logger.debug "**** CQRS is opening a connection to #{host}:#{port}"
-
-    {:ok, host} = :inet.parse_address(String.to_charlist(host))
-    info_hash = Effusion.Hash.decode(info_hash)
-
-    Connection.connect({{host, port}, info_hash, peer_id})
   end
 
   def handle(
