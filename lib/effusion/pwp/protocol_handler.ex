@@ -78,28 +78,6 @@ defmodule Effusion.PWP.ProtocolHandler do
     end
   end
 
-  def next_request_from_peer(info_hash, peer_id, count) when is_hash(info_hash) do
-    requests = Request.valid_requests_from_peer_query(info_hash, peer_id, count)
-    |> Repo.all()
-
-    requests_to_insert = Enum.map(requests, fn {_piece, block, peer} ->
-      %{
-        block_id: block.id,
-        peer_id: peer.id
-      }
-    end)
-    Repo.insert_all(Request, requests_to_insert)
-
-    Enum.each(requests, fn {piece, block, peer} ->
-      ConnectionRegistry.btp_send(
-        info_hash,
-        peer.peer_id,
-        {:request, piece.index, block.offset, block.size}
-      )
-    end)
-    :ok
-  end
-
   @doc """
   Disconnect from all peers.
   """
