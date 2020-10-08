@@ -16,6 +16,7 @@ defmodule Effusion.CQRS.Router do
 
   dispatch [
     Commands.AddPeer,
+    Commands.AttemptToConnect,
     Commands.AddConnectedPeer,
     Commands.RemoveConnectedPeer,
     Commands.HandleBitfield,

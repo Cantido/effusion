@@ -3,6 +3,8 @@ defmodule Effusion.CQRS.ProcessManagers.PeerConnection do
     application: Effusion.CQRS.Application,
     name: __MODULE__
 
+  require Logger
+
   defstruct []
 
   alias Effusion.CQRS.Commands.{
@@ -26,6 +28,7 @@ defmodule Effusion.CQRS.ProcessManagers.PeerConnection do
     %SuccessfulHandshake{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
   ) do
     internal_peer_id = "#{info_hash}:#{host}:#{port}"
+    Logger.debug "********* Emitting AddConnectedPeer command"
     %AddConnectedPeer{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port}
   end
 end

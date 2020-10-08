@@ -1,6 +1,7 @@
 defmodule Effusion.CQRS.Aggregates.Peer do
   alias Effusion.CQRS.Commands.{
     AddPeer,
+    AttemptToConnect,
     AddConnectedPeer,
     RemoveConnectedPeer,
     HandleBitfield,
@@ -18,6 +19,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     RequestBlock
   }
   alias Effusion.CQRS.Events.{
+    AttemptingToConnect,
     PeerAdded,
     PeerConnected,
     PeerDisconnected,
@@ -45,8 +47,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     am_choking: true,
     am_interested: false,
     peer_choking: true,
-    peer_interested: false,
-    connection_status: :disconnected
+    peer_interested: false
   ]
 
   def execute(
@@ -61,45 +62,37 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{connection_status: :disconnected},
+    %__MODULE__{info_hash: info_hash, peer_id: peer_id, host: host, port: port},
+    %AttemptToConnect{internal_peer_id: internal_peer_id}
+  ) do
+    %AttemptingToConnect{
+      internal_peer_id: internal_peer_id,
+      info_hash: info_hash,
+      peer_id: peer_id,
+      host: host,
+      port: port}
+  end
+
+  def execute(
+    %__MODULE__{},
     %AddConnectedPeer{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
   ) do
     %PeerConnected{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
   end
 
   def execute(
-    %__MODULE__{connection_status: :connected},
-    %AddConnectedPeer{}
-  ) do
-    {:error, :peer_already_connected}
-  end
-
-  def execute(
-    %__MODULE__{connection_status: :connected},
+    %__MODULE__{},
     %RemoveConnectedPeer{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, reason: reason}
   ) do
     %PeerDisconnected{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, reason: reason}
   end
 
-  def execute(
-    %__MODULE__{connection_status: :disconnected},
-    %RemoveConnectedPeer{}
-  ) do
-    {:error, :peer_already_disconnected}
-  end
 
   def execute(
-    %__MODULE__{connection_status: :disconnected},
+    %__MODULE__{},
     %HandleHandshake{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port}
   ) do
     %SuccessfulHandshake{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port}
-  end
-
-  def execute(
-    %__MODULE__{connection_status: :connected},
-    %HandleHandshake{}
-  ) do
-    {:error, :peer_already_connected}
   end
 
   def execute(
@@ -181,14 +174,27 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def apply(
     %__MODULE__{info_hash: nil, host: nil, port: nil} = peer,
-    %PeerAdded{internal_peer_id: internal_peer_id, info_hash: info_hash, host: host, port: port}
+    %PeerAdded{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port}
   ) do
     %__MODULE__{peer |
       internal_peer_id: internal_peer_id,
       info_hash: info_hash,
+      peer_id: peer_id,
       host: host,
       port: port
     }
+  end
+
+  def apply(
+    %__MODULE__{} = peer,
+    %AttemptingToConnect{
+      internal_peer_id: internal_peer_id,
+      info_hash: info_hash,
+      peer_id: peer_id,
+      host: host,
+      port: port}
+  ) do
+    peer
   end
 
   def apply(
@@ -199,8 +205,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       info_hash: info_hash,
       peer_id: peer_id,
       host: host,
-      port: port,
-      connection_status: :connected
+      port: port
     }
   end
 
@@ -208,9 +213,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %__MODULE__{} = peer,
     %PeerDisconnected{}
   ) do
-    %__MODULE__{peer |
-      connection_status: :disconnected
-    }
+    peer
   end
 
   def apply(

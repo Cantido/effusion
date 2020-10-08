@@ -6,6 +6,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.TCP.Connection
   alias Effusion.CQRS.Commands.{
+    AttemptToConnect,
     DisconnectPeer,
     StopDownload,
     StoreBlock,
@@ -95,6 +96,13 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def handle(
+    %__MODULE__{},
+    %PeerAdded{internal_peer_id: internal_peer_id}
+  ) do
+    %AttemptToConnect{internal_peer_id: internal_peer_id}
+  end
+
+  def handle(
     %__MODULE__{pieces: pieces},
     %PeerHasBitfield{internal_peer_id: internal_peer_id, bitfield: bitfield}
   ) do
@@ -176,20 +184,6 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{info_hash: info_hash, connecting_to_peers: connecting_to_peers, connected_peers: connected_peers} = download,
     %PeerAdded{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: :tracker}
   ) do
-    if (
-      not Enum.member?(connected_peers, internal_peer_id) and
-      not Enum.member?(connecting_to_peers, internal_peer_id) and
-      Enum.count(connecting_to_peers) < @max_half_open_connections and
-      Enum.count(connected_peers) < @max_connections
-    ) do
-      Logger.debug "**** CQRS is opening a connection to #{host}:#{port}"
-      {:ok, host} = :inet.parse_address(host |> String.to_charlist())
-      info_hash = Effusion.Hash.decode(info_hash)
-      Connection.connect({{host, port}, info_hash, peer_id})
-    else
-      Logger.debug "**** CQRS is deciding not to open a connection to #{host}:#{port}"
-    end
-
     %__MODULE__{download |
       connecting_to_peers: MapSet.put(connecting_to_peers, internal_peer_id)
     }

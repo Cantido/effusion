@@ -3,8 +3,10 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     application: Effusion.CQRS.Application,
     name: __MODULE__
 
+    alias Effusion.PWP.TCP.Connection
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.CQRS.Events.{
+    AttemptingToConnect,
     PieceHashSucceeded,
     InterestedSent,
     BlockRequested
@@ -35,6 +37,21 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     _metadata
   ) do
     ConnectionRegistry.btp_send(Effusion.Hash.decode(info_hash), peer_id, {:request, index, offset, size})
+
+    :ok
+  end
+
+  def handle(
+    %AttemptingToConnect{info_hash: info_hash, peer_id: peer_id, host: host, port: port},
+    _metadata
+  ) do
+
+    Logger.debug "**** CQRS is opening a connection to #{host}:#{port}"
+
+    {:ok, host} = :inet.parse_address(String.to_charlist(host))
+    info_hash = Effusion.Hash.decode(info_hash)
+
+    Connection.connect({{host, port}, info_hash, peer_id})
 
     :ok
   end
