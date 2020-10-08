@@ -3,7 +3,6 @@ defmodule Effusion.CQRS.Events.PeerRequestCancelled do
     :peer_uuid,
     :info_hash,
     :index,
-    :peer_id,
     :offset,
     :size
   ]

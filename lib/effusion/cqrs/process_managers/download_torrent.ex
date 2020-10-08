@@ -182,7 +182,6 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{requests: requests},
     %PeerSentBlock{
       info_hash: info_hash,
-      peer_id: peer_id,
       index: index,
       offset: offset,
       data: data
@@ -205,7 +204,6 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     [
       %StoreBlock{
         info_hash: info_hash,
-        from: peer_id,
         index: index,
         offset: offset,
         data: data

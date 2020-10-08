@@ -169,66 +169,66 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
     %HandleChoke{}
   ) do
-    %PeerChokedUs{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
+    %PeerChokedUs{peer_uuid: peer_uuid, info_hash: info_hash}
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
     %HandleUnchoke{}
   ) do
-    %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
+    %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: info_hash}
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
     %HandleInterested{}
   ) do
-    %PeerInterestedInUs{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
+    %PeerInterestedInUs{peer_uuid: peer_uuid, info_hash: info_hash}
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
     %HandleUninterested{}
   ) do
-    %PeerUninterestedInUs{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
+    %PeerUninterestedInUs{peer_uuid: peer_uuid, info_hash: info_hash}
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, bitfield: bitfield},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, bitfield: bitfield},
     %HandleHave{index: index}
   ) do
-    %PeerHasPiece{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index, bitfield: IntSet.put(bitfield, index)}
+    %PeerHasPiece{peer_uuid: peer_uuid, info_hash: info_hash, index: index, bitfield: IntSet.put(bitfield, index)}
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
     %HandlePiece{index: index, offset: offset, data: data}
   ) do
-    %PeerSentBlock{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, data: data}
+    %PeerSentBlock{peer_uuid: peer_uuid, info_hash: info_hash, index: index, offset: offset, data: data}
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
     %HandleBitfield{bitfield: bitfield}
   ) do
-    %PeerHasBitfield{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
+    %PeerHasBitfield{peer_uuid: peer_uuid, info_hash: info_hash, bitfield: bitfield}
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
     %HandleRequest{index: index, offset: offset, size: size}
   ) do
-    %PeerRequestedBlock{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+    %PeerRequestedBlock{peer_uuid: peer_uuid, info_hash: info_hash, index: index, offset: offset, size: size}
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
     %HandleCancel{index: index, offset: offset, size: size}
   ) do
-    %PeerRequestCancelled{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+    %PeerRequestCancelled{peer_uuid: peer_uuid, info_hash: info_hash, index: index, offset: offset, size: size}
   end
 
   def execute(
@@ -318,8 +318,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def apply(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
-    %PeerChokedUs{info_hash: info_hash, peer_id: peer_id}
+    %__MODULE__{} = peer,
+    %PeerChokedUs{}
   ) do
     %__MODULE__{peer |
       peer_choking: true
@@ -327,8 +327,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def apply(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
-    %PeerUnchokedUs{info_hash: info_hash, peer_id: peer_id}
+    %__MODULE__{} = peer,
+    %PeerUnchokedUs{}
   ) do
     %__MODULE__{peer |
       peer_choking: false
@@ -336,8 +336,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def apply(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
-    %PeerInterestedInUs{info_hash: info_hash, peer_id: peer_id}
+    %__MODULE__{} = peer,
+    %PeerInterestedInUs{}
   ) do
     %__MODULE__{peer |
       peer_interested: true
@@ -345,8 +345,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def apply(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
-    %PeerUninterestedInUs{info_hash: info_hash, peer_id: peer_id}
+    %__MODULE__{} = peer,
+    %PeerUninterestedInUs{}
   ) do
     %__MODULE__{peer |
       peer_interested: false
@@ -354,8 +354,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def apply(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
-    %PeerHasPiece{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
+    %__MODULE__{} = peer,
+    %PeerHasPiece{bitfield: bitfield}
   ) do
     %__MODULE__{peer |
       bitfield: bitfield
@@ -363,8 +363,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def apply(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
-    %PeerHasBitfield{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
+    %__MODULE__{} = peer,
+    %PeerHasBitfield{bitfield: bitfield}
   ) do
     %__MODULE__{peer |
       bitfield: bitfield
@@ -372,8 +372,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def apply(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id} = peer,
-    %PeerSentBlock{info_hash: info_hash, peer_id: peer_id}
+    %__MODULE__{} = peer,
+    %PeerSentBlock{}
   ) do
     peer
   end
