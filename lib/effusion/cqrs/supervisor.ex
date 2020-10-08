@@ -10,7 +10,8 @@ defmodule Effusion.CQRS.Supervisor do
   def init(_arg) do
     children = [
       ProcessManagers.DownloadTorrent,
-      ProcessManagers.PeerConnection,
+      ProcessManagers.IncomingPeerConnection,
+      ProcessManagers.OutgoingPeerConnection,
       Effusion.CQRS.EventHandlers.FileWriter,
       Effusion.CQRS.EventHandlers.TrackerAnnouncer,
       Effusion.CQRS.EventHandlers.PeerMessenger

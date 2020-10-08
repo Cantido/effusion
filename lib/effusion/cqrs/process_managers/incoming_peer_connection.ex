@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.ProcessManagers.PeerConnection do
+defmodule Effusion.CQRS.ProcessManagers.IncomingPeerConnection do
   use Commanded.ProcessManagers.ProcessManager,
     application: Effusion.CQRS.Application,
     name: __MODULE__
@@ -15,7 +15,7 @@ defmodule Effusion.CQRS.ProcessManagers.PeerConnection do
     PeerDisconnected
   }
 
-  def interested?(%SuccessfulHandshake{internal_peer_id: internal_peer_id}) do
+  def interested?(%SuccessfulHandshake{internal_peer_id: internal_peer_id, initiated_by: :them}) do
     {:start!, internal_peer_id}
   end
 
