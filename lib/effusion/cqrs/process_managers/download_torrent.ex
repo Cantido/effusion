@@ -8,7 +8,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   alias Effusion.CQRS.Commands.{
     StopDownload,
     StoreBlock,
-    SendInterested
+    SendInterested,
+    RequestBlock
   }
   alias Effusion.CQRS.Events.{
     DownloadStarted,
@@ -107,17 +108,21 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def handle(
     %__MODULE__{target_piece_count: target_piece_count, pieces: pieces},
-    %PeerUnchokedUs{info_hash: info_hash, peer_id: peer_id}
+    %PeerUnchokedUs{internal_peer_id: internal_peer_id}
   ) do
     Logger.debug("***** Got :unchoke, sending :request")
     block_size = Application.fetch_env!(:effusion, :block_size)
 
     required_pieces = pieces |> IntSet.inverse(target_piece_count)
 
-    Enum.each(required_pieces, fn piece_to_request ->
-      ConnectionRegistry.btp_send(Effusion.Hash.decode(info_hash), peer_id, {:request, piece_to_request, 0, block_size})
+    Enum.map(required_pieces, fn piece_to_request ->
+      %RequestBlock{
+        internal_peer_id: internal_peer_id,
+        index: piece_to_request,
+        offset: 0,
+        size: block_size
+      }
     end)
-    []
   end
 
   def handle(

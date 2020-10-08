@@ -6,7 +6,8 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.CQRS.Events.{
     PieceHashSucceeded,
-    InterestedSent
+    InterestedSent,
+    BlockRequested
   }
   require Logger
 
@@ -25,6 +26,15 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     _metadata
   ) do
     ConnectionRegistry.btp_send(Effusion.Hash.decode(info_hash), peer_id, :interested)
+
+    :ok
+  end
+
+  def handle(
+    %BlockRequested{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size},
+    _metadata
+  ) do
+    ConnectionRegistry.btp_send(Effusion.Hash.decode(info_hash), peer_id, {:request, index, offset, size})
 
     :ok
   end
