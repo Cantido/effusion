@@ -21,7 +21,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
   require Logger
 
   def handle(
-    %AttemptingToConnect{info_hash: info_hash, peer_id: peer_id, host: host, port: port},
+    %AttemptingToConnect{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, host: host, port: port},
     _metadata
   ) do
 
@@ -30,7 +30,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     {:ok, host} = :inet.parse_address(String.to_charlist(host))
     info_hash = Effusion.Hash.decode(info_hash)
 
-    Connection.connect({{host, port}, info_hash, peer_id})
+    Connection.connect({{host, port}, info_hash, peer_id, peer_uuid})
   end
 
   def handle(

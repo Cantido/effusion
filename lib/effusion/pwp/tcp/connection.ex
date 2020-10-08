@@ -21,7 +21,7 @@ defmodule Effusion.PWP.TCP.Connection do
   @doc """
   Start a connection to a `peer` in the Connection supervision hierarchy.
   """
-  def connect(peer = {{_host, port}, info_hash, expected_peer_id}) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id) do
+  def connect(peer = {{_host, port}, info_hash, expected_peer_id, _peer_uuid}) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id) do
     ConnectionSupervisor.start_child(peer)
   end
 
@@ -68,15 +68,16 @@ defmodule Effusion.PWP.TCP.Connection do
   @doc """
   Start a connection to a `peer`, and link the resulting process to the current process.
   """
-  def start_link(peer = {{_host, port}, info_hash, expected_peer_id}) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id)  do
+  def start_link(peer = {{_host, port}, info_hash, expected_peer_id, _peer_uuid}) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id)  do
     GenServer.start_link(__MODULE__, peer)
   end
 
-  def init({address, info_hash, expected_peer_id}) do
+  def init({address, info_hash, expected_peer_id, peer_uuid}) do
     state = %{
       address: address,
       info_hash: info_hash,
-      remote_peer_id: expected_peer_id
+      remote_peer_id: expected_peer_id,
+      peer_uuid: peer_uuid
     }
     {:ok, state, {:continue, :connect}}
   end
