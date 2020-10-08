@@ -9,7 +9,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     StopDownload,
     StoreBlock,
     SendInterested,
-    RequestBlock
+    RequestBlock,
+    CancelRequest
   }
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
@@ -23,7 +24,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     PeerHasBitfield,
     PeerSentBlock,
     PeerUnchokedUs,
-    AllPiecesVerified
+    AllPiecesVerified,
+    BlockRequested
   }
   require Logger
 
@@ -43,6 +45,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     connecting_to_peers: MapSet.new(),
     connected_peers: MapSet.new(),
     failcounts: Map.new(),
+    requests: Map.new(),
     status: :downloading
   ]
 
@@ -144,11 +147,38 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def handle(
-    %__MODULE__{},
-    %PeerSentBlock{info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, data: data}
+    %__MODULE__{requests: requests},
+    %PeerSentBlock{
+      info_hash: info_hash,
+      peer_id: peer_id,
+      index: index,
+      offset: offset,
+      data: data
+    }
   ) do
-    Logger.debug("***** Got block, storing it")
-    %StoreBlock{info_hash: info_hash, from: peer_id, index: index, offset: offset, data: data}
+    Logger.debug("***** Got block, storing it, BTW requests is #{inspect requests}")
+
+    cancellations =
+      requests
+      |> Map.get({index, offset, byte_size(data)}, MapSet.new())
+      |> Enum.map(fn peer ->
+        %CancelRequest{
+          internal_peer_id: peer,
+          index: index,
+          offset: offset,
+          size: byte_size(data)
+        }
+      end)
+
+    [
+      %StoreBlock{
+        info_hash: info_hash,
+        from: peer_id,
+        index: index,
+        offset: offset,
+        data: data
+      } | cancellations
+    ]
   end
 
   def handle(
@@ -240,6 +270,15 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   def apply(download, %AllPiecesVerified{}) do
     %__MODULE__{download |
       status: :shutting_down
+    }
+  end
+
+  def apply(
+    %__MODULE__{requests: requests} = download,
+    %BlockRequested{internal_peer_id: internal_peer_id, index: index, offset: offset, size: size}
+  ) do
+    %__MODULE__{download |
+      requests: Map.update(requests, {index, offset, size}, MapSet.new([internal_peer_id]), &MapSet.put(&1, internal_peer_id))
     }
   end
 end
