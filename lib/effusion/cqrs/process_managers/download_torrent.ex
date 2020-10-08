@@ -35,12 +35,12 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     info_hash: nil,
     target_piece_count: nil,
     pieces: IntSet.new(),
-    connecting_count: 0,
     announce: nil,
     annouce_list: [],
     bytes_uploaded: 0,
     bytes_downloaded: 0,
     bytes_left: nil,
+    connecting_to_peers: MapSet.new(),
     connected_peers: MapSet.new(),
     failcounts: Map.new(),
     status: :downloading
@@ -173,10 +173,14 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def apply(
-    %__MODULE__{info_hash: info_hash, connecting_count: connecting_count, connected_peers: connected_peers} = download,
+    %__MODULE__{info_hash: info_hash, connecting_to_peers: connecting_to_peers, connected_peers: connected_peers} = download,
     %PeerAdded{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: :tracker}
   ) do
-    if not Enum.member?(connected_peers, internal_peer_id) and connecting_count < @max_half_open_connections and Enum.count(connected_peers) < @max_connections do
+    if (
+      not Enum.member?(connected_peers, internal_peer_id) and
+      Enum.count(connecting_to_peers) < @max_half_open_connections and
+      Enum.count(connected_peers) < @max_connections
+    ) do
       Logger.debug "**** CQRS is opening a connection to #{host}:#{port}"
       {:ok, host} = :inet.parse_address(host |> String.to_charlist())
       info_hash = Effusion.Hash.decode(info_hash)
@@ -186,17 +190,17 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     end
 
     %__MODULE__{download |
-      connecting_count: connecting_count + 1
+      connecting_to_peers: MapSet.put(connecting_to_peers, internal_peer_id)
     }
   end
 
   def apply(
-    %__MODULE__{connecting_count: connecting_count, connected_peers: connected_peers} = download,
+    %__MODULE__{connecting_to_peers: connecting_to_peers, connected_peers: connected_peers} = download,
     %PeerConnected{internal_peer_id: internal_peer_id, initiated_by: :us}
   ) do
 
     %__MODULE__{download |
-      connecting_count: connecting_count - 1,
+      connecting_to_peers: MapSet.delete(connecting_to_peers, internal_peer_id),
       connected_peers: MapSet.put(connected_peers, internal_peer_id)
     }
   end
