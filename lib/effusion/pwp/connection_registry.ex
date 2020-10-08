@@ -34,6 +34,15 @@ defmodule Effusion.PWP.ConnectionRegistry do
     end
   end
 
+  def get_pid!(info_hash, peer_id) do
+    connections = Registry.match(ConnectionRegistry, info_hash, peer_id)
+
+    case connections do
+      [{conn_pid, ^peer_id}] -> conn_pid
+      _ -> raise "No connections found for #{inspect info_hash}, #{inspect peer_id}"
+    end
+  end
+
   @doc """
   Check if a peer is connected.
   """

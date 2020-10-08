@@ -24,7 +24,7 @@ defmodule Effusion.CQRS.Contexts.Peers do
     host = to_string(:inet.ntoa(host))
 
     our_peer_id = Application.fetch_env!(:effusion, :peer_id)
-    our_extensions = Application.fetch_env!(:effusion, :supported_extensions)
+    our_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
     %SendHandshake{
       internal_peer_id: "#{info_hash}:#{host}:#{port}",
       info_hash: info_hash,

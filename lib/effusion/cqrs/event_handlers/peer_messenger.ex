@@ -5,6 +5,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
 
   alias Effusion.PWP.TCP.Connection
   alias Effusion.PWP.ConnectionRegistry
+  alias Effusion.CQRS.Application, as: CQRS
   alias Effusion.CQRS.Commands.HandleHandshake
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
@@ -71,18 +72,19 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
   ) do
     Logger.debug("***** Sending handshake")
     decoded_info_hash = Effusion.Hash.decode(info_hash)
-    ConnectionRegistry.btp_send(
+
+    :ok = ConnectionRegistry.btp_send(
       decoded_info_hash,
       peer_id,
       {:handshake, our_peer_id, decoded_info_hash, our_extensions}
     )
 
-    {:handshake, info_hash, their_peer_id, their_extensions} =
+    {:ok, {:handshake, their_peer_id, their_info_hash, their_extensions}} =
       Connection.recv_handshake(decoded_info_hash, peer_id)
 
     %HandleHandshake{
       internal_peer_id: internal_peer_id,
-      info_hash: info_hash,
+      info_hash: Effusion.Hash.encode(their_info_hash),
       peer_id: their_peer_id,
       host: host,
       port: port,

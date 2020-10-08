@@ -48,12 +48,12 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def recv_handshake(info_hash, peer_id) do
-    pid = ConnectionRegistry.get_pid(info_hash, peer_id)
+    pid = ConnectionRegistry.get_pid!(info_hash, peer_id)
     GenServer.call(pid, :recv_handshake)
   end
 
   def handshake_successful(info_hash, peer_id) do
-    pid = ConnectionRegistry.get_pid(info_hash, peer_id)
+    pid = ConnectionRegistry.get_pid!(info_hash, peer_id)
     GenServer.call(pid, :handshake_successful)
   end
 
@@ -109,26 +109,17 @@ defmodule Effusion.PWP.TCP.Connection do
 
     :telemetry.execute([:pwp, :outgoing, :starting], %{}, state)
 
+    Logger.debug("***** Registered outgoing connection for #{inspect info_hash}, #{inspect expected_peer_id}")
     {:ok, _pid} = ConnectionRegistry.register(info_hash, expected_peer_id)
 
     with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000),
-         {:ok, {host, port}} = :inet.peername(socket),
-         :ok <- Socket.send_msg(socket, ProtocolHandler.get_handshake(info_hash)),
-         {:ok, handshake = {:handshake, remote_peer_id, _remote_info_hash, extensions}} <- Socket.recv(socket, 68),
-         :ok <- Effusion.CQRS.Contexts.Peers.handle_handshake(info_hash, remote_peer_id, host, port, :us, extensions),
-         :ok <- successful_handshake(socket) do
-
-      :telemetry.execute(
-        [:pwp, :message_received],
-        Map.take(state, [:remote_peer_id, :info_hash])
-        |> Map.merge(%{message: handshake, binary_size: 68}))
-      :telemetry.execute([:pwp, :outgoing, :success], %{}, state)
+         :ok <- Effusion.CQRS.Contexts.Peers.send_handshake(info_hash, expected_peer_id, host, port, :us) do
 
       {:ok, address} = :inet.peername(socket)
       {:noreply, %{
         socket: socket,
         info_hash: info_hash,
-        remote_peer_id: remote_peer_id,
+        remote_peer_id: expected_peer_id,
         address: address
       }}
     else
