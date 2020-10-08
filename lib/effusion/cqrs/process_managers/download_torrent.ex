@@ -6,6 +6,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.TCP.Connection
   alias Effusion.CQRS.Commands.{
+    DisconnectPeer,
     StopDownload,
     StoreBlock,
     SendInterested,
@@ -41,7 +42,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     bytes_downloaded: 0,
     bytes_left: nil,
     connected_peers: MapSet.new(),
-    failcounts: Map.new()
+    failcounts: Map.new(),
+    status: :downloading
   ]
 
   def interested?(%DownloadStarted{info_hash: info_hash}) do
@@ -134,11 +136,27 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def handle(
-    %__MODULE__{},
-    %AllPiecesVerified{info_hash: info_hash}
+    %__MODULE__{connected_peers: connected_peers},
+    %AllPiecesVerified{}
   ) do
-    Logger.debug("***** All pieces verified, stopping download")
-    %StopDownload{info_hash: info_hash, tracker_event: "completed"}
+    Logger.debug("***** All pieces verified, disconnecting all peers")
+
+    Enum.map(connected_peers, fn internal_peer_id ->
+      %DisconnectPeer{
+        internal_peer_id: internal_peer_id
+      }
+    end)
+  end
+
+  def handle(
+    %__MODULE__{info_hash: info_hash, connected_peers: connected_peers, status: :shutting_down},
+    %PeerDisconnected{}
+  ) do
+    if Enum.empty?(connected_peers) do
+      %StopDownload{
+        info_hash: info_hash
+      }
+    end
   end
 
   def apply(
@@ -156,10 +174,9 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def apply(
     %__MODULE__{info_hash: info_hash, connecting_count: connecting_count, connected_peers: connected_peers} = download,
-    %PeerAdded{info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: :tracker}
+    %PeerAdded{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: :tracker}
   ) do
-
-    if not Enum.member?(connected_peers, {host, port}) and connecting_count < @max_half_open_connections and Enum.count(connected_peers) < @max_connections do
+    if not Enum.member?(connected_peers, internal_peer_id) and connecting_count < @max_half_open_connections and Enum.count(connected_peers) < @max_connections do
       Logger.debug "**** CQRS is opening a connection to #{host}:#{port}"
       {:ok, host} = :inet.parse_address(host |> String.to_charlist())
       info_hash = Effusion.Hash.decode(info_hash)
@@ -175,33 +192,33 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def apply(
     %__MODULE__{connecting_count: connecting_count, connected_peers: connected_peers} = download,
-    %PeerConnected{host: host, port: port, initiated_by: :us}
+    %PeerConnected{internal_peer_id: internal_peer_id, initiated_by: :us}
   ) do
 
     %__MODULE__{download |
       connecting_count: connecting_count - 1,
-      connected_peers: MapSet.put(connected_peers, {host, port})
+      connected_peers: MapSet.put(connected_peers, internal_peer_id)
     }
   end
 
   def apply(
     %__MODULE__{connected_peers: connected_peers, failcounts: failcounts} = download,
-    %PeerDisconnected{host: host, port: port, reason: reason}
+    %PeerDisconnected{internal_peer_id: internal_peer_id, host: host, port: port, reason: reason}
   ) do
 
     %__MODULE__{download |
-      connected_peers: MapSet.delete(connected_peers, {host, port}),
-      failcounts: if(reason == :normal, do: failcounts, else: Map.update(failcounts, {host, port}, -1, &(&1 - 1)))
+      connected_peers: MapSet.delete(connected_peers, internal_peer_id),
+      failcounts: if(reason == :normal, do: failcounts, else: Map.update(failcounts, internal_peer_id, -1, &(&1 - 1)))
     }
   end
 
   def apply(
     %__MODULE__{connected_peers: connected_peers} = download,
-    %PeerConnected{host: host, port: port, initiated_by: :them}
+    %PeerConnected{internal_peer_id: internal_peer_id, initiated_by: :them}
   ) do
 
     %__MODULE__{download |
-      connected_peers: MapSet.put(connected_peers, {host, port})
+      connected_peers: MapSet.put(connected_peers, internal_peer_id)
     }
   end
 
@@ -209,6 +226,13 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   def apply(download, %PieceHashSucceeded{index: index}) do
     %__MODULE__{download |
       pieces: IntSet.put(download.pieces, index)
+    }
+  end
+
+
+  def apply(download, %AllPiecesVerified{}) do
+    %__MODULE__{download |
+      status: :shutting_down
     }
   end
 end

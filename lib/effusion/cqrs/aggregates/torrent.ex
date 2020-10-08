@@ -28,6 +28,9 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     creation_date: nil,
     info: nil,
     info_hash: nil,
+    bytes_downloaded: 0,
+    bytes_uploaded: 0,
+    bytes_left: nil,
     pieces: %{},
     verified: IntSet.new(),
     state: :stopped
@@ -107,11 +110,13 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       announce_list: announce_list,
       comment: comment,
       created_by: created_by,
+      bytes_left: bytes_left,
+      bytes_downloaded: bytes_downloaded,
+      bytes_uploaded: bytes_uploaded,
       state: :downloading
     } = torrent,
     %StopDownload{tracker_event: tracker_event}
   ) do
-    bytes_left = info.length - (Enum.count(verified) * info.piece_length)
 
     %DownloadStopped{
       info_hash: info_hash,
@@ -121,6 +126,9 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       comment: comment,
       created_by: created_by,
       info: torrent.info,
+      bytes_downloaded: bytes_downloaded,
+      bytes_uploaded: bytes_uploaded,
+      bytes_left: bytes_left,
       tracker_event: tracker_event
     }
   end
@@ -156,8 +164,6 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
   ) do
     %DownloadCompleted{info_hash: info_hash}
   end
-
-
 
   defp store_block(%__MODULE__{info_hash: info_hash, pieces: pieces}, from, index, offset, data) do
     pieces =
@@ -236,13 +242,23 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       created_by: event.created_by,
       creation_date: event.creation_date,
       info: event.info,
-      info_hash: event.info_hash
+      info_hash: event.info_hash,
+      bytes_left: event.info.length
     }
   end
 
-  def apply(%__MODULE__{} = torrent, %PieceHashSucceeded{index: index}) do
+  def apply(%__MODULE__{bytes_left: bytes_left, info: info} = torrent, %PieceHashSucceeded{index: index}) do
+    piece_size = if index == (Enum.count(info.pieces) - 1) do
+      # This is the last piece of the torrent, so it is smaller
+      expected_piece_count = Enum.count(info.pieces)
+      info.length - (expected_piece_count - 1) * info.piece_length
+    else
+      info.piece_length
+    end
+
     %__MODULE__{torrent |
-      verified: IntSet.put(torrent.verified, index)
+      verified: IntSet.put(torrent.verified, index),
+      bytes_left: bytes_left - piece_size
     }
   end
 

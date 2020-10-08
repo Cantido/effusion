@@ -1,7 +1,8 @@
 defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
   use Commanded.Event.Handler,
     application: Effusion.CQRS.Application,
-    name: __MODULE__
+    name: __MODULE__,
+    consistency: :strong
 
   alias Effusion.CQRS.Application, as: CQRS
   alias Effusion.CQRS.Events.{
@@ -19,6 +20,8 @@ defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
     },
     _metadata
   ) do
+    Logger.debug("****** Download starting, notifying tracker")
+
     thp_client  = Application.fetch_env!(:effusion, :thp_client)
     peer_id = Application.fetch_env!(:effusion, :peer_id)
     {local_host, local_port} = Application.fetch_env!(:effusion, :server_address)
@@ -67,7 +70,6 @@ defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
     _metadata
   ) do
     Logger.debug("***** download stopped, disconnecting peers and contacting tracker")
-    Effusion.PWP.ConnectionRegistry.disconnect_all(Effusion.Hash.decode(info_hash))
 
     thp_client  = Application.fetch_env!(:effusion, :thp_client)
     peer_id = Application.fetch_env!(:effusion, :peer_id)
@@ -80,12 +82,14 @@ defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
       local_host,
       local_port,
       peer_id,
-      info_hash,
+      Effusion.Hash.decode(info_hash),
       bytes_uploaded,
       bytes_downloaded,
       bytes_left,
       opts
     )
+
+    Logger.debug("***** stop announce done")
 
     # We don't care about peers here since we've stopped
 

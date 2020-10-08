@@ -148,15 +148,6 @@ defmodule EffusionTest do
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
 
     assert "tiny\n" == contents
-
-    piece_write_statuses = Effusion.Repo.all(
-      from piece in Effusion.BTP.Piece,
-      join: torrent in assoc(piece, :torrent),
-      where: torrent.info_hash == ^@info_hash,
-      select: piece.written
-    )
-
-    assert Enum.all?(piece_write_statuses)
   end
 
   # test "download a file from a peer supporting the fast extension", %{lsock: lsock, destfile: file} do
@@ -279,14 +270,12 @@ defmodule EffusionTest do
       assert r2 == 0
     end
 
-    Process.sleep(500)
+    Effusion.stop_download(@info_hash)
     :file.datasync(file)
 
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
 
     assert "tiny\n" == contents
-
-    Process.sleep(200)
   end
 
   # test "dht node" do

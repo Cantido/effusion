@@ -15,7 +15,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     %PieceHashSucceeded{info_hash: info_hash, index: index},
     _metadata
   ) do
-    Logger.debug("***** Piece has succeeded, sending :have")
+    Logger.debug("***** Piece hash succeeded for piece #{index}, sending :have")
     ConnectionRegistry.btp_broadcast(Effusion.Hash.decode(info_hash), {:have, index})
 
     :ok
