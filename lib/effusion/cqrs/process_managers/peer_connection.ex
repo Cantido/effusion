@@ -15,20 +15,18 @@ defmodule Effusion.CQRS.ProcessManagers.PeerConnection do
     PeerDisconnected
   }
 
-  def interested?(%SuccessfulHandshake{info_hash: info_hash}) do
-    {:start!, info_hash}
+  def interested?(%SuccessfulHandshake{internal_peer_id: internal_peer_id}) do
+    {:start!, internal_peer_id}
   end
 
-  def interested?(%PeerDisconnected{info_hash: info_hash}) do
-    {:stop, info_hash}
+  def interested?(%PeerDisconnected{internal_peer_id: internal_peer_id}) do
+    {:stop, internal_peer_id}
   end
 
   def handle(
     %__MODULE__{},
-    %SuccessfulHandshake{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+    %SuccessfulHandshake{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port}
   ) do
-    internal_peer_id = "#{info_hash}:#{host}:#{port}"
-    Logger.debug "********* Emitting AddConnectedPeer command"
     %AddConnectedPeer{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port}
   end
 end
