@@ -36,7 +36,9 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   defstruct [
     info_hash: nil,
     target_piece_count: nil,
+    info: nil,
     pieces: IntSet.new(),
+    blocks: Map.new(),
     announce: nil,
     annouce_list: [],
     bytes_uploaded: 0,
@@ -128,20 +130,36 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def handle(
-    %__MODULE__{target_piece_count: target_piece_count, pieces: pieces},
+    %__MODULE__{info: info, target_piece_count: target_piece_count, pieces: pieces, blocks: blocks},
     %PeerUnchokedUs{internal_peer_id: internal_peer_id}
   ) do
     Logger.debug("***** Got :unchoke, sending :request")
     block_size = Application.fetch_env!(:effusion, :block_size)
+    blocks_per_piece =
+      if block_size < info.piece_length do
+        trunc(info.piece_length / block_size)
+      else
+        1
+      end
 
-    required_pieces = pieces |> IntSet.inverse(target_piece_count)
+    required_blocks =
+      pieces # all pieces we have
+      |> IntSet.inverse(target_piece_count) # all pieces we need
+      |> Enum.flat_map(fn required_piece_index ->
+        blocks
+        |> Map.get(required_piece_index, IntSet.new()) # all blocks we have in this piece index
+        |> IntSet.inverse(blocks_per_piece) # all blocks we need in this piece index
+        |> Enum.map(fn required_block_offset ->
+          {required_piece_index, required_block_offset, block_size} # the block we need to request
+        end)
+      end)
 
-    Enum.map(required_pieces, fn piece_to_request ->
+    Enum.map(required_blocks, fn {index, offset, size} ->
       %RequestBlock{
         internal_peer_id: internal_peer_id,
-        index: piece_to_request,
-        offset: 0,
-        size: block_size
+        index: index,
+        offset: offset,
+        size: size
       }
     end)
   end
@@ -211,6 +229,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   ) do
     %__MODULE__{download |
       info_hash: info_hash,
+      info: info,
       target_piece_count: Enum.count(info.pieces),
       announce: announce,
       annouce_list: announce_list,
@@ -260,9 +279,10 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
 
-  def apply(download, %PieceHashSucceeded{index: index}) do
+  def apply(%__MODULE__{pieces: pieces, blocks: blocks} = download, %PieceHashSucceeded{index: index}) do
     %__MODULE__{download |
-      pieces: IntSet.put(download.pieces, index)
+      pieces: IntSet.put(pieces, index),
+      blocks: Map.put(blocks, index, :complete)
     }
   end
 
@@ -279,6 +299,16 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   ) do
     %__MODULE__{download |
       requests: Map.update(requests, {index, offset, size}, MapSet.new([internal_peer_id]), &MapSet.put(&1, internal_peer_id))
+    }
+  end
+
+  def apply(
+    %__MODULE__{blocks: blocks} = download,
+    %PeerSentBlock{internal_peer_id: internal_peer_id, index: index, offset: offset, data: data}
+  ) do
+    size = byte_size(data)
+    %__MODULE__{download |
+      blocks: Map.update(blocks, index, IntSet.new(offset), &MapSet.put(&1, offset))
     }
   end
 end
