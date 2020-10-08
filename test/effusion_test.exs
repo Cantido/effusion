@@ -1,5 +1,5 @@
 defmodule EffusionTest do
-  use ExUnit.Case
+  use Effusion.EventStoreCase
   doctest Effusion
   alias Effusion.BTP.Peer
   alias Effusion.DHT
@@ -9,15 +9,7 @@ defmodule EffusionTest do
   import Ecto.Query
   require Logger
 
-  setup do
-    on_exit(fn ->
-      :ok = Application.stop(:effusion)
-      :ok = Application.stop(:commanded)
-      :ok = Application.stop(:telemetry)
 
-      {:ok, _apps} = Application.ensure_all_started(:effusion)
-    end)
-  end
 
   setup :verify_on_exit!
   setup :set_mox_global
