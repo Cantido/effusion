@@ -100,7 +100,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     conn_count = Enum.count(connected_peers)
     half_open_count = Enum.count(connecting_to_peers)
 
-    if (conn_count + half_open_count) < @max_peers and half_open_count < @max_half_open_connections do
+    if (conn_count + half_open_count) < @max_connections and half_open_count < @max_half_open_connections do
       %AttemptToConnect{internal_peer_id: internal_peer_id}
     end
   end
