@@ -37,6 +37,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     info_hash: nil,
     target_piece_count: nil,
     info: nil,
+    block_size: nil,
     pieces: IntSet.new(),
     blocks: Map.new(),
     announce: nil,
@@ -130,11 +131,16 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def handle(
-    %__MODULE__{info: info, target_piece_count: target_piece_count, pieces: pieces, blocks: blocks},
+    %__MODULE__{
+      info: info,
+      target_piece_count: target_piece_count,
+      pieces: pieces,
+      blocks: blocks,
+      block_size: block_size
+    },
     %PeerUnchokedUs{internal_peer_id: internal_peer_id}
   ) do
     Logger.debug("***** Got :unchoke, sending :request")
-    block_size = Application.fetch_env!(:effusion, :block_size)
     blocks_per_piece =
       if block_size < info.piece_length do
         trunc(info.piece_length / block_size)
@@ -225,11 +231,19 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def apply(
     %__MODULE__{info_hash: nil} = download,
-    %DownloadStarted{info_hash: info_hash, info: info, announce: announce, announce_list: announce_list, bytes_left: bytes_left}
+    %DownloadStarted{
+      info_hash: info_hash,
+      info: info,
+      block_size: block_size,
+      announce: announce,
+      announce_list: announce_list,
+      bytes_left: bytes_left
+    }
   ) do
     %__MODULE__{download |
       info_hash: info_hash,
       info: info,
+      block_size: block_size,
       target_piece_count: Enum.count(info.pieces),
       announce: announce,
       annouce_list: announce_list,

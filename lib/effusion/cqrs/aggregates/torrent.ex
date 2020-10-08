@@ -83,7 +83,8 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       announce_list: announce_list,
       comment: comment,
       created_by: created_by,
-      info: info
+      info: info,
+      block_size: Application.fetch_env!(:effusion, :block_size)
     }
   end
 
