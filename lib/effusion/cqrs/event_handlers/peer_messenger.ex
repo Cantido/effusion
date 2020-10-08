@@ -38,8 +38,6 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
       peer_uuid: peer_uuid,
       info_hash: info_hash,
       peer_id: peer_id,
-      host: host,
-      port: port,
       our_peer_id: our_peer_id,
       our_extensions: our_extensions,
       initiated_by: :them
@@ -62,8 +60,6 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
       peer_uuid: peer_uuid,
       info_hash: info_hash,
       peer_id: peer_id,
-      host: host,
-      port: port,
       our_peer_id: our_peer_id,
       our_extensions: our_extensions,
       initiated_by: :us
@@ -86,8 +82,6 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
       peer_uuid: peer_uuid,
       info_hash: Effusion.Hash.encode(their_info_hash),
       peer_id: their_peer_id,
-      host: host,
-      port: port,
       initiated_by: :us,
       extensions: their_extensions}
     |> CQRS.dispatch()

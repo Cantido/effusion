@@ -35,8 +35,6 @@ defmodule Effusion.CQRS.ProcessManagers.IncomingPeerConnection do
       peer_uuid: peer_uuid,
       info_hash: info_hash,
       peer_id: peer_id,
-      host: host,
-      port: port,
       initiated_by: :them
     }
   ) do
@@ -45,8 +43,6 @@ defmodule Effusion.CQRS.ProcessManagers.IncomingPeerConnection do
       peer_uuid: peer_uuid,
       info_hash: info_hash,
       peer_id: peer_id,
-      host: host,
-      port: port,
       our_peer_id: Application.fetch_env!(:effusion, :peer_id),
       our_extensions: Application.fetch_env!(:effusion, :enabled_extensions),
       initiated_by: :them
@@ -58,18 +54,14 @@ defmodule Effusion.CQRS.ProcessManagers.IncomingPeerConnection do
     %SuccessfulHandshake{
       peer_uuid: peer_uuid,
       info_hash: info_hash,
-      peer_id: peer_id,
-      host: host,
-      port: port,
+      peer_id: peer_id
     }
   ) do
     Logger.debug("****** Handshake successful")
     %AddConnectedPeer{
       peer_uuid: peer_uuid,
       info_hash: info_hash,
-      peer_id: peer_id,
-      host: host,
-      port: port
+      peer_id: peer_id
     }
   end
 end

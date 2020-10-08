@@ -29,8 +29,6 @@ defmodule Effusion.CQRS.Contexts.Peers do
       peer_uuid: "#{info_hash}:#{host}:#{port}",
       info_hash: info_hash,
       peer_id: peer_id,
-      host: host,
-      port: port,
       our_peer_id: our_peer_id,
       our_extensions: our_extensions,
       initiated_by: initiated_by,
@@ -45,8 +43,6 @@ defmodule Effusion.CQRS.Contexts.Peers do
       peer_uuid: "#{info_hash}:#{host}:#{port}",
       info_hash: info_hash,
       peer_id: peer_id,
-      host: host,
-      port: port,
       initiated_by: initiated_by,
       extensions: extensions}
     |> CQRS.dispatch()

@@ -3,8 +3,6 @@ defmodule Effusion.CQRS.Events.SendingHandshake do
     :peer_uuid,
     :info_hash,
     :peer_id,
-    :host,
-    :port,
     :our_peer_id,
     :our_extensions,
     :initiated_by

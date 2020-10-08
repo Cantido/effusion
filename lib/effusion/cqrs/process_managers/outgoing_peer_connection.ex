@@ -35,17 +35,13 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
     %SuccessfulHandshake{
       peer_uuid: peer_uuid,
       info_hash: info_hash,
-      peer_id: peer_id,
-      host: host,
-      port: port
+      peer_id: peer_id
     }
   ) do
     %AddConnectedPeer{
       peer_uuid: peer_uuid,
       info_hash: info_hash,
-      peer_id: peer_id,
-      host: host,
-      port: port
+      peer_id: peer_id
     }
   end
 end
