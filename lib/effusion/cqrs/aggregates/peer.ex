@@ -80,9 +80,9 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def execute(
     %__MODULE__{},
-    %AddConnectedPeer{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
+    %AddConnectedPeer{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, initiated_by: initiated_by}
   ) do
-    %PeerConnected{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, host: host, port: port, initiated_by: initiated_by}
+    %PeerConnected{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, initiated_by: initiated_by}
   end
 
   def execute(
@@ -279,13 +279,11 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def apply(
     %__MODULE__{} = peer,
-    %PeerConnected{info_hash: info_hash, peer_id: peer_id, host: host, port: port}
+    %PeerConnected{info_hash: info_hash, peer_id: peer_id}
   ) do
     %__MODULE__{peer |
       info_hash: info_hash,
-      peer_id: peer_id,
-      host: host,
-      port: port
+      peer_id: peer_id
     }
   end
 
