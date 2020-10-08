@@ -68,18 +68,22 @@ defmodule Effusion.CQRS.EventHandlers.DbWriter do
   end
 
   def handle(
-    %PieceHashSucceeded{info_hash: info_hash, index: index},
+    %PieceHashSucceeded{info_hash: info_hash, index: index, data: data, info: info},
     _metadata
   ) do
     Logger.debug "**** CQRS is writing piece #{index} of #{info_hash}"
     info_hash = Effusion.Hash.decode(info_hash)
 
-    piece =
-      Effusion.BTP.Piece.get(info_hash, index)
-      |> Effusion.Repo.one!()
-      |> Effusion.BTP.Piece.verify()
+    # TODO: this is only valid for single-file torrents
+    destdir = Application.fetch_env!(:effusion, :download_destination)
+    destfile = Path.join(destdir, info.name)
+    locbytes = [{index * info.piece_length, data}]
 
-    Effusion.IO.write_piece(piece)
+    with :ok <- File.mkdir_p(Path.dirname(destfile)),
+         {:ok, device} <- File.open(destfile, [:read, :write]),
+         :ok <- :file.pwrite(device, locbytes) do
+      File.close(device)
+    end
 
     :ok
   end

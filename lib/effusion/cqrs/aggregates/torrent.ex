@@ -200,7 +200,12 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
         |> Enum.join()
 
       if Effusion.Hash.calc(piece_data) == Enum.at(info.pieces, index) do
-        %PieceHashSucceeded{info_hash: info_hash, index: index, data: piece_data}
+        %PieceHashSucceeded{
+          info_hash: info_hash,
+          index: index,
+          data: piece_data,
+          info: info
+        }
       else
         %PieceHashFailed{info_hash: info_hash, index: index}
       end

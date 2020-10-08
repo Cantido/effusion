@@ -4,6 +4,7 @@ defmodule Effusion.CQRS.Events.PieceHashSucceeded do
     :piece_id,
     :info_hash,
     :index,
-    :data
+    :data,
+    :info
   ]
 end

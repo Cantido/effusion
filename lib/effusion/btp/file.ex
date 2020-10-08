@@ -56,7 +56,10 @@ defmodule Effusion.BTP.File do
   end
 
   def split_bytes_to_files(destdir, [], name, piece_length, index, data) do
-    Map.new([{Path.join(destdir, name), {index * piece_length, data}}])
+    path = Path.join(destdir, name)
+    locbytes = {index * piece_length, data}
+
+    %{path => locbytes}
   end
 
   def split_bytes_to_files(destdir, files, name, piece_length, index, data) do
