@@ -1,6 +1,6 @@
 defmodule Effusion.CQRS.Commands.SendBitfield do
   defstruct [
-    :internal_peer_id,
+    :peer_uuid,
     :bitfield
   ]
 end

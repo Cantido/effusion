@@ -1,6 +1,6 @@
 defmodule Effusion.CQRS.Commands.RequestBlock do
   defstruct [
-    :internal_peer_id,
+    :peer_uuid,
     :info_hash,
     :index,
     :offset,

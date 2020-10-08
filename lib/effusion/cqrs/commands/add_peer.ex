@@ -1,6 +1,6 @@
 defmodule Effusion.CQRS.Commands.AddPeer do
   defstruct [
-    :internal_peer_id,
+    :peer_uuid,
     :info_hash,
     :peer_id,
     :host,

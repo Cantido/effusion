@@ -1,6 +1,6 @@
 defmodule Effusion.CQRS.Events.PeerHasBitfield do
   defstruct [
-    :internal_peer_id,
+    :peer_uuid,
     :info_hash,
     :bitfield,
     :peer_id

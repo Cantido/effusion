@@ -1,6 +1,6 @@
 defmodule Effusion.CQRS.Events.PeerConnected do
   defstruct [
-    :internal_peer_id,
+    :peer_uuid,
     :info_hash,
     :peer_id,
     :host,

@@ -10,7 +10,7 @@ defmodule Effusion.CQRS.Contexts.Peers do
     info_hash = Effusion.Hash.encode(info_hash)
     host = to_string(:inet.ntoa(host))
     %AddPeer{
-      internal_peer_id: "#{info_hash}:#{host}:#{port}",
+      peer_uuid: "#{info_hash}:#{host}:#{port}",
       info_hash: info_hash,
       peer_id: peer_id,
       host: host,
@@ -26,7 +26,7 @@ defmodule Effusion.CQRS.Contexts.Peers do
     our_peer_id = Application.fetch_env!(:effusion, :peer_id)
     our_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
     %SendHandshake{
-      internal_peer_id: "#{info_hash}:#{host}:#{port}",
+      peer_uuid: "#{info_hash}:#{host}:#{port}",
       info_hash: info_hash,
       peer_id: peer_id,
       host: host,
@@ -42,7 +42,7 @@ defmodule Effusion.CQRS.Contexts.Peers do
     info_hash = Effusion.Hash.encode(info_hash)
     host = to_string(:inet.ntoa(host))
     %HandleHandshake{
-      internal_peer_id: "#{info_hash}:#{host}:#{port}",
+      peer_uuid: "#{info_hash}:#{host}:#{port}",
       info_hash: info_hash,
       peer_id: peer_id,
       host: host,
@@ -56,7 +56,7 @@ defmodule Effusion.CQRS.Contexts.Peers do
     info_hash = Effusion.Hash.encode(info_hash)
     host = to_string(:inet.ntoa(host))
     %RemoveConnectedPeer{
-      internal_peer_id: "#{info_hash}:#{host}:#{port}",
+      peer_uuid: "#{info_hash}:#{host}:#{port}",
       info_hash: info_hash,
       peer_id: peer_id,
       host: host,

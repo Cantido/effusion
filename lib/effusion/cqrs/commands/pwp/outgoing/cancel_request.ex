@@ -1,6 +1,6 @@
 defmodule Effusion.CQRS.Commands.CancelRequest do
   defstruct [
-    :internal_peer_id,
+    :peer_uuid,
     :index,
     :offset,
     :size

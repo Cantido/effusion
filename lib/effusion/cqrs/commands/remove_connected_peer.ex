@@ -1,6 +1,6 @@
 defmodule Effusion.CQRS.Commands.RemoveConnectedPeer do
   defstruct [
-    :internal_peer_id,
+    :peer_uuid,
     :info_hash,
     :peer_id,
     :host,

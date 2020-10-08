@@ -1,6 +1,6 @@
 defmodule Effusion.CQRS.Commands.HandleHave do
   defstruct [
-    :internal_peer_id,
+    :peer_uuid,
     :info_hash,
     :peer_id,
     :index

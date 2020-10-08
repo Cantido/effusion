@@ -35,7 +35,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
 
   def handle(
     %SendingHandshake{
-      internal_peer_id: internal_peer_id,
+      peer_uuid: peer_uuid,
       info_hash: info_hash,
       peer_id: peer_id,
       host: host,
@@ -59,7 +59,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
 
   def handle(
     %SendingHandshake{
-      internal_peer_id: internal_peer_id,
+      peer_uuid: peer_uuid,
       info_hash: info_hash,
       peer_id: peer_id,
       host: host,
@@ -83,7 +83,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
       Connection.recv_handshake(decoded_info_hash, peer_id)
 
     %HandleHandshake{
-      internal_peer_id: internal_peer_id,
+      peer_uuid: peer_uuid,
       info_hash: Effusion.Hash.encode(their_info_hash),
       peer_id: their_peer_id,
       host: host,

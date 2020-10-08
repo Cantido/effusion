@@ -61,17 +61,17 @@ defmodule Effusion.CQRS.Contexts.Downloads do
   def handle_message(info_hash, from, host, port, message) do
     info_hash = Effusion.Hash.encode(info_hash)
     host = to_string(:inet.ntoa(host))
-    internal_peer_id = "#{info_hash}:#{host}:#{port}"
+    peer_uuid = "#{info_hash}:#{host}:#{port}"
     case message do
-      :choke -> %HandleChoke{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: from}
-      :unchoke -> %HandleUnchoke{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: from}
-      :interested -> %HandleInterested{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: from}
-      :uninterested -> %HandleUninterested{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: from}
-      {:have, index} -> %HandleHave{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: from, index: index}
-      {:bitfield, bitfield} -> %HandleBitfield{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: from, bitfield: Base.encode16(bitfield)}
-      {:request, block} -> %HandleRequest{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: from, index: block.index, offset: block.offset, size: block.size}
-      {:cancel, block} -> %HandleCancel{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: from, index: block.index, offset: block.offset, size: block.size}
-      {:piece, block} -> %HandlePiece{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: from, index: block.index, offset: block.offset, data: block.data}
+      :choke -> %HandleChoke{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from}
+      :unchoke -> %HandleUnchoke{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from}
+      :interested -> %HandleInterested{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from}
+      :uninterested -> %HandleUninterested{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from}
+      {:have, index} -> %HandleHave{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from, index: index}
+      {:bitfield, bitfield} -> %HandleBitfield{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from, bitfield: Base.encode16(bitfield)}
+      {:request, block} -> %HandleRequest{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from, index: block.index, offset: block.offset, size: block.size}
+      {:cancel, block} -> %HandleCancel{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from, index: block.index, offset: block.offset, size: block.size}
+      {:piece, block} -> %HandlePiece{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from, index: block.index, offset: block.offset, data: block.data}
     end
     |> CQRS.dispatch()
   end

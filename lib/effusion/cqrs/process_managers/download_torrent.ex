@@ -107,33 +107,33 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def handle(
     %__MODULE__{connected_peers: connected_peers, connecting_to_peers: connecting_to_peers},
-    %PeerAdded{internal_peer_id: internal_peer_id, from: :tracker}
+    %PeerAdded{peer_uuid: peer_uuid, from: :tracker}
   ) do
     conn_count = Enum.count(connected_peers)
     half_open_count = Enum.count(connecting_to_peers)
 
     if (conn_count + half_open_count) < @max_connections and half_open_count < @max_half_open_connections do
-      %AttemptToConnect{internal_peer_id: internal_peer_id}
+      %AttemptToConnect{peer_uuid: peer_uuid}
     end
   end
 
   def handle(
     %__MODULE__{pieces: pieces},
-    %PeerConnected{internal_peer_id: internal_peer_id}
+    %PeerConnected{peer_uuid: peer_uuid}
   ) do
-    %SendBitfield{internal_peer_id: internal_peer_id, bitfield: IntSet.bitstring(pieces)}
+    %SendBitfield{peer_uuid: peer_uuid, bitfield: IntSet.bitstring(pieces)}
   end
 
   def handle(
     %__MODULE__{pieces: pieces},
-    %PeerHasBitfield{internal_peer_id: internal_peer_id, bitfield: bitfield}
+    %PeerHasBitfield{peer_uuid: peer_uuid, bitfield: bitfield}
   ) do
     bitfield = bitfield |> Base.decode16!() |> IntSet.new()
 
     if IntSet.difference(bitfield, pieces) |> Enum.any?() do
       Logger.debug("***** Got bitfield, sending :interested")
       %SendInterested{
-        internal_peer_id: internal_peer_id
+        peer_uuid: peer_uuid
       }
     end
   end
@@ -146,7 +146,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       blocks: blocks,
       block_size: block_size
     },
-    %PeerUnchokedUs{internal_peer_id: internal_peer_id}
+    %PeerUnchokedUs{peer_uuid: peer_uuid}
   ) do
     Logger.debug("***** Got :unchoke, sending :request")
     blocks_per_piece =
@@ -170,7 +170,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
     Enum.map(required_blocks, fn {index, offset, size} ->
       %RequestBlock{
-        internal_peer_id: internal_peer_id,
+        peer_uuid: peer_uuid,
         index: index,
         offset: offset,
         size: size
@@ -195,7 +195,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       |> Map.get({index, offset, byte_size(data)}, MapSet.new())
       |> Enum.map(fn peer ->
         %CancelRequest{
-          internal_peer_id: peer,
+          peer_uuid: peer,
           index: index,
           offset: offset,
           size: byte_size(data)
@@ -219,9 +219,9 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   ) do
     Logger.debug("***** All pieces verified, disconnecting all peers")
 
-    Enum.map(connected_peers, fn internal_peer_id ->
+    Enum.map(connected_peers, fn peer_uuid ->
       %DisconnectPeer{
-        internal_peer_id: internal_peer_id
+        peer_uuid: peer_uuid
       }
     end)
   end
@@ -261,32 +261,32 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def apply(
     %__MODULE__{connecting_to_peers: connecting_to_peers} = download,
-    %AttemptingToConnect{internal_peer_id: internal_peer_id}
+    %AttemptingToConnect{peer_uuid: peer_uuid}
   ) do
     %__MODULE__{download |
-      connecting_to_peers: MapSet.put(connecting_to_peers, internal_peer_id)
+      connecting_to_peers: MapSet.put(connecting_to_peers, peer_uuid)
     }
   end
 
   def apply(
     %__MODULE__{connecting_to_peers: connecting_to_peers, connected_peers: connected_peers} = download,
-    %PeerConnected{internal_peer_id: internal_peer_id, initiated_by: :us}
+    %PeerConnected{peer_uuid: peer_uuid, initiated_by: :us}
   ) do
 
     %__MODULE__{download |
-      connecting_to_peers: MapSet.delete(connecting_to_peers, internal_peer_id),
-      connected_peers: MapSet.put(connected_peers, internal_peer_id)
+      connecting_to_peers: MapSet.delete(connecting_to_peers, peer_uuid),
+      connected_peers: MapSet.put(connected_peers, peer_uuid)
     }
   end
 
   def apply(
     %__MODULE__{connected_peers: connected_peers, failcounts: failcounts} = download,
-    %PeerDisconnected{internal_peer_id: internal_peer_id, reason: reason}
+    %PeerDisconnected{peer_uuid: peer_uuid, reason: reason}
   ) do
 
     %__MODULE__{download |
-      connected_peers: MapSet.delete(connected_peers, internal_peer_id),
-      failcounts: if(reason == :normal, do: failcounts, else: Map.update(failcounts, internal_peer_id, -1, &(&1 - 1)))
+      connected_peers: MapSet.delete(connected_peers, peer_uuid),
+      failcounts: if(reason == :normal, do: failcounts, else: Map.update(failcounts, peer_uuid, -1, &(&1 - 1)))
     }
   end
 
@@ -307,16 +307,16 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def apply(
     %__MODULE__{requests: requests} = download,
-    %BlockRequested{internal_peer_id: internal_peer_id, index: index, offset: offset, size: size}
+    %BlockRequested{peer_uuid: peer_uuid, index: index, offset: offset, size: size}
   ) do
     %__MODULE__{download |
-      requests: Map.update(requests, {index, offset, size}, MapSet.new([internal_peer_id]), &MapSet.put(&1, internal_peer_id))
+      requests: Map.update(requests, {index, offset, size}, MapSet.new([peer_uuid]), &MapSet.put(&1, peer_uuid))
     }
   end
 
   def apply(
     %__MODULE__{blocks: blocks} = download,
-    %PeerSentBlock{internal_peer_id: internal_peer_id, index: index, offset: offset, data: data}
+    %PeerSentBlock{peer_uuid: peer_uuid, index: index, offset: offset, data: data}
   ) do
     %__MODULE__{download |
       blocks: Map.update(blocks, index, IntSet.new(offset), &MapSet.put(&1, offset))
