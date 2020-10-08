@@ -183,8 +183,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleInterested{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %HandleInterested{}
   ) do
     %PeerInterestedInUs{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
   end

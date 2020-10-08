@@ -58,19 +58,17 @@ defmodule Effusion.CQRS.Contexts.Downloads do
     |> CQRS.dispatch()
   end
 
-  def handle_message(peer_uuid, info_hash, from, host, port, message) do
-    info_hash = Effusion.Hash.encode(info_hash)
-    host = to_string(:inet.ntoa(host))
+  def handle_message(peer_uuid, message) do
     case message do
-      :choke -> %HandleChoke{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from}
-      :unchoke -> %HandleUnchoke{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from}
-      :interested -> %HandleInterested{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from}
-      :uninterested -> %HandleUninterested{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from}
-      {:have, index} -> %HandleHave{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from, index: index}
-      {:bitfield, bitfield} -> %HandleBitfield{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from, bitfield: Base.encode16(bitfield)}
-      {:request, block} -> %HandleRequest{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from, index: block.index, offset: block.offset, size: block.size}
-      {:cancel, block} -> %HandleCancel{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from, index: block.index, offset: block.offset, size: block.size}
-      {:piece, block} -> %HandlePiece{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from, index: block.index, offset: block.offset, data: block.data}
+      :choke -> %HandleChoke{peer_uuid: peer_uuid}
+      :unchoke -> %HandleUnchoke{peer_uuid: peer_uuid}
+      :interested -> %HandleInterested{peer_uuid: peer_uuid}
+      :uninterested -> %HandleUninterested{peer_uuid: peer_uuid}
+      {:have, index} -> %HandleHave{peer_uuid: peer_uuid, index: index}
+      {:bitfield, bitfield} -> %HandleBitfield{peer_uuid: peer_uuid, bitfield: Base.encode16(bitfield)}
+      {:request, block} -> %HandleRequest{peer_uuid: peer_uuid, index: block.index, offset: block.offset, size: block.size}
+      {:cancel, block} -> %HandleCancel{peer_uuid: peer_uuid, index: block.index, offset: block.offset, size: block.size}
+      {:piece, block} -> %HandlePiece{peer_uuid: peer_uuid, index: block.index, offset: block.offset, data: block.data}
     end
     |> CQRS.dispatch()
   end
