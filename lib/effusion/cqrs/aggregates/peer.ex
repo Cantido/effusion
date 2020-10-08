@@ -185,15 +185,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     }
   end
 
-  def apply(
-    %__MODULE__{} = peer,
-    %AttemptingToConnect{
-      internal_peer_id: internal_peer_id,
-      info_hash: info_hash,
-      peer_id: peer_id,
-      host: host,
-      port: port}
-  ) do
+  def apply(%__MODULE__{} = peer, %AttemptingToConnect{}) do
     peer
   end
 
@@ -209,10 +201,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     }
   end
 
-  def apply(
-    %__MODULE__{} = peer,
-    %PeerDisconnected{}
-  ) do
+  def apply(%__MODULE__{} = peer, %PeerDisconnected{}) do
     peer
   end
 

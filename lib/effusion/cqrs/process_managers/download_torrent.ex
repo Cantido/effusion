@@ -12,6 +12,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     RequestBlock
   }
   alias Effusion.CQRS.Events.{
+    AttemptingToConnect,
     DownloadStarted,
     DownloadStopped,
     DownloadCompleted,
@@ -50,6 +51,10 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def interested?(%PeerAdded{info_hash: info_hash}) do
+    {:continue!, info_hash}
+  end
+
+  def interested?(%AttemptingToConnect{info_hash: info_hash}) do
     {:continue!, info_hash}
   end
 
@@ -184,8 +189,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def apply(
-    %__MODULE__{info_hash: info_hash, connecting_to_peers: connecting_to_peers, connected_peers: connected_peers} = download,
-    %PeerAdded{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: peer_id, host: host, port: port, from: :tracker}
+    %__MODULE__{connecting_to_peers: connecting_to_peers} = download,
+    %AttemptingToConnect{internal_peer_id: internal_peer_id}
   ) do
     %__MODULE__{download |
       connecting_to_peers: MapSet.put(connecting_to_peers, internal_peer_id)
@@ -205,7 +210,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def apply(
     %__MODULE__{connected_peers: connected_peers, failcounts: failcounts} = download,
-    %PeerDisconnected{internal_peer_id: internal_peer_id, host: host, port: port, reason: reason}
+    %PeerDisconnected{internal_peer_id: internal_peer_id, reason: reason}
   ) do
 
     %__MODULE__{download |

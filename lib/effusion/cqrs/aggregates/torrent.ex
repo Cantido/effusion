@@ -104,8 +104,6 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
   def execute(
     %__MODULE__{
       info_hash: info_hash,
-      verified: verified,
-      info: info,
       announce: announce,
       announce_list: announce_list,
       comment: comment,
@@ -121,7 +119,6 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     %DownloadStopped{
       info_hash: info_hash,
       announce: announce,
-      bytes_left: bytes_left,
       announce_list: announce_list,
       comment: comment,
       created_by: created_by,
