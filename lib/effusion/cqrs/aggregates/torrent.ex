@@ -72,7 +72,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       created_by: created_by,
       state: :stopped
     },
-    %StartDownload{}
+    %StartDownload{block_size: block_size}
   ) do
     bytes_left = info.length - (Enum.count(verified) * info.piece_length)
 
@@ -84,7 +84,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       comment: comment,
       created_by: created_by,
       info: info,
-      block_size: Application.fetch_env!(:effusion, :block_size)
+      block_size: block_size
     }
   end
 

@@ -14,7 +14,7 @@ defmodule Effusion.CQRS.Contexts.Downloads do
     HandleUnchoke,
     HandleUninterested
   }
-  alias Effusion.CQRS.Application
+  alias Effusion.CQRS.Application, as: CQRS
 
   def add(meta) do
     %AddTorrent{
@@ -25,14 +25,15 @@ defmodule Effusion.CQRS.Contexts.Downloads do
       info: meta.info,
       info_hash: Effusion.Hash.encode(meta.info_hash)
     }
-    |> Application.dispatch()
+    |> CQRS.dispatch()
   end
 
-  def start(info_hash) do
+  def start(info_hash, block_size) do
     %StartDownload{
-      info_hash: Effusion.Hash.encode(info_hash)
+      info_hash: Effusion.Hash.encode(info_hash),
+      block_size: block_size
     }
-    |> Application.dispatch()
+    |> CQRS.dispatch()
   end
 
   def stop(info_hash) do
@@ -40,7 +41,7 @@ defmodule Effusion.CQRS.Contexts.Downloads do
       info_hash: Effusion.Hash.encode(info_hash),
       tracker_event: "stopped"
     }
-    |> Application.dispatch(consistency: :strong)
+    |> CQRS.dispatch(consistency: :strong)
   end
 
   def store_block(info_hash, from, index, offset, data)
@@ -54,7 +55,7 @@ defmodule Effusion.CQRS.Contexts.Downloads do
       offset: offset,
       data: data
     }
-    |> Application.dispatch()
+    |> CQRS.dispatch()
   end
 
   def handle_message(info_hash, from, host, port, message) do
@@ -72,6 +73,6 @@ defmodule Effusion.CQRS.Contexts.Downloads do
       {:cancel, block} -> %HandleCancel{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: from, index: block.index, offset: block.offset, size: block.size}
       {:piece, block} -> %HandlePiece{internal_peer_id: internal_peer_id, info_hash: info_hash, peer_id: from, index: block.index, offset: block.offset, data: block.data}
     end
-    |> Application.dispatch()
+    |> CQRS.dispatch()
   end
 end
