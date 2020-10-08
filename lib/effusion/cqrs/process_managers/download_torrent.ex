@@ -3,8 +3,6 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     application: Effusion.CQRS.Application,
     name: __MODULE__
 
-  alias Effusion.PWP.ConnectionRegistry
-  alias Effusion.PWP.TCP.Connection
   alias Effusion.CQRS.Commands.{
     AttemptToConnect,
     DisconnectPeer,
@@ -96,10 +94,15 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def handle(
-    %__MODULE__{},
+    %__MODULE__{connected_peers: connected_peers, connecting_to_peers: connecting_to_peers},
     %PeerAdded{internal_peer_id: internal_peer_id}
   ) do
-    %AttemptToConnect{internal_peer_id: internal_peer_id}
+    conn_count = Enum.count(connected_peers)
+    half_open_count = Enum.count(connecting_to_peers)
+
+    if (conn_count + half_open_count) < @max_peers and half_open_count < @max_half_open_connections do
+      %AttemptToConnect{internal_peer_id: internal_peer_id}
+    end
   end
 
   def handle(
