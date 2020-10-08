@@ -178,6 +178,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   ) do
     if (
       not Enum.member?(connected_peers, internal_peer_id) and
+      not Enum.member?(connecting_to_peers, internal_peer_id) and
       Enum.count(connecting_to_peers) < @max_half_open_connections and
       Enum.count(connected_peers) < @max_connections
     ) do
