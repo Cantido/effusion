@@ -3,8 +3,6 @@ defmodule Effusion.CQRS.Commands.RemoveConnectedPeer do
     :peer_uuid,
     :info_hash,
     :peer_id,
-    :host,
-    :port,
     :reason
   ]
 end

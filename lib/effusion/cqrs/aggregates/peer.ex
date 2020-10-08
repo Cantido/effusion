@@ -87,9 +87,9 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def execute(
     %__MODULE__{},
-    %RemoveConnectedPeer{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, host: host, port: port, reason: reason}
+    %RemoveConnectedPeer{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, reason: reason}
   ) do
-    %PeerDisconnected{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, host: host, port: port, reason: reason}
+    %PeerDisconnected{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, reason: reason}
   end
 
   def execute(

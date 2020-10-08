@@ -55,8 +55,6 @@ defmodule Effusion.CQRS.Contexts.Peers do
       peer_uuid: "#{info_hash}:#{host}:#{port}",
       info_hash: info_hash,
       peer_id: peer_id,
-      host: host,
-      port: port,
       reason: reason}
     |> CQRS.dispatch()
   end
