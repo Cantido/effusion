@@ -58,10 +58,9 @@ defmodule Effusion.CQRS.Contexts.Downloads do
     |> CQRS.dispatch()
   end
 
-  def handle_message(info_hash, from, host, port, message) do
+  def handle_message(peer_uuid, info_hash, from, host, port, message) do
     info_hash = Effusion.Hash.encode(info_hash)
     host = to_string(:inet.ntoa(host))
-    peer_uuid = "#{info_hash}:#{host}:#{port}"
     case message do
       :choke -> %HandleChoke{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from}
       :unchoke -> %HandleUnchoke{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: from}

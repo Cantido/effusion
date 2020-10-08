@@ -121,15 +121,16 @@ defmodule Effusion.PWP.TCP.Connection do
     with {:ok, _pid} = ConnectionRegistry.register(info_hash, remote_peer_id),
          :ok <- Effusion.CQRS.Contexts.Peers.add(info_hash, remote_peer_id, host, port, :connection),
          :ok <- Effusion.CQRS.Contexts.Peers.handle_handshake(info_hash, remote_peer_id, host, port, :them, extensions) do
-      {:noreply, Map.merge(state, %{info_hash: info_hash, remote_peer_id: remote_peer_id})}
+      peer_uuid = "#{Effusion.Hash.encode(info_hash)}:#{:inet.ntoa(host)}:#{port}"
+      {:noreply, Map.merge(state, %{info_hash: info_hash, remote_peer_id: remote_peer_id, peer_uuid: peer_uuid})}
     else
       err -> {:stop, {:handshake_failure, err}, state}
     end
   end
 
-  def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id, socket: socket}) do
+  def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id, socket: socket, peer_uuid: peer_uuid}) do
     {:ok, {host, port}} = :inet.peername(socket)
-    :ok = Effusion.CQRS.Contexts.Downloads.handle_message(info_hash, peer_id, host, port, msg)
+    :ok = Effusion.CQRS.Contexts.Downloads.handle_message(peer_uuid, info_hash, peer_id, host, port, msg)
     {:noreply, state}
   end
 
