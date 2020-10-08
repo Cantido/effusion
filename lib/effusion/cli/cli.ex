@@ -1,5 +1,4 @@
 defmodule Effusion.CLI do
-  alias Ecto.Changeset
   alias Effusion.BTP.Pieces
   alias Effusion.BTP.Session
   alias Effusion.BTP.Torrent
@@ -25,27 +24,11 @@ defmodule Effusion.CLI do
   Usage: `effusion <name> -o <destination>`
   """
   def main(argv \\ []) do
-    {_opts, files, invalid} = OptionParser.parse(argv, strict: @strict, aliases: @aliases)
+    {_opts, _files, invalid} = OptionParser.parse(argv, strict: @strict, aliases: @aliases)
 
     Enum.each(invalid, fn i ->
       IO.warn("Invalid option #{i}")
     end)
-
-    if Enum.any?(files) do
-      Enum.each(files, fn file ->
-        Repo.update_all(Torrent, set: [
-          state: "paused"
-        ])
-
-        {:ok, metabin} = file |> Path.expand() |> File.read()
-        {:ok, meta} = Metatorrent.decode(metabin)
-
-        {:ok, torrent} = insert_or_get_torrent(meta)
-        torrent
-        |> Changeset.change(state: "downloading")
-        |> Repo.update!()
-      end)
-    end
 
     Session.start_link([])
 
@@ -54,13 +37,6 @@ defmodule Effusion.CLI do
     Process.sleep(1000)
 
     output_loop()
-  end
-
-  defp insert_or_get_torrent(meta) do
-    case Repo.get_by(Effusion.BTP.Torrent, [info_hash: meta.info_hash]) do
-      nil -> Torrent.insert(meta)
-      torrent -> {:ok, torrent}
-    end
   end
 
   @name_width 40

@@ -21,11 +21,8 @@ defmodule Effusion.Application do
       Effusion.CQRS.Application,
       Effusion.CQRS.Supervisor,
       Effusion.Application.ConnectionSupervisor,
-      Effusion.Application.DownloadsSupervisor,
       {Registry, keys: :duplicate, name: ConnectionRegistry},
-      {Registry, keys: :unique, name: BTPHandlerRegistry},
       {Registry, keys: :unique, name: FinishedTorrentWatchdogRegistry},
-      {Registry, keys: :unique, name: AnnouncerRegistry},
       Effusion.DHT.Server,
       EffusionWeb.Endpoint,
       :ranch.child_spec(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Connection, [])

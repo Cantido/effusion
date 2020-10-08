@@ -1,7 +1,5 @@
 defmodule Effusion.BTP.Torrent do
   use Ecto.Schema
-  alias Effusion.BTP.Block
-  alias Effusion.BTP.File
   alias Effusion.BTP.Peer
   alias Effusion.BTP.Piece
   alias Effusion.Repo
@@ -9,8 +7,6 @@ defmodule Effusion.BTP.Torrent do
   import Ecto.Changeset
   import Ecto.Query
   require Logger
-
-  @block_size Application.get_env(:effusion, :block_size)
 
   @moduledoc """
   A downloadable file or set of files.
@@ -94,25 +90,6 @@ defmodule Effusion.BTP.Torrent do
     where: torrent.info_hash == ^info_hash
   end
 
-  def start(torrent, time) do
-    changeset(torrent, %{
-      started: DateTime.truncate(time, :second),
-      state: "downloading"
-    })
-  end
-
-  def pause(torrent) do
-    changeset(torrent, %{
-      state: "paused"
-    })
-  end
-
-  def finish(torrent) do
-    changeset(torrent, %{
-      state: "finished"
-    })
-  end
-
   def finished?(info_hash) when is_hash(info_hash) do
     case by_info_hash(info_hash) do
       {:ok, torrent} -> torrent.state == "finished"
@@ -125,63 +102,5 @@ defmodule Effusion.BTP.Torrent do
       {:ok, torrent} -> torrent.state == "downloading"
       _ -> false
     end
-  end
-
-  def insert(meta) do
-    Repo.transaction(fn ->
-      {:ok, torrent} = %__MODULE__{}
-      |> changeset(%{
-        info_hash: meta.info_hash,
-        name: meta.info.name,
-        size: meta.info.length,
-        piece_size: meta.info.piece_length,
-        announce: meta.announce,
-        comment: Map.get(meta, :comment),
-        created_by: Map.get(meta, :created_by),
-        creation_date: Map.get(meta, :creation_date)
-      })
-      |> Repo.insert()
-
-      :ok = File.insert(meta, torrent)
-
-      # Postgres can only accept 65535 parameters at a time,
-      # so we need to chunk our inserts by 65535/params-per-entry
-
-      IntSet.new()
-      |> IntSet.inverse(meta.info.pieces |> Enum.count)
-      |> Enum.map(fn index ->
-          %{
-            torrent_id: torrent.id,
-            index: index,
-            hash: Enum.at(meta.info.pieces, index),
-            size: Piece.piece_size(index, meta.info)
-          }
-      end)
-      # Each piece has four parameters, so we must insert in chunks of 65535/4 = 16383.75.
-      |> Enum.chunk_every(16_383)
-      |> Enum.reduce([], fn piece_entry_chunk, returned_pieces ->
-        {_count, more_pieces} = Repo.insert_all(Piece, piece_entry_chunk, returning: true)
-        more_pieces ++ returned_pieces
-      end)
-      |> Enum.flat_map(&create_blocks/1)
-      # Each block has three parameters, so we must insert in chunks of 65535/3 = 21345.
-      |> Enum.chunk_every(21_845)
-      |> Enum.each(fn block_entry_op ->
-        Logger.debug("Attempting to insert #{Enum.count(block_entry_op)} blocks")
-        Repo.insert_all(Block, block_entry_op)
-      end)
-
-      torrent
-    end)
-  end
-
-  defp create_blocks(piece) do
-    Enum.map(Block.split(piece, @block_size), fn block ->
-        %{
-          piece_id: piece.id,
-          offset: block.offset,
-          size: block.size
-        }
-    end)
   end
 end

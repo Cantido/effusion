@@ -1,6 +1,5 @@
 defmodule Effusion.BTP.File do
   alias Effusion.BTP.Torrent
-  alias Effusion.Range
   alias Effusion.Repo
   import Effusion.Hash
   import Ecto.Changeset
