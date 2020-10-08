@@ -76,7 +76,7 @@ defmodule Effusion.PWP.TCP.Connection do
     state = %{
       address: address,
       info_hash: info_hash,
-      expected_peer_id: expected_peer_id
+      remote_peer_id: expected_peer_id
     }
     {:ok, state, {:continue, :connect}}
   end
@@ -84,7 +84,8 @@ defmodule Effusion.PWP.TCP.Connection do
   def incoming_init(ref, socket, transport) do
     :ok = :ranch.accept_ack(ref)
     :ok = transport.setopts(socket, active: :once)
-    :gen_server.enter_loop(__MODULE__, [], %{socket: socket, transport: transport})
+    {:ok, address} = :inet.peername(socket)
+    :gen_server.enter_loop(__MODULE__, [], %{address: address, socket: socket, transport: transport})
   end
 
   defp successful_handshake(socket) do
@@ -96,36 +97,15 @@ defmodule Effusion.PWP.TCP.Connection do
     end
   end
 
-  defp start_connection(%{
-      address: address = {host, port},
-      info_hash: info_hash,
-      expected_peer_id: expected_peer_id
-    }) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id) do
-    state = %{
-      address: address,
-      info_hash: info_hash,
-      remote_peer_id: expected_peer_id
-    }
 
-    :telemetry.execute([:pwp, :outgoing, :starting], %{}, state)
-
-    Logger.debug("***** Registered outgoing connection for #{inspect info_hash}, #{inspect expected_peer_id}")
-    {:ok, _pid} = ConnectionRegistry.register(info_hash, expected_peer_id)
-
-    with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000),
+  def handle_continue(:connect, %{address: address = {host, port}, info_hash: info_hash, remote_peer_id: expected_peer_id} = state)
+  when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id) do
+    with {:ok, _pid} <- ConnectionRegistry.register(info_hash, expected_peer_id),
+         {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000),
          :ok <- Effusion.CQRS.Contexts.Peers.send_handshake(info_hash, expected_peer_id, host, port, :us) do
-
-      {:ok, address} = :inet.peername(socket)
-      {:noreply, %{
-        socket: socket,
-        info_hash: info_hash,
-        remote_peer_id: expected_peer_id,
-        address: address
-      }}
+      {:noreply, Map.put(state, :socket, socket)}
     else
-      {:error, reason} ->
-        :telemetry.execute([:pwp, :outgoing, :failure], %{}, state)
-        {:stop, reason, state}
+      {:error, reason} -> {:stop, reason, state}
     end
   end
 
@@ -134,34 +114,17 @@ defmodule Effusion.PWP.TCP.Connection do
   """
   def handle_btp(btp_message, state)
 
-  def handle_btp({:handshake, remote_peer_id, info_hash, extensions}, state = %{socket: socket})
+  def handle_btp({:handshake, remote_peer_id, info_hash, extensions}, state = %{address: {host, port}, socket: socket})
     when is_peer_id(remote_peer_id)
      and is_hash(info_hash) do
 
-    :telemetry.execute(
-      [:pwp, :incoming, :starting],
-      %{},
-      Map.put(state, :remote_peer_id, remote_peer_id)
-    )
 
-    {:ok, _pid} = ConnectionRegistry.register(info_hash, remote_peer_id)
-
-    with {:ok, {host, port}} <- :inet.peername(socket),
+    with {:ok, _pid} = ConnectionRegistry.register(info_hash, remote_peer_id),
          :ok <- Effusion.CQRS.Contexts.Peers.add(info_hash, remote_peer_id, host, port, :connection),
          :ok <- Effusion.CQRS.Contexts.Peers.handle_handshake(info_hash, remote_peer_id, host, port, :them, extensions) do
-      :telemetry.execute([:pwp, :incoming, :success], %{}, state)
-
-      {:noreply,
-       %{
-         socket: socket,
-         info_hash: info_hash,
-         remote_peer_id: remote_peer_id,
-         address: {host, port}
-       }}
+      {:noreply, Map.merge(state, %{info_hash: info_hash, remote_peer_id: remote_peer_id})}
     else
-      err ->
-        :telemetry.execute([:pwp, :incoming, :failure], %{}, state)
-        {:stop, {:handshake_failure, err}, state}
+      err -> {:stop, {:handshake_failure, err}, state}
     end
   end
 
@@ -188,17 +151,8 @@ defmodule Effusion.PWP.TCP.Connection do
     {:reply, :ok, state}
   end
 
-  def handle_continue(:connect, state), do: start_connection(state)
-
-  def handle_info(
-        {:btp_send, dest_peer_id, msg},
-        state = %{socket: socket, remote_peer_id: peer_id}
-      )
-      when dest_peer_id == peer_id do
-    :telemetry.execute([:pwp, :message_sent], %{}, %{message: msg, peer: peer_id})
-
-    Logger.debug("******** Connection sending message #{inspect msg}")
-
+  def handle_info({:btp_send, dest_peer_id, msg}, state = %{socket: socket, remote_peer_id: peer_id})
+  when dest_peer_id == peer_id do
     case Socket.send_msg(socket, msg) do
       :ok -> {:noreply, state}
       {:error, reason} -> {:stop, {:send_failure, reason}, state}
@@ -207,17 +161,7 @@ defmodule Effusion.PWP.TCP.Connection do
 
   def handle_info({:tcp, _tcp_socket, data}, state) when is_binary(data) do
     {:ok, msg} = Messages.decode(data)
-
-    :telemetry.execute(
-      [:pwp, :message_received],
-      %{},
-      Map.take(state, [:remote_peer_id, :info_hash])
-      |> Map.put(:binary, data)
-      |> Map.put(:message, msg)
-    )
-
     ret = handle_btp(msg, state)
-
     :ok = :inet.setopts(state.socket, active: :once)
     ret
   end
