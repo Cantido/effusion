@@ -142,11 +142,12 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{},
-    %HandleHandshake{
+    %__MODULE__{
       peer_uuid: peer_uuid,
       info_hash: info_hash,
-      peer_id: peer_id,
+      peer_id: peer_id
+    },
+    %HandleHandshake{
       initiated_by: initiated_by
     }
   ) do
@@ -168,15 +169,15 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleChoke{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %HandleChoke{}
   ) do
     %PeerChokedUs{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleUnchoke{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %HandleUnchoke{}
   ) do
     %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
   end
@@ -189,57 +190,57 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleUninterested{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %HandleUninterested{}
   ) do
     %PeerUninterestedInUs{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id, bitfield: bitfield},
-    %HandleHave{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index}
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, bitfield: bitfield},
+    %HandleHave{index: index}
   ) do
     %PeerHasPiece{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index, bitfield: IntSet.put(bitfield, index)}
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandlePiece{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, data: data}
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %HandlePiece{index: index, offset: offset, data: data}
   ) do
     %PeerSentBlock{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, data: data}
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleBitfield{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %HandleBitfield{bitfield: bitfield}
   ) do
     %PeerHasBitfield{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, bitfield: bitfield}
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleRequest{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %HandleRequest{index: index, offset: offset, size: size}
   ) do
     %PeerRequestedBlock{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %HandleCancel{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %HandleCancel{index: index, offset: offset, size: size}
   ) do
     %PeerRequestCancelled{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %SendInterested{peer_uuid: peer_uuid}
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %SendInterested{}
   ) do
     %InterestedSent{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash, peer_id: peer_id},
-    %RequestBlock{peer_uuid: peer_uuid, index: index, offset: offset, size: size}
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %RequestBlock{index: index, offset: offset, size: size}
   ) do
     %BlockRequested{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
   end
