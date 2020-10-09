@@ -60,10 +60,10 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         initiated_by: :them
       })
       :ok = CQRS.dispatch(%SendHandshake{
-          peer_uuid: peer_uuid,
-          our_peer_id: our_peer_id,
-          our_extensions: our_extensions,
-          initiated_by: :them
+        peer_uuid: peer_uuid,
+        our_peer_id: our_peer_id,
+        our_extensions: our_extensions,
+        initiated_by: :them
       })
 
       assert_receive_event(CQRS, PeerAdded, fn event ->
@@ -176,10 +176,10 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         peer_uuid: peer_uuid
       })
       :ok = CQRS.dispatch(%SendHandshake{
-          peer_uuid: peer_uuid,
-          our_peer_id: our_peer_id,
-          our_extensions: our_extensions,
-          initiated_by: :us
+        peer_uuid: peer_uuid,
+        our_peer_id: our_peer_id,
+        our_extensions: our_extensions,
+        initiated_by: :us
       })
       :ok = CQRS.dispatch(%HandleHandshake{
         peer_uuid: peer_uuid,
