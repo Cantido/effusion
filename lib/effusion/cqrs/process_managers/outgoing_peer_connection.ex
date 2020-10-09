@@ -15,7 +15,8 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
     AttemptingToConnect,
     SendingHandshake,
     SuccessfulHandshake,
-    PeerConnected
+    FailedHandshake,
+    PeerDisconnected
   }
 
   def interested?(%AttemptingToConnect{peer_uuid: peer_uuid}) do
@@ -26,7 +27,11 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
     {:continue!, peer_uuid}
   end
 
-  def interested?(%PeerConnected{peer_uuid: peer_uuid}) do
+  def interested?(%FailedHandshake{peer_uuid: peer_uuid}) do
+    {:stop, peer_uuid}
+  end
+
+  def interested?(%PeerDisconnected{peer_uuid: peer_uuid}) do
     {:stop, peer_uuid}
   end
 

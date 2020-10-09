@@ -14,6 +14,7 @@ defmodule Effusion.CQRS.ProcessManagers.IncomingPeerConnection do
   alias Effusion.CQRS.Events.{
     PeerSentHandshake,
     SuccessfulHandshake,
+    FailedHandshake,
     PeerDisconnected
   }
 
@@ -23,6 +24,10 @@ defmodule Effusion.CQRS.ProcessManagers.IncomingPeerConnection do
 
   def interested?(%SuccessfulHandshake{peer_uuid: peer_uuid, initiated_by: :them}) do
     {:continue!, peer_uuid}
+  end
+
+  def interested?(%FailedHandshake{peer_uuid: peer_uuid}) do
+    {:stop, peer_uuid}
   end
 
   def interested?(%PeerDisconnected{peer_uuid: peer_uuid}) do
