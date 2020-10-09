@@ -166,44 +166,54 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       expected_peer_id: expected_peer_id
     },
     %HandleHandshake{
-      initiated_by: initiated_by,
+      initiated_by: :us,
       info_hash: info_hash,
       peer_id: peer_id
     }
   ) do
     cond do
-      initiated_by == :us ->
-        cond do
-          info_hash != expected_info_hash ->
-            %FailedHandshake{
-              peer_uuid: peer_uuid,
-              failure_reason: :info_hash
-            }
-          peer_id != expected_peer_id ->
-            %FailedHandshake{
-              peer_uuid: peer_uuid,
-              failure_reason: :peer_id
-            }
-          true ->
-            %SuccessfulHandshake{
-              peer_uuid: peer_uuid,
-              initiated_by: initiated_by
-            }
-        end
-      initiated_by == :them ->
-        cond do
-          info_hash != expected_info_hash ->
-            %FailedHandshake{
-              peer_uuid: peer_uuid,
-              failure_reason: :info_hash
-            }
-          peer_id != expected_peer_id ->
-            %FailedHandshake{
-              peer_uuid: peer_uuid,
-              failure_reason: :peer_id
-            }
-          true -> nil
-        end
+      info_hash != expected_info_hash ->
+        %FailedHandshake{
+          peer_uuid: peer_uuid,
+          failure_reason: :info_hash
+        }
+      peer_id != expected_peer_id ->
+        %FailedHandshake{
+          peer_uuid: peer_uuid,
+          failure_reason: :peer_id
+        }
+      true ->
+        %SuccessfulHandshake{
+          peer_uuid: peer_uuid,
+          initiated_by: :us
+        }
+    end
+  end
+
+  def check_handshake_params(
+    %__MODULE__{
+      peer_uuid: peer_uuid,
+      expected_info_hash: expected_info_hash,
+      expected_peer_id: expected_peer_id
+    },
+    %HandleHandshake{
+      initiated_by: :them,
+      info_hash: info_hash,
+      peer_id: peer_id
+    }
+  ) do
+    cond do
+      info_hash != expected_info_hash ->
+        %FailedHandshake{
+          peer_uuid: peer_uuid,
+          failure_reason: :info_hash
+        }
+      peer_id != expected_peer_id ->
+        %FailedHandshake{
+          peer_uuid: peer_uuid,
+          failure_reason: :peer_id
+        }
+      true -> nil
     end
   end
 
