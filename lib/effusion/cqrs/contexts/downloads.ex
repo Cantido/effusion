@@ -3,16 +3,7 @@ defmodule Effusion.CQRS.Contexts.Downloads do
     AddTorrent,
     StartDownload,
     StopDownload,
-    StoreBlock,
-    HandleBitfield,
-    HandleCancel,
-    HandleChoke,
-    HandleHave,
-    HandleInterested,
-    HandlePiece,
-    HandleRequest,
-    HandleUnchoke,
-    HandleUninterested
+    StoreBlock
   }
   alias Effusion.CQRS.Application, as: CQRS
 
@@ -55,21 +46,6 @@ defmodule Effusion.CQRS.Contexts.Downloads do
       offset: offset,
       data: data
     }
-    |> CQRS.dispatch()
-  end
-
-  def handle_message(peer_uuid, message) do
-    case message do
-      :choke -> %HandleChoke{peer_uuid: peer_uuid}
-      :unchoke -> %HandleUnchoke{peer_uuid: peer_uuid}
-      :interested -> %HandleInterested{peer_uuid: peer_uuid}
-      :uninterested -> %HandleUninterested{peer_uuid: peer_uuid}
-      {:have, index} -> %HandleHave{peer_uuid: peer_uuid, index: index}
-      {:bitfield, bitfield} -> %HandleBitfield{peer_uuid: peer_uuid, bitfield: Base.encode16(bitfield)}
-      {:request, block} -> %HandleRequest{peer_uuid: peer_uuid, index: block.index, offset: block.offset, size: block.size}
-      {:cancel, block} -> %HandleCancel{peer_uuid: peer_uuid, index: block.index, offset: block.offset, size: block.size}
-      {:piece, block} -> %HandlePiece{peer_uuid: peer_uuid, index: block.index, offset: block.offset, data: block.data}
-    end
     |> CQRS.dispatch()
   end
 end
