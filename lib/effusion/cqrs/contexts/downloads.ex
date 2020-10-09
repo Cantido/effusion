@@ -13,6 +13,7 @@ defmodule Effusion.CQRS.Contexts.Downloads do
       announce_list: Map.get(meta, :announce_list),
       comment: Map.get(meta, :comment),
       created_by: meta.created_by,
+      creation_date: meta.creation_date,
       info: meta.info,
       info_hash: Effusion.Hash.encode(meta.info_hash)
     }

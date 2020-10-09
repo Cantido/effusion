@@ -182,6 +182,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   def handle(
     %__MODULE__{requests: requests},
     %PeerSentBlock{
+      peer_uuid: from,
       info_hash: info_hash,
       index: index,
       offset: offset,
@@ -204,6 +205,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
     [
       %StoreBlock{
+        from: from,
         info_hash: info_hash,
         index: index,
         offset: offset,
@@ -241,7 +243,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   ) do
     if Enum.empty?(connected_peers) do
       %StopDownload{
-        info_hash: info_hash
+        info_hash: info_hash,
+        tracker_event: "stopped"
       }
     end
   end

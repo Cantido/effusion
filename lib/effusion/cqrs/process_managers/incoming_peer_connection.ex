@@ -54,14 +54,16 @@ defmodule Effusion.CQRS.ProcessManagers.IncomingPeerConnection do
     %SuccessfulHandshake{
       peer_uuid: peer_uuid,
       info_hash: info_hash,
-      peer_id: peer_id
+      peer_id: peer_id,
+      initiated_by: initiated_by
     }
   ) do
     Logger.debug("****** Handshake successful")
     %AddConnectedPeer{
       peer_uuid: peer_uuid,
       info_hash: info_hash,
-      peer_id: peer_id
+      peer_id: peer_id,
+      initiated_by: initiated_by
     }
   end
 end
