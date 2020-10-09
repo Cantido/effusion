@@ -304,7 +304,6 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       expected_peer_id: peer_id,
       expected_info_hash: info_hash,
       info_hash: info_hash,
-      peer_id: peer_id,
       host: host,
       port: port
     }
