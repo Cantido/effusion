@@ -256,7 +256,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
     %RequestBlock{index: index, offset: offset, size: size}
   ) do
     %BlockRequested{
@@ -272,15 +272,13 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   def execute(
     %__MODULE__{
       peer_uuid: peer_uuid,
-      info_hash: info_hash,
-      peer_id: peer_id
+      info_hash: info_hash
     },
     %SendBitfield{bitfield: bitfield}
   ) do
     %BitfieldSent{
       peer_uuid: peer_uuid,
       info_hash: info_hash,
-      peer_id: peer_id,
       bitfield: bitfield
     }
   end
@@ -329,10 +327,11 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def apply(
     %__MODULE__{info_hash: info_hash} = peer,
-    %PeerSentHandshake{peer_id: peer_id}
+    %PeerSentHandshake{peer_id: peer_id, info_hash: info_hash}
   ) do
     %__MODULE__{peer |
-      peer_id: peer_id
+      peer_id: peer_id,
+      info_hash: info_hash
     }
   end
 
