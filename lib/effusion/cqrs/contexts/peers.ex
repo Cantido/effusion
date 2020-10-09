@@ -18,8 +18,8 @@ defmodule Effusion.CQRS.Contexts.Peers do
   def add(peer_uuid, info_hash, peer_id, host, port, from) do
     %AddPeer{
       peer_uuid: peer_uuid,
-      info_hash: Effusion.Hash.encode(info_hash),
-      peer_id: peer_id,
+      expected_info_hash: Effusion.Hash.encode(info_hash),
+      expected_peer_id: peer_id,
       host: to_string(:inet.ntoa(host)),
       port: port,
       from: from}

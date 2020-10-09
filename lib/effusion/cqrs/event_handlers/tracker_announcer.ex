@@ -45,10 +45,10 @@ defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
       host = to_string(:inet.ntoa(peer.ip))
       %AddPeer{
         peer_uuid: UUID.uuid4(),
-        info_hash: info_hash,
+        expected_info_hash: info_hash,
         host: host,
         port: peer.port,
-        peer_id: Map.get(peer, :peer_id, nil),
+        expected_peer_id: Map.get(peer, :peer_id, nil),
         from: :tracker
       }
     end)

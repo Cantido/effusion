@@ -58,7 +58,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     {:start!, info_hash}
   end
 
-  def interested?(%PeerAdded{info_hash: info_hash, from: :tracker}) do
+  def interested?(%PeerAdded{expected_info_hash: info_hash, from: :tracker}) do
     {:continue!, info_hash}
   end
 
