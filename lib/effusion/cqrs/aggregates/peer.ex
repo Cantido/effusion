@@ -76,32 +76,29 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %AttemptingToConnect{
       peer_uuid: peer_uuid,
       info_hash: info_hash,
-      peer_id: peer_id,
       host: host,
       port: port}
   end
 
   def execute(
-    %__MODULE__{},
-    %AddConnectedPeer{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, initiated_by: initiated_by}
+    %__MODULE__{info_hash: info_hash},
+    %AddConnectedPeer{peer_uuid: peer_uuid, initiated_by: initiated_by}
   ) do
     Logger.debug("***** Emitting PeerConnected event")
-    %PeerConnected{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, initiated_by: initiated_by}
+    %PeerConnected{peer_uuid: peer_uuid, info_hash: info_hash, initiated_by: initiated_by}
   end
 
   def execute(
-    %__MODULE__{},
-    %RemoveConnectedPeer{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, reason: reason}
+    %__MODULE__{info_hash: info_hash},
+    %RemoveConnectedPeer{peer_uuid: peer_uuid, reason: reason}
   ) do
-    %PeerDisconnected{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, reason: reason}
+    %PeerDisconnected{peer_uuid: peer_uuid, info_hash: info_hash, reason: reason}
   end
 
   def execute(
-    %__MODULE__{},
+    %__MODULE__{info_hash: info_hash},
     %SendHandshake{
       peer_uuid: peer_uuid,
-      info_hash: info_hash,
-      peer_id: peer_id,
       our_peer_id: our_peer_id,
       our_extensions: our_extensions,
       initiated_by: :them
@@ -111,26 +108,21 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       %SendingHandshake{
         peer_uuid: peer_uuid,
         info_hash: info_hash,
-        peer_id: peer_id,
         our_peer_id: our_peer_id,
         our_extensions: our_extensions,
         initiated_by: :them
       },
       %SuccessfulHandshake{
         peer_uuid: peer_uuid,
-        info_hash: info_hash,
-        peer_id: peer_id,
         initiated_by: :them
       }
     ]
   end
 
   def execute(
-    %__MODULE__{},
+    %__MODULE__{info_hash: info_hash},
     %SendHandshake{
       peer_uuid: peer_uuid,
-      info_hash: info_hash,
-      peer_id: peer_id,
       our_peer_id: our_peer_id,
       our_extensions: our_extensions,
       initiated_by: :us
@@ -139,7 +131,6 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %SendingHandshake{
       peer_uuid: peer_uuid,
       info_hash: info_hash,
-      peer_id: peer_id,
       our_peer_id: our_peer_id,
       our_extensions: our_extensions,
       initiated_by: :us}
@@ -158,8 +149,6 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     if initiated_by == :us do
       %SuccessfulHandshake{
         peer_uuid: peer_uuid,
-        info_hash: info_hash,
-        peer_id: peer_id,
         initiated_by: initiated_by
       }
     else
@@ -236,17 +225,27 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
     %SendInterested{}
   ) do
-    %InterestedSent{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
+    %InterestedSent{
+      peer_uuid: peer_uuid,
+      info_hash: info_hash
+    }
   end
 
   def execute(
     %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id},
     %RequestBlock{index: index, offset: offset, size: size}
   ) do
-    %BlockRequested{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, index: index, offset: offset, size: size}
+    %BlockRequested{
+      peer_uuid: peer_uuid,
+      info_hash: info_hash,
+      index: index,
+      offset:
+      offset,
+      size: size
+    }
   end
 
   def execute(
@@ -296,12 +295,9 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def apply(
     %__MODULE__{} = peer,
-    %PeerConnected{info_hash: info_hash, peer_id: peer_id}
+    %PeerConnected{}
   ) do
-    %__MODULE__{peer |
-      info_hash: info_hash,
-      peer_id: peer_id
-    }
+    peer
   end
 
   def apply(%__MODULE__{} = peer, %PeerDisconnected{}) do
@@ -333,11 +329,9 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def apply(
     %__MODULE__{} = peer,
-    %SuccessfulHandshake{peer_id: peer_id}
+    %SuccessfulHandshake{}
   ) do
-    %__MODULE__{peer |
-      peer_id: peer_id
-    }
+    peer
   end
 
   def apply(

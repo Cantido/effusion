@@ -26,11 +26,9 @@ defmodule Effusion.CQRS.Contexts.Peers do
     |> CQRS.dispatch()
   end
 
-  def send_handshake(peer_uuid, info_hash, peer_id, initiated_by) do
+  def send_handshake(peer_uuid, initiated_by) do
     %SendHandshake{
       peer_uuid: peer_uuid,
-      info_hash: Effusion.Hash.encode(info_hash),
-      peer_id: peer_id,
       our_peer_id: Application.fetch_env!(:effusion, :peer_id),
       our_extensions: Application.fetch_env!(:effusion, :enabled_extensions),
       initiated_by: initiated_by,
@@ -38,11 +36,9 @@ defmodule Effusion.CQRS.Contexts.Peers do
     |> CQRS.dispatch()
   end
 
-  def disconnected(peer_uuid, info_hash, peer_id, reason) do
+  def disconnected(peer_uuid, reason) do
     %RemoveConnectedPeer{
       peer_uuid: peer_uuid,
-      info_hash: Effusion.Hash.encode(info_hash),
-      peer_id: peer_id,
       reason: reason}
     |> CQRS.dispatch()
   end

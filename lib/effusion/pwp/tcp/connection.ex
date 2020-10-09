@@ -20,7 +20,7 @@ defmodule Effusion.PWP.TCP.Connection do
   @doc """
   Start a connection to a `peer` in the Connection supervision hierarchy.
   """
-  def connect(peer = {{_host, port}, info_hash, expected_peer_id, _peer_uuid}) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id) do
+  def connect(peer = {{_host, port}, _peer_uuid}) when is_integer(port) do
     ConnectionSupervisor.start_child(peer)
   end
 
@@ -71,15 +71,13 @@ defmodule Effusion.PWP.TCP.Connection do
   @doc """
   Start a connection to a `peer`, and link the resulting process to the current process.
   """
-  def start_link(peer = {{_host, port}, info_hash, expected_peer_id, _peer_uuid}) when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id)  do
+  def start_link(peer = {{_host, port}, _peer_uuid}) when is_integer(port) do
     GenServer.start_link(__MODULE__, peer)
   end
 
-  def init({address, info_hash, expected_peer_id, peer_uuid}) do
+  def init({address, peer_uuid}) do
     state = %{
       address: address,
-      info_hash: info_hash,
-      remote_peer_id: expected_peer_id,
       peer_uuid: peer_uuid
     }
     {:ok, state, {:continue, :connect}}
@@ -102,11 +100,10 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
 
-  def handle_continue(:connect, %{address: address = {host, port}, info_hash: info_hash, remote_peer_id: expected_peer_id, peer_uuid: peer_uuid} = state)
-  when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id) do
+  def handle_continue(:connect, %{address: address = {host, port}, peer_uuid: peer_uuid} = state) do
     with {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
          {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000),
-         :ok <- Effusion.CQRS.Contexts.Peers.send_handshake(peer_uuid, info_hash, expected_peer_id, :us) do
+         :ok <- Effusion.CQRS.Contexts.Peers.send_handshake(peer_uuid, :us) do
       {:noreply, Map.put(state, :socket, socket)}
     else
       {:error, reason} -> {:stop, reason, state}
@@ -131,7 +128,7 @@ defmodule Effusion.PWP.TCP.Connection do
     end
   end
 
-  def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id, socket: socket, peer_uuid: peer_uuid}) do
+  def handle_btp(msg, state = %{peer_uuid: peer_uuid}) do
     :ok = Effusion.CQRS.Contexts.Peers.handle_message(peer_uuid, msg)
     {:noreply, state}
   end
@@ -191,8 +188,6 @@ defmodule Effusion.PWP.TCP.Connection do
 
     Effusion.CQRS.Contexts.Peers.disconnected(
         Map.get(state, :peer_uuid),
-        Map.get(state, :info_hash),
-        Map.get(state, :peer_id),
         reason
       )
 
