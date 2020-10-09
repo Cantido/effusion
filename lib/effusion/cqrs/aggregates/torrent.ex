@@ -70,9 +70,6 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       info: info,
       announce: announce,
       announce_list: announce_list,
-      comment: comment,
-      created_by: created_by,
-      creation_date: creation_date,
       state: :stopped
     },
     %StartDownload{block_size: block_size}
@@ -84,9 +81,6 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       announce: announce,
       bytes_left: bytes_left,
       announce_list: announce_list,
-      comment: comment,
-      created_by: created_by,
-      creation_date: creation_date,
       bytes_uploaded: 0, # TODO
       bytes_downloaded: 0, # TODO
       info: info,
