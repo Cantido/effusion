@@ -2,6 +2,7 @@ defmodule Effusion.CQRS.Contexts.Peers do
   alias Effusion.CQRS.Application, as: CQRS
   alias Effusion.CQRS.Commands.{
     AddPeer,
+    AddOpenedPeerConnection,
     SendHandshake,
     HandleHandshake,
     RemoveConnectedPeer,
@@ -26,12 +27,9 @@ defmodule Effusion.CQRS.Contexts.Peers do
     |> CQRS.dispatch()
   end
 
-  def send_handshake(peer_uuid, initiated_by) do
-    %SendHandshake{
-      peer_uuid: peer_uuid,
-      our_peer_id: Application.fetch_env!(:effusion, :peer_id),
-      our_extensions: Application.fetch_env!(:effusion, :enabled_extensions),
-      initiated_by: initiated_by,
+  def add_opened_peer_connection(peer_uuid) do
+    %AddOpenedPeerConnection{
+      peer_uuid: peer_uuid
     }
     |> CQRS.dispatch()
   end

@@ -6,11 +6,13 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
     StartDownload,
     AddPeer,
     AttemptToConnect,
-    HandleHandshake,
-    SendHandshake
+    AddOpenedPeerConnection,
+    SendHandshake,
+    HandleHandshake
   }
   alias Effusion.CQRS.Events.{
     PeerAdded,
+    PeerConnectionOpened,
     PeerSentHandshake,
     SendingHandshake,
     SuccessfulHandshake,
@@ -113,6 +115,9 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
       :ok = CQRS.dispatch(%AttemptToConnect{
         peer_uuid: peer_uuid
       })
+      :ok = CQRS.dispatch(%AddOpenedPeerConnection{
+          peer_uuid: peer_uuid
+      })
       :ok = CQRS.dispatch(%SendHandshake{
           peer_uuid: peer_uuid,
           our_peer_id: our_peer_id,
@@ -134,6 +139,9 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         assert event.host == host
         assert event.port == port
         assert event.from == :tracker
+      end)
+      assert_receive_event(CQRS, PeerConnectionOpened, fn event ->
+        assert event.peer_uuid == peer_uuid
       end)
       assert_receive_event(CQRS, SendingHandshake, fn event ->
         assert event.peer_uuid == peer_uuid

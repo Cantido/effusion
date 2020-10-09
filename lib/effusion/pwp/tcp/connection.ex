@@ -105,7 +105,7 @@ defmodule Effusion.PWP.TCP.Connection do
   def handle_continue(:connect, %{address: address = {host, port}, peer_uuid: peer_uuid} = state) do
     with {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
          {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000),
-         :ok <- Effusion.CQRS.Contexts.Peers.send_handshake(peer_uuid, :us) do
+         :ok <- Effusion.CQRS.Contexts.Peers.add_opened_peer_connection(peer_uuid) do
       {:noreply, Map.put(state, :socket, socket)}
     else
       {:error, reason} -> {:stop, reason, state}

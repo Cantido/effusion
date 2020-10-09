@@ -2,6 +2,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   alias Effusion.CQRS.Commands.{
     AddPeer,
     AttemptToConnect,
+    AddOpenedPeerConnection,
     AddConnectedPeer,
     RemoveConnectedPeer,
     HandleBitfield,
@@ -24,6 +25,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
     PeerAdded,
+    PeerConnectionOpened,
     PeerConnected,
     PeerDisconnected,
     PeerChokedUs,
@@ -82,6 +84,15 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       info_hash: info_hash,
       host: host,
       port: port}
+  end
+
+  def execute(
+    %__MODULE__{expected_info_hash: info_hash, host: host, port: port},
+    %AddOpenedPeerConnection{peer_uuid: peer_uuid}
+  ) do
+    %PeerConnectionOpened{
+      peer_uuid: peer_uuid
+    }
   end
 
   def execute(
@@ -342,6 +353,13 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       host: host,
       port: port
     }
+  end
+
+  def apply(
+    %__MODULE__{} = peer,
+    %PeerConnectionOpened{}
+  ) do
+    peer
   end
 
   def apply(
