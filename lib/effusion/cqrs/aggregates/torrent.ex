@@ -44,6 +44,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       announce_list: announce_list,
       comment: comment,
       created_by: created_by,
+      creation_date: creation_date,
       info: info
     }
   ) do
@@ -52,6 +53,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       announce_list: announce_list,
       comment: comment,
       created_by: created_by,
+      creation_date: creation_date,
       info: info,
       info_hash: info_hash
     }
@@ -70,6 +72,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       announce_list: announce_list,
       comment: comment,
       created_by: created_by,
+      creation_date: creation_date,
       state: :stopped
     },
     %StartDownload{block_size: block_size}
@@ -83,6 +86,9 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       announce_list: announce_list,
       comment: comment,
       created_by: created_by,
+      creation_date: creation_date,
+      bytes_uploaded: 0, # TODO
+      bytes_downloaded: 0, # TODO
       info: info,
       block_size: block_size
     }
@@ -109,6 +115,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       announce_list: announce_list,
       comment: comment,
       created_by: created_by,
+      creation_date: creation_date,
       bytes_left: bytes_left,
       bytes_downloaded: bytes_downloaded,
       bytes_uploaded: bytes_uploaded,
@@ -123,6 +130,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       announce_list: announce_list,
       comment: comment,
       created_by: created_by,
+      creation_date: creation_date,
       info: torrent.info,
       bytes_downloaded: bytes_downloaded,
       bytes_uploaded: bytes_uploaded,

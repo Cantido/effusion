@@ -1,7 +1,12 @@
 defmodule Effusion.CQRS.Events.PieceHashSucceeded do
   @derive Jason.Encoder
+  @enforce_keys [
+    :info_hash,
+    :index,
+    :data,
+    :info
+  ]
   defstruct [
-    :piece_id,
     :info_hash,
     :index,
     :data,
