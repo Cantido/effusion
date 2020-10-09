@@ -104,8 +104,7 @@ defmodule Effusion.PWP.TCP.Connection do
 
   def handle_continue(:connect, %{address: address = {host, port}, info_hash: info_hash, remote_peer_id: expected_peer_id, peer_uuid: peer_uuid} = state)
   when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id) do
-    with peer_uuid = "#{Effusion.Hash.encode(info_hash)}:#{:inet.ntoa(host)}:#{port}",
-         {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
+    with {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
          {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000),
          :ok <- Effusion.CQRS.Contexts.Peers.send_handshake(peer_uuid, info_hash, expected_peer_id, :us) do
       {:noreply, Map.put(state, :socket, socket)}
@@ -125,7 +124,7 @@ defmodule Effusion.PWP.TCP.Connection do
     with peer_uuid = "#{Effusion.Hash.encode(info_hash)}:#{:inet.ntoa(host)}:#{port}",
          {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
          :ok <- Effusion.CQRS.Contexts.Peers.add(peer_uuid, info_hash, remote_peer_id, host, port, :connection),
-         :ok <- Effusion.CQRS.Contexts.Peers.handle_handshake(peer_uuid, info_hash, remote_peer_id, host, port, :them, extensions) do
+         :ok <- Effusion.CQRS.Contexts.Peers.handle_handshake(peer_uuid, info_hash, remote_peer_id, :them, extensions) do
       {:noreply, Map.merge(state, %{info_hash: info_hash, remote_peer_id: remote_peer_id, peer_uuid: peer_uuid})}
     else
       err -> {:stop, {:handshake_failure, err}, state}

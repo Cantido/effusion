@@ -29,12 +29,10 @@ defmodule Effusion.CQRS.Contexts.Peers do
     |> CQRS.dispatch()
   end
 
-  def handle_handshake(peer_uuid, info_hash, peer_id, host, port, initiated_by, extensions) do
-    info_hash = Effusion.Hash.encode(info_hash)
-    host = to_string(:inet.ntoa(host))
+  def handle_handshake(peer_uuid, info_hash, peer_id, initiated_by, extensions) do
     %HandleHandshake{
-      peer_uuid: "#{info_hash}:#{host}:#{port}",
-      info_hash: info_hash,
+      peer_uuid: peer_uuid,
+      info_hash: Effusion.Hash.encode(info_hash),
       peer_id: peer_id,
       initiated_by: initiated_by,
       extensions: extensions}
