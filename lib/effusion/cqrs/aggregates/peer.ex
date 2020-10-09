@@ -44,6 +44,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     PeerSentHandshake,
     SendingHave
   }
+  alias Commanded.Aggregate.Multi
   require Logger
 
   defstruct [
@@ -131,7 +132,34 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       end
   end
 
-  def execute(
+  def execute(aggregate, %HandleHandshake{} = command) do
+    aggregate
+    |> Multi.new()
+    |> Multi.execute(&handle_handshake(&1, command))
+    |> Multi.execute(&check_handshake_params(&1, command))
+  end
+
+  defp handle_handshake(
+    %__MODULE__{
+      peer_uuid: peer_uuid,
+      expected_info_hash: expected_info_hash,
+      expected_peer_id: expected_peer_id
+    },
+    %HandleHandshake{
+      initiated_by: initiated_by,
+      info_hash: info_hash,
+      peer_id: peer_id
+    }
+  ) do
+    %PeerSentHandshake{
+      peer_uuid: peer_uuid,
+      info_hash: info_hash,
+      peer_id: peer_id,
+      initiated_by: initiated_by
+    }
+  end
+
+  def check_handshake_params(
     %__MODULE__{
       peer_uuid: peer_uuid,
       expected_info_hash: expected_info_hash,
@@ -147,81 +175,34 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       initiated_by == :us ->
         cond do
           info_hash != expected_info_hash ->
-            [
-              %PeerSentHandshake{
-                peer_uuid: peer_uuid,
-                info_hash: info_hash,
-                peer_id: peer_id,
-                initiated_by: initiated_by
-              },
-              %FailedHandshake{
-                peer_uuid: peer_uuid,
-                failure_reason: :info_hash
-              }
-            ]
+            %FailedHandshake{
+              peer_uuid: peer_uuid,
+              failure_reason: :info_hash
+            }
           peer_id != expected_peer_id ->
-            [
-              %PeerSentHandshake{
-                peer_uuid: peer_uuid,
-                info_hash: info_hash,
-                peer_id: peer_id,
-                initiated_by: initiated_by
-              },
-              %FailedHandshake{
-                peer_uuid: peer_uuid,
-                failure_reason: :peer_id
-              }
-            ]
+            %FailedHandshake{
+              peer_uuid: peer_uuid,
+              failure_reason: :peer_id
+            }
           true ->
-            [
-              %SuccessfulHandshake{
-                peer_uuid: peer_uuid,
-                initiated_by: initiated_by
-              },
-              %PeerSentHandshake{
-                peer_uuid: peer_uuid,
-                info_hash: info_hash,
-                peer_id: peer_id,
-                initiated_by: initiated_by
-              }
-            ]
+            %SuccessfulHandshake{
+              peer_uuid: peer_uuid,
+              initiated_by: initiated_by
+            }
         end
       initiated_by == :them ->
         cond do
           info_hash != expected_info_hash ->
-            [
-              %PeerSentHandshake{
-                peer_uuid: peer_uuid,
-                info_hash: info_hash,
-                peer_id: peer_id,
-                initiated_by: initiated_by
-              },
-              %FailedHandshake{
-                peer_uuid: peer_uuid,
-                failure_reason: :info_hash
-              }
-            ]
-          peer_id != expected_peer_id ->
-            [
-              %PeerSentHandshake{
-                peer_uuid: peer_uuid,
-                info_hash: info_hash,
-                peer_id: peer_id,
-                initiated_by: initiated_by
-              },
-              %FailedHandshake{
-                peer_uuid: peer_uuid,
-                failure_reason: :peer_id
-              }
-            ]
-
-          true ->
-            %PeerSentHandshake{
+            %FailedHandshake{
               peer_uuid: peer_uuid,
-              info_hash: info_hash,
-              peer_id: peer_id,
-              initiated_by: initiated_by
+              failure_reason: :info_hash
             }
+          peer_id != expected_peer_id ->
+            %FailedHandshake{
+              peer_uuid: peer_uuid,
+              failure_reason: :peer_id
+            }
+          true -> nil
         end
     end
   end
