@@ -40,6 +40,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     BlockRequested,
     BitfieldSent,
     SendingHandshake,
+    FailedHandshake,
     PeerSentHandshake,
     SendingHave
   }
@@ -98,44 +99,36 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash},
-    %SendHandshake{
-      peer_uuid: peer_uuid,
-      our_peer_id: our_peer_id,
-      our_extensions: our_extensions,
-      initiated_by: :them
-    }
-  ) do
-    [
-      %SendingHandshake{
-        peer_uuid: peer_uuid,
-        info_hash: info_hash,
-        our_peer_id: our_peer_id,
-        our_extensions: our_extensions,
-        initiated_by: :them
-      },
-      %SuccessfulHandshake{
-        peer_uuid: peer_uuid,
-        initiated_by: :them
-      }
-    ]
-  end
-
-  def execute(
     %__MODULE__{expected_info_hash: info_hash},
     %SendHandshake{
       peer_uuid: peer_uuid,
       our_peer_id: our_peer_id,
       our_extensions: our_extensions,
-      initiated_by: :us
+      initiated_by: initiated_by
     }
   ) do
-    %SendingHandshake{
-      peer_uuid: peer_uuid,
-      info_hash: info_hash,
-      our_peer_id: our_peer_id,
-      our_extensions: our_extensions,
-      initiated_by: :us}
+    if initiated_by == :them do
+      [
+        %SendingHandshake{
+          peer_uuid: peer_uuid,
+          info_hash: info_hash,
+          our_peer_id: our_peer_id,
+          our_extensions: our_extensions,
+          initiated_by: :them
+        },
+        %SuccessfulHandshake{
+          peer_uuid: peer_uuid,
+          initiated_by: :them
+        }
+      ]
+    else
+      %SendingHandshake{
+        peer_uuid: peer_uuid,
+        info_hash: info_hash,
+        our_peer_id: our_peer_id,
+        our_extensions: our_extensions,
+        initiated_by: :us}
+      end
   end
 
   def execute(
@@ -152,25 +145,46 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   ) do
     cond do
       initiated_by == :us ->
-        if info_hash == expected_info_hash and peer_id == expected_peer_id do
-          [
-            %SuccessfulHandshake{
-              peer_uuid: peer_uuid,
-              initiated_by: initiated_by
-            },
-            %PeerSentHandshake{
-              peer_uuid: peer_uuid,
-              info_hash: info_hash,
-              peer_id: peer_id,
-              initiated_by: initiated_by
-            }
-          ]
-        else
-          %PeerDisconnected{
-            peer_uuid: peer_uuid,
-            info_hash: info_hash,
-            reason: :bad_handshake
-          }
+        cond do
+          info_hash != expected_info_hash ->
+            [
+              %PeerSentHandshake{
+                peer_uuid: peer_uuid,
+                info_hash: info_hash,
+                peer_id: peer_id,
+                initiated_by: initiated_by
+              },
+              %FailedHandshake{
+                peer_uuid: peer_uuid,
+                failure_reason: :info_hash
+              }
+            ]
+          peer_id != expected_peer_id ->
+            [
+              %PeerSentHandshake{
+                peer_uuid: peer_uuid,
+                info_hash: info_hash,
+                peer_id: peer_id,
+                initiated_by: initiated_by
+              },
+              %FailedHandshake{
+                peer_uuid: peer_uuid,
+                failure_reason: :peer_id
+              }
+            ]
+          true ->
+            [
+              %SuccessfulHandshake{
+                peer_uuid: peer_uuid,
+                initiated_by: initiated_by
+              },
+              %PeerSentHandshake{
+                peer_uuid: peer_uuid,
+                info_hash: info_hash,
+                peer_id: peer_id,
+                initiated_by: initiated_by
+              }
+            ]
         end
       initiated_by == :them ->
         %PeerSentHandshake{
@@ -317,7 +331,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def apply(
-    %__MODULE__{info_hash: info_hash} = peer,
+    %__MODULE__{} = peer,
     %PeerSentHandshake{peer_id: peer_id, info_hash: info_hash}
   ) do
     %__MODULE__{peer |
@@ -329,6 +343,13 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   def apply(
     %__MODULE__{} = peer,
     %SuccessfulHandshake{}
+  ) do
+    peer
+  end
+
+  def apply(
+    %__MODULE__{} = peer,
+    %FailedHandshake{}
   ) do
     peer
   end

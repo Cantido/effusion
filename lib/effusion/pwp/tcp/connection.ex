@@ -46,8 +46,10 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def send_pwp_message(peer_uuid, message) do
-    [{conn, _}] = Registry.lookup(ConnectionRegistry, peer_uuid)
-    GenServer.call(conn, {:btp_send, message})
+    case Registry.lookup(ConnectionRegistry, peer_uuid) do
+      [{conn, _}] -> GenServer.call(conn, {:btp_send, message})
+      _ -> {:error, :peer_not_found}
+    end
   end
 
   def recv_handshake(peer_uuid) do

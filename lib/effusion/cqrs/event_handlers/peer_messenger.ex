@@ -125,4 +125,9 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     {:ok, decoded_bitfield} = Base.decode16(bitfield)
     Connection.send_pwp_message(peer_uuid, {:bitfield, decoded_bitfield})
   end
+
+  def error(error, failed_event, _context) do
+    Logger.warn("PeerMessenger failed to handle event #{inspect failed_event}, got error #{inspect error}. Skipping event.")
+    :skip
+  end
 end
