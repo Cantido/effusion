@@ -72,7 +72,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash, host: host, port: port},
+    %__MODULE__{expected_info_hash: info_hash, host: host, port: port},
     %AttemptToConnect{peer_uuid: peer_uuid}
   ) do
     %AttemptingToConnect{
@@ -91,7 +91,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash},
+    %__MODULE__{expected_info_hash: info_hash},
     %RemoveConnectedPeer{peer_uuid: peer_uuid, reason: reason}
   ) do
     %PeerDisconnected{peer_uuid: peer_uuid, info_hash: info_hash, reason: reason}
@@ -122,7 +122,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{info_hash: info_hash},
+    %__MODULE__{expected_info_hash: info_hash},
     %SendHandshake{
       peer_uuid: peer_uuid,
       our_peer_id: our_peer_id,
