@@ -1,6 +1,7 @@
 defmodule Effusion.CQRS.Aggregates.Peer do
   alias Effusion.CQRS.Commands.{
     AddPeer,
+    ExpectInfoFromPeer,
     AttemptToConnect,
     AddOpenedPeerConnection,
     AddConnectedPeer,
@@ -25,6 +26,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
     PeerAdded,
+    InfoExpectedFromPeer,
     PeerConnectionOpened,
     PeerConnected,
     PeerDisconnected,
@@ -73,6 +75,13 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def execute(%__MODULE__{}, %AddPeer{}) do
     {:error, :peer_already_exists}
+  end
+
+  def execute(
+    %__MODULE__{},
+    %ExpectInfoFromPeer{peer_uuid: peer_uuid, info_hash: info_hash,peer_id: peer_id,}
+  ) do
+    %InfoExpectedFromPeer{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id}
   end
 
   def execute(
@@ -354,6 +363,16 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       info_hash: info_hash,
       host: host,
       port: port
+    }
+  end
+
+  def apply(
+    %__MODULE__{} = peer,
+    %InfoExpectedFromPeer{info_hash: info_hash, peer_id: peer_id}
+  ) do
+    %__MODULE__{peer |
+      expected_info_hash: info_hash,
+      expected_peer_id: peer_id
     }
   end
 
