@@ -44,7 +44,7 @@ defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
     Enum.map(res.peers, fn peer ->
       host = to_string(:inet.ntoa(peer.ip))
       %AddPeer{
-        peer_uuid: "#{info_hash}:#{host}:#{peer.port}",
+        peer_uuid: UUID.uuid4(),
         info_hash: info_hash,
         host: host,
         port: peer.port,

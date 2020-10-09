@@ -121,7 +121,7 @@ defmodule Effusion.PWP.TCP.Connection do
   def handle_btp({:handshake, remote_peer_id, info_hash, extensions}, state = %{address: {host, port}, socket: socket})
     when is_peer_id(remote_peer_id)
      and is_hash(info_hash) do
-    with peer_uuid = "#{Effusion.Hash.encode(info_hash)}:#{:inet.ntoa(host)}:#{port}",
+    with peer_uuid = UUID.uuid4(),
          {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
          :ok <- Effusion.CQRS.Contexts.Peers.add(peer_uuid, info_hash, remote_peer_id, host, port, :connection),
          :ok <- Effusion.CQRS.Contexts.Peers.handle_handshake(peer_uuid, info_hash, remote_peer_id, :them, extensions) do
