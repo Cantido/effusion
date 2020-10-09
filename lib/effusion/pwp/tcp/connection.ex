@@ -132,7 +132,6 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def handle_btp(msg, state = %{info_hash: info_hash, remote_peer_id: peer_id, socket: socket, peer_uuid: peer_uuid}) do
-    {:ok, {host, port}} = :inet.peername(socket)
     :ok = Effusion.CQRS.Contexts.Downloads.handle_message(peer_uuid, msg)
     {:noreply, state}
   end
