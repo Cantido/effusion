@@ -74,10 +74,6 @@ defmodule Effusion.BTP.Peer do
     where: peer.port == ^port
   end
 
-  def connected?(peer, info_hash) do
-    ConnectionRegistry.connected?(info_hash, peer.peer_id)
-  end
-
   def connected_query(info_hash) when is_hash(info_hash) do
     from peer in __MODULE__,
     join: torrent in assoc(peer, :torrent),

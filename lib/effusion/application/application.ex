@@ -21,7 +21,7 @@ defmodule Effusion.Application do
       Effusion.CQRS.Application,
       Effusion.CQRS.Supervisor,
       Effusion.Application.ConnectionSupervisor,
-      {Registry, keys: :duplicate, name: ConnectionRegistry},
+      {Registry, keys: :unique, name: ConnectionRegistry},
       Effusion.DHT.Server,
       EffusionWeb.Endpoint,
       :ranch.child_spec(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Connection, [])

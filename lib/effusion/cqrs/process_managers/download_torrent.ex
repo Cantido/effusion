@@ -11,7 +11,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     SendInterested,
     RequestBlock,
     CancelRequest,
-    SendBitfield
+    SendBitfield,
+    SendHave
   }
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
@@ -213,6 +214,16 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def handle(
     %__MODULE__{connected_peers: connected_peers},
+    %PieceHashSucceeded{index: index}
+  ) do
+    Logger.debug("****** Sending :have to all connected peers: #{inspect connected_peers}")
+    Enum.map(connected_peers, fn peer_uuid ->
+      %SendHave{peer_uuid: peer_uuid, index: index}
+    end)
+  end
+
+  def handle(
+    %__MODULE__{connected_peers: connected_peers},
     %AllPiecesVerified{}
   ) do
     Logger.debug("***** All pieces verified, disconnecting all peers")
@@ -268,8 +279,9 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def apply(
     %__MODULE__{connecting_to_peers: connecting_to_peers, connected_peers: connected_peers} = download,
-    %PeerConnected{peer_uuid: peer_uuid, initiated_by: :us}
+    %PeerConnected{peer_uuid: peer_uuid}
   ) do
+    Logger.debug("****** peer connected #{peer_uuid}")
 
     %__MODULE__{download |
       connecting_to_peers: MapSet.delete(connecting_to_peers, peer_uuid),

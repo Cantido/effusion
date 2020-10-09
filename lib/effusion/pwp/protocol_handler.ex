@@ -77,11 +77,4 @@ defmodule Effusion.PWP.ProtocolHandler do
       {:error, {:mismatched_peer_id, [expected: expected_peer_id, actual: remote_peer_id]}}
     end
   end
-
-  @doc """
-  Disconnect from all peers.
-  """
-  def disconnect_all(info_hash) do
-    ConnectionRegistry.disconnect_all(info_hash)
-  end
 end

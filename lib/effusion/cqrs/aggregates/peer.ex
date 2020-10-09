@@ -18,7 +18,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     SendInterested,
     RequestBlock,
     SendBitfield,
-    SendHandshake
+    SendHandshake,
+    SendHave
   }
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
@@ -39,8 +40,10 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     BlockRequested,
     BitfieldSent,
     SendingHandshake,
-    PeerSentHandshake
+    PeerSentHandshake,
+    SendingHave
   }
+  require Logger
 
   defstruct [
     peer_uuid: nil,
@@ -82,6 +85,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %__MODULE__{},
     %AddConnectedPeer{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, initiated_by: initiated_by}
   ) do
+    Logger.debug("***** Emitting PeerConnected event")
     %PeerConnected{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, initiated_by: initiated_by}
   end
 
@@ -261,6 +265,18 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     }
   end
 
+  def execute(
+    %__MODULE__{
+      peer_uuid: peer_uuid
+    },
+    %SendHave{index: index}
+  ) do
+    %SendingHave{
+      peer_uuid: peer_uuid,
+      index: index
+    }
+  end
+
   def apply(
     %__MODULE__{info_hash: nil, host: nil, port: nil} = peer,
     %PeerAdded{peer_uuid: peer_uuid, info_hash: info_hash, peer_id: peer_id, host: host, port: port}
@@ -304,6 +320,13 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   def apply(
     %__MODULE__{} = peer,
     %SendingHandshake{}
+  ) do
+    peer
+  end
+
+  def apply(
+    %__MODULE__{} = peer,
+    %SendingHave{}
   ) do
     peer
   end

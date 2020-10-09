@@ -1,7 +1,6 @@
 defmodule Effusion.PWP.TCP.Connection do
   use GenServer, restart: :temporary
   alias Effusion.Application.ConnectionSupervisor
-  alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.Messages
   alias Effusion.PWP.ProtocolHandler
   alias Effusion.PWP.TCP.Socket
@@ -29,32 +28,36 @@ defmodule Effusion.PWP.TCP.Connection do
   Break the connection with the given reason.
   """
   def disconnect(info_hash, peer_id, reason) do
-    pid = ConnectionRegistry.get_pid(info_hash, peer_id)
-    disconnect(pid, reason)
+    raise "Deprecated"
   end
 
   @doc """
   Break the connection.
   """
   def disconnect(pid) do
-    send(pid, :disconnect)
+    raise "Deprecated"
   end
 
   @doc """
   Break the connection with the given reason.
   """
   def disconnect(pid, reason) do
-    send(pid, {:disconnect, reason})
+    raise "Deprecated"
   end
 
-  def recv_handshake(info_hash, peer_id) do
-    pid = ConnectionRegistry.get_pid!(info_hash, peer_id)
-    GenServer.call(pid, :recv_handshake)
+  def send_pwp_message(peer_uuid, message) do
+    [{conn, _}] = Registry.lookup(ConnectionRegistry, peer_uuid)
+    GenServer.call(conn, {:btp_send, message})
   end
 
-  def handshake_successful(info_hash, peer_id) do
-    pid = ConnectionRegistry.get_pid!(info_hash, peer_id)
-    GenServer.call(pid, :handshake_successful)
+  def recv_handshake(peer_uuid) do
+    [{conn, _}] = Registry.lookup(ConnectionRegistry, peer_uuid)
+    GenServer.call(conn, :recv_handshake)
+  end
+
+  def handshake_successful(peer_uuid) do
+    [{conn, _}] = Registry.lookup(ConnectionRegistry, peer_uuid)
+    GenServer.call(conn, :handshake_successful)
   end
 
   @doc """
@@ -101,7 +104,8 @@ defmodule Effusion.PWP.TCP.Connection do
 
   def handle_continue(:connect, %{address: address = {host, port}, info_hash: info_hash, remote_peer_id: expected_peer_id} = state)
   when is_integer(port) and is_hash(info_hash) and is_peer_id(expected_peer_id) do
-    with {:ok, _pid} <- ConnectionRegistry.register(info_hash, expected_peer_id),
+    with peer_uuid = "#{Effusion.Hash.encode(info_hash)}:#{:inet.ntoa(host)}:#{port}",
+         {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
          {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000),
          :ok <- Effusion.CQRS.Contexts.Peers.send_handshake(info_hash, expected_peer_id, host, port, :us) do
       {:noreply, Map.put(state, :socket, socket)}
@@ -118,10 +122,10 @@ defmodule Effusion.PWP.TCP.Connection do
   def handle_btp({:handshake, remote_peer_id, info_hash, extensions}, state = %{address: {host, port}, socket: socket})
     when is_peer_id(remote_peer_id)
      and is_hash(info_hash) do
-    with {:ok, _pid} = ConnectionRegistry.register(info_hash, remote_peer_id),
+    with peer_uuid = "#{Effusion.Hash.encode(info_hash)}:#{:inet.ntoa(host)}:#{port}",
+         {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
          :ok <- Effusion.CQRS.Contexts.Peers.add(info_hash, remote_peer_id, host, port, :connection),
          :ok <- Effusion.CQRS.Contexts.Peers.handle_handshake(info_hash, remote_peer_id, host, port, :them, extensions) do
-      peer_uuid = "#{Effusion.Hash.encode(info_hash)}:#{:inet.ntoa(host)}:#{port}"
       {:noreply, Map.merge(state, %{info_hash: info_hash, remote_peer_id: remote_peer_id, peer_uuid: peer_uuid})}
     else
       err -> {:stop, {:handshake_failure, err}, state}
@@ -151,11 +155,11 @@ defmodule Effusion.PWP.TCP.Connection do
     {:reply, :ok, state}
   end
 
-  def handle_info({:btp_send, dest_peer_id, msg}, state = %{socket: socket, remote_peer_id: peer_id})
-  when dest_peer_id == peer_id do
+  def handle_call({:btp_send, msg}, _from, state = %{socket: socket}) do
+    Logger.debug("********** Sending message #{inspect msg}")
     case Socket.send_msg(socket, msg) do
-      :ok -> {:noreply, state}
-      {:error, reason} -> {:stop, {:send_failure, reason}, state}
+      :ok -> {:reply, :ok, state}
+      {:error, reason} -> {:reply, {:error, reason}, state}
     end
   end
 
