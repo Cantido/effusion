@@ -130,7 +130,9 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         peer_uuid: peer_uuid
       })
       :ok = CQRS.dispatch(%AddOpenedPeerConnection{
-          peer_uuid: peer_uuid
+          peer_uuid: peer_uuid,
+          host: host,
+          port: port
       })
       :ok = CQRS.dispatch(%SendHandshake{
           peer_uuid: peer_uuid,

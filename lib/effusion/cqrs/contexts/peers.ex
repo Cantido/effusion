@@ -27,9 +27,11 @@ defmodule Effusion.CQRS.Contexts.Peers do
     |> CQRS.dispatch()
   end
 
-  def add_opened_peer_connection(peer_uuid) do
+  def add_opened_peer_connection(peer_uuid, host, port) do
     %AddOpenedPeerConnection{
-      peer_uuid: peer_uuid
+      peer_uuid: peer_uuid,
+      host: to_string(:inet.ntoa(host)),
+      port: port
     }
     |> CQRS.dispatch()
   end
