@@ -310,6 +310,30 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     }
   end
 
+  def apply(
+    %__MODULE__{} = peer,
+    %SendingHandshake{}
+  ) do
+    peer
+  end
+
+  def apply(
+    %__MODULE__{info_hash: info_hash} = peer,
+    %PeerSentHandshake{peer_id: peer_id, info_hash: info_hash}
+  ) do
+    %__MODULE__{peer |
+      peer_id: peer_id,
+      info_hash: info_hash
+    }
+  end
+
+  def apply(
+    %__MODULE__{} = peer,
+    %SuccessfulHandshake{}
+  ) do
+    peer
+  end
+
   def apply(%__MODULE__{} = peer, %AttemptingToConnect{}) do
     peer
   end
@@ -326,32 +350,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def apply(
-    %__MODULE__{info_hash: info_hash} = peer,
-    %PeerSentHandshake{peer_id: peer_id, info_hash: info_hash}
-  ) do
-    %__MODULE__{peer |
-      peer_id: peer_id,
-      info_hash: info_hash
-    }
-  end
-
-  def apply(
-    %__MODULE__{} = peer,
-    %SendingHandshake{}
-  ) do
-    peer
-  end
-
-  def apply(
     %__MODULE__{} = peer,
     %SendingHave{}
-  ) do
-    peer
-  end
-
-  def apply(
-    %__MODULE__{} = peer,
-    %SuccessfulHandshake{}
   ) do
     peer
   end
