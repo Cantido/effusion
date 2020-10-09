@@ -187,12 +187,42 @@ defmodule Effusion.CQRS.Aggregates.Peer do
             ]
         end
       initiated_by == :them ->
-        %PeerSentHandshake{
-          peer_uuid: peer_uuid,
-          info_hash: info_hash,
-          peer_id: peer_id,
-          initiated_by: initiated_by
-        }
+        cond do
+          info_hash != expected_info_hash ->
+            [
+              %PeerSentHandshake{
+                peer_uuid: peer_uuid,
+                info_hash: info_hash,
+                peer_id: peer_id,
+                initiated_by: initiated_by
+              },
+              %FailedHandshake{
+                peer_uuid: peer_uuid,
+                failure_reason: :info_hash
+              }
+            ]
+          peer_id != expected_peer_id ->
+            [
+              %PeerSentHandshake{
+                peer_uuid: peer_uuid,
+                info_hash: info_hash,
+                peer_id: peer_id,
+                initiated_by: initiated_by
+              },
+              %FailedHandshake{
+                peer_uuid: peer_uuid,
+                failure_reason: :peer_id
+              }
+            ]
+
+          true ->
+            %PeerSentHandshake{
+              peer_uuid: peer_uuid,
+              info_hash: info_hash,
+              peer_id: peer_id,
+              initiated_by: initiated_by
+            }
+        end
     end
   end
 

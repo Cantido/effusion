@@ -214,5 +214,72 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         assert event.failure_reason == :info_hash
       end)
     end
+
+    test "when the other peer initiated and sends the wrong info hash" do
+      peer_uuid = UUID.uuid4()
+      meta = TestHelper.mint_meta()
+      info_hash = Effusion.Hash.encode(TestHelper.mint_info_hash())
+      wrong_info_hash = "5fbd8f01253892288c4e02fad090d90a3107401d"
+      our_peer_id = "Effusion Experiment!"
+      our_extensions = [:dht]
+      remote_peer_id = "Other peer ID~~~~~~~"
+      remote_extensions = [:dht, :fast]
+      host = "127.0.0.1"
+      port = 6801
+
+      :ok = CQRS.dispatch(%AddTorrent{
+        announce: meta.announce,
+        announce_list: meta.announce_list,
+        comment: meta.comment,
+        created_by: meta.created_by,
+        creation_date: meta.creation_date,
+        info: meta.info,
+        info_hash: info_hash
+      })
+      :ok = CQRS.dispatch(%StartDownload{
+        info_hash: info_hash,
+        block_size: Application.fetch_env!(:effusion, :block_size)
+      })
+      :ok = CQRS.dispatch(%AddPeer{
+        peer_uuid: peer_uuid,
+        expected_info_hash: info_hash,
+        expected_peer_id: remote_peer_id,
+        host: host,
+        port: port,
+        from: :connection
+      })
+      :ok = CQRS.dispatch(%HandleHandshake{
+        peer_uuid: peer_uuid,
+        info_hash: wrong_info_hash,
+        peer_id: remote_peer_id,
+        extensions: remote_extensions,
+        initiated_by: :them
+      })
+      :ok = CQRS.dispatch(%SendHandshake{
+        peer_uuid: peer_uuid,
+        our_peer_id: our_peer_id,
+        our_extensions: our_extensions,
+        initiated_by: :them
+      })
+
+      assert_receive_event(CQRS, PeerAdded, fn event ->
+        assert event.peer_uuid == peer_uuid
+        assert event.expected_info_hash == info_hash
+        assert event.expected_peer_id == remote_peer_id
+        assert event.host == host
+        assert event.port == port
+        assert event.from == :connection
+      end)
+      assert_receive_event(CQRS, PeerSentHandshake, fn event ->
+        assert event.peer_uuid == peer_uuid
+        assert event.info_hash == wrong_info_hash
+        assert event.peer_id == remote_peer_id
+        assert event.initiated_by == :them
+      end)
+      assert_receive_event(CQRS, FailedHandshake, fn event ->
+        assert event.peer_uuid == peer_uuid
+        assert event.failure_reason == :info_hash
+      end)
+    end
   end
 end
