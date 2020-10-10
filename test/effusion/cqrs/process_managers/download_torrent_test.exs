@@ -10,7 +10,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
     command =
       DownloadTorrent.handle(
         %DownloadTorrent{pieces: IntSet.new()},
-        %PeerConnected{peer_uuid: peer_uuid, info_hash: TestHelper.mint_info_hash(), initiated_by: :us}
+        %PeerConnected{peer_uuid: peer_uuid, info_hash: TestHelper.mint_info_hash(), initiated_by: "us"}
       )
 
     assert command.peer_uuid == peer_uuid

@@ -59,13 +59,13 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         info_hash: info_hash,
         peer_id: remote_peer_id,
         extensions: remote_extensions,
-        initiated_by: :them
+        initiated_by: "them"
       })
       :ok = CQRS.dispatch(%SendHandshake{
         peer_uuid: peer_uuid,
         our_peer_id: our_peer_id,
         our_extensions: our_extensions,
-        initiated_by: :them
+        initiated_by: "them"
       })
 
       assert_receive_event(CQRS, PeerAdded, fn event ->
@@ -80,17 +80,17 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         assert event.peer_uuid == peer_uuid
         assert event.info_hash == info_hash
         assert event.peer_id == remote_peer_id
-        assert event.initiated_by == :them
+        assert event.initiated_by == "them"
       end)
       assert_receive_event(CQRS, SendingHandshake, fn event ->
         assert event.peer_uuid == peer_uuid
         assert event.our_peer_id == our_peer_id
         assert event.our_extensions == our_extensions
-        assert event.initiated_by == :them
+        assert event.initiated_by == "them"
       end)
       assert_receive_event(CQRS, SuccessfulHandshake, fn event ->
         assert event.peer_uuid == peer_uuid
-        assert event.initiated_by == :them
+        assert event.initiated_by == "them"
       end)
     end
 
@@ -138,14 +138,14 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
           peer_uuid: peer_uuid,
           our_peer_id: our_peer_id,
           our_extensions: our_extensions,
-          initiated_by: :us
+          initiated_by: "us"
       })
       :ok = CQRS.dispatch(%HandleHandshake{
         peer_uuid: peer_uuid,
         info_hash: info_hash,
         peer_id: remote_peer_id,
         extensions: remote_extensions,
-        initiated_by: :us
+        initiated_by: "us"
       })
 
       assert_receive_event(CQRS, PeerAdded, fn event ->
@@ -163,17 +163,17 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         assert event.peer_uuid == peer_uuid
         assert event.our_peer_id == our_peer_id
         assert event.our_extensions == our_extensions
-        assert event.initiated_by == :us
+        assert event.initiated_by == "us"
       end)
       assert_receive_event(CQRS, PeerSentHandshake, fn event ->
         assert event.peer_uuid == peer_uuid
         assert event.info_hash == info_hash
         assert event.peer_id == remote_peer_id
-        assert event.initiated_by == :us
+        assert event.initiated_by == "us"
       end)
       assert_receive_event(CQRS, SuccessfulHandshake, fn event ->
         assert event.peer_uuid == peer_uuid
-        assert event.initiated_by == :us
+        assert event.initiated_by == "us"
       end)
     end
 
@@ -203,14 +203,14 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         peer_uuid: peer_uuid,
         our_peer_id: our_peer_id,
         our_extensions: our_extensions,
-        initiated_by: :us
+        initiated_by: "us"
       })
       :ok = CQRS.dispatch(%HandleHandshake{
         peer_uuid: peer_uuid,
         info_hash: wrong_info_hash,
         peer_id: remote_peer_id,
         extensions: remote_extensions,
-        initiated_by: :us
+        initiated_by: "us"
       })
 
       assert_receive_event(CQRS, PeerAdded, fn event ->
@@ -225,13 +225,13 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         assert event.peer_uuid == peer_uuid
         assert event.our_peer_id == our_peer_id
         assert event.our_extensions == our_extensions
-        assert event.initiated_by == :us
+        assert event.initiated_by == "us"
       end)
       assert_receive_event(CQRS, PeerSentHandshake, fn event ->
         assert event.peer_uuid == peer_uuid
         assert event.info_hash == wrong_info_hash
         assert event.peer_id == remote_peer_id
-        assert event.initiated_by == :us
+        assert event.initiated_by == "us"
       end)
       assert_receive_event(CQRS, FailedHandshake, fn event ->
         assert event.peer_uuid == peer_uuid
@@ -277,13 +277,13 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         info_hash: wrong_info_hash,
         peer_id: remote_peer_id,
         extensions: remote_extensions,
-        initiated_by: :them
+        initiated_by: "them"
       })
       :ok = CQRS.dispatch(%SendHandshake{
         peer_uuid: peer_uuid,
         our_peer_id: our_peer_id,
         our_extensions: our_extensions,
-        initiated_by: :them
+        initiated_by: "them"
       })
 
       assert_receive_event(CQRS, PeerAdded, fn event ->
@@ -298,7 +298,7 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         assert event.peer_uuid == peer_uuid
         assert event.info_hash == wrong_info_hash
         assert event.peer_id == remote_peer_id
-        assert event.initiated_by == :them
+        assert event.initiated_by == "them"
       end)
       assert_receive_event(CQRS, FailedHandshake, fn event ->
         assert event.peer_uuid == peer_uuid

@@ -291,4 +291,16 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       pieces: []
     }
   end
+
+  defimpl Commanded.Serialization.JsonDecoder, for: Effusion.CQRS.Aggregates.Torrent do
+    def decode(
+      %Effusion.CQRS.Aggregates.Torrent{
+        verified: verified
+      } = state
+    ) do
+      %Effusion.CQRS.Aggregates.Torrent{state |
+        verified: IntSet.new(verified)
+      }
+    end
+  end
 end

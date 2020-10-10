@@ -58,7 +58,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     {:start!, info_hash}
   end
 
-  def interested?(%PeerAdded{expected_info_hash: info_hash, from: :tracker}) do
+  def interested?(%PeerAdded{expected_info_hash: info_hash, from: "tracker"}) do
     {:continue!, info_hash}
   end
 
@@ -108,10 +108,11 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def handle(
     %__MODULE__{connected_peers: connected_peers, connecting_to_peers: connecting_to_peers},
-    %PeerAdded{peer_uuid: peer_uuid, from: :tracker}
+    %PeerAdded{peer_uuid: peer_uuid, from: "tracker"}
   ) do
     conn_count = Enum.count(connected_peers)
     half_open_count = Enum.count(connecting_to_peers)
+    Logger.debug("**** Peer added, checking to see if we can connect. conn_count is #{conn_count} and half_open_count is #{half_open_count}")
 
     if (conn_count + half_open_count) < @max_connections and half_open_count < @max_half_open_connections do
       %AttemptToConnect{peer_uuid: peer_uuid}
@@ -306,7 +307,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def apply(%__MODULE__{pieces: pieces, blocks: blocks} = download, %PieceHashSucceeded{index: index}) do
     %__MODULE__{download |
-      pieces: IntSet.put(pieces, index),
+      pieces: IntSet.put(Base.decode16!(pieces), index) |> Base.encode16(),
       blocks: Map.put(blocks, index, :complete)
     }
   end
@@ -337,5 +338,21 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{download |
       blocks: Map.update(blocks, index, IntSet.new(offset), &MapSet.put(&1, offset))
     }
+  end
+
+  defimpl Commanded.Serialization.JsonDecoder, for: Effusion.CQRS.ProcessManagers.DownloadTorrent do
+    def decode(
+      %Effusion.CQRS.ProcessManagers.DownloadTorrent{
+        pieces: pieces,
+        connecting_to_peers: connecting_to_peers,
+        connected_peers: connected_peers
+      } = state
+    ) do
+      %Effusion.CQRS.ProcessManagers.DownloadTorrent{state |
+        pieces: IntSet.new(pieces),
+        connecting_to_peers: MapSet.new(connecting_to_peers),
+        connected_peers: MapSet.new(connected_peers)
+      }
+    end
   end
 end

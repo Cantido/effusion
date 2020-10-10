@@ -132,18 +132,18 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       initiated_by: initiated_by
     }
   ) do
-    if initiated_by == :them do
+    if initiated_by == "them" do
       [
         %SendingHandshake{
           peer_uuid: peer_uuid,
           info_hash: info_hash,
           our_peer_id: our_peer_id,
           our_extensions: our_extensions,
-          initiated_by: :them
+          initiated_by: "them"
         },
         %SuccessfulHandshake{
           peer_uuid: peer_uuid,
-          initiated_by: :them
+          initiated_by: "them"
         }
       ]
     else
@@ -152,7 +152,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
         info_hash: info_hash,
         our_peer_id: our_peer_id,
         our_extensions: our_extensions,
-        initiated_by: :us}
+        initiated_by: "us"}
       end
   end
 
@@ -301,7 +301,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       expected_peer_id: expected_peer_id
     },
     %HandleHandshake{
-      initiated_by: :us,
+      initiated_by: "us",
       info_hash: info_hash,
       peer_id: peer_id
     }
@@ -320,7 +320,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       true ->
         %SuccessfulHandshake{
           peer_uuid: peer_uuid,
-          initiated_by: :us
+          initiated_by: "us"
         }
     end
   end
@@ -332,7 +332,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       expected_peer_id: expected_peer_id
     },
     %HandleHandshake{
-      initiated_by: :them,
+      initiated_by: "them",
       info_hash: info_hash,
       peer_id: peer_id
     }
@@ -518,5 +518,17 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %BitfieldSent{}
   ) do
     peer
+  end
+
+  defimpl Commanded.Serialization.JsonDecoder, for: Effusion.CQRS.Aggregates.Peer do
+    def decode(
+      %Effusion.CQRS.Aggregates.Peer{
+        bitfield: bitfield
+      } = state
+    ) do
+      %Effusion.CQRS.Aggregates.Peer{state |
+        bitfield: IntSet.new(bitfield)
+      }
+    end
   end
 end

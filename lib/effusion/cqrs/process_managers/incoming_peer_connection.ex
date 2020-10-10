@@ -5,6 +5,7 @@ defmodule Effusion.CQRS.ProcessManagers.IncomingPeerConnection do
 
   require Logger
 
+  @derive Jason.Encoder
   defstruct []
 
   alias Effusion.CQRS.Commands.{
@@ -18,11 +19,11 @@ defmodule Effusion.CQRS.ProcessManagers.IncomingPeerConnection do
     PeerDisconnected
   }
 
-  def interested?(%PeerSentHandshake{peer_uuid: peer_uuid, initiated_by: :them}) do
+  def interested?(%PeerSentHandshake{peer_uuid: peer_uuid, initiated_by: "them"}) do
     {:start!, peer_uuid}
   end
 
-  def interested?(%SuccessfulHandshake{peer_uuid: peer_uuid, initiated_by: :them}) do
+  def interested?(%SuccessfulHandshake{peer_uuid: peer_uuid, initiated_by: "them"}) do
     {:continue!, peer_uuid}
   end
 
@@ -38,7 +39,7 @@ defmodule Effusion.CQRS.ProcessManagers.IncomingPeerConnection do
     %__MODULE__{},
     %PeerSentHandshake{
       peer_uuid: peer_uuid,
-      initiated_by: :them
+      initiated_by: "them"
     }
   ) do
     Logger.debug("****** Peer sent a handshake, dispatching send handshake command")
@@ -46,7 +47,7 @@ defmodule Effusion.CQRS.ProcessManagers.IncomingPeerConnection do
       peer_uuid: peer_uuid,
       our_peer_id: Application.fetch_env!(:effusion, :peer_id) |> Effusion.Hash.encode(),
       our_extensions: Application.fetch_env!(:effusion, :enabled_extensions),
-      initiated_by: :them
+      initiated_by: "them"
     }
   end
 

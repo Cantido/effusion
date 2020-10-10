@@ -50,7 +50,7 @@ defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
         Map.get(peer, :peer_id, nil),
         peer.ip,
         peer.port,
-        :tracker
+        "tracker"
       )
     end)
   end

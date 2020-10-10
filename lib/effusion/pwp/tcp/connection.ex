@@ -74,18 +74,15 @@ defmodule Effusion.PWP.TCP.Connection do
     :gen_server.enter_loop(__MODULE__, [], %{address: address, socket: socket, transport: transport})
   end
 
-  defp successful_handshake(socket) do
-    :inet.setopts(socket, active: :once, packet: 4)
-  end
-
-
   def handle_continue(:connect, %{address: {host, port}, peer_uuid: peer_uuid} = state) do
     with {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
          {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000),
          :ok <- Effusion.CQRS.Contexts.Peers.add_opened_peer_connection(peer_uuid, host, port) do
       {:noreply, Map.put(state, :socket, socket)}
     else
-      _ -> Effusion.CQRS.Contexts.Peers.handle_failed_connection_attempt(peer_uuid)
+      _ ->
+      Effusion.CQRS.Contexts.Peers.handle_failed_connection_attempt(peer_uuid)
+      {:stop, :failed_to_connect, state}
     end
   end
 
@@ -100,7 +97,7 @@ defmodule Effusion.PWP.TCP.Connection do
     peer_uuid = UUID.uuid4()
     {:ok, _pid} = Registry.register(ConnectionRegistry, peer_uuid, nil)
     :ok = Effusion.CQRS.Contexts.Peers.add(peer_uuid, info_hash, remote_peer_id, host, port, :connection)
-    :ok = Effusion.CQRS.Contexts.Peers.handle_message(peer_uuid, message, :them)
+    :ok = Effusion.CQRS.Contexts.Peers.handle_message(peer_uuid, message, "them")
     {:noreply, Map.merge(state, %{info_hash: info_hash, remote_peer_id: remote_peer_id, peer_uuid: peer_uuid})}
   end
 
@@ -121,7 +118,7 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def handle_call(:handshake_successful, _from, %{socket: socket} = state) do
-    successful_handshake(socket)
+    :inet.setopts(socket, active: :once, packet: 4)
 
     {:reply, :ok, state}
   end
