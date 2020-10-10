@@ -202,7 +202,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
         |> Enum.map(& &1.data)
         |> Enum.join()
 
-      if Effusion.Hash.calc(piece_data) == Enum.at(info.pieces, index) do
+      if Effusion.Hash.calc(piece_data) == Effusion.Hash.decode(Enum.at(info.pieces, index)) do
         %PieceHashSucceeded{
           info_hash: info_hash,
           index: index,

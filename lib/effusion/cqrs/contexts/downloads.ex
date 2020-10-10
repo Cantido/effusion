@@ -14,10 +14,17 @@ defmodule Effusion.CQRS.Contexts.Downloads do
       comment: Map.get(meta, :comment),
       created_by: meta.created_by,
       creation_date: meta.creation_date,
-      info: meta.info,
+      info: encode(meta.info),
       info_hash: Effusion.Hash.encode(meta.info_hash)
     }
     |> CQRS.dispatch()
+  end
+
+  defp encode(info) do
+    info
+    |> Map.update!(:pieces, fn pieces ->
+      Enum.map(pieces, &Effusion.Hash.encode/1)
+    end)
   end
 
   def start(info_hash, block_size) do
