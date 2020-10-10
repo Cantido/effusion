@@ -1,6 +1,5 @@
 defmodule Effusion.BTP.Peer do
   alias Effusion.BTP.Torrent
-  alias Effusion.PWP.ConnectionRegistry
   import Effusion.Hash, only: [is_hash: 1]
   import Ecto.Changeset
   import Ecto.Query

@@ -14,7 +14,6 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
     PeerConnectionOpened,
-    SendingHandshake,
     SuccessfulHandshake,
     FailedHandshake,
     PeerDisconnected

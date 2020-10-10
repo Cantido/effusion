@@ -152,84 +152,6 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     |> Multi.execute(&check_handshake_params(&1, command))
   end
 
-  defp handle_handshake(
-    %__MODULE__{
-      peer_uuid: peer_uuid,
-      expected_info_hash: expected_info_hash,
-      expected_peer_id: expected_peer_id
-    },
-    %HandleHandshake{
-      initiated_by: initiated_by,
-      info_hash: info_hash,
-      peer_id: peer_id
-    }
-  ) do
-    %PeerSentHandshake{
-      peer_uuid: peer_uuid,
-      info_hash: info_hash,
-      peer_id: peer_id,
-      initiated_by: initiated_by
-    }
-  end
-
-  def check_handshake_params(
-    %__MODULE__{
-      peer_uuid: peer_uuid,
-      expected_info_hash: expected_info_hash,
-      expected_peer_id: expected_peer_id
-    },
-    %HandleHandshake{
-      initiated_by: :us,
-      info_hash: info_hash,
-      peer_id: peer_id
-    }
-  ) do
-    cond do
-      info_hash != expected_info_hash ->
-        %FailedHandshake{
-          peer_uuid: peer_uuid,
-          failure_reason: :info_hash
-        }
-      peer_id != expected_peer_id ->
-        %FailedHandshake{
-          peer_uuid: peer_uuid,
-          failure_reason: :peer_id
-        }
-      true ->
-        %SuccessfulHandshake{
-          peer_uuid: peer_uuid,
-          initiated_by: :us
-        }
-    end
-  end
-
-  def check_handshake_params(
-    %__MODULE__{
-      peer_uuid: peer_uuid,
-      expected_info_hash: expected_info_hash,
-      expected_peer_id: expected_peer_id
-    },
-    %HandleHandshake{
-      initiated_by: :them,
-      info_hash: info_hash,
-      peer_id: peer_id
-    }
-  ) do
-    cond do
-      info_hash != expected_info_hash ->
-        %FailedHandshake{
-          peer_uuid: peer_uuid,
-          failure_reason: :info_hash
-        }
-      peer_id != expected_peer_id ->
-        %FailedHandshake{
-          peer_uuid: peer_uuid,
-          failure_reason: :peer_id
-        }
-      true -> nil
-    end
-  end
-
   def execute(
     %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
     %HandleChoke{}
@@ -341,6 +263,82 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       peer_uuid: peer_uuid,
       index: index
     }
+  end
+
+  defp handle_handshake(
+    %__MODULE__{
+      peer_uuid: peer_uuid
+    },
+    %HandleHandshake{
+      initiated_by: initiated_by,
+      info_hash: info_hash,
+      peer_id: peer_id
+    }
+  ) do
+    %PeerSentHandshake{
+      peer_uuid: peer_uuid,
+      info_hash: info_hash,
+      peer_id: peer_id,
+      initiated_by: initiated_by
+    }
+  end
+
+  def check_handshake_params(
+    %__MODULE__{
+      peer_uuid: peer_uuid,
+      expected_info_hash: expected_info_hash,
+      expected_peer_id: expected_peer_id
+    },
+    %HandleHandshake{
+      initiated_by: :us,
+      info_hash: info_hash,
+      peer_id: peer_id
+    }
+  ) do
+    cond do
+      info_hash != expected_info_hash ->
+        %FailedHandshake{
+          peer_uuid: peer_uuid,
+          failure_reason: :info_hash
+        }
+      peer_id != expected_peer_id ->
+        %FailedHandshake{
+          peer_uuid: peer_uuid,
+          failure_reason: :peer_id
+        }
+      true ->
+        %SuccessfulHandshake{
+          peer_uuid: peer_uuid,
+          initiated_by: :us
+        }
+    end
+  end
+
+  def check_handshake_params(
+    %__MODULE__{
+      peer_uuid: peer_uuid,
+      expected_info_hash: expected_info_hash,
+      expected_peer_id: expected_peer_id
+    },
+    %HandleHandshake{
+      initiated_by: :them,
+      info_hash: info_hash,
+      peer_id: peer_id
+    }
+  ) do
+    cond do
+      info_hash != expected_info_hash ->
+        %FailedHandshake{
+          peer_uuid: peer_uuid,
+          failure_reason: :info_hash
+        }
+      peer_id != expected_peer_id ->
+        %FailedHandshake{
+          peer_uuid: peer_uuid,
+          failure_reason: :peer_id
+        }
+      true -> nil
+    end
   end
 
   def apply(

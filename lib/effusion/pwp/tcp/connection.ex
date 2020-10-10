@@ -2,7 +2,6 @@ defmodule Effusion.PWP.TCP.Connection do
   use GenServer, restart: :temporary
   alias Effusion.Application.ConnectionSupervisor
   alias Effusion.PWP.Messages
-  alias Effusion.PWP.ProtocolHandler
   alias Effusion.PWP.TCP.Socket
   import Effusion.BTP.Peer, only: [is_peer_id: 1]
   import Effusion.Hash, only: [is_hash: 1]
@@ -22,27 +21,6 @@ defmodule Effusion.PWP.TCP.Connection do
   """
   def connect(peer = {{_host, port}, _peer_uuid}) when is_integer(port) do
     ConnectionSupervisor.start_child(peer)
-  end
-
-  @doc """
-  Break the connection with the given reason.
-  """
-  def disconnect(info_hash, peer_id, reason) do
-    raise "Deprecated"
-  end
-
-  @doc """
-  Break the connection.
-  """
-  def disconnect(pid) do
-    raise "Deprecated"
-  end
-
-  @doc """
-  Break the connection with the given reason.
-  """
-  def disconnect(pid, reason) do
-    raise "Deprecated"
   end
 
   def send_pwp_message(peer_uuid, message) do
@@ -93,16 +71,11 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   defp successful_handshake(socket) do
-    with {:ok, {host, port}} <- :inet.peername(socket),
-         :ok <- :inet.setopts(socket, active: :once, packet: 4) do
-      :ok
-    else
-      err -> err
-    end
+    :inet.setopts(socket, active: :once, packet: 4)
   end
 
 
-  def handle_continue(:connect, %{address: address = {host, port}, peer_uuid: peer_uuid} = state) do
+  def handle_continue(:connect, %{address: {host, port}, peer_uuid: peer_uuid} = state) do
     {:ok, _pid} = Registry.register(ConnectionRegistry, peer_uuid, nil)
     {:ok, socket} = :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000)
     :ok = Effusion.CQRS.Contexts.Peers.add_opened_peer_connection(peer_uuid, host, port)
@@ -114,7 +87,7 @@ defmodule Effusion.PWP.TCP.Connection do
   """
   def handle_btp(btp_message, state)
 
-  def handle_btp(message = {:handshake, remote_peer_id, info_hash, extensions}, state = %{address: {host, port}, socket: socket})
+  def handle_btp(message = {:handshake, remote_peer_id, info_hash, _extensions}, state = %{address: {host, port}})
     when is_peer_id(remote_peer_id)
      and is_hash(info_hash) do
     peer_uuid = UUID.uuid4()

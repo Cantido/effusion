@@ -329,7 +329,10 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def apply(
     %__MODULE__{blocks: blocks} = download,
-    %PeerSentBlock{peer_uuid: peer_uuid, index: index, offset: offset, data: data}
+    %PeerSentBlock{
+      index: index,
+      offset: offset
+    }
   ) do
     %__MODULE__{download |
       blocks: Map.update(blocks, index, IntSet.new(offset), &MapSet.put(&1, offset))

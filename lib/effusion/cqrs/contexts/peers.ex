@@ -3,7 +3,6 @@ defmodule Effusion.CQRS.Contexts.Peers do
   alias Effusion.CQRS.Commands.{
     AddPeer,
     AddOpenedPeerConnection,
-    SendHandshake,
     HandleHandshake,
     RemoveConnectedPeer,
     HandleBitfield,

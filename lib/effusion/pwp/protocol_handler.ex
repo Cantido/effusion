@@ -1,9 +1,5 @@
 defmodule Effusion.PWP.ProtocolHandler do
-  alias Effusion.BTP.Request
-  alias Effusion.PWP.ConnectionRegistry
   alias Effusion.PWP.TCP.Connection
-  alias Effusion.Repo
-  import Effusion.Hash, only: [is_hash: 1]
   require Logger
 
   @moduledoc """
@@ -24,13 +20,6 @@ defmodule Effusion.PWP.ProtocolHandler do
   def connect(address, info_hash, remote_peer_id) do
     # This is where we would make the uTP/TCP decision, once we support uTP.
     Connection.connect({address, info_hash, remote_peer_id})
-  end
-
-  @doc """
-  Break the connection with the given peer.
-  """
-  def disconnect(info_hash, remote_peer_id, reason) do
-    Connection.disconnect(info_hash, remote_peer_id, reason)
   end
 
   @doc """

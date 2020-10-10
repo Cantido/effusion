@@ -8,7 +8,6 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
   alias Effusion.CQRS.Commands.HandleHandshake
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
-    PieceHashSucceeded,
     InterestedSent,
     BlockRequested,
     RequestCancelled,
@@ -17,7 +16,6 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     SendingHave,
     SuccessfulHandshake
   }
-  import Ecto.Query
   require Logger
 
   def handle(
