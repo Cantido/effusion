@@ -17,7 +17,7 @@ defmodule Effusion.CQRS.EventHandlers.NetStatsUpdater do
     %BitfieldSent{bitfield: bitfield},
     _metadata
   ) do
-    bitfield = Base.decode16(bitfield)
+    {:ok, bitfield} = Base.decode16(bitfield)
     add_message_bytes({:bitfield, bitfield})
   end
 
