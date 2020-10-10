@@ -177,13 +177,6 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def terminate(reason, state) when is_map(state) do
-    :telemetry.execute(
-      [:pwp, :disconnect],
-      %{},
-      Map.take(state, [:remote_peer_id, :info_hash])
-      |> Map.put(:reason, reason)
-    )
-
     if Map.has_key?(state, :socket) do
       Socket.close(state.socket)
     end

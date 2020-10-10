@@ -65,7 +65,6 @@ defmodule Effusion.Mixfile do
       # {:phoenix_pubsub, "~> 2.0", override: true},
       {:plug_cowboy, "~> 2.0"},
       {:ranch, "~> 1.7"},
-      {:telemetry, "~> 0.4.1"},
       {:timex, "~> 3.6"},
       {:tzdata, "~> 0.1.7"},
       {:queutils, "~> 1.2"},

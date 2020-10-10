@@ -11,7 +11,6 @@ defmodule Effusion.Application do
     NetStats.init()
     PeerStats.init()
     SessionStats.init()
-    TelemetryHandler.init()
 
     port = Application.get_env(:effusion, :port)
 
