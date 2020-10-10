@@ -32,7 +32,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerStatsUpdater do
     %AttemptingToConnect{},
     _metadata
   ) do
-    PeerStats.dec_num_peers_half_open()
+    PeerStats.inc_num_peers_half_open()
     :ok
   end
 
