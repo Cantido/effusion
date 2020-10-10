@@ -31,13 +31,17 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def recv_handshake(peer_uuid) do
-    [{conn, _}] = Registry.lookup(ConnectionRegistry, peer_uuid)
-    GenServer.call(conn, :recv_handshake)
+    case Registry.lookup(ConnectionRegistry, peer_uuid) do
+      [{conn, _}] -> GenServer.call(conn, :recv_handshake)
+      _ -> {:error, :peer_not_found}
+    end
   end
 
   def handshake_successful(peer_uuid) do
-    [{conn, _}] = Registry.lookup(ConnectionRegistry, peer_uuid)
-    GenServer.call(conn, :handshake_successful)
+    case Registry.lookup(ConnectionRegistry, peer_uuid) do
+      [{conn, _}] -> GenServer.call(conn, :handshake_successful)
+      _ -> {:error, :peer_not_found}
+    end
   end
 
   @doc """

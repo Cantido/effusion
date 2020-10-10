@@ -17,6 +17,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerStatsUpdater do
     _metadata
   ) do
     PeerStats.inc_num_tcp_peers()
+    :ok
   end
 
   def handle(
@@ -24,6 +25,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerStatsUpdater do
     _metadata
   ) do
     PeerStats.dec_num_tcp_peers()
+    :ok
   end
 
   def handle(
@@ -31,6 +33,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerStatsUpdater do
     _metadata
   ) do
     PeerStats.dec_num_peers_half_open()
+    :ok
   end
 
   def handle(
@@ -38,6 +41,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerStatsUpdater do
     _metadata
   ) do
     PeerStats.dec_num_peers_half_open()
+    :ok
   end
 
   def error(error, failed_event, _context) do

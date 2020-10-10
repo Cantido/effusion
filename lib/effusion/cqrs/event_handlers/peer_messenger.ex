@@ -40,6 +40,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
   ) do
     Logger.debug("***** Sending handshake")
     info_hash = Effusion.Hash.decode(info_hash)
+    our_peer_id = Effusion.Hash.decode(our_peer_id)
     Connection.send_pwp_message(
       peer_uuid,
       {:handshake, our_peer_id, info_hash, our_extensions}
@@ -60,6 +61,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
   ) do
     Logger.debug("***** Sending handshake")
     decoded_info_hash = Effusion.Hash.decode(info_hash)
+    our_peer_id = Effusion.Hash.decode(our_peer_id)
 
     :ok = Connection.send_pwp_message(
       peer_uuid,
@@ -72,7 +74,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     %HandleHandshake{
       peer_uuid: peer_uuid,
       info_hash: Effusion.Hash.encode(their_info_hash),
-      peer_id: their_peer_id,
+      peer_id: Effusion.Hash.encode(their_peer_id),
       initiated_by: :us,
       extensions: their_extensions}
     |> CQRS.dispatch()

@@ -20,7 +20,7 @@ defmodule Effusion.CQRS.Contexts.Peers do
     %AddPeer{
       peer_uuid: peer_uuid,
       expected_info_hash: Effusion.Hash.encode(info_hash),
-      expected_peer_id: peer_id,
+      expected_peer_id: Effusion.Hash.encode(peer_id),
       host: to_string(:inet.ntoa(host)),
       port: port,
       from: from}
@@ -56,7 +56,7 @@ defmodule Effusion.CQRS.Contexts.Peers do
         %HandleHandshake{
           peer_uuid: peer_uuid,
           info_hash: Effusion.Hash.encode(info_hash),
-          peer_id: peer_id,
+          peer_id: Effusion.Hash.encode(peer_id),
           initiated_by: initiated_by,
           extensions: extensions}
       :choke -> %HandleChoke{peer_uuid: peer_uuid}

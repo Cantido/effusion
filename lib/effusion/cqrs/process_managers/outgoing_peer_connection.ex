@@ -47,7 +47,7 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
   ) do
     %SendHandshake{
       peer_uuid: peer_uuid,
-      our_peer_id: Application.fetch_env!(:effusion, :peer_id),
+      our_peer_id: Application.fetch_env!(:effusion, :peer_id) |> Effusion.Hash.encode(),
       our_extensions: Application.fetch_env!(:effusion, :enabled_extensions),
       initiated_by: :us
     }

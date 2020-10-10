@@ -22,7 +22,6 @@ defmodule Effusion.CQRS.Contexts.Downloads do
 
   defp encode(info) do
     info
-    |> Map.from_struct()
     |> Map.update!(:pieces, fn pieces ->
       Enum.map(pieces, &Effusion.Hash.encode/1)
     end)

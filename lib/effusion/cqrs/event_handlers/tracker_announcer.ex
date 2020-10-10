@@ -9,7 +9,6 @@ defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
     DownloadStarted,
     DownloadStopped
   }
-  alias Effusion.CQRS.Commands.AddPeer
   require Logger
 
   def handle(
@@ -41,21 +40,20 @@ defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
       opts
     )
 
-    Enum.map(res.peers, fn peer ->
-      host = to_string(:inet.ntoa(peer.ip))
-      %AddPeer{
-        peer_uuid: UUID.uuid4(),
-        expected_info_hash: info_hash,
-        host: host,
-        port: peer.port,
-        expected_peer_id: Map.get(peer, :peer_id, nil),
-        from: :tracker
-      }
-    end)
+    res.peers
     |> Enum.filter(fn peer ->
       peer.port > 0
     end)
-    |> Enum.each(&CQRS.dispatch/1)
+    |> Enum.each(fn peer ->
+      Effusion.CQRS.Contexts.Peers.add(
+        UUID.uuid4(),
+        Effusion.Hash.decode(info_hash),
+        Map.get(peer, :peer_id, nil),
+        peer.ip,
+        peer.port,
+        :tracker
+      )
+    end)
   end
 
   def handle(
