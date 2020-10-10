@@ -34,7 +34,7 @@ defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
       local_host,
       local_port,
       peer_id,
-      info_hash,
+      Effusion.Hash.decode(info_hash),
       0,
       0,
       bytes_left,
