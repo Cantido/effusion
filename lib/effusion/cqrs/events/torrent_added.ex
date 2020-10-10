@@ -6,11 +6,7 @@ defmodule Effusion.CQRS.Events.TorrentAdded do
     :comment,
     :created_by,
     :creation_date,
-    :length,
-    :piece_length,
-    :name,
-    :pieces,
-    :files,
+    :info,
     :info_hash
   ]
   defstruct [
@@ -19,11 +15,7 @@ defmodule Effusion.CQRS.Events.TorrentAdded do
     :comment,
     :created_by,
     :creation_date,
-    :length,
-    :piece_length,
-    :name,
-    :pieces,
-    :files,
+    :info,
     :info_hash
   ]
 end
