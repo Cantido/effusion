@@ -4,7 +4,6 @@ defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
     name: __MODULE__,
     consistency: :strong
 
-  alias Effusion.CQRS.Application, as: CQRS
   alias Effusion.CQRS.Events.{
     DownloadStarted,
     DownloadStopped
