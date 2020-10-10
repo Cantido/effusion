@@ -3,6 +3,7 @@ defmodule Effusion.CQRS.Contexts.Peers do
   alias Effusion.CQRS.Commands.{
     AddPeer,
     AddOpenedPeerConnection,
+    HandleFailedConnectionAttempt,
     HandleHandshake,
     RemoveConnectedPeer,
     HandleBitfield,
@@ -39,6 +40,13 @@ defmodule Effusion.CQRS.Contexts.Peers do
     %RemoveConnectedPeer{
       peer_uuid: peer_uuid,
       reason: reason}
+    |> CQRS.dispatch()
+  end
+
+  def handle_failed_connection_attempt(peer_uuid) do
+    %HandleFailedConnectionAttempt{
+      peer_uuid: peer_uuid
+    }
     |> CQRS.dispatch()
   end
 
