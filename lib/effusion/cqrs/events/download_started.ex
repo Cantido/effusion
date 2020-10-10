@@ -1,4 +1,5 @@
 defmodule Effusion.CQRS.Events.DownloadStarted do
+  @derive Jason.Encoder
   @enforce_keys [
     :announce,
     :announce_list,

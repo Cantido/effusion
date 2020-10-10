@@ -1,4 +1,5 @@
 defmodule Effusion.CQRS.Events.AllPiecesVerified do
+  @derive Jason.Encoder
   @enforce_keys [
     :info_hash
   ]

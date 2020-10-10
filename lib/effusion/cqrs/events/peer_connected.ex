@@ -1,4 +1,5 @@
 defmodule Effusion.CQRS.Events.PeerConnected do
+  @derive Jason.Encoder
   @enforce_keys [
     :peer_uuid,
     :info_hash,
