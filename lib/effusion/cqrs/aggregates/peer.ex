@@ -60,6 +60,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     host: nil,
     port: nil,
     bitfield: IntSet.new(),
+    our_requests: MapSet.new(),
     am_choking: true,
     am_interested: false,
     peer_choking: true,
@@ -237,17 +238,22 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, bitfield: bitfield, our_requests: our_requests},
     %RequestBlock{index: index, offset: offset, size: size}
   ) do
-    %BlockRequested{
-      peer_uuid: peer_uuid,
-      info_hash: info_hash,
-      index: index,
-      offset:
-      offset,
-      size: size
-    }
+    cond do
+      not Enum.member?(bitfield, index) -> {:error, "Cannot request a piece the peer does not have"}
+      Enum.member?(our_requests, {index, offset, size}) -> {:error, "Already requested this piece from this peer"}
+      true ->
+        %BlockRequested{
+          peer_uuid: peer_uuid,
+          info_hash: info_hash,
+          index: index,
+          offset:
+          offset,
+          size: size
+        }
+    end
   end
 
   def execute(
@@ -523,11 +529,13 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   defimpl Commanded.Serialization.JsonDecoder, for: Effusion.CQRS.Aggregates.Peer do
     def decode(
       %Effusion.CQRS.Aggregates.Peer{
-        bitfield: bitfield
+        bitfield: bitfield,
+        our_requests: our_requests
       } = state
     ) do
       %Effusion.CQRS.Aggregates.Peer{state |
-        bitfield: IntSet.new(bitfield)
+        bitfield: IntSet.new(bitfield),
+        our_requests: MapSet.new(our_requests)
       }
     end
   end

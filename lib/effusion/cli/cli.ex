@@ -34,7 +34,11 @@ defmodule Effusion.CLI do
       contents = File.read!(file)
       {:ok, meta} = Metatorrent.decode(contents)
       Effusion.CQRS.Contexts.Downloads.add(meta)
-      Effusion.CQRS.Contexts.Downloads.start(meta.info_hash, Application.fetch_env!(:effusion, :block_size))
+      Effusion.CQRS.Contexts.Downloads.start(
+        meta.info_hash,
+        Application.fetch_env!(:effusion, :block_size),
+        Application.fetch_env!(:effusion, :max_requests_per_peer)
+      )
     end)
 
     Process.sleep(1000)

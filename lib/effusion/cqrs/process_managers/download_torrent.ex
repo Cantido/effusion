@@ -51,7 +51,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     connected_peers: MapSet.new(),
     failcounts: Map.new(),
     requests: Map.new(),
-    status: :downloading
+    status: :downloading,
+    max_requests_per_peer: nil
   ]
 
   def interested?(%DownloadStarted{info_hash: info_hash}) do
@@ -147,6 +148,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       pieces: pieces,
       blocks: blocks,
       block_size: block_size,
+      requests: requests,
       max_requests_per_peer: max_requests_per_peer
     },
     %PeerUnchokedUs{peer_uuid: peer_uuid}
@@ -173,7 +175,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
     existing_requests_to_this_peer =
       requests
-      |> Enum.filter(fn {_ios, peers} -> Enum.member?(peer_uuid) end)
+      |> Enum.filter(fn {_ios, peers} -> Enum.member?(peers, peer_uuid) end)
       |> Enum.map(fn {ios, _peers} -> ios end)
 
     request_count_we_can_add =
@@ -269,7 +271,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       block_size: block_size,
       announce: announce,
       announce_list: announce_list,
-      bytes_left: bytes_left
+      bytes_left: bytes_left,
+      max_requests_per_peer: max_requests_per_peer
     }
   ) do
     %__MODULE__{download |
@@ -279,7 +282,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       target_piece_count: Enum.count(info.pieces),
       announce: announce,
       annouce_list: announce_list,
-      bytes_left: bytes_left
+      bytes_left: bytes_left,
+      max_requests_per_peer: max_requests_per_peer
     }
   end
 

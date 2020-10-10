@@ -6,7 +6,7 @@ defmodule Effusion.CQRS.Commands.StartDownload do
   ]
   defstruct [
     :info_hash,
-    :block_size
+    :block_size,
     :max_requests_per_peer
   ]
 end
