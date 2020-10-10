@@ -1,6 +1,5 @@
 defmodule Effusion.CLI do
   alias Effusion.BTP.Pieces
-  alias Effusion.BTP.Session
   alias Effusion.BTP.Torrent
   alias Effusion.Format
   alias Effusion.Repo
@@ -24,15 +23,19 @@ defmodule Effusion.CLI do
   Usage: `effusion <name> -o <destination>`
   """
   def main(argv \\ []) do
-    {_opts, _files, invalid} = OptionParser.parse(argv, strict: @strict, aliases: @aliases)
+    {_opts, files, invalid} = OptionParser.parse(argv, strict: @strict, aliases: @aliases)
 
     Enum.each(invalid, fn i ->
       IO.warn("Invalid option #{i}")
     end)
 
-    Session.start_link([])
-
-    {:ok, _} = Application.ensure_all_started(:effusion)
+    files
+    |> Enum.map(fn file ->
+      contents = File.read!(file)
+      {:ok, meta} = Metatorrent.decode(contents)
+      Effusion.CQRS.Contexts.Downloads.add(meta)
+      Effusion.CQRS.Contexts.Downloads.start(meta.info_hash, Application.fetch_env!(:effusion, :block_size))
+    end)
 
     Process.sleep(1000)
 
@@ -47,8 +50,7 @@ defmodule Effusion.CLI do
 
   defp output_loop(
          last_uploaded_bytes \\ 0,
-         last_timestamp \\ System.monotonic_time(:millisecond),
-         last_messages_processed_count \\ 0
+         last_timestamp \\ System.monotonic_time(:millisecond)
        ) do
 
     info_hashes = Repo.all(
@@ -63,9 +65,6 @@ defmodule Effusion.CLI do
 
     this_loop_time = System.monotonic_time(:millisecond)
     seconds_since_last_loop = max(this_loop_time - last_timestamp, 1) / 1_000
-    total_messages_processed = Queutils.BlockingQueue.popped_count(MessageQueue)
-    this_loop_messages_processed = total_messages_processed - last_messages_processed_count
-    messages_processed_per_second = this_loop_messages_processed / seconds_since_last_loop
 
     downloaded_payload_bytes = NetStats.recv_payload_bytes()
     uploaded_bytes = NetStats.sent_bytes()
@@ -103,8 +102,6 @@ defmodule Effusion.CLI do
     IO.puts("Total TCP connections: #{PeerStats.num_tcp_peers()}")
     IO.puts("Total half-open connections: #{PeerStats.num_peers_half_open()}")
 
-    IO.puts("PWP messages processed per second: #{Float.round(messages_processed_per_second, 0) |> trunc()}")
-
     IO.puts("---INCOMING---")
     IO.puts("choke:          #{SessionStats.num_incoming_choke()}")
     IO.puts("unchoke:        #{SessionStats.num_incoming_unchoke()}")
@@ -129,7 +126,7 @@ defmodule Effusion.CLI do
 
 
     Process.sleep(100)
-    output_loop(uploaded_bytes, this_loop_time, total_messages_processed)
+    output_loop(uploaded_bytes, this_loop_time)
   end
 
   defp torrent_row(info_hash) do
