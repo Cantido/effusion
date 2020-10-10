@@ -9,6 +9,7 @@ defmodule Effusion.CQRS.Events.DownloadStarted do
     :bytes_uploaded,
     :bytes_downloaded,
     :bytes_left,
+    :max_requests_per_peer
   ]
   defstruct [
     :announce,
@@ -19,5 +20,6 @@ defmodule Effusion.CQRS.Events.DownloadStarted do
     :bytes_uploaded,
     :bytes_downloaded,
     :bytes_left,
+    :max_requests_per_peer
   ]
 end

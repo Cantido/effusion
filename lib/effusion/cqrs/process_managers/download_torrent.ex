@@ -146,7 +146,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       target_piece_count: target_piece_count,
       pieces: pieces,
       blocks: blocks,
-      block_size: block_size
+      block_size: block_size,
+      max_requests_per_peer: max_requests_per_peer
     },
     %PeerUnchokedUs{peer_uuid: peer_uuid}
   ) do
@@ -170,7 +171,17 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
         end)
       end)
 
-    Enum.map(required_blocks, fn {index, offset, size} ->
+    existing_requests_to_this_peer =
+      requests
+      |> Enum.filter(fn {_ios, peers} -> Enum.member?(peer_uuid) end)
+      |> Enum.map(fn {ios, _peers} -> ios end)
+
+    request_count_we_can_add =
+      max_requests_per_peer - Enum.count(existing_requests_to_this_peer)
+
+    blocks_to_request = Enum.take(required_blocks, request_count_we_can_add)
+
+    Enum.map(blocks_to_request, fn {index, offset, size} ->
       %RequestBlock{
         peer_uuid: peer_uuid,
         index: index,

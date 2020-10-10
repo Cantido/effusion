@@ -19,8 +19,9 @@ defmodule Effusion do
   def start_download(meta) when is_map(meta) do
     info_hash = meta.info_hash
     block_size = Application.fetch_env!(:effusion, :block_size)
+    max_requests_per_peer = Application.fetch_env!(:effusion, :max_requests_per_peer)
     Effusion.CQRS.Contexts.Downloads.add(meta)
-    Effusion.CQRS.Contexts.Downloads.start(info_hash, block_size)
+    Effusion.CQRS.Contexts.Downloads.start(info_hash, block_size, max_requests_per_peer)
   end
 
   def stop_download(info_hash) when is_hash(info_hash) do

@@ -150,13 +150,11 @@ defmodule Effusion.PWP.TCP.Connection do
   def terminate(reason, state) when is_map(state) do
     if Map.has_key?(state, :socket) do
       Socket.close(state.socket)
+      Effusion.CQRS.Contexts.Peers.disconnected(
+          Map.get(state, :peer_uuid),
+          reason
+        )
     end
-
-    Effusion.CQRS.Contexts.Peers.disconnected(
-        Map.get(state, :peer_uuid),
-        reason
-      )
-
     :ok
   end
 end

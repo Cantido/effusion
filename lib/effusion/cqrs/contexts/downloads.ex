@@ -28,10 +28,11 @@ defmodule Effusion.CQRS.Contexts.Downloads do
     end)
   end
 
-  def start(info_hash, block_size) do
+  def start(info_hash, block_size, max_requests_per_peer) do
     %StartDownload{
       info_hash: Effusion.Hash.encode(info_hash),
-      block_size: block_size
+      block_size: block_size,
+      max_requests_per_peer: max_requests_per_peer
     }
     |> CQRS.dispatch()
   end
