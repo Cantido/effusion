@@ -20,6 +20,7 @@ defmodule Effusion.CQRS.EventHandlers.SessionStatsUpdater do
     RequestCancelled,
     SendingHave
   }
+  require Logger
 
   def handle(%PeerChokedUs{},_metadata), do: SessionStats.inc_incoming_choke()
   def handle(%PeerUnchokedUs{},_metadata), do: SessionStats.inc_incoming_unchoke()
@@ -37,4 +38,9 @@ defmodule Effusion.CQRS.EventHandlers.SessionStatsUpdater do
   def handle(%InterestedSent{},_metadata), do: SessionStats.inc_outgoing_interested()
   def handle(%RequestCancelled{},_metadata), do: SessionStats.inc_outgoing_cancel()
   def handle(%SendingHave{},_metadata), do: SessionStats.inc_outgoing_cancel()
+
+  def error(error, failed_event, _context) do
+    Logger.error("SessionStatsUpdater failed to process event #{inspect failed_event} due to error #{inspect error}")
+    :skip
+  end
 end

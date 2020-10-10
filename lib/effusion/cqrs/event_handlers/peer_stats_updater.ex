@@ -10,6 +10,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerStatsUpdater do
     AttemptingToConnect,
     ConnectionAttemptFailed
   }
+  require Logger
 
   def handle(
     %PeerConnected{},
@@ -37,5 +38,10 @@ defmodule Effusion.CQRS.EventHandlers.PeerStatsUpdater do
     _metadata
   ) do
     PeerStats.dec_num_peers_half_open()
+  end
+
+  def error(error, failed_event, _context) do
+    Logger.error("PeerStatsUpdater failed to process event #{inspect failed_event} due to error #{inspect error}")
+    :skip
   end
 end

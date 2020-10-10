@@ -12,6 +12,7 @@ defmodule Effusion.CQRS.EventHandlers.NetStatsUpdater do
     RequestCancelled,
     SendingHave
   }
+  require Logger
 
   def handle(
     %BitfieldSent{bitfield: bitfield},
@@ -52,5 +53,10 @@ defmodule Effusion.CQRS.EventHandlers.NetStatsUpdater do
   defp add_message_bytes(message) do
     {:ok, msg} = Messages.encode(message)
     NetStats.add_sent_bytes(byte_size(msg))
+  end
+
+  def error(error, failed_event, _context) do
+    Logger.error("NetStatsUpdater failed to process event #{inspect failed_event} due to error #{inspect error}")
+    :skip
   end
 end
