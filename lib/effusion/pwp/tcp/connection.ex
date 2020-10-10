@@ -103,13 +103,10 @@ defmodule Effusion.PWP.TCP.Connection do
 
 
   def handle_continue(:connect, %{address: address = {host, port}, peer_uuid: peer_uuid} = state) do
-    with {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
-         {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000),
-         :ok <- Effusion.CQRS.Contexts.Peers.add_opened_peer_connection(peer_uuid, host, port) do
-      {:noreply, Map.put(state, :socket, socket)}
-    else
-      {:error, reason} -> {:stop, reason, state}
-    end
+    {:ok, _pid} = Registry.register(ConnectionRegistry, peer_uuid, nil)
+    {:ok, socket} = :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000)
+    :ok = Effusion.CQRS.Contexts.Peers.add_opened_peer_connection(peer_uuid, host, port)
+    {:noreply, Map.put(state, :socket, socket)}
   end
 
   @doc """
@@ -120,14 +117,11 @@ defmodule Effusion.PWP.TCP.Connection do
   def handle_btp(message = {:handshake, remote_peer_id, info_hash, extensions}, state = %{address: {host, port}, socket: socket})
     when is_peer_id(remote_peer_id)
      and is_hash(info_hash) do
-    with peer_uuid = UUID.uuid4(),
-         {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
-         :ok <- Effusion.CQRS.Contexts.Peers.add(peer_uuid, info_hash, remote_peer_id, host, port, :connection),
-         :ok <- Effusion.CQRS.Contexts.Peers.handle_message(peer_uuid, message, :them) do
-      {:noreply, Map.merge(state, %{info_hash: info_hash, remote_peer_id: remote_peer_id, peer_uuid: peer_uuid})}
-    else
-      err -> {:stop, {:handshake_failure, err}, state}
-    end
+    peer_uuid = UUID.uuid4()
+    {:ok, _pid} = Registry.register(ConnectionRegistry, peer_uuid, nil)
+    :ok = Effusion.CQRS.Contexts.Peers.add(peer_uuid, info_hash, remote_peer_id, host, port, :connection)
+    :ok = Effusion.CQRS.Contexts.Peers.handle_message(peer_uuid, message, :them)
+    {:noreply, Map.merge(state, %{info_hash: info_hash, remote_peer_id: remote_peer_id, peer_uuid: peer_uuid})}
   end
 
   def handle_btp(msg, state = %{peer_uuid: peer_uuid}) do
