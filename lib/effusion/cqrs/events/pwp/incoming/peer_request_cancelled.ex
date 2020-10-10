@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.Events.PeerRequestCancelled do
+defmodule Effusion.CQRS.Events.PeerCancelledRequest do
   @enforce_keys [
     :peer_uuid,
     :info_hash,

@@ -37,7 +37,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     PeerHasPiece,
     PeerHasBitfield,
     PeerRequestedBlock,
-    PeerRequestCancelled,
+    PeerCancelledRequest,
     PeerSentBlock,
     SuccessfulHandshake,
     InterestedSent,
@@ -223,7 +223,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
     %HandleCancel{index: index, offset: offset, size: size}
   ) do
-    %PeerRequestCancelled{peer_uuid: peer_uuid, info_hash: info_hash, index: index, offset: offset, size: size}
+    %PeerCancelledRequest{peer_uuid: peer_uuid, info_hash: info_hash, index: index, offset: offset, size: size}
   end
 
   def execute(

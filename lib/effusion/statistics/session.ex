@@ -39,69 +39,64 @@ defmodule Effusion.Statistics.Session do
     ])
   end
 
-  @doc """
-  Record an incoming message.
-  """
-  def inc_incoming_message(message)
-
-  def inc_incoming_message(:choke),
+  def inc_incoming_choke,
     do: :ets.update_counter(SessionStatsTable, :num_incoming_choke, 1, {:k, 0})
 
-  def inc_incoming_message(:unchoke),
+  def inc_incoming_unchoke,
     do: :ets.update_counter(SessionStatsTable, :num_incoming_unchoke, 1, {:k, 0})
 
-  def inc_incoming_message(:interested),
+  def inc_incoming_interested,
     do: :ets.update_counter(SessionStatsTable, :num_incoming_interested, 1, {:k, 0})
 
-  def inc_incoming_message(:uninterested),
+  def inc_incoming_uninterested,
     do: :ets.update_counter(SessionStatsTable, :num_incoming_not_interested, 1, {:k, 0})
 
-  def inc_incoming_message({:have, _}),
+  def inc_incoming_have,
     do: :ets.update_counter(SessionStatsTable, :num_incoming_have, 1, {:k, 0})
 
-  def inc_incoming_message({:bitfield, _}),
+  def inc_incoming_bitfield,
     do: :ets.update_counter(SessionStatsTable, :num_incoming_bitfield, 1, {:k, 0})
 
-  def inc_incoming_message({:request, _, _, _}),
+  def inc_incoming_request,
     do: :ets.update_counter(SessionStatsTable, :num_incoming_request, 1, {:k, 0})
 
-  def inc_incoming_message({:piece, _, _, _}),
+  def inc_incoming_piece,
     do: :ets.update_counter(SessionStatsTable, :num_incoming_piece, 1, {:k, 0})
 
-  def inc_incoming_message({:cancel, _, _, _}),
+  def inc_incoming_cancel,
     do: :ets.update_counter(SessionStatsTable, :num_incoming_cancel, 1, {:k, 0})
 
-  def inc_incoming_message(_),
+  def inc_incoming_unknown,
     do: :ets.update_counter(SessionStatsTable, :num_incoming_unknown, 1, {:k, 0})
 
-  def inc_outgoing_message(:choke),
+  def inc_outgoing_choke,
     do: :ets.update_counter(SessionStatsTable, :num_outgoing_choke, 1, {:k, 0})
 
-  def inc_outgoing_message(:unchoke),
+  def inc_outgoing_unchoke,
     do: :ets.update_counter(SessionStatsTable, :num_outgoing_unchoke, 1, {:k, 0})
 
-  def inc_outgoing_message(:interested),
+  def inc_outgoing_interested,
     do: :ets.update_counter(SessionStatsTable, :num_outgoing_interested, 1, {:k, 0})
 
-  def inc_outgoing_message(:uninterested),
+  def inc_outgoing_uninterested,
     do: :ets.update_counter(SessionStatsTable, :num_outgoing_not_interested, 1, {:k, 0})
 
-  def inc_outgoing_message({:have, _}),
+  def inc_outgoing_have,
     do: :ets.update_counter(SessionStatsTable, :num_outgoing_have, 1, {:k, 0})
 
-  def inc_outgoing_message({:bitfield, _}),
+  def inc_outgoing_bitfield,
     do: :ets.update_counter(SessionStatsTable, :num_outgoing_bitfield, 1, {:k, 0})
 
-  def inc_outgoing_message({:request, _, _, _}),
+  def inc_outgoing_request,
     do: :ets.update_counter(SessionStatsTable, :num_outgoing_request, 1, {:k, 0})
 
-  def inc_outgoing_message({:piece, _, _, _}),
+  def inc_outgoing_piece,
     do: :ets.update_counter(SessionStatsTable, :num_outgoing_piece, 1, {:k, 0})
 
-  def inc_outgoing_message({:cancel, _, _, _}),
+  def inc_outgoing_cancel,
     do: :ets.update_counter(SessionStatsTable, :num_outgoing_cancel, 1, {:k, 0})
 
-  def inc_outgoing_message(_),
+  def inc_outgoing_unknown,
     do: :ets.update_counter(SessionStatsTable, :num_outgoing_unknown, 1, {:k, 0})
 
   def num_incoming_choke, do: :ets.lookup_element(SessionStatsTable, :num_incoming_choke, 2)
