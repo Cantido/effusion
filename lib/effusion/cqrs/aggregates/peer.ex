@@ -238,10 +238,11 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, bitfield: bitfield, our_requests: our_requests},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, bitfield: bitfield, our_requests: our_requests, peer_choking: peer_choking},
     %RequestBlock{index: index, offset: offset, size: size}
   ) do
     cond do
+      peer_choking -> {:error, "Peer is choking us, we cannot send requests"}
       not Enum.member?(bitfield, index) -> {:error, "Cannot request a piece the peer does not have"}
       Enum.member?(our_requests, {index, offset, size}) -> {:error, "Already requested this piece from this peer"}
       true ->
@@ -249,8 +250,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
           peer_uuid: peer_uuid,
           info_hash: info_hash,
           index: index,
-          offset:
-          offset,
+          offset: offset,
           size: size
         }
     end
