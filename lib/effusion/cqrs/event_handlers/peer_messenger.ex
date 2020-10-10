@@ -4,7 +4,6 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     name: __MODULE__
 
   alias Effusion.PWP.TCP.Connection
-  alias Effusion.CQRS.Application, as: CQRS
   alias Effusion.CQRS.Commands.HandleHandshake
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
