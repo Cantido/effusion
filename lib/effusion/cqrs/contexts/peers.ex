@@ -39,7 +39,7 @@ defmodule Effusion.CQRS.Contexts.Peers do
   def disconnected(peer_uuid, reason) do
     %RemoveConnectedPeer{
       peer_uuid: peer_uuid,
-      reason: reason}
+      reason: to_string(reason)}
     |> CQRS.dispatch()
   end
 

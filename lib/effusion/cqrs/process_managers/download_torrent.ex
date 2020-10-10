@@ -16,6 +16,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   }
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
+    ConnectionAttemptFailed,
     DownloadStarted,
     DownloadStopped,
     DownloadCompleted,
@@ -51,7 +52,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     connected_peers: MapSet.new(),
     failcounts: Map.new(),
     requests: Map.new(),
-    status: :downloading,
+    status: "downloading",
     max_requests_per_peer: nil
   ]
 
@@ -108,15 +109,22 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def handle(
-    %__MODULE__{connected_peers: connected_peers, connecting_to_peers: connecting_to_peers},
+    %__MODULE__{} = download,
     %PeerAdded{peer_uuid: peer_uuid, from: "tracker"}
   ) do
-    conn_count = Enum.count(connected_peers)
-    half_open_count = Enum.count(connecting_to_peers)
-    Logger.debug("**** Peer added, checking to see if we can connect. conn_count is #{conn_count} and half_open_count is #{half_open_count}")
-
-    if (conn_count + half_open_count) < @max_connections and half_open_count < @max_half_open_connections do
+    if attempt_to_connect_to_new_peers?(download) do
       %AttemptToConnect{peer_uuid: peer_uuid}
+    end
+  end
+
+  def handle(
+    %__MODULE__{} = download,
+    %ConnectionAttemptFailed{}
+  ) do
+    unless at_connection_limit?(download) do
+      if best_peer = next_peer_connection(download) do
+        %AttemptToConnect{peer_uuid: best_peer}
+      end
     end
   end
 
@@ -232,7 +240,6 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{connected_peers: connected_peers},
     %PieceHashSucceeded{index: index}
   ) do
-    Logger.debug("****** Sending :have to all connected peers: #{inspect connected_peers}")
     Enum.map(connected_peers, fn peer_uuid ->
       %SendHave{peer_uuid: peer_uuid, index: index}
     end)
@@ -242,8 +249,6 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{connected_peers: connected_peers},
     %AllPiecesVerified{}
   ) do
-    Logger.debug("***** All pieces verified, disconnecting all peers")
-
     Enum.map(connected_peers, fn peer_uuid ->
       %DisconnectPeer{
         peer_uuid: peer_uuid
@@ -252,7 +257,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def handle(
-    %__MODULE__{info_hash: info_hash, connected_peers: connected_peers, status: :shutting_down},
+    %__MODULE__{info_hash: info_hash, connected_peers: connected_peers, status: "shutting down"},
     %PeerDisconnected{}
   ) do
     if Enum.empty?(connected_peers) do
@@ -260,6 +265,15 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
         info_hash: info_hash,
         tracker_event: "stopped"
       }
+    end
+  end
+
+  def handle(
+    %__MODULE__{status: "downloading"} = download,
+    %PeerDisconnected{}
+  ) do
+    if best_peer = next_peer_connection(download) do
+      %AttemptToConnect{peer_uuid: best_peer}
     end
   end
 
@@ -288,11 +302,36 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def apply(
+    %__MODULE__{failcounts: failcounts, connecting_to_peers: connecting_to_peers} = download,
+    %PeerAdded{peer_uuid: peer_uuid}
+  ) do
+    connecting_to_peers = if attempt_to_connect_to_new_peers?(download) do
+      MapSet.put(connecting_to_peers, peer_uuid)
+    else
+      connecting_to_peers
+    end
+
+    %__MODULE__{download |
+      failcounts: Map.put(failcounts, peer_uuid, 0),
+      connecting_to_peers: connecting_to_peers
+    }
+  end
+
+  def apply(
     %__MODULE__{connecting_to_peers: connecting_to_peers} = download,
     %AttemptingToConnect{peer_uuid: peer_uuid}
   ) do
     %__MODULE__{download |
       connecting_to_peers: MapSet.put(connecting_to_peers, peer_uuid)
+    }
+  end
+
+  def apply(
+    %__MODULE__{connecting_to_peers: connecting_to_peers} = download,
+    %ConnectionAttemptFailed{peer_uuid: peer_uuid}
+  ) do
+    %__MODULE__{download |
+      connecting_to_peers: MapSet.delete(connecting_to_peers, peer_uuid)
     }
   end
 
@@ -315,7 +354,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
     %__MODULE__{download |
       connected_peers: MapSet.delete(connected_peers, peer_uuid),
-      failcounts: if(reason == :normal, do: failcounts, else: Map.update(failcounts, peer_uuid, -1, &(&1 - 1)))
+      failcounts: if(reason == "normal", do: failcounts, else: Map.update(failcounts, peer_uuid, 1, &(&1 + 1)))
     }
   end
 
@@ -330,7 +369,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def apply(download, %AllPiecesVerified{}) do
     %__MODULE__{download |
-      status: :shutting_down
+      status: "shutting down"
     }
   end
 
@@ -353,6 +392,46 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{download |
       blocks: Map.update(blocks, index, IntSet.new(offset), &MapSet.put(&1, offset))
     }
+  end
+
+  defp attempt_to_connect_to_new_peers?(download) do
+    not at_connection_limit?(download)
+  end
+
+  defp at_connection_limit?(
+    %__MODULE__{
+      connected_peers: connected_peers,
+      connecting_to_peers: connecting_to_peers
+    }
+  ) do
+    conn_count = Enum.count(connected_peers)
+    half_open_count = Enum.count(connecting_to_peers)
+
+    (conn_count + half_open_count) >= @max_connections or half_open_count >= @max_half_open_connections
+  end
+
+  defp next_peer_connection(
+    %__MODULE__{
+      connected_peers: connected_peers,
+      connecting_to_peers: connecting_to_peers,
+      failcounts: failcounts
+    }
+  ) do
+    best_potential_peers =
+      failcounts
+      |> Enum.reject(fn {peer_uuid, _failcount} ->
+        Enum.member?(connected_peers, peer_uuid)
+      end)
+      |> Enum.reject(fn {peer_uuid, _failcount} ->
+        Enum.member?(connecting_to_peers, peer_uuid)
+      end)
+
+    if Enum.empty?(best_potential_peers) do
+      nil
+    else
+      Enum.max_by(best_potential_peers, &elem(&1, 1))
+      |> elem(0)
+    end
   end
 
   defimpl Commanded.Serialization.JsonDecoder, for: Effusion.CQRS.ProcessManagers.DownloadTorrent do

@@ -76,7 +76,7 @@ defmodule Effusion.PWP.TCP.Connection do
 
   def handle_continue(:connect, %{address: {host, port}, peer_uuid: peer_uuid} = state) do
     with {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
-         {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 30_000),
+         {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 1_000),
          :ok <- Effusion.CQRS.Contexts.Peers.add_opened_peer_connection(peer_uuid, host, port) do
       {:noreply, Map.put(state, :socket, socket)}
     else
@@ -138,8 +138,8 @@ defmodule Effusion.PWP.TCP.Connection do
     ret
   end
 
-  def handle_info({:tcp_closed, _socket}, state), do: {:stop, :normal, state}
-  def handle_info(:disconnect, state), do: {:stop, :normal, state}
+  def handle_info({:tcp_closed, _socket}, state), do: {:stop, "peer closed connection", state}
+  def handle_info(:disconnect, state), do: {:stop, "normal", state}
   def handle_info({:disconnect, reason}, state), do: {:stop, reason, state}
 
   def handle_info(info, state) do
