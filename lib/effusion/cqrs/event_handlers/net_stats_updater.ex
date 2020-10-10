@@ -50,7 +50,7 @@ defmodule Effusion.CQRS.EventHandlers.NetStatsUpdater do
   end
 
   defp add_message_bytes(message) do
-    {:ok, msg} = Message.encode(message)
+    {:ok, msg} = Messages.encode(message)
     NetStats.add_sent_bytes(byte_size(msg))
   end
 end
