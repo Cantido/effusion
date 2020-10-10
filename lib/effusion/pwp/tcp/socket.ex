@@ -1,7 +1,6 @@
 defmodule Effusion.PWP.TCP.Socket do
   require Logger
   alias Effusion.PWP.Messages
-  alias Effusion.Statistics.Net, as: NetStats
 
   @moduledoc """
   Interface to Peer Wire Protocol (PWP) sockets.
@@ -69,8 +68,6 @@ defmodule Effusion.PWP.TCP.Socket do
   def send_msg(socket, msg) do
     case Messages.encode(msg) do
       {:ok, request} ->
-        Messages.payload_bytes_count(request) |> NetStats.add_sent_payload_bytes()
-        byte_size(request) |> NetStats.add_sent_bytes()
         :gen_tcp.send(socket, request)
 
       err ->

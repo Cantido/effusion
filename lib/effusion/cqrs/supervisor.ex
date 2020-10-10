@@ -14,7 +14,8 @@ defmodule Effusion.CQRS.Supervisor do
       ProcessManagers.OutgoingPeerConnection,
       Effusion.CQRS.EventHandlers.FileWriter,
       Effusion.CQRS.EventHandlers.TrackerAnnouncer,
-      Effusion.CQRS.EventHandlers.PeerMessenger
+      Effusion.CQRS.EventHandlers.PeerMessenger,
+      Effusion.CQRS.EventHandlers.NetStatsUpdater
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.CQRS.Supervisor]
