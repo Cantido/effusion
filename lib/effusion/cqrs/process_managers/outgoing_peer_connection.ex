@@ -8,6 +8,7 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
   @derive Jason.Encoder
   defstruct []
 
+  alias Effusion.CQRS.Application, as: CQRS
   alias Effusion.CQRS.Commands.{
     AddConnectedPeer,
     SendHandshake,
