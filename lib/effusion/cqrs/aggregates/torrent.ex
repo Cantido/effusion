@@ -4,7 +4,8 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     AddTorrent,
     StartDownload,
     StopDownload,
-    StoreBlock
+    StoreBlock,
+    EnableDHTForDownload
   }
   alias Effusion.CQRS.Events.{
     BlockStored,
@@ -15,7 +16,8 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     DownloadCompleted,
     PieceHashSucceeded,
     PieceHashFailed,
-    TorrentAdded
+    TorrentAdded,
+    DHTEnabledForDownload
   }
   alias Commanded.Aggregate.Multi
   require Logger
@@ -33,7 +35,8 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     bytes_left: nil,
     pieces: %{},
     verified: IntSet.new(),
-    state: :stopped
+    state: :stopped,
+    dht_enabled?: false
   ]
 
   def execute(
@@ -173,6 +176,20 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     %DownloadCompleted{info_hash: info_hash}
   end
 
+  def execute(
+    %__MODULE__{dht_enabled?: false},
+    %EnableDHTForDownload{info_hash: info_hash, node_id: node_id}
+  ) do
+    %DHTEnabledForDownload{info_hash: info_hash, node_id: node_id}
+  end
+
+  def execute(
+    %__MODULE__{dht_enabled?: true},
+    %EnableDHTForDownload{info_hash: info_hash, node_id: node_id}
+  ) do
+    {:error, "DHT already enabled for this download"}
+  end
+
   defp store_block(%__MODULE__{info_hash: info_hash, pieces: pieces}, from, index, offset, data) do
     pieces =
       Map.update(
@@ -299,6 +316,12 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
   def apply(%__MODULE__{} = torrent, %DownloadFailed{}) do
     %__MODULE__{torrent |
       pieces: []
+    }
+  end
+
+  def apply(%__MODULE__{} = torrent, %DHTEnabledForDownload{}) do
+    %__MODULE__{torrent|
+      dht_enabled?: true
     }
   end
 

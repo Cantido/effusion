@@ -2,7 +2,8 @@ defmodule Effusion.CQRS.Router do
   use Commanded.Commands.Router
   alias Effusion.CQRS.Aggregates.{
     Torrent,
-    Peer
+    Peer,
+    Node
   }
   alias Effusion.CQRS.Commands
 
@@ -11,7 +12,8 @@ defmodule Effusion.CQRS.Router do
     Commands.StartDownload,
     Commands.StopDownload,
     Commands.StoreBlock,
-    Commands.HandleCompletedDownload
+    Commands.HandleCompletedDownload,
+    Commands.EnableDHTForDownload
   ], to: Torrent, identity: :info_hash
 
   dispatch [
@@ -39,4 +41,10 @@ defmodule Effusion.CQRS.Router do
     Commands.SendHandshake,
     Commands.SendHave
   ], to: Peer, identity: :peer_uuid
+
+  dispatch [
+    Commands.GetPeers,
+    Commands.AddDHTNode,
+    Commands.StartDHTNode
+  ], to: Node, identity: :node_id
 end
