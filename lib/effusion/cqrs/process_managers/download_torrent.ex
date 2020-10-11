@@ -332,11 +332,12 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def apply(
-    %__MODULE__{connecting_to_peers: connecting_to_peers} = download,
-    %ConnectionAttemptFailed{peer_uuid: peer_uuid}
+    %__MODULE__{connecting_to_peers: connecting_to_peers, failcounts: failcounts} = download,
+    %ConnectionAttemptFailed{peer_uuid: peer_uuid, reason: reason}
   ) do
     %__MODULE__{download |
-      connecting_to_peers: MapSet.delete(connecting_to_peers, peer_uuid)
+      connecting_to_peers: MapSet.delete(connecting_to_peers, peer_uuid),
+      failcounts: if(reason == "normal", do: failcounts, else: Map.update(failcounts, peer_uuid, 1, &(&1 + 1)))
     }
   end
 
