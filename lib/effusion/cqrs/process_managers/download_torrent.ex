@@ -132,8 +132,9 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   def handle(
     %__MODULE__{} = download,
-    %ConnectionAttemptFailed{}
+    %ConnectionAttemptFailed{} = event
   ) do
+    download = __MODULE__.apply(download, event)
     unless at_connection_limit?(download) do
       if best_peer = next_peer_connection(download) do
         %AttemptToConnect{peer_uuid: best_peer}
