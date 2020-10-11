@@ -73,7 +73,7 @@ defmodule Effusion.CQRS.EventHandlers.SessionStatsUpdater do
   end
 
   def handle(%BlockRequested{},_metadata) do
-    SessionStats.inc_outgoing_piece()
+    SessionStats.inc_outgoing_request()
     :ok
   end
 
