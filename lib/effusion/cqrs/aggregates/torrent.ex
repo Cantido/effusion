@@ -195,7 +195,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     piece_size =
       pieces[index]
       |> Enum.map(& &1.data)
-      |> Enum.map(&Base.decode16!/1)
+      |> Enum.map(&Base.decode64!/1)
       |> Enum.map(&byte_size/1)
       |> Enum.sum()
 
@@ -209,7 +209,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       piece_data =
         pieces[index]
         |> Enum.map(& &1.data)
-        |> Enum.map(&Base.decode16!/1)
+        |> Enum.map(&Base.decode64!/1)
         |> Enum.join()
 
       if Effusion.Hash.calc(piece_data) == Effusion.Hash.decode(Enum.at(info.pieces, index)) do

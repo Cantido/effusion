@@ -145,7 +145,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{pieces: pieces},
     %PeerConnected{peer_uuid: peer_uuid}
   ) do
-    encoded_bitfield = IntSet.bitstring(pieces, byte_align: true) |> Base.encode16()
+    encoded_bitfield = IntSet.bitstring(pieces, byte_align: true) |> Base.encode64()
     %SendBitfield{peer_uuid: peer_uuid, bitfield: encoded_bitfield}
   end
 
@@ -153,7 +153,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{pieces: pieces},
     %PeerHasBitfield{peer_uuid: peer_uuid, bitfield: bitfield}
   ) do
-    bitfield = bitfield |> Base.decode16!() |> IntSet.new()
+    bitfield = bitfield |> Base.decode64!() |> IntSet.new()
 
     if IntSet.difference(bitfield, pieces) |> Enum.any?() do
       Logger.debug("***** Got bitfield, sending :interested")
@@ -344,7 +344,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %PeerHasBitfield{peer_uuid: peer_uuid, bitfield: bitfield}
   ) do
     %__MODULE__{download |
-      peer_bitfields: Map.put(peer_bitfields, peer_uuid, Base.decode16!(bitfield) |> IntSet.new())
+      peer_bitfields: Map.put(peer_bitfields, peer_uuid, Base.decode64!(bitfield) |> IntSet.new())
     }
   end
 
@@ -396,7 +396,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   ) do
     size =
       data
-      |> Base.decode16!()
+      |> Base.decode64!()
       |> byte_size()
     %__MODULE__{download |
       blocks: Map.update(blocks, index, IntSet.new(offset), &IntSet.put(&1, offset)),
@@ -514,10 +514,10 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       } = state
     ) do
       %Effusion.CQRS.ProcessManagers.DownloadTorrent{state |
-        pieces: IntSet.new(Base.decode16!(pieces)),
+        pieces: IntSet.new(Base.decode64!(pieces)),
         connecting_to_peers: MapSet.new(connecting_to_peers),
         connected_peers: MapSet.new(connected_peers),
-        peer_bitfields: Enum.map(peer_bitfields, fn {uuid, bitfield} -> {uuid, Base.decode16!(bitfield) |> IntSet.new()} end)
+        peer_bitfields: Enum.map(peer_bitfields, fn {uuid, bitfield} -> {uuid, Base.decode64!(bitfield) |> IntSet.new()} end)
       }
     end
   end

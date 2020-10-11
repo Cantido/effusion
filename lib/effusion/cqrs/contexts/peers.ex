@@ -65,10 +65,10 @@ defmodule Effusion.CQRS.Contexts.Peers do
       :interested -> %HandleInterested{peer_uuid: peer_uuid}
       :uninterested -> %HandleUninterested{peer_uuid: peer_uuid}
       {:have, index} -> %HandleHave{peer_uuid: peer_uuid, index: index}
-      {:bitfield, bitfield} -> %HandleBitfield{peer_uuid: peer_uuid, bitfield: Base.encode16(bitfield)}
+      {:bitfield, bitfield} -> %HandleBitfield{peer_uuid: peer_uuid, bitfield: Base.encode64(bitfield)}
       {:request, block} -> %HandleRequest{peer_uuid: peer_uuid, index: block.index, offset: block.offset, size: block.size}
       {:cancel, block} -> %HandleCancel{peer_uuid: peer_uuid, index: block.index, offset: block.offset, size: block.size}
-      {:piece, block} -> %HandlePiece{peer_uuid: peer_uuid, index: block.index, offset: block.offset, data: Base.encode16(block.data)}
+      {:piece, block} -> %HandlePiece{peer_uuid: peer_uuid, index: block.index, offset: block.offset, data: Base.encode64(block.data)}
     end
     |> CQRS.dispatch()
   end

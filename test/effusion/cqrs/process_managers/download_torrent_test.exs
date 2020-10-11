@@ -121,14 +121,14 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
         )
 
       assert command.peer_uuid == peer_uuid
-      assert command.bitfield == "00"
+      assert Base.decode64!(command.bitfield) |> IntSet.new() |> Enum.empty?()
     end
 
     test "Sends bitfield when we have some pieces" do
       peer_uuid = UUID.uuid4()
       info_hash = Factory.encoded_info_hash()
       pieces = IntSet.new([0, 1, 4, 8])
-      expected_encoded_bitfield = IntSet.bitstring(pieces, byte_align: true) |> Base.encode16()
+      expected_encoded_bitfield = IntSet.bitstring(pieces, byte_align: true) |> Base.encode64()
 
       command =
         DownloadTorrent.handle(
@@ -154,7 +154,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
           %PeerHasBitfield{
             peer_uuid: peer_uuid,
             info_hash: Factory.encoded_info_hash(),
-            bitfield: IntSet.new([1]) |> IntSet.bitstring(byte_align: true) |> Base.encode16()
+            bitfield: IntSet.new([1]) |> IntSet.bitstring(byte_align: true) |> Base.encode64()
           }
         )
 
@@ -171,7 +171,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
           %PeerHasBitfield{
             peer_uuid: peer_uuid,
             info_hash: Factory.encoded_info_hash(),
-            bitfield: IntSet.new([1]) |> IntSet.bitstring(byte_align: true) |> Base.encode16()
+            bitfield: IntSet.new([1]) |> IntSet.bitstring(byte_align: true) |> Base.encode64()
           }
         )
 
@@ -312,7 +312,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
   describe "handling PeerSentBlock" do
     test "always sends sends StoreBlock" do
       peer_uuid = UUID.uuid4()
-      data = :crypto.strong_rand_bytes(16) |> Base.encode16()
+      data = :crypto.strong_rand_bytes(16) |> Base.encode64()
       commands =
         DownloadTorrent.handle(
           %DownloadTorrent{
@@ -343,7 +343,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
 
     test "when we had a request to that same peer for that block, don't send cancel" do
       peer_uuid = UUID.uuid4()
-      data = :crypto.strong_rand_bytes(16) |> Base.encode16()
+      data = :crypto.strong_rand_bytes(16) |> Base.encode64()
       commands =
         DownloadTorrent.handle(
           %DownloadTorrent{
@@ -376,7 +376,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
     test "when we had a request to another peer for that block, send cancel" do
       peer_uuid = UUID.uuid4()
       other_peer_uuid = UUID.uuid4()
-      data = :crypto.strong_rand_bytes(16) |> Base.encode16()
+      data = :crypto.strong_rand_bytes(16) |> Base.encode64()
       commands =
         DownloadTorrent.handle(
           %DownloadTorrent{
@@ -414,7 +414,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
 
     test "when that peer has other blocks we want, request them" do
       peer_uuid = UUID.uuid4()
-      data = :crypto.strong_rand_bytes(16) |> Base.encode16()
+      data = :crypto.strong_rand_bytes(16) |> Base.encode64()
       commands =
         DownloadTorrent.handle(
           %DownloadTorrent{
@@ -454,7 +454,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
   describe "applies PeerSentBlock" do
     test "adds block to blocks map" do
       peer_uuid = UUID.uuid4()
-      data = :crypto.strong_rand_bytes(16) |> Base.encode16()
+      data = :crypto.strong_rand_bytes(16) |> Base.encode64()
       download =
         DownloadTorrent.apply(
           %DownloadTorrent{
@@ -474,7 +474,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
 
     test "deletes block from requests map" do
       peer_uuid = UUID.uuid4()
-      data = :crypto.strong_rand_bytes(16) |> Base.encode16()
+      data = :crypto.strong_rand_bytes(16) |> Base.encode64()
       download =
         DownloadTorrent.apply(
           %DownloadTorrent{

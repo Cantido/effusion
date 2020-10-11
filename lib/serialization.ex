@@ -8,7 +8,7 @@ defimpl Jason.Encoder, for: [IntSet] do
   def encode(struct, opts) do
     struct
     |> IntSet.bitstring(byte_align: true)
-    |> Base.encode16()
+    |> Base.encode64()
     |> Jason.Encode.string(opts)
   end
 end

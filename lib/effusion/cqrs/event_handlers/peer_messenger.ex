@@ -122,7 +122,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     %BitfieldSent{peer_uuid: peer_uuid, bitfield: bitfield},
     _metadata
   ) do
-    {:ok, decoded_bitfield} = Base.decode16(bitfield)
+    {:ok, decoded_bitfield} = Base.decode64(bitfield)
     Connection.send_pwp_message(peer_uuid, {:bitfield, decoded_bitfield})
   end
 
