@@ -270,7 +270,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
 
   def apply(%__MODULE__{} = torrent, %PieceHashFailed{index: index}) do
     %__MODULE__{torrent |
-      pieces: Map.drop(torrent.pieces, index)
+      pieces: Map.drop(torrent.pieces, [index])
     }
   end
 
