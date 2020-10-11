@@ -117,7 +117,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
         %ConnectionAttemptFailed{
           peer_uuid: peer_uuid,
           info_hash: info_hash,
-          reason: "Handshake timed out"
+          reason: "handshake timed out"
         }
       ]
     end
@@ -138,7 +138,6 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %__MODULE__{info_hash: info_hash},
     %AddConnectedPeer{peer_uuid: peer_uuid, initiated_by: initiated_by}
   ) do
-    Logger.debug("***** Emitting PeerConnected event")
     %PeerConnected{peer_uuid: peer_uuid, info_hash: info_hash, initiated_by: initiated_by}
   end
 
