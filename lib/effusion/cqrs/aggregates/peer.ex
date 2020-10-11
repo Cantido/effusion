@@ -19,6 +19,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     HandleInterested,
     HandleUninterested,
     SendInterested,
+    CancelRequest,
     RequestBlock,
     SendBitfield,
     SendHandshake,
@@ -41,6 +42,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     PeerCancelledRequest,
     PeerSentBlock,
     SuccessfulHandshake,
+    RequestCancelled,
     InterestedSent,
     BlockRequested,
     BitfieldSent,
@@ -276,6 +278,17 @@ defmodule Effusion.CQRS.Aggregates.Peer do
           offset: offset,
           size: size
         }
+    end
+  end
+
+  def execute(
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, our_requests: our_requests},
+    %CancelRequest{index: index, offset: offset, size: size}
+  ) do
+    if Enum.member?(our_requests, {index, offset, size}) do
+      %RequestCancelled{peer_uuid: peer_uuid, info_hash: info_hash, index: index, offset: offset, size: size}
+    else
+      {:error, "piece was not requested, cannot cancel request"}
     end
   end
 
@@ -520,10 +533,12 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def apply(
-    %__MODULE__{} = peer,
-    %PeerSentBlock{}
+    %__MODULE__{our_requests: our_requests} = peer,
+    %PeerSentBlock{index: index, offset: offset}
   ) do
-    peer
+    %__MODULE__{peer |
+      our_requests: MapSet.delete(our_requests, {index, offset, Application.fetch_env!(:effusion, :block_size)})
+    }
   end
 
   def apply(
@@ -540,6 +555,15 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %BlockRequested{}
   ) do
     peer
+  end
+
+  def apply(
+    %__MODULE__{our_requests: our_requests} = peer,
+    %RequestCancelled{index: index, offset: offset, size: size}
+  ) do
+    %__MODULE__{peer |
+      our_requests: MapSet.delete(our_requests, {index, offset, size})
+    }
   end
 
   def apply(

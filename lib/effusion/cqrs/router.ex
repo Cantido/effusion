@@ -32,6 +32,7 @@ defmodule Effusion.CQRS.Router do
     Commands.HandleRequest,
     Commands.HandleUnchoke,
     Commands.HandleUninterested,
+    Commands.CancelRequest,
     Commands.RequestBlock,
     Commands.SendInterested,
     Commands.SendBitfield,
