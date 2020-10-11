@@ -3,14 +3,16 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
   alias Effusion.CQRS.Commands.{
     TimeoutHandshake,
     SendHandshake,
-    HandleHandshake
+    HandleHandshake,
+    RequestBlock
   }
   alias Effusion.CQRS.Events.{
     FailedHandshake,
     ConnectionAttemptFailed,
     SendingHandshake,
     SuccessfulHandshake,
-    PeerSentHandshake
+    PeerSentHandshake,
+    BlockRequested
   }
   alias Effusion.CQRS.Aggregates.Peer
   alias Commanded.Aggregate.Multi
@@ -244,6 +246,105 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
           initiated_by: "us"
         }
       ]
+    end
+  end
+
+  describe "handle RequestBlock" do
+    test "return an error if the peer is choking us" do
+      peer_uuid = UUID.uuid4()
+      info_hash = "12345678901234567890"
+      ret =
+        Peer.execute(
+          %Peer{
+            peer_uuid: peer_uuid,
+            info_hash: info_hash,
+            bitfield: IntSet.new(0),
+            peer_choking: true
+          },
+          %RequestBlock{
+            peer_uuid: peer_uuid,
+            index: 0,
+            offset: 0,
+            size: 16384
+          }
+        )
+
+      assert ret == {:error, "Peer is choking us, we cannot send requests"}
+    end
+
+    test "return an error if the peer does not have the block being requested" do
+      peer_uuid = UUID.uuid4()
+      info_hash = "12345678901234567890"
+      ret =
+        Peer.execute(
+          %Peer{
+            peer_uuid: peer_uuid,
+            info_hash: info_hash,
+            bitfield: IntSet.new(1),
+            peer_choking: false
+          },
+          %RequestBlock{
+            peer_uuid: peer_uuid,
+            index: 0,
+            offset: 0,
+            size: 16384
+          }
+        )
+
+      assert ret == {:error, "Cannot request a piece the peer does not have"}
+    end
+
+    test "return an error if we already requested this piece from this peer" do
+      peer_uuid = UUID.uuid4()
+      info_hash = "12345678901234567890"
+      ret =
+        Peer.execute(
+          %Peer{
+            peer_uuid: peer_uuid,
+            info_hash: info_hash,
+            bitfield: IntSet.new(0),
+            peer_choking: false,
+            our_requests: MapSet.new([{0, 0, 16384}])
+          },
+          %RequestBlock{
+            peer_uuid: peer_uuid,
+            index: 0,
+            offset: 0,
+            size: 16384
+          }
+        )
+
+      assert ret == {:error, "Already requested this piece from this peer"}
+    end
+
+    test "return BlockRequested if everything is right" do
+      peer_uuid = UUID.uuid4()
+      info_hash = "12345678901234567890"
+      ret =
+        Peer.execute(
+          %Peer{
+            peer_uuid: peer_uuid,
+            info_hash: info_hash,
+            bitfield: IntSet.new(0),
+            peer_choking: false,
+            our_requests: MapSet.new()
+          },
+          %RequestBlock{
+            peer_uuid: peer_uuid,
+            index: 0,
+            offset: 0,
+            size: 16384
+          }
+        )
+
+      assert ret ==
+        %BlockRequested{
+          peer_uuid: peer_uuid,
+          info_hash: info_hash,
+          index: 0,
+          offset: 0,
+          size: 16384
+        }
     end
   end
 end
