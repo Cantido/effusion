@@ -43,9 +43,10 @@ defmodule Effusion.CQRS.Contexts.Peers do
     |> CQRS.dispatch()
   end
 
-  def handle_failed_connection_attempt(peer_uuid) do
+  def handle_failed_connection_attempt(peer_uuid, reason) do
     %HandleFailedConnectionAttempt{
-      peer_uuid: peer_uuid
+      peer_uuid: peer_uuid,
+      reason: reason
     }
     |> CQRS.dispatch()
   end

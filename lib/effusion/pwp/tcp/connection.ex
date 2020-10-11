@@ -81,7 +81,7 @@ defmodule Effusion.PWP.TCP.Connection do
       {:noreply, Map.put(state, :socket, socket)}
     else
       _ ->
-      Effusion.CQRS.Contexts.Peers.handle_failed_connection_attempt(peer_uuid)
+      Effusion.CQRS.Contexts.Peers.handle_failed_connection_attempt(peer_uuid, "Failed to open initial connection to peer")
       {:stop, :failed_to_connect, state}
     end
   end

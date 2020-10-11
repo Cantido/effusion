@@ -93,11 +93,12 @@ defmodule Effusion.CQRS.Aggregates.Peer do
 
   def execute(
     %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
-    %HandleFailedConnectionAttempt{}
+    %HandleFailedConnectionAttempt{reason: reason}
   ) do
     %ConnectionAttemptFailed{
       peer_uuid: peer_uuid,
-      info_hash: info_hash
+      info_hash: info_hash,
+      reason: reason
     }
   end
 
@@ -113,7 +114,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
         },
         %ConnectionAttemptFailed{
           peer_uuid: peer_uuid,
-          info_hash: info_hash
+          info_hash: info_hash,
+          reason: "Handshake timed out"
         }
       ]
     end
