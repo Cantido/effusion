@@ -12,7 +12,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
   doctest Effusion.CQRS.ProcessManagers.DownloadTorrent
 
   describe "handling PeerAdded" do
-    test "issues an AttemptToConnect command if we're not at our limt" do
+    test "issues an AttemptToConnect command if we're not at our limit" do
       peer_uuid = UUID.uuid4()
       command =
         DownloadTorrent.handle(
@@ -23,6 +23,20 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
       assert command == %AttemptToConnect{
         peer_uuid: peer_uuid
       }
+    end
+
+    test "when we are at our connection limit, don't emit an AttemptToConnect command" do
+      peer_uuid = UUID.uuid4()
+      command =
+        DownloadTorrent.handle(
+          %DownloadTorrent{
+            connected_peers: MapSet.new([UUID.uuid4()]),
+            max_connections: 1
+          },
+          %PeerAdded{peer_uuid: peer_uuid, expected_info_hash: "", expected_peer_id: "", host: {}, port: 0, from: "tracker"}
+        )
+
+      assert is_nil(command)
     end
   end
 

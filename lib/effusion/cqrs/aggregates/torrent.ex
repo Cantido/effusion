@@ -72,7 +72,12 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       announce_list: announce_list,
       state: :stopped
     },
-    %StartDownload{block_size: block_size, max_requests_per_peer: max_requests_per_peer}
+    %StartDownload{
+      block_size: block_size,
+      max_requests_per_peer: max_requests_per_peer,
+      max_half_open_connections: max_half_open_connections,
+      max_connections: max_connections
+    }
   ) do
     bytes_left = info.length - (Enum.count(verified) * info.piece_length)
 
@@ -85,7 +90,9 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       bytes_downloaded: 0, # TODO
       info: info,
       block_size: block_size,
-      max_requests_per_peer: max_requests_per_peer
+      max_requests_per_peer: max_requests_per_peer,
+      max_half_open_connections: max_half_open_connections,
+      max_connections: max_connections
     }
   end
 

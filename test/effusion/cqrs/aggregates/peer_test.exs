@@ -45,7 +45,9 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
       :ok = CQRS.dispatch(%StartDownload{
         info_hash: info_hash,
         block_size: Application.fetch_env!(:effusion, :block_size),
-        max_requests_per_peer: 1
+        max_requests_per_peer: 1,
+        max_half_open_connections: 2,
+        max_connections: 1
       })
       :ok = CQRS.dispatch(%AddPeer{
         peer_uuid: peer_uuid,
@@ -118,7 +120,9 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
       :ok = CQRS.dispatch(%StartDownload{
         info_hash: info_hash,
         block_size: Application.fetch_env!(:effusion, :block_size),
-        max_requests_per_peer: 1
+        max_requests_per_peer: 1,
+        max_half_open_connections: 2,
+        max_connections: 1
       })
       :ok = CQRS.dispatch(%AddPeer{
         peer_uuid: peer_uuid,
@@ -265,7 +269,9 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
       :ok = CQRS.dispatch(%StartDownload{
         info_hash: info_hash,
         block_size: Application.fetch_env!(:effusion, :block_size),
-        max_requests_per_peer: 1
+        max_requests_per_peer: 1,
+        max_half_open_connections: 2,
+        max_connections: 1
       })
       :ok = CQRS.dispatch(%AddPeer{
         peer_uuid: peer_uuid,

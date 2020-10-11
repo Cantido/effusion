@@ -37,7 +37,9 @@ defmodule Effusion.CLI do
       Effusion.CQRS.Contexts.Downloads.start(
         meta.info_hash,
         Application.fetch_env!(:effusion, :block_size),
-        Application.fetch_env!(:effusion, :max_requests_per_peer)
+        Application.fetch_env!(:effusion, :max_requests_per_peer),
+        Application.fetch_env!(:effusion, :max_half_open_connections),
+        Application.fetch_env!(:effusion, :max_peers)
       )
     end)
 

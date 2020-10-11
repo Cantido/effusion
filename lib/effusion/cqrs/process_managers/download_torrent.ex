@@ -32,9 +32,6 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   }
   require Logger
 
-  @max_half_open_connections 500
-  @max_connections Application.fetch_env!(:effusion, :max_peers)
-
   @derive Jason.Encoder
   defstruct [
     info_hash: nil,
@@ -53,7 +50,9 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     failcounts: Map.new(),
     requests: Map.new(),
     status: "downloading",
-    max_requests_per_peer: nil
+    max_requests_per_peer: nil,
+    max_half_open_connections: nil,
+    max_connections: nil
   ]
 
   def interested?(%DownloadStarted{info_hash: info_hash}) do
@@ -257,7 +256,9 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       announce: announce,
       announce_list: announce_list,
       bytes_left: bytes_left,
-      max_requests_per_peer: max_requests_per_peer
+      max_requests_per_peer: max_requests_per_peer,
+      max_half_open_connections: max_half_open_connections,
+      max_connections: max_connections
     }
   ) do
     %__MODULE__{download |
@@ -268,7 +269,9 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       announce: announce,
       annouce_list: announce_list,
       bytes_left: bytes_left,
-      max_requests_per_peer: max_requests_per_peer
+      max_requests_per_peer: max_requests_per_peer,
+      max_half_open_connections: max_half_open_connections,
+      max_connections: max_connections
     }
   end
 
@@ -379,13 +382,15 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   defp at_connection_limit?(
     %__MODULE__{
       connected_peers: connected_peers,
-      connecting_to_peers: connecting_to_peers
+      connecting_to_peers: connecting_to_peers,
+      max_connections: max_connections,
+      max_half_open_connections: max_half_open_connections
     }
   ) do
     conn_count = Enum.count(connected_peers)
     half_open_count = Enum.count(connecting_to_peers)
 
-    (conn_count + half_open_count) >= @max_connections or half_open_count >= @max_half_open_connections
+    (conn_count + half_open_count) >= max_connections or half_open_count >= max_half_open_connections
   end
 
   defp next_peer_connection(
