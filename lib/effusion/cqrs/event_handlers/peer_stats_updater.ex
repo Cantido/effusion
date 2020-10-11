@@ -37,6 +37,14 @@ defmodule Effusion.CQRS.EventHandlers.PeerStatsUpdater do
   end
 
   def handle(
+    %PeerConnected{initiated_by: "us"},
+    _metadata
+  ) do
+    PeerStats.dec_num_peers_half_open()
+    :ok
+  end
+
+  def handle(
     %ConnectionAttemptFailed{},
     _metadata
   ) do
