@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.Aggregates.PeerTest do
+defmodule Effusion.CQRS.Aggregates.HandshakeProcessTest do
   use Effusion.EventStoreCase
   alias Effusion.CQRS.Application, as: CQRS
   alias Effusion.CQRS.Commands.{
@@ -19,7 +19,6 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
     FailedHandshake
   }
   import Commanded.Assertions.EventAssertions
-  doctest Effusion.CQRS.Aggregates.Peer
 
   describe "handshake process" do
     test "when the other peer initiated" do
