@@ -361,14 +361,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
 
   def apply(%__MODULE__{pieces: pieces, blocks: blocks} = download, %PieceHashSucceeded{index: index}) do
-    new_pieces =
-      pieces
-      |> IntSet.put(index)
-      |> IntSet.bitstring(byte_align: true)
-      |> Base.encode16()
-
     %__MODULE__{download |
-      pieces: new_pieces,
+      pieces: IntSet.put(pieces, index),
       blocks: Map.put(blocks, index, :complete)
     }
   end
