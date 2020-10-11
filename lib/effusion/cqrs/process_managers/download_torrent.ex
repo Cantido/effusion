@@ -396,7 +396,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   ) do
     size =
       data
-      |> Base.decode16!(case: :lower)
+      |> Base.decode16!()
       |> byte_size()
     %__MODULE__{download |
       blocks: Map.update(blocks, index, IntSet.new(offset), &IntSet.put(&1, offset)),
