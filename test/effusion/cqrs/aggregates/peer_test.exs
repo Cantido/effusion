@@ -1,5 +1,6 @@
 defmodule Effusion.CQRS.Aggregates.PeerTest do
   use Effusion.EventStoreCase
+  alias Effusion.Factory
   alias Effusion.CQRS.Commands.{
     TimeoutHandshake,
     SendHandshake,
@@ -21,7 +22,7 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
   describe "Handling TimeoutHandshake" do
     test "emits FailedHandshake and ConnectionAttemptFailed when connection state is disconnected" do
       peer_uuid = UUID.uuid4()
-      info_hash = ""
+      info_hash = Factory.info_hash() |> Effusion.Hash.encode()
       events =
         Peer.execute(
           %Peer{
@@ -49,8 +50,8 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
   describe "Handling SendHandshake" do
     test "when intitated_by is 'us', just emit SendingHandshake" do
       peer_uuid = UUID.uuid4()
-      info_hash = "12345678901234567890"
-      our_peer_id = "Effusion Experiment!"
+      info_hash = Factory.info_hash() |> Effusion.Hash.encode()
+      our_peer_id = Factory.peer_id() |> Effusion.Hash.encode()
       our_extensions = [:fast, :dht]
       events =
         Peer.execute(
@@ -78,8 +79,8 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
 
     test "when intitated_by is 'them', SendingHandshake and SuccessfulHandshake" do
       peer_uuid = UUID.uuid4()
-      info_hash = "12345678901234567890"
-      our_peer_id = "Effusion Experiment!"
+      info_hash = Factory.info_hash() |> Effusion.Hash.encode()
+      our_peer_id = Factory.peer_id() |> Effusion.Hash.encode()
       our_extensions = [:fast, :dht]
       events =
         Peer.execute(
@@ -114,8 +115,8 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
   describe "Handling HandleHandshake" do
     test "emits PeerSentHandshake when initiated by them" do
       peer_uuid = UUID.uuid4()
-      info_hash = "12345678901234567890"
-      peer_id = "Other peer~~~~~~~~~~"
+      info_hash = Factory.info_hash() |> Effusion.Hash.encode()
+      peer_id = Factory.peer_id() |> Effusion.Hash.encode()
       {_agg, events} =
         Peer.execute(
           %Peer{
@@ -145,13 +146,14 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
 
     test "emits FailedHandshake when the info hash does not match what we expected" do
       peer_uuid = UUID.uuid4()
-      info_hash = "12345678901234567890"
-      peer_id = "Other peer~~~~~~~~~~"
+      info_hash = Factory.info_hash() |> Effusion.Hash.encode()
+      other_info_hash = Factory.info_hash() |> Effusion.Hash.encode()
+      peer_id = Factory.peer_id() |> Effusion.Hash.encode()
       {_agg, events} =
         Peer.execute(
           %Peer{
             peer_uuid: peer_uuid,
-            expected_info_hash: "09876543210987654321",
+            expected_info_hash: other_info_hash,
             expected_peer_id: peer_id
           },
           %HandleHandshake{
@@ -180,14 +182,15 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
 
     test "emits FailedHandshake when the peer_id does not match what we expected" do
       peer_uuid = UUID.uuid4()
-      info_hash = "12345678901234567890"
-      peer_id = "Other peer~~~~~~~~~~"
+      info_hash = Factory.info_hash() |> Effusion.Hash.encode()
+      peer_id = Factory.peer_id() |> Effusion.Hash.encode()
+      other_peer_id = Factory.peer_id() |> Effusion.Hash.encode()
       {_agg, events} =
         Peer.execute(
           %Peer{
             peer_uuid: peer_uuid,
             expected_info_hash: info_hash,
-            expected_peer_id: "Another peer!!!!!!!!"
+            expected_peer_id: other_peer_id
           },
           %HandleHandshake{
             peer_uuid: peer_uuid,
@@ -215,8 +218,8 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
 
     test "emits SuccessfulHandshake when initiated_by us and all fields match" do
       peer_uuid = UUID.uuid4()
-      info_hash = "12345678901234567890"
-      peer_id = "Other peer~~~~~~~~~~"
+      info_hash = Factory.info_hash() |> Effusion.Hash.encode()
+      peer_id = Factory.peer_id() |> Effusion.Hash.encode()
       {_agg, events} =
         Peer.execute(
           %Peer{
@@ -252,7 +255,7 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
   describe "handle RequestBlock" do
     test "return an error if the peer is choking us" do
       peer_uuid = UUID.uuid4()
-      info_hash = "12345678901234567890"
+      info_hash = Factory.info_hash() |> Effusion.Hash.encode()
       ret =
         Peer.execute(
           %Peer{
@@ -274,7 +277,7 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
 
     test "return an error if the peer does not have the block being requested" do
       peer_uuid = UUID.uuid4()
-      info_hash = "12345678901234567890"
+      info_hash = Factory.info_hash() |> Effusion.Hash.encode()
       ret =
         Peer.execute(
           %Peer{
@@ -296,7 +299,7 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
 
     test "return an error if we already requested this piece from this peer" do
       peer_uuid = UUID.uuid4()
-      info_hash = "12345678901234567890"
+      info_hash = Factory.info_hash() |> Effusion.Hash.encode()
       ret =
         Peer.execute(
           %Peer{
@@ -319,7 +322,7 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
 
     test "return BlockRequested if everything is right" do
       peer_uuid = UUID.uuid4()
-      info_hash = "12345678901234567890"
+      info_hash = Factory.info_hash() |> Effusion.Hash.encode()
       ret =
         Peer.execute(
           %Peer{

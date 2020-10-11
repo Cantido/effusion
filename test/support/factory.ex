@@ -1,6 +1,14 @@
 defmodule Effusion.Factory do
   alias Effusion.Repo
 
+  def info_hash do
+    :crypto.strong_rand_bytes(20)
+  end
+
+  def peer_id do
+    :crypto.strong_rand_bytes(20)
+  end
+
   def build(:torrent) do
     %Effusion.BTP.Torrent{
       info_hash: "12345678901234567890",
