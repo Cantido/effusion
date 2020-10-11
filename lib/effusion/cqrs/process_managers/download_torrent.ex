@@ -132,7 +132,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{pieces: pieces},
     %PeerConnected{peer_uuid: peer_uuid}
   ) do
-    %SendBitfield{peer_uuid: peer_uuid, bitfield: IntSet.bitstring(pieces)}
+    encoded_bitfield = IntSet.bitstring(pieces, byte_align: true) |> Base.encode16()
+    %SendBitfield{peer_uuid: peer_uuid, bitfield: encoded_bitfield}
   end
 
   def handle(
@@ -360,8 +361,14 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
 
   def apply(%__MODULE__{pieces: pieces, blocks: blocks} = download, %PieceHashSucceeded{index: index}) do
+    new_pieces =
+      pieces
+      |> IntSet.put(index)
+      |> IntSet.bitstring(byte_align: true)
+      |> Base.encode16()
+
     %__MODULE__{download |
-      pieces: IntSet.put(Base.decode16!(pieces), index) |> Base.encode16(),
+      pieces: new_pieces,
       blocks: Map.put(blocks, index, :complete)
     }
   end
@@ -443,7 +450,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       } = state
     ) do
       %Effusion.CQRS.ProcessManagers.DownloadTorrent{state |
-        pieces: IntSet.new(pieces),
+        pieces: IntSet.new(Base.decode16!(pieces)),
         connecting_to_peers: MapSet.new(connecting_to_peers),
         connected_peers: MapSet.new(connected_peers)
       }

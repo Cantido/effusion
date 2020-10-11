@@ -237,9 +237,9 @@ defmodule EffusionTest do
       Socket.close(sock)
     end)
 
-    {:ok, {:bitfield, ""}} = Socket.recv(sock)
+    {:ok, {:bitfield, <<0>>}} = Socket.recv(sock)
 
-    bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
+    bitfield = IntSet.new([0, 1]) |> IntSet.bitstring(byte_align: true)
     :ok = Socket.send_msg(sock, {:bitfield, bitfield})
     {:ok, :interested} = Socket.recv(sock)
 

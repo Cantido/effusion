@@ -26,9 +26,9 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
       peer_uuid = UUID.uuid4()
       meta = TestHelper.mint_meta()
       info_hash = Effusion.Hash.encode(TestHelper.mint_info_hash())
-      our_peer_id = "Effusion Experiment!"
+      our_peer_id = Effusion.Hash.encode("Effusion Experiment!")
       our_extensions = [:dht]
-      remote_peer_id = "Other peer ID~~~~~~~"
+      remote_peer_id = Effusion.Hash.encode("Other peer ID~~~~~~~")
       remote_extensions = [:dht, :fast]
       host = "127.0.0.1"
       port = 6801
@@ -44,7 +44,8 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
       })
       :ok = CQRS.dispatch(%StartDownload{
         info_hash: info_hash,
-        block_size: Application.fetch_env!(:effusion, :block_size)
+        block_size: Application.fetch_env!(:effusion, :block_size),
+        max_requests_per_peer: 1
       })
       :ok = CQRS.dispatch(%AddPeer{
         peer_uuid: peer_uuid,
@@ -98,9 +99,9 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
       peer_uuid = UUID.uuid4()
       meta = TestHelper.mint_meta()
       info_hash = Effusion.Hash.encode(TestHelper.mint_info_hash())
-      our_peer_id = "Effusion Experiment!"
+      our_peer_id = Effusion.Hash.encode("Effusion Experiment!")
       our_extensions = [:dht]
-      remote_peer_id = "Other peer ID~~~~~~~"
+      remote_peer_id = Effusion.Hash.encode("Other peer ID~~~~~~~")
       remote_extensions = [:dht, :fast]
       host = "127.0.0.1"
       port = 6801
@@ -116,7 +117,8 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
       })
       :ok = CQRS.dispatch(%StartDownload{
         info_hash: info_hash,
-        block_size: Application.fetch_env!(:effusion, :block_size)
+        block_size: Application.fetch_env!(:effusion, :block_size),
+        max_requests_per_peer: 1
       })
       :ok = CQRS.dispatch(%AddPeer{
         peer_uuid: peer_uuid,
@@ -181,9 +183,9 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
       peer_uuid = UUID.uuid4()
       info_hash = "5fbd8f01253892288c4e02fad090d90a3107401c"
       wrong_info_hash = "5fbd8f01253892288c4e02fad090d90a3107401d"
-      our_peer_id = "Effusion Experiment!"
+      our_peer_id = Effusion.Hash.encode("Effusion Experiment!")
       our_extensions = [:dht]
-      remote_peer_id = "Other peer ID~~~~~~~"
+      remote_peer_id = Effusion.Hash.encode("Other peer ID~~~~~~~")
       remote_extensions = [:dht, :fast]
       host = "127.0.0.1"
       port = 6801
@@ -244,9 +246,9 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
       meta = TestHelper.mint_meta()
       info_hash = Effusion.Hash.encode(TestHelper.mint_info_hash())
       wrong_info_hash = "5fbd8f01253892288c4e02fad090d90a3107401d"
-      our_peer_id = "Effusion Experiment!"
+      our_peer_id = Effusion.Hash.encode("Effusion Experiment!")
       our_extensions = [:dht]
-      remote_peer_id = "Other peer ID~~~~~~~"
+      remote_peer_id = Effusion.Hash.encode("Other peer ID~~~~~~~")
       remote_extensions = [:dht, :fast]
       host = "127.0.0.1"
       port = 6801
@@ -262,7 +264,8 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
       })
       :ok = CQRS.dispatch(%StartDownload{
         info_hash: info_hash,
-        block_size: Application.fetch_env!(:effusion, :block_size)
+        block_size: Application.fetch_env!(:effusion, :block_size),
+        max_requests_per_peer: 1
       })
       :ok = CQRS.dispatch(%AddPeer{
         peer_uuid: peer_uuid,

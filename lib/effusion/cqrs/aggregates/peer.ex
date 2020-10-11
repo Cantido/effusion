@@ -493,7 +493,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %PeerHasBitfield{bitfield: bitfield}
   ) do
     %__MODULE__{peer |
-      bitfield: IntSet.new(bitfield)
+      bitfield: IntSet.new(Base.decode16!(bitfield))
     }
   end
 
