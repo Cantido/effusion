@@ -37,8 +37,8 @@ defmodule Effusion.CQRS.EventHandlers.FileWriterTest do
   end
 
   test "writes the contents of the torrent out to a file", %{destfile: file, single_file_meta: meta} do
-    :ok = FileWriter.handle(%PieceHashSucceeded{info_hash: meta.info_hash, info: meta.info, index: 0, data: "tin"}, %{})
-    :ok = FileWriter.handle(%PieceHashSucceeded{info_hash: meta.info_hash, info: meta.info, index: 1, data: "y\n"}, %{})
+    :ok = FileWriter.handle(%PieceHashSucceeded{info_hash: meta.info_hash, info: meta.info, index: 0, data: Base.encode64("tin")}, %{})
+    :ok = FileWriter.handle(%PieceHashSucceeded{info_hash: meta.info_hash, info: meta.info, index: 1, data: Base.encode64("y\n")}, %{})
 
     file = File.read!(Path.join(file, "tiny.txt"))
 
@@ -46,7 +46,7 @@ defmodule Effusion.CQRS.EventHandlers.FileWriterTest do
   end
 
   test "writes the contents of a multi-file torrent out into a directory", %{destfile: file, multi_file_meta: meta} do
-    :ok = FileWriter.handle(%PieceHashSucceeded{info_hash: meta.info_hash, info: meta.info, index: 0, data: "Hello\nworld!\n"}, %{})
+    :ok = FileWriter.handle(%PieceHashSucceeded{info_hash: meta.info_hash, info: meta.info, index: 0, data: Base.encode64("Hello\nworld!\n")}, %{})
 
     hello = File.read!(Path.join(file, "hello_world/hello.txt"))
     world = File.read!(Path.join(file, "hello_world/world.txt"))
