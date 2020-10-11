@@ -44,10 +44,11 @@ defmodule Effusion.CQRS.EventHandlers.NetStatsUpdater do
   end
 
   def handle(%PeerSentBlock{info_hash: info_hash, index: index, offset: offset, data: data}, _metadata) do
+    data = Base.decode16!(data)
     add_recv_bytes({:piece, index, offset, data})
     NetStats.add_recv_payload_bytes(byte_size(data))
-    NetStats.add_recv_torrent_payload_bytes(Base.decode16!(info_hash), byte_size(data))
-
+    NetStats.add_recv_torrent_payload_bytes(Effusion.Hash.decode(info_hash), byte_size(data))
+    :ok
   end
 
   def handle(%PeerSentHandshake{info_hash: info_hash, peer_id: peer_id}, _metadata) do
