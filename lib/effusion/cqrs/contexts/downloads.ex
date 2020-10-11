@@ -46,18 +46,4 @@ defmodule Effusion.CQRS.Contexts.Downloads do
     }
     |> CQRS.dispatch(consistency: :strong)
   end
-
-  def store_block(info_hash, from, index, offset, data)
-    when is_number(index)
-    and is_number(offset)
-  do
-    %StoreBlock{
-      from: from,
-      info_hash: Effusion.Hash.encode(info_hash),
-      index: index,
-      offset: offset,
-      data: data
-    }
-    |> CQRS.dispatch()
-  end
 end
