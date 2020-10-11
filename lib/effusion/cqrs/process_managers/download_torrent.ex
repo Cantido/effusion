@@ -344,7 +344,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %PeerHasBitfield{peer_uuid: peer_uuid, bitfield: bitfield}
   ) do
     %__MODULE__{download |
-      peer_bitfields: Map.put(peer_bitfields, peer_uuid, Base.decode16!(bitfield))
+      peer_bitfields: Map.put(peer_bitfields, peer_uuid, Base.decode16!(bitfield) |> IntSet.new())
     }
   end
 
@@ -520,7 +520,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
         pieces: IntSet.new(Base.decode16!(pieces)),
         connecting_to_peers: MapSet.new(connecting_to_peers),
         connected_peers: MapSet.new(connected_peers),
-        peer_bitfields: Enum.map(peer_bitfields, fn {uuid, bitfield} -> {uuid, Base.decode16!(bitfield)} end)
+        peer_bitfields: Enum.map(peer_bitfields, fn {uuid, bitfield} -> {uuid, Base.decode16!(bitfield) |> IntSet.new()} end)
       }
     end
   end
