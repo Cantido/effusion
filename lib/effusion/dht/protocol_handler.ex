@@ -1,5 +1,4 @@
 defmodule Effusion.DHT.ProtocolHandler do
-  alias Effusion.BTP.{Peer, Torrent}
   alias Effusion.DHT
   alias Effusion.DHT.{Bucket, Node}
   alias Effusion.Repo
@@ -165,28 +164,7 @@ defmodule Effusion.DHT.ProtocolHandler do
     %{query: {:get_peers, query_transaction_id, _sender_id, info_hash}})
     when response_transaction_id == query_transaction_id do
 
-    torrent_id =
-      case Torrent.by_info_hash(info_hash) do
-        {:ok, torrent}  -> torrent.id
-        {:error, _} ->
-          %Torrent{}
-          |> Torrent.changeset(%{
-            info_hash: info_hash,
-            state: "dht_only"
-          })
-          |> Repo.insert()
-      end
-
-    peers_to_insert = Enum.map(peers, fn {address, port} ->
-      %{
-        torrent_id: torrent_id,
-        address: address,
-        port: port
-      }
-    end)
-
-    Repo.insert_all(Peer, peers_to_insert)
-    :ok
+    # TODO
   end
 
   def handle_krpc_response({:get_peers_nearest, _transaction_id, _node_id, token, nodes}, _context) do

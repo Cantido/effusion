@@ -1,8 +1,8 @@
 defmodule Effusion.THP.HTTP do
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.THP.Decode
-  import Effusion.BTP.Peer
   import Effusion.Hash, only: [is_hash: 1]
+  import Effusion.PWP
   require Logger
   use HTTPoison.Base
   @behaviour Effusion.THP

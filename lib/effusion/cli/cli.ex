@@ -1,6 +1,4 @@
 defmodule Effusion.CLI do
-  alias Effusion.BTP.Pieces
-  alias Effusion.BTP.Torrent
   alias Effusion.Format
   alias Effusion.Repo
   alias Effusion.Statistics.Net, as: NetStats
@@ -59,15 +57,15 @@ defmodule Effusion.CLI do
          last_timestamp \\ System.monotonic_time(:millisecond)
        ) do
 
-    info_hashes = Repo.all(
-      from torrent in Torrent,
-      where: torrent.state == "downloading",
-      select: torrent.info_hash
-    )
+    # info_hashes = Repo.all(
+    #   from torrent in Torrent,
+    #   where: torrent.state == "downloading",
+    #   select: torrent.info_hash
+    # )
 
-    torrent_rows = Enum.map(info_hashes, fn info_hash ->
-      torrent_row(info_hash)
-    end)
+    # torrent_rows = Enum.map(info_hashes, fn info_hash ->
+    #   torrent_row(info_hash)
+    # end)
 
     this_loop_time = System.monotonic_time(:millisecond)
     seconds_since_last_loop = max(this_loop_time - last_timestamp, 1) / 1_000
@@ -88,9 +86,9 @@ defmodule Effusion.CLI do
 
     IO.puts(row("NAME", "PROGRESS", "PERCENT", "DOWNLOADED", "DURATION"))
 
-    Enum.each(torrent_rows, fn tr ->
-      IO.puts(tr)
-    end)
+    # Enum.each(torrent_rows, fn tr ->
+    #   IO.puts(tr)
+    # end)
 
     IO.puts("")
 
@@ -136,23 +134,24 @@ defmodule Effusion.CLI do
   end
 
   defp torrent_row(info_hash) do
-    torrent = Repo.one!(from torrent in Torrent,
-                        where: torrent.info_hash == ^info_hash,
-                        select: torrent)
-
-    dur = Timex.Interval.new(from: torrent.started, until: DateTime.utc_now()) |> Timex.Interval.duration(:duration)
-
-    downloaded = Pieces.bytes_completed(info_hash)
-    total_to_download = Pieces.torrent_length(info_hash)
-    fraction_downloaded = downloaded / total_to_download
-
-    name_formatted = torrent.name
-    percent_downloaded = Float.round(fraction_downloaded * 100, 3)
-    progress_bar = Format.progress_bar(percent_downloaded, @progress_width - 2)
-    downloaded_str = Format.bytes(downloaded)
-    duration_formatted = Timex.format_duration(dur)
-
-    row(name_formatted, progress_bar, percent_downloaded, downloaded_str, duration_formatted)
+    # torrent = Repo.one!(from torrent in Torrent,
+    #                     where: torrent.info_hash == ^info_hash,
+    #                     select: torrent)
+    #
+    # dur = Timex.Interval.new(from: torrent.started, until: DateTime.utc_now()) |> Timex.Interval.duration(:duration)
+    #
+    # downloaded = Pieces.bytes_completed(info_hash)
+    # total_to_download = Pieces.torrent_length(info_hash)
+    # fraction_downloaded = downloaded / total_to_download
+    #
+    # name_formatted = torrent.name
+    # percent_downloaded = Float.round(fraction_downloaded * 100, 3)
+    # progress_bar = Format.progress_bar(percent_downloaded, @progress_width - 2)
+    # downloaded_str = Format.bytes(downloaded)
+    # duration_formatted = Timex.format_duration(dur)
+    #
+    # row(name_formatted, progress_bar, percent_downloaded, downloaded_str, duration_formatted)
+    ""
   end
 
   defp row(name, progress, percent, downloaded, duration) do
