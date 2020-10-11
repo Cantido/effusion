@@ -1,7 +1,6 @@
 defmodule Effusion.PWP.TCP.SocketTest do
   use ExUnit.Case, async: true
   alias Effusion.PWP.TCP.Socket
-  alias Effusion.BTP.Peer
   alias Effusion.PWP.Messages
   doctest Effusion.PWP.TCP.Socket
 
@@ -15,13 +14,11 @@ defmodule Effusion.PWP.TCP.SocketTest do
   setup do
     {:ok, lsock} = :gen_tcp.listen(@port, active: false, reuseaddr: true, send_timeout: 5_000)
 
-    peer = Peer.new({@host, @port})
-
     on_exit(fn ->
       :ok = :gen_tcp.close(lsock)
     end)
 
-    %{lsock: lsock, peer: peer}
+    %{lsock: lsock, peer: %{address: {@host, @port}, peer_id: @remote_peer_id}}
   end
 
   describe "connect/1" do

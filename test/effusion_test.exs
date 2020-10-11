@@ -24,7 +24,7 @@ defmodule EffusionTest do
 
   @torrent TestHelper.tiny_meta()
 
-  @remote_peer Peer.new({{127, 0, 0, 1}, @remote_port})
+  @remote_peer %{address: {{127, 0, 0, 1},  @remote_port}, peer_id: "Effusion Experiment!"}
   @local_peer_id "Fake-Remote-Peer----"
   @info_hash @torrent.info_hash
 
