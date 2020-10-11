@@ -465,25 +465,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
     block_size = min(block_size, info.piece_length)
 
-    required_blocks =
-      pieces # all pieces we have
-      |> IntSet.inverse(target_piece_count) # all pieces we need
-      |> Enum.flat_map(fn required_piece_index ->
-        blocks
-        |> Map.get(required_piece_index, IntSet.new()) # all blocks we have in this piece index
-        |> IntSet.inverse(blocks_per_piece) # all blocks we need in this piece index
-        |> Enum.map(fn required_block_index ->
-          {required_piece_index, required_block_index * block_size, block_size} # the block we need to request
-        end)
-      end)
-      |> MapSet.new()
-
     pieces_peer_has = Map.get(peer_bitfields, peer_uuid, IntSet.new())
-
-    required_blocks_requestable_from_peer =
-      required_blocks
-      |> Enum.filter(fn {i, _o, _s} -> Enum.member?(pieces_peer_has, i) end)
-      |> MapSet.new()
 
     existing_requests_to_this_peer =
       requests
@@ -495,8 +477,18 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       max_requests_per_peer - Enum.count(existing_requests_to_this_peer)
 
     blocks_to_request =
-      required_blocks_requestable_from_peer
-      |> MapSet.difference(existing_requests_to_this_peer)
+      pieces # all pieces we have
+      |> IntSet.inverse(target_piece_count) # all pieces we need
+      |> Stream.flat_map(fn required_piece_index ->
+        blocks
+        |> Map.get(required_piece_index, IntSet.new()) # all blocks we have in this piece index
+        |> IntSet.inverse(blocks_per_piece) # all blocks we need in this piece index
+        |> Stream.map(fn required_block_index ->
+          {required_piece_index, required_block_index * block_size, block_size} # the block we need to request
+        end)
+      end)
+      |> Stream.filter(fn {i, _o, _s} -> Enum.member?(pieces_peer_has, i) end) # All requests for block that the peer has
+      |> Stream.reject(&Enum.member?(existing_requests_to_this_peer, &1)) # All requests for blocks that the peer has that we haven't already requested
       |> Enum.take(request_count_we_can_add)
 
     Enum.map(blocks_to_request, fn {index, offset, size} ->
