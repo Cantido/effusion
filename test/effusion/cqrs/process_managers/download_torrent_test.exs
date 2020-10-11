@@ -5,13 +5,17 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
     AttemptToConnect,
     SendBitfield,
     SendInterested,
+    RequestBlock,
+    StoreBlock,
+    CancelRequest,
     RequestBlock
   }
   alias Effusion.CQRS.Events.{
     PeerAdded,
     PeerConnected,
     PeerHasBitfield,
-    PeerUnchokedUs
+    PeerUnchokedUs,
+    PeerSentBlock
   }
   doctest Effusion.CQRS.ProcessManagers.DownloadTorrent
 
@@ -239,6 +243,184 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
           size: 16
         }
       ]
+    end
+  end
+
+  describe "handling PeerSentBlock" do
+    test "always sends sends StoreBlock" do
+      peer_uuid = UUID.uuid4()
+      commands =
+        DownloadTorrent.handle(
+          %DownloadTorrent{
+            target_piece_count: 1,
+            max_requests_per_peer: 100,
+            block_size: 16,
+            info: %{piece_length: 16}
+          },
+          %PeerSentBlock{
+            peer_uuid: peer_uuid,
+            info_hash: "",
+            index: 0,
+            offset: 0,
+            data: "-------16--------"
+          }
+        )
+
+      assert commands == [
+        %StoreBlock {
+          from: peer_uuid,
+          info_hash: "",
+          index: 0,
+          offset: 0,
+          data: "-------16--------"
+        }
+      ]
+    end
+
+    test "when we had a request to that same peer for that block, don't send cancel" do
+      peer_uuid = UUID.uuid4()
+      commands =
+        DownloadTorrent.handle(
+          %DownloadTorrent{
+            target_piece_count: 1,
+            max_requests_per_peer: 100,
+            block_size: 16,
+            info: %{piece_length: 16},
+            requests: %{{0, 0, 16} => MapSet.new([peer_uuid])}
+          },
+          %PeerSentBlock{
+            peer_uuid: peer_uuid,
+            info_hash: "",
+            index: 0,
+            offset: 0,
+            data: "-------16-------"
+          }
+        )
+
+      assert commands == [
+        %StoreBlock {
+          from: peer_uuid,
+          info_hash: "",
+          index: 0,
+          offset: 0,
+          data: "-------16-------"
+        }
+      ]
+    end
+
+    test "when we had a request to another peer for that block, send cancel" do
+      peer_uuid = UUID.uuid4()
+      other_peer_uuid = UUID.uuid4()
+      commands =
+        DownloadTorrent.handle(
+          %DownloadTorrent{
+            target_piece_count: 1,
+            max_requests_per_peer: 100,
+            block_size: 16,
+            info: %{piece_length: 16},
+            requests: %{{0, 0, 16} => MapSet.new([other_peer_uuid])}
+          },
+          %PeerSentBlock{
+            peer_uuid: peer_uuid,
+            info_hash: "",
+            index: 0,
+            offset: 0,
+            data: "-------16-------"
+          }
+        )
+
+      assert commands == [
+        %StoreBlock {
+          from: peer_uuid,
+          info_hash: "",
+          index: 0,
+          offset: 0,
+          data: "-------16-------"
+        },
+        %CancelRequest{
+          peer_uuid: other_peer_uuid,
+          index: 0,
+          offset: 0,
+          size: 16
+        }
+      ]
+    end
+
+    test "when that peer has other blocks we want, request them" do
+      peer_uuid = UUID.uuid4()
+      commands =
+        DownloadTorrent.handle(
+          %DownloadTorrent{
+            target_piece_count: 1,
+            max_requests_per_peer: 100,
+            block_size: 16,
+            info: %{piece_length: 32},
+            peer_bitfields: %{peer_uuid => IntSet.new(0)}
+          },
+          %PeerSentBlock{
+            peer_uuid: peer_uuid,
+            info_hash: "",
+            index: 0,
+            offset: 0,
+            data: "-------16-------"
+          }
+        )
+
+      assert commands == [
+        %StoreBlock {
+          from: peer_uuid,
+          info_hash: "",
+          index: 0,
+          offset: 0,
+          data: "-------16-------"
+        },
+        %RequestBlock{
+          peer_uuid: peer_uuid,
+          index: 0,
+          offset: 16,
+          size: 16
+        }
+      ]
+    end
+  end
+
+  describe "applies PeerSentBlock" do
+    test "adds block to blocks map" do
+      peer_uuid = UUID.uuid4()
+      download =
+        DownloadTorrent.apply(
+          %DownloadTorrent{
+            blocks: %{}
+          },
+          %PeerSentBlock{
+            peer_uuid: peer_uuid,
+            info_hash: "",
+            index: 0,
+            offset: 0,
+            data: "-------16-------"
+          }
+        )
+
+        assert download.blocks == %{0 => IntSet.new(0)}
+    end
+
+    test "deletes block from requests map" do
+      peer_uuid = UUID.uuid4()
+      download =
+        DownloadTorrent.apply(
+          %DownloadTorrent{
+            requests: %{{0, 0, 16} => MapSet.new([peer_uuid])}
+          },
+          %PeerSentBlock{
+            peer_uuid: peer_uuid,
+            info_hash: "",
+            index: 0,
+            offset: 0,
+            data: "-------16-------"
+          }
+        )
+
+        assert download.requests == %{{0, 0, 16} => MapSet.new()}
     end
   end
 end

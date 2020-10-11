@@ -390,12 +390,14 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %PeerSentBlock{
       peer_uuid: peer_uuid,
       index: index,
-      offset: offset
+      offset: offset,
+      data: data
     }
   ) do
+    size = byte_size(data)
     %__MODULE__{download |
       blocks: Map.update(blocks, index, IntSet.new(offset), &IntSet.put(&1, offset)),
-      requests: Map.update(requests, {index, offset, block_size}, MapSet.new(), &MapSet.delete(&1, peer_uuid))
+      requests: Map.update(requests, {index, offset, size}, MapSet.new(), &MapSet.delete(&1, peer_uuid))
     }
   end
 
