@@ -463,6 +463,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
         1
       end
 
+    block_size = min(block_size, info.piece_length)
+
     required_blocks =
       pieces # all pieces we have
       |> IntSet.inverse(target_piece_count) # all pieces we need

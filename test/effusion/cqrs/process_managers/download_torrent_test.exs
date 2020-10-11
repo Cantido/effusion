@@ -167,6 +167,32 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
       ]
     end
 
+    test "if the block size is bigger than piece length, request block of the piece length" do
+      # This is a case we probably won't run into in real life,
+      # but there's nothing in the protocol saying it can't
+      peer_uuid = UUID.uuid4()
+      commands =
+        DownloadTorrent.handle(
+          %DownloadTorrent{
+            target_piece_count: 1,
+            max_requests_per_peer: 100,
+            block_size: 16,
+            info: %{piece_length: 8},
+            peer_bitfields: %{peer_uuid => IntSet.new([0])}
+          },
+          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: ""}
+        )
+
+      assert commands == [
+        %RequestBlock{
+          peer_uuid: peer_uuid,
+          index: 0,
+          offset: 0,
+          size: 8
+        }
+      ]
+    end
+
     test "if the peer does not have blocks we want, don't request" do
       peer_uuid = UUID.uuid4()
       commands =
