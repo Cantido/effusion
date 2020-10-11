@@ -191,7 +191,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
             info: %{piece_length: 16},
             peer_bitfields: %{peer_uuid => IntSet.new([0])}
           },
-          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: ""}
+          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: Factory.encoded_info_hash()}
         )
 
       assert commands == [
@@ -217,7 +217,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
             info: %{piece_length: 8},
             peer_bitfields: %{peer_uuid => IntSet.new([0])}
           },
-          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: ""}
+          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: Factory.encoded_info_hash()}
         )
 
       assert commands == [
@@ -241,7 +241,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
             info: %{piece_length: 16},
             peer_bitfields: %{}
           },
-          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: ""}
+          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: Factory.encoded_info_hash()}
         )
 
       assert commands == []
@@ -259,7 +259,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
             requests: %{{0, 0, 16} => MapSet.new([peer_uuid])},
             peer_bitfields: %{peer_uuid => IntSet.new([0])}
           },
-          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: ""}
+          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: Factory.encoded_info_hash()}
         )
 
       assert commands == []
@@ -277,7 +277,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
             requests: %{{0, 0, 16} => MapSet.new([peer_uuid])},
             peer_bitfields: %{peer_uuid => IntSet.new([0])}
           },
-          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: ""}
+          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: Factory.encoded_info_hash()}
         )
 
       assert commands == []
@@ -295,7 +295,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
             requests: %{{0, 0, 16} => MapSet.new([peer_uuid])},
             peer_bitfields: %{peer_uuid => IntSet.new([0])}
           },
-          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: ""}
+          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: Factory.encoded_info_hash()}
         )
 
       assert commands == [
@@ -313,6 +313,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
     test "always sends sends StoreBlock" do
       peer_uuid = UUID.uuid4()
       data = :crypto.strong_rand_bytes(16) |> Base.encode64()
+      info_hash = Factory.encoded_info_hash()
       commands =
         DownloadTorrent.handle(
           %DownloadTorrent{
@@ -323,7 +324,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
           },
           %PeerSentBlock{
             peer_uuid: peer_uuid,
-            info_hash: "",
+            info_hash: info_hash,
             index: 0,
             offset: 0,
             data: data
@@ -333,7 +334,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
       assert commands == [
         %StoreBlock {
           from: peer_uuid,
-          info_hash: "",
+          info_hash: info_hash,
           index: 0,
           offset: 0,
           data: data
@@ -344,6 +345,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
     test "when we had a request to that same peer for that block, don't send cancel" do
       peer_uuid = UUID.uuid4()
       data = :crypto.strong_rand_bytes(16) |> Base.encode64()
+      info_hash = Factory.encoded_info_hash()
       commands =
         DownloadTorrent.handle(
           %DownloadTorrent{
@@ -355,7 +357,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
           },
           %PeerSentBlock{
             peer_uuid: peer_uuid,
-            info_hash: "",
+            info_hash: info_hash,
             index: 0,
             offset: 0,
             data: data
@@ -365,7 +367,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
       assert commands == [
         %StoreBlock {
           from: peer_uuid,
-          info_hash: "",
+          info_hash: info_hash,
           index: 0,
           offset: 0,
           data: data
@@ -377,6 +379,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
       peer_uuid = UUID.uuid4()
       other_peer_uuid = UUID.uuid4()
       data = :crypto.strong_rand_bytes(16) |> Base.encode64()
+      info_hash = Factory.encoded_info_hash()
       commands =
         DownloadTorrent.handle(
           %DownloadTorrent{
@@ -388,7 +391,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
           },
           %PeerSentBlock{
             peer_uuid: peer_uuid,
-            info_hash: "",
+            info_hash: info_hash,
             index: 0,
             offset: 0,
             data: data
@@ -398,7 +401,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
       assert commands == [
         %StoreBlock {
           from: peer_uuid,
-          info_hash: "",
+          info_hash: info_hash,
           index: 0,
           offset: 0,
           data: data
@@ -415,6 +418,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
     test "when that peer has other blocks we want, request them" do
       peer_uuid = UUID.uuid4()
       data = :crypto.strong_rand_bytes(16) |> Base.encode64()
+      info_hash = Factory.encoded_info_hash()
       commands =
         DownloadTorrent.handle(
           %DownloadTorrent{
@@ -426,7 +430,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
           },
           %PeerSentBlock{
             peer_uuid: peer_uuid,
-            info_hash: "",
+            info_hash: info_hash,
             index: 0,
             offset: 0,
             data: data
@@ -436,7 +440,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
       assert commands == [
         %StoreBlock {
           from: peer_uuid,
-          info_hash: "",
+          info_hash: info_hash,
           index: 0,
           offset: 0,
           data: data
@@ -462,7 +466,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
           },
           %PeerSentBlock{
             peer_uuid: peer_uuid,
-            info_hash: "",
+            info_hash: Factory.encoded_info_hash(),
             index: 0,
             offset: 0,
             data: data
@@ -482,7 +486,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
           },
           %PeerSentBlock{
             peer_uuid: peer_uuid,
-            info_hash: "",
+            info_hash: Factory.encoded_info_hash(),
             index: 0,
             offset: 0,
             data: data
