@@ -25,6 +25,7 @@ defmodule Effusion.CQRS.Router do
     Commands.HandleCancel,
     Commands.HandleChoke,
     Commands.HandleHandshake,
+    Commands.TimeoutHandshake,
     Commands.HandleHave,
     Commands.HandleInterested,
     Commands.HandlePiece,
