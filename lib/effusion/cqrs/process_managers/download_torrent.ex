@@ -68,6 +68,10 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     {:continue!, info_hash}
   end
 
+  def interested?(%ConnectionAttemptFailed{info_hash: info_hash}) do
+    {:continue!, info_hash}
+  end
+
   def interested?(%PeerConnected{info_hash: info_hash}) do
     {:continue!, info_hash}
   end

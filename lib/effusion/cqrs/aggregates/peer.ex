@@ -90,11 +90,12 @@ defmodule Effusion.CQRS.Aggregates.Peer do
   end
 
   def execute(
-    %__MODULE__{peer_uuid: peer_uuid},
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash},
     %HandleFailedConnectionAttempt{}
   ) do
     %ConnectionAttemptFailed{
-      peer_uuid: peer_uuid
+      peer_uuid: peer_uuid,
+      info_hash: info_hash
     }
   end
 
