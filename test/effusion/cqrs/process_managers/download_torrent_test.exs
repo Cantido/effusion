@@ -4,12 +4,14 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
   alias Effusion.CQRS.Commands.{
     AttemptToConnect,
     SendBitfield,
-    SendInterested
+    SendInterested,
+    RequestBlock
   }
   alias Effusion.CQRS.Events.{
     PeerAdded,
     PeerConnected,
-    PeerHasBitfield
+    PeerHasBitfield,
+    PeerUnchokedUs
   }
   doctest Effusion.CQRS.ProcessManagers.DownloadTorrent
 
@@ -133,6 +135,110 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
         )
 
         assert is_nil(command)
+    end
+  end
+
+  describe "handling PeerUnchokedUs" do
+    test "if the peer has blocks we want, requests those blocks" do
+      peer_uuid = UUID.uuid4()
+      commands =
+        DownloadTorrent.handle(
+          %DownloadTorrent{
+            target_piece_count: 1,
+            max_requests_per_peer: 100,
+            block_size: 16,
+            info: %{piece_length: 16},
+            peer_bitfields: %{peer_uuid => IntSet.new([0])}
+          },
+          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: ""}
+        )
+
+      assert commands == [
+        %RequestBlock{
+          peer_uuid: peer_uuid,
+          index: 0,
+          offset: 0,
+          size: 16
+        }
+      ]
+    end
+
+    test "if the peer does not have blocks we want, don't request" do
+      peer_uuid = UUID.uuid4()
+      commands =
+        DownloadTorrent.handle(
+          %DownloadTorrent{
+            target_piece_count: 1,
+            max_requests_per_peer: 100,
+            block_size: 16,
+            info: %{piece_length: 16},
+            peer_bitfields: %{}
+          },
+          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: ""}
+        )
+
+      assert commands == []
+    end
+
+    test "if we've already requested all the pieces the peer has, don't request" do
+      peer_uuid = UUID.uuid4()
+      commands =
+        DownloadTorrent.handle(
+          %DownloadTorrent{
+            target_piece_count: 1,
+            max_requests_per_peer: 100,
+            block_size: 16,
+            info: %{piece_length: 16},
+            requests: %{{0, 0, 16} => MapSet.new([peer_uuid])},
+            peer_bitfields: %{peer_uuid => IntSet.new([0])}
+          },
+          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: ""}
+        )
+
+      assert commands == []
+    end
+
+    test "if we're at our request-per-peer limit, don't request" do
+      peer_uuid = UUID.uuid4()
+      commands =
+        DownloadTorrent.handle(
+          %DownloadTorrent{
+            target_piece_count: 1,
+            max_requests_per_peer: 1,
+            block_size: 16,
+            info: %{piece_length: 16},
+            requests: %{{0, 0, 16} => MapSet.new([peer_uuid])},
+            peer_bitfields: %{peer_uuid => IntSet.new([0])}
+          },
+          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: ""}
+        )
+
+      assert commands == []
+    end
+
+    test "make sure we can understand offsets" do
+      peer_uuid = UUID.uuid4()
+      commands =
+        DownloadTorrent.handle(
+          %DownloadTorrent{
+            target_piece_count: 1,
+            max_requests_per_peer: 100,
+            block_size: 16,
+            info: %{piece_length: 32},
+            requests: %{{0, 0, 16} => MapSet.new([peer_uuid])},
+            peer_bitfields: %{peer_uuid => IntSet.new([0])}
+          },
+          %PeerUnchokedUs{peer_uuid: peer_uuid, info_hash: ""}
+        )
+
+      assert commands == [
+        %RequestBlock{
+          peer_uuid: peer_uuid,
+          index: 0,
+          offset: 16,
+          size: 16
+        }
+      ]
     end
   end
 end

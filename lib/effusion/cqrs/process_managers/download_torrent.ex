@@ -25,6 +25,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     PieceHashSucceeded,
     PeerAdded,
     PeerHasBitfield,
+    PeerHasPiece,
     PeerSentBlock,
     PeerUnchokedUs,
     AllPiecesVerified,
@@ -39,6 +40,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     info: nil,
     block_size: nil,
     pieces: IntSet.new(),
+    peer_bitfields: Map.new(),
     blocks: Map.new(),
     announce: nil,
     annouce_list: [],
@@ -80,6 +82,10 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def interested?(%PeerHasBitfield{info_hash: info_hash}) do
+    {:continue!, info_hash}
+  end
+
+  def interested?(%PeerHasPiece{info_hash: info_hash}) do
     {:continue!, info_hash}
   end
 
@@ -333,6 +339,24 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     }
   end
 
+  def apply(
+    %__MODULE__{peer_bitfields: peer_bitfields} = download,
+    %PeerHasBitfield{peer_uuid: peer_uuid, bitfield: bitfield}
+  ) do
+    %__MODULE__{download |
+      peer_bitfields: Map.put(peer_bitfields, peer_uuid, Base.decode16!(bitfield))
+    }
+  end
+
+  def apply(
+    %__MODULE__{peer_bitfields: peer_bitfields} = download,
+    %PeerHasPiece{peer_uuid: peer_uuid, index: index}
+  ) do
+    %__MODULE__{download |
+      peer_bitfields: Map.update(peer_bitfields, peer_uuid, IntSet.new([index]), &IntSet.put(&1, index))
+    }
+  end
+
 
   def apply(%__MODULE__{pieces: pieces, blocks: blocks} = download, %PieceHashSucceeded{index: index}) do
     %__MODULE__{download |
@@ -425,6 +449,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       blocks: blocks,
       block_size: block_size,
       requests: requests,
+      peer_bitfields: peer_bitfields,
       max_requests_per_peer: max_requests_per_peer
     },
     peer_uuid
@@ -443,10 +468,17 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
         blocks
         |> Map.get(required_piece_index, IntSet.new()) # all blocks we have in this piece index
         |> IntSet.inverse(blocks_per_piece) # all blocks we need in this piece index
-        |> Enum.map(fn required_block_offset ->
-          {required_piece_index, required_block_offset, block_size} # the block we need to request
+        |> Enum.map(fn required_block_index ->
+          {required_piece_index, required_block_index * block_size, block_size} # the block we need to request
         end)
       end)
+      |> MapSet.new()
+
+    pieces_peer_has = Map.get(peer_bitfields, peer_uuid, IntSet.new())
+
+    required_blocks_requestable_from_peer =
+      required_blocks
+      |> Enum.filter(fn {i, _o, _s} -> Enum.member?(pieces_peer_has, i) end)
       |> MapSet.new()
 
     existing_requests_to_this_peer =
@@ -459,7 +491,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       max_requests_per_peer - Enum.count(existing_requests_to_this_peer)
 
     blocks_to_request =
-      required_blocks
+      required_blocks_requestable_from_peer
       |> MapSet.difference(existing_requests_to_this_peer)
       |> Enum.take(request_count_we_can_add)
 
@@ -478,13 +510,15 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       %Effusion.CQRS.ProcessManagers.DownloadTorrent{
         pieces: pieces,
         connecting_to_peers: connecting_to_peers,
-        connected_peers: connected_peers
+        connected_peers: connected_peers,
+        peer_bitfields: peer_bitfields
       } = state
     ) do
       %Effusion.CQRS.ProcessManagers.DownloadTorrent{state |
         pieces: IntSet.new(Base.decode16!(pieces)),
         connecting_to_peers: MapSet.new(connecting_to_peers),
-        connected_peers: MapSet.new(connected_peers)
+        connected_peers: MapSet.new(connected_peers),
+        peer_bitfields: Enum.map(peer_bitfields, fn {uuid, bitfield} -> {uuid, Base.decode16!(bitfield)} end)
       }
     end
   end
