@@ -2,6 +2,7 @@ defmodule Effusion.CQRS.Supervisor do
   use Supervisor
 
   alias Effusion.CQRS.ProcessManagers
+  alias Effusion.CQRS.EventHandlers
 
   def start_link(_args) do
     Supervisor.start_link(__MODULE__, :ok)
@@ -13,12 +14,13 @@ defmodule Effusion.CQRS.Supervisor do
       ProcessManagers.IncomingPeerConnection,
       ProcessManagers.OutgoingPeerConnection,
       ProcessManagers.DHTProtocol,
-      Effusion.CQRS.EventHandlers.FileWriter,
-      Effusion.CQRS.EventHandlers.TrackerAnnouncer,
-      Effusion.CQRS.EventHandlers.PeerMessenger,
-      Effusion.CQRS.EventHandlers.NetStatsUpdater,
-      Effusion.CQRS.EventHandlers.PeerStatsUpdater,
-      Effusion.CQRS.EventHandlers.SessionStatsUpdater
+      EventHandlers.FileWriter,
+      EventHandlers.TrackerAnnouncer,
+      EventHandlers.PeerMessenger,
+      EventHandlers.NetStatsUpdater,
+      EventHandlers.PeerStatsUpdater,
+      EventHandlers.SessionStatsUpdater,
+      EventHandlers.NodeMessenger
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.CQRS.Supervisor]

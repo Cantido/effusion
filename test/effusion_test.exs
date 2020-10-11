@@ -3,6 +3,7 @@ defmodule EffusionTest do
   doctest Effusion
   alias Effusion.BTP.Peer
   alias Effusion.DHT
+  alias Effusion.CQRS.Application, as: CQRS
   alias Effusion.DHT.KRPC.{Query, Response}
   alias Effusion.PWP.TCP.Socket
   import Mox
@@ -21,6 +22,9 @@ defmodule EffusionTest do
 
   @local_port 8001
   @remote_port 8002
+
+  @local_dht_port 8006
+  @remote_dht_port 8007
 
   @torrent TestHelper.tiny_meta()
 
@@ -307,4 +311,52 @@ defmodule EffusionTest do
   #
   #   {:ping, ^mock_transaction_id, _server_node_id} = Bento.decode!(packet) |> Response.decode()
   # end
+
+  test "dht node reaches out for peers" do
+    old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
+    Application.put_env(:effusion, :enabled_extensions, [:dht])
+    on_exit(fn ->
+      Application.put_env(:effusion, :enabled_extensions, old_supported_extensions)
+    end)
+
+    Effusion.THP.Mock
+    |> stub(:announce, &stub_tracker_no_peers/9)
+
+    {:ok, socket} = :gen_udp.open(@remote_dht_port, active: :once)
+
+    :ok = Effusion.start_download(@torrent)
+
+    primary_node_id = DHT.node_id() |> Effusion.Hash.encode()
+    remote_node_id = DHT.node_id() |> Effusion.Hash.encode()
+
+    :ok = CQRS.dispatch(%Effusion.CQRS.Commands.StartDHTNode{
+      node_id: primary_node_id
+    })
+    CQRS.dispatch(
+      %Effusion.CQRS.Commands.AddDHTNode{
+        primary_node_id: primary_node_id,
+        node_id: remote_node_id,
+        host: {127, 0, 0, 1},
+        port: @remote_dht_port
+      }
+    )
+    CQRS.dispatch(
+      %Effusion.CQRS.Commands.EnableDHTForDownload{
+        node_id: primary_node_id,
+        info_hash: Effusion.Hash.encode(@info_hash)
+      }
+    )
+
+    # Now the DHT node knows a remote node exists, and then DHT is enabled.
+    # It should send a request to us for peers related to @info_hash
+
+
+    packet = receive do
+      {:udp, _socket, _ip, _in_port_no, packet} -> packet
+    after
+      500 -> flunk "No KRPC response"
+    end
+
+    assert {:get_peers, _transaction_id, _server_node_id, @info_hash} = Bento.decode!(packet) |> Query.decode()
+  end
 end

@@ -1,0 +1,35 @@
+defmodule Effusion.CQRS.EventHandlers.NodeMessenger do
+  use Commanded.Event.Handler,
+    application: Effusion.CQRS.Application,
+    name: __MODULE__
+
+  alias Effusion.DHT.KRPC.Query
+  alias Effusion.CQRS.Events.{
+    GettingPeers
+  }
+
+  def handle(
+    %GettingPeers{
+      primary_node_id: sender_id,
+      node_id: recipient_id,
+      host: host,
+      port: port,
+      info_hash: info_hash
+    },
+    _metadata
+  ) do
+    query =
+      Query.encode({
+        :get_peers,
+        nil,
+        Effusion.Hash.decode(sender_id),
+        Effusion.Hash.decode(info_hash)
+      })
+      |> Bento.encode!()
+
+    # If Port == 0, the underlying OS assigns a free UDP port, use inet:port/1 to retrieve it.
+    {:ok, socket} = :gen_udp.open(0)
+    :ok = :gen_udp.send(socket, host, port, query)
+    :ok = :gen_udp.close(socket)
+  end
+end
