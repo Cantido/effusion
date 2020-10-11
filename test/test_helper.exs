@@ -32,12 +32,11 @@ defmodule TestHelper do
   end
 
   def tiny_meta do
-    %{
+    %Metatorrent.Metainfo{
       announce: "http://localhost:6969/announce",
       created_by: "Lovingly hand-crafted, by Rosa <3",
       creation_date: ~U[2018-02-04 23:04:36Z],
-      encoding: "UTF-8",
-      info: %{
+      info: %Metatorrent.SingleFileInfo{
         :length => 5,
         :name => "tiny.txt",
         :piece_length => 3,
@@ -46,8 +45,7 @@ defmodule TestHelper do
             112, 48>>,
           <<144, 99, 169, 240, 224, 50, 182, 35, 148, 3, 183, 25, 203, 187, 165, 106, 196, 228,
             228, 95>>
-        ],
-        "private" => 0
+        ]
       },
       info_hash:
         <<95, 189, 143, 1, 37, 56, 146, 40, 140, 78, 2, 250, 208, 144, 217, 10, 49, 7, 64, 28>>
