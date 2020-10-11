@@ -4,6 +4,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     AttemptToConnect,
     HandleFailedConnectionAttempt,
     AddOpenedPeerConnection,
+    TimeoutHandshake,
     AddConnectedPeer,
     RemoveConnectedPeer,
     HandleBitfield,
@@ -64,7 +65,8 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     am_choking: true,
     am_interested: false,
     peer_choking: true,
-    peer_interested: false
+    peer_interested: false,
+    connection_state: "disconnected"
   ]
 
   def execute(
@@ -97,6 +99,24 @@ defmodule Effusion.CQRS.Aggregates.Peer do
       peer_uuid: peer_uuid,
       info_hash: info_hash
     }
+  end
+
+  def execute(
+    %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, connection_state: connection_state},
+    %TimeoutHandshake{}
+  ) do
+    unless connection_state == "connected" do
+      [
+        %FailedHandshake{
+          peer_uuid: peer_uuid,
+          failure_reason: "handshake timed out"
+        },
+        %ConnectionAttemptFailed{
+          peer_uuid: peer_uuid,
+          info_hash: info_hash
+        }
+      ]
+    end
   end
 
   def execute(
@@ -387,7 +407,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %__MODULE__{} = peer,
     %ConnectionAttemptFailed{}
   ) do
-    peer
+    %__MODULE__{peer | connection_state: "disconnected"}
   end
 
   def apply(
@@ -429,11 +449,11 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %__MODULE__{} = peer,
     %PeerConnected{}
   ) do
-    peer
+    %__MODULE__{peer | connection_state: "connected"}
   end
 
   def apply(%__MODULE__{} = peer, %PeerDisconnected{}) do
-    peer
+    %__MODULE__{peer | connection_state: "disconnected"}
   end
 
   def apply(

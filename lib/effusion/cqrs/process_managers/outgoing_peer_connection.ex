@@ -10,10 +10,12 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
 
   alias Effusion.CQRS.Commands.{
     AddConnectedPeer,
-    SendHandshake
+    SendHandshake,
+    TimeoutHandshake
   }
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
+    ConnectionAttemptFailed,
     PeerConnectionOpened,
     SuccessfulHandshake,
     FailedHandshake,
@@ -36,6 +38,10 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
     {:stop, peer_uuid}
   end
 
+  def interested?(%ConnectionAttemptFailed{peer_uuid: peer_uuid}) do
+    {:stop, peer_uuid}
+  end
+
   def interested?(%PeerDisconnected{peer_uuid: peer_uuid}) do
     {:stop, peer_uuid}
   end
@@ -46,6 +52,10 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
       peer_uuid: peer_uuid
     }
   ) do
+    Task.start(fn ->
+      Process.sleep(1_000)
+      CQRS.dispatch(%TimeoutHandshake{peer_uuid: peer_uuid})
+    end)
     %SendHandshake{
       peer_uuid: peer_uuid,
       our_peer_id: Application.fetch_env!(:effusion, :peer_id) |> Effusion.Hash.encode(),
