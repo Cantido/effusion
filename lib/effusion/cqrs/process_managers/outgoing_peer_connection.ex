@@ -52,10 +52,13 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
       peer_uuid: peer_uuid
     }
   ) do
-    Task.start(fn ->
-      Process.sleep(1_000)
-      CQRS.dispatch(%TimeoutHandshake{peer_uuid: peer_uuid})
-    end)
+    timeout = Application.fetch_env!(:effusion, :handshake_timeout)
+    unless timeout == :infinity do
+      Task.start(fn ->
+        Process.sleep(timeout)
+        CQRS.dispatch(%TimeoutHandshake{peer_uuid: peer_uuid})
+      end)
+    end
     %SendHandshake{
       peer_uuid: peer_uuid,
       our_peer_id: Application.fetch_env!(:effusion, :peer_id) |> Effusion.Hash.encode(),
