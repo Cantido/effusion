@@ -427,7 +427,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
           }
         )
 
-        assert download.blocks == %{0 => IntSet.new(0)}
+      assert download.blocks == %{0 => IntSet.new(0)}
     end
 
     test "deletes block from requests map" do
@@ -446,7 +446,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
           }
         )
 
-        assert download.requests == %{{0, 0, 16} => MapSet.new()}
+      assert download.requests == %{{0, 0, 16} => MapSet.new()}
     end
   end
 end
