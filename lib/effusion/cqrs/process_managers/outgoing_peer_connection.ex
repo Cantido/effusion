@@ -10,8 +10,7 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
 
   alias Effusion.CQRS.Commands.{
     AddConnectedPeer,
-    SendHandshake,
-    RemoveConnectedPeer
+    SendHandshake
   }
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
@@ -25,7 +24,7 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
     {:start!, peer_uuid}
   end
 
-  def interested?(%PeerConnectionOpened{peer_uuid: peer_uuid, initiated_by: "us"}) do
+  def interested?(%PeerConnectionOpened{peer_uuid: peer_uuid}) do
     {:continue!, peer_uuid}
   end
 
@@ -33,11 +32,11 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
     {:continue!, peer_uuid}
   end
 
-  def interested?(%FailedHandshake{peer_uuid: peer_uuid, initiated_by: "us"}) do
-    {:continue!, peer_uuid}
+  def interested?(%FailedHandshake{peer_uuid: peer_uuid}) do
+    {:stop, peer_uuid}
   end
 
-  def interested?(%PeerDisconnected{peer_uuid: peer_uuid, initiated_by: "us"}) do
+  def interested?(%PeerDisconnected{peer_uuid: peer_uuid}) do
     {:stop, peer_uuid}
   end
 
@@ -52,19 +51,6 @@ defmodule Effusion.CQRS.ProcessManagers.OutgoingPeerConnection do
       our_peer_id: Application.fetch_env!(:effusion, :peer_id) |> Effusion.Hash.encode(),
       our_extensions: Application.fetch_env!(:effusion, :enabled_extensions),
       initiated_by: "us"
-    }
-  end
-
-  def handle(
-    %__MODULE__{},
-    %FailedHandshake{
-      peer_uuid: peer_uuid,
-      failure_reason: failure_reason
-    }
-  ) do
-    %RemoveConnectedPeer{
-      peer_uuid: peer_uuid,
-      reason: "failed handshake; reason: #{failure_reason}"
     }
   end
 
