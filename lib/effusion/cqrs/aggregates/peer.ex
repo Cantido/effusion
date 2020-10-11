@@ -197,8 +197,7 @@ defmodule Effusion.CQRS.Aggregates.Peer do
     %__MODULE__{peer_uuid: peer_uuid, info_hash: info_hash, bitfield: bitfield},
     %HandleHave{index: index}
   ) do
-    new_bitfield = IntSet.put(bitfield, index) |> IntSet.bitstring() |> Base.encode16()
-    %PeerHasPiece{peer_uuid: peer_uuid, info_hash: info_hash, index: index, bitfield: new_bitfield}
+    %PeerHasPiece{peer_uuid: peer_uuid, info_hash: info_hash, index: index, bitfield: IntSet.put(bitfield, index)}
   end
 
   def execute(
