@@ -118,9 +118,9 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def handle_call(:handshake_successful, _from, %{socket: socket} = state) do
-    :inet.setopts(socket, active: :once, packet: 4)
-
-    {:reply, :ok, state}
+    Logger.debug("********** Handshake successful, setting socket to packet mode for peer #{state.peer_uuid}")
+    ret =  :inet.setopts(socket, active: :once, packet: 4)
+    {:reply, ret, state}
   end
 
   def handle_call({:btp_send, msg}, _from, state = %{socket: socket}) do
