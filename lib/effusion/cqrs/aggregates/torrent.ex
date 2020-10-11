@@ -188,6 +188,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     piece_size =
       pieces[index]
       |> Enum.map(& &1.data)
+      |> Enum.map(&Base.decode16!/1)
       |> Enum.map(&byte_size/1)
       |> Enum.sum()
 
