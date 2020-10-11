@@ -15,6 +15,7 @@ defmodule Effusion.CQRS.EventHandlers.FileWriter do
     _metadata
   ) do
     Logger.debug "**** CQRS is writing piece #{index} of #{info_hash}"
+    data = Base.decode64!(data)
     files = Map.get(info, :files, [])
 
     # TODO: this is only valid for single-file torrents

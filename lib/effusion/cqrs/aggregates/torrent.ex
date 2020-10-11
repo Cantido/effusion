@@ -208,7 +208,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
         %PieceHashSucceeded{
           info_hash: info_hash,
           index: index,
-          data: piece_data,
+          data: Effusion.encode64(piece_data),
           info: info
         }
       else
