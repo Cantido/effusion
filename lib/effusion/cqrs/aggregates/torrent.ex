@@ -201,6 +201,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
       piece_data =
         pieces[index]
         |> Enum.map(& &1.data)
+        |> Enum.map(&Base.decode16!/1)
         |> Enum.join()
 
       if Effusion.Hash.calc(piece_data) == Effusion.Hash.decode(Enum.at(info.pieces, index)) do
