@@ -2,15 +2,18 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
   use Effusion.EventStoreCase
   alias Effusion.CQRS.Commands.{
     TimeoutHandshake,
-    SendHandshake
+    SendHandshake,
+    HandleHandshake
   }
   alias Effusion.CQRS.Events.{
     FailedHandshake,
     ConnectionAttemptFailed,
     SendingHandshake,
-    SuccessfulHandshake
+    SuccessfulHandshake,
+    PeerSentHandshake
   }
   alias Effusion.CQRS.Aggregates.Peer
+  alias Commanded.Aggregate.Multi
   doctest Effusion.CQRS.Aggregates.Peer
 
   describe "Handling TimeoutHandshake" do
@@ -51,8 +54,7 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         Peer.execute(
           %Peer{
             peer_uuid: peer_uuid,
-            expected_info_hash: info_hash,
-            connection_state: "disconnected"
+            expected_info_hash: info_hash
           },
           %SendHandshake{
             peer_uuid: peer_uuid,
@@ -81,8 +83,7 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         Peer.execute(
           %Peer{
             peer_uuid: peer_uuid,
-            expected_info_hash: info_hash,
-            connection_state: "disconnected"
+            expected_info_hash: info_hash
           },
           %SendHandshake{
             peer_uuid: peer_uuid,
@@ -103,6 +104,144 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
         %SuccessfulHandshake{
           peer_uuid: peer_uuid,
           initiated_by: "them"
+        }
+      ]
+    end
+  end
+
+  describe "Handling HandleHandshake" do
+    test "emits PeerSentHandshake when initiated by them" do
+      peer_uuid = UUID.uuid4()
+      info_hash = "12345678901234567890"
+      peer_id = "Other peer~~~~~~~~~~"
+      {_agg, events} =
+        Peer.execute(
+          %Peer{
+            peer_uuid: peer_uuid,
+            expected_info_hash: info_hash,
+            expected_peer_id: peer_id
+          },
+          %HandleHandshake{
+            peer_uuid: peer_uuid,
+            info_hash: info_hash,
+            peer_id: peer_id,
+            extensions: [:dht, :fast],
+            initiated_by: "them"
+          }
+        )
+        |> Multi.run()
+
+      assert events == [
+        %PeerSentHandshake{
+          peer_uuid: peer_uuid,
+          info_hash: info_hash,
+          peer_id: peer_id,
+          initiated_by: "them"
+        }
+      ]
+    end
+
+    test "emits FailedHandshake when the info hash does not match what we expected" do
+      peer_uuid = UUID.uuid4()
+      info_hash = "12345678901234567890"
+      peer_id = "Other peer~~~~~~~~~~"
+      {_agg, events} =
+        Peer.execute(
+          %Peer{
+            peer_uuid: peer_uuid,
+            expected_info_hash: "09876543210987654321",
+            expected_peer_id: peer_id
+          },
+          %HandleHandshake{
+            peer_uuid: peer_uuid,
+            info_hash: info_hash,
+            peer_id: peer_id,
+            extensions: [:dht, :fast],
+            initiated_by: "them"
+          }
+        )
+        |> Multi.run()
+
+      assert events == [
+        %PeerSentHandshake{
+          peer_uuid: peer_uuid,
+          info_hash: info_hash,
+          peer_id: peer_id,
+          initiated_by: "them"
+        },
+        %FailedHandshake{
+          peer_uuid: peer_uuid,
+          failure_reason: :info_hash
+        }
+      ]
+    end
+
+    test "emits FailedHandshake when the peer_id does not match what we expected" do
+      peer_uuid = UUID.uuid4()
+      info_hash = "12345678901234567890"
+      peer_id = "Other peer~~~~~~~~~~"
+      {_agg, events} =
+        Peer.execute(
+          %Peer{
+            peer_uuid: peer_uuid,
+            expected_info_hash: info_hash,
+            expected_peer_id: "Another peer!!!!!!!!"
+          },
+          %HandleHandshake{
+            peer_uuid: peer_uuid,
+            info_hash: info_hash,
+            peer_id: peer_id,
+            extensions: [:dht, :fast],
+            initiated_by: "them"
+          }
+        )
+        |> Multi.run()
+
+      assert events == [
+        %PeerSentHandshake{
+          peer_uuid: peer_uuid,
+          info_hash: info_hash,
+          peer_id: peer_id,
+          initiated_by: "them"
+        },
+        %FailedHandshake{
+          peer_uuid: peer_uuid,
+          failure_reason: :peer_id
+        }
+      ]
+    end
+
+    test "emits SuccessfulHandshake when initiated_by us and all fields match" do
+      peer_uuid = UUID.uuid4()
+      info_hash = "12345678901234567890"
+      peer_id = "Other peer~~~~~~~~~~"
+      {_agg, events} =
+        Peer.execute(
+          %Peer{
+            peer_uuid: peer_uuid,
+            expected_info_hash: info_hash,
+            expected_peer_id: peer_id
+          },
+          %HandleHandshake{
+            peer_uuid: peer_uuid,
+            info_hash: info_hash,
+            peer_id: peer_id,
+            extensions: [:dht, :fast],
+            initiated_by: "us"
+          }
+        )
+        |> Multi.run()
+
+      assert events == [
+        %PeerSentHandshake{
+          peer_uuid: peer_uuid,
+          info_hash: info_hash,
+          peer_id: peer_id,
+          initiated_by: "us"
+        },
+        %SuccessfulHandshake{
+          peer_uuid: peer_uuid,
+          initiated_by: "us"
         }
       ]
     end
