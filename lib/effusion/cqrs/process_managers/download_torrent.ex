@@ -92,6 +92,10 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     {:continue!, info_hash}
   end
 
+  def interested?(%BlockRequested{info_hash: info_hash}) do
+    {:continue!, info_hash}
+  end
+
   def interested?(%PieceHashSucceeded{info_hash: info_hash}) do
     {:continue!, info_hash}
   end
@@ -155,80 +159,42 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def handle(
-    %__MODULE__{
-      info: info,
-      target_piece_count: target_piece_count,
-      pieces: pieces,
-      blocks: blocks,
-      block_size: block_size,
-      requests: requests,
-      max_requests_per_peer: max_requests_per_peer
-    },
+    %__MODULE__{} = download,
     %PeerUnchokedUs{peer_uuid: peer_uuid}
   ) do
     Logger.debug("***** Got :unchoke, sending :request")
-    blocks_per_piece =
-      if block_size < info.piece_length do
-        trunc(info.piece_length / block_size)
-      else
-        1
-      end
-
-    required_blocks =
-      pieces # all pieces we have
-      |> IntSet.inverse(target_piece_count) # all pieces we need
-      |> Enum.flat_map(fn required_piece_index ->
-        blocks
-        |> Map.get(required_piece_index, IntSet.new()) # all blocks we have in this piece index
-        |> IntSet.inverse(blocks_per_piece) # all blocks we need in this piece index
-        |> Enum.map(fn required_block_offset ->
-          {required_piece_index, required_block_offset, block_size} # the block we need to request
-        end)
-      end)
-
-    existing_requests_to_this_peer =
-      requests
-      |> Enum.filter(fn {_ios, peers} -> Enum.member?(peers, peer_uuid) end)
-      |> Enum.map(fn {ios, _peers} -> ios end)
-
-    request_count_we_can_add =
-      max_requests_per_peer - Enum.count(existing_requests_to_this_peer)
-
-    blocks_to_request = Enum.take(required_blocks, request_count_we_can_add)
-
-    Enum.map(blocks_to_request, fn {index, offset, size} ->
-      %RequestBlock{
-        peer_uuid: peer_uuid,
-        index: index,
-        offset: offset,
-        size: size
-      }
-    end)
+    get_more_requests_for_peer(download, peer_uuid)
   end
 
   def handle(
-    %__MODULE__{requests: requests},
+    %__MODULE__{block_size: block_size} = download,
     %PeerSentBlock{
       peer_uuid: from,
       info_hash: info_hash,
       index: index,
       offset: offset,
       data: data
-    }
+    } = event
   ) do
-    Logger.debug("***** Got block, storing it, BTW requests is #{inspect requests}")
+    # `handle/2` is called before `apply/2` in commanded (that will change someday, hopefully)
+    download = __MODULE__.apply(download, event)
+    requests = download.requests
+
+    Logger.debug("***** Got block #{inspect {index, offset}}, storing it, BTW requests is #{inspect requests}")
 
     cancellations =
       requests
-      |> Map.get({index, offset, byte_size(data)}, MapSet.new())
+      |> Map.get({index, offset, block_size}, MapSet.new())
       |> Enum.map(fn peer ->
         %CancelRequest{
           peer_uuid: peer,
           index: index,
           offset: offset,
-          size: byte_size(data)
+          size: block_size
         }
       end)
+
+    new_requests = get_more_requests_for_peer(download, from)
 
     [
       %StoreBlock{
@@ -237,8 +203,8 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
         index: index,
         offset: offset,
         data: data
-      } | cancellations
-    ]
+      }
+    ] ++ cancellations ++ new_requests
   end
 
   def handle(
@@ -389,14 +355,20 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   end
 
   def apply(
-    %__MODULE__{blocks: blocks} = download,
+    %__MODULE__{
+      blocks: blocks,
+      requests: requests,
+      block_size: block_size
+    } = download,
     %PeerSentBlock{
+      peer_uuid: peer_uuid,
       index: index,
       offset: offset
     }
   ) do
     %__MODULE__{download |
-      blocks: Map.update(blocks, index, IntSet.new(offset), &MapSet.put(&1, offset))
+      blocks: Map.update(blocks, index, IntSet.new(offset), &IntSet.put(&1, offset)),
+      requests: Map.update(requests, {index, offset, block_size}, MapSet.new(), &MapSet.delete(&1, peer_uuid))
     }
   end
 
@@ -438,6 +410,62 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
       Enum.max_by(best_potential_peers, &elem(&1, 1))
       |> elem(0)
     end
+  end
+
+  defp get_more_requests_for_peer(
+    %__MODULE__{
+      info: info,
+      target_piece_count: target_piece_count,
+      pieces: pieces,
+      blocks: blocks,
+      block_size: block_size,
+      requests: requests,
+      max_requests_per_peer: max_requests_per_peer
+    },
+    peer_uuid
+  ) do
+    blocks_per_piece =
+      if block_size < info.piece_length do
+        trunc(info.piece_length / block_size)
+      else
+        1
+      end
+
+    required_blocks =
+      pieces # all pieces we have
+      |> IntSet.inverse(target_piece_count) # all pieces we need
+      |> Enum.flat_map(fn required_piece_index ->
+        blocks
+        |> Map.get(required_piece_index, IntSet.new()) # all blocks we have in this piece index
+        |> IntSet.inverse(blocks_per_piece) # all blocks we need in this piece index
+        |> Enum.map(fn required_block_offset ->
+          {required_piece_index, required_block_offset, block_size} # the block we need to request
+        end)
+      end)
+      |> MapSet.new()
+
+    existing_requests_to_this_peer =
+      requests
+      |> Enum.filter(fn {_ios, peers} -> Enum.member?(peers, peer_uuid) end)
+      |> Enum.map(fn {ios, _peers} -> ios end)
+      |> MapSet.new()
+
+    request_count_we_can_add =
+      max_requests_per_peer - Enum.count(existing_requests_to_this_peer)
+
+    blocks_to_request =
+      required_blocks
+      |> MapSet.difference(existing_requests_to_this_peer)
+      |> Enum.take(request_count_we_can_add)
+
+    Enum.map(blocks_to_request, fn {index, offset, size} ->
+      %RequestBlock{
+        peer_uuid: peer_uuid,
+        index: index,
+        offset: offset,
+        size: size
+      }
+    end)
   end
 
   defimpl Commanded.Serialization.JsonDecoder, for: Effusion.CQRS.ProcessManagers.DownloadTorrent do
