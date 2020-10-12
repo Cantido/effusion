@@ -22,6 +22,7 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
 
     meta = TestHelper.mint_meta()
     info_hash = Effusion.Hash.encode(TestHelper.mint_info_hash())
+    other_node_id = Factory.encoded_node_id()
 
     :ok = CQRS.dispatch(%AddTorrent{
       announce: meta.announce,
@@ -36,12 +37,6 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
     :ok = CQRS.dispatch(%StartDHTNode{
       node_id: primary_node_id
     })
-
-    %{primary_node_id: primary_node_id, info_hash: info_hash}
-  end
-
-  test "when a download is started, ask the only node in the DHT routing table for peers", %{primary_node_id: primary_node_id, info_hash: info_hash} do
-    other_node_id = Factory.encoded_node_id()
 
     %AddDHTNode{
       primary_node_id: primary_node_id,
@@ -62,6 +57,16 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
       max_half_open_connections: 1000,
       max_connections: 200
     } |> CQRS.dispatch()
+
+    %{
+      primary_node_id: primary_node_id,
+      info_hash: info_hash,
+      other_node_id: other_node_id
+    }
+  end
+
+  test "when a download is started, ask the only node in the DHT routing table for peers",
+  %{primary_node_id: primary_node_id, info_hash: info_hash, other_node_id: other_node_id} do
 
     assert_receive_event(CQRS, DHTNodeAdded, fn event ->
       assert event.primary_node_id == primary_node_id
