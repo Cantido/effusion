@@ -35,6 +35,8 @@ defmodule Effusion.CQRS.EventHandlers.NodeMessenger do
       Query.encode(query)
       |> Bento.encode!()
 
+    {:ok, host} = :inet.parse_address(String.to_charlist(host))
+
     # If Port == 0, the underlying OS assigns a free UDP port, use inet:port/1 to retrieve it.
     {:ok, socket} = :gen_udp.open(0)
     :ok = :gen_udp.send(socket, host, port, encoded_query)
