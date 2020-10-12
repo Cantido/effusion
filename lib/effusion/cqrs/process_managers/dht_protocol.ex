@@ -4,12 +4,14 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocol do
     name: __MODULE__
 
   alias Effusion.CQRS.Commands.{
+    AddPeer,
     GetPeers
   }
   alias Effusion.CQRS.Events.{
     DHTNodeStarted,
     DHTNodeAdded,
-    DHTEnabledForDownload
+    DHTEnabledForDownload,
+    ReceivedPeersMatching
   }
 
   defstruct [
@@ -29,6 +31,10 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocol do
     {:continue!, primary_node_id}
   end
 
+  def interested?(%ReceivedPeersMatching{primary_node_id: primary_node_id}) do
+    {:continue!, primary_node_id}
+  end
+
   def handle(
     %__MODULE__{primary_node_id: primary_node_id} = dht,
     %DHTEnabledForDownload{info_hash: info_hash}
@@ -39,6 +45,24 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocol do
       info_hash: info_hash,
       node_id: node_id
     }
+  end
+
+  def handle(
+    %__MODULE__{} = dht,
+    %ReceivedPeersMatching{
+      peers: peers,
+      info_hash: info_hash
+    }
+  ) do
+    Enum.map(peers, fn {host, port} ->
+      %AddPeer{
+        peer_uuid: UUID.uuid4(),
+        expected_info_hash: info_hash,
+        host: host,
+        port: port,
+        from: "dht"
+      }
+    end)
   end
 
   def closest_node(

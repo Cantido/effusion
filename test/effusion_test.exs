@@ -20,10 +20,12 @@ defmodule EffusionTest do
     Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
   end
 
-  @local_port 8001
+  @localhost {127, 0, 0, 1}
+
+  @local_port Application.fetch_env!(:effusion, :port)
   @remote_port 8002
 
-  @local_dht_port 8006
+  @local_dht_port Application.fetch_env!(:effusion, :dht_port)
   @remote_dht_port 8007
 
   @torrent TestHelper.tiny_meta()
@@ -312,7 +314,7 @@ defmodule EffusionTest do
   #   {:ping, ^mock_transaction_id, _server_node_id} = Bento.decode!(packet) |> Response.decode()
   # end
 
-  test "dht node reaches out for peers" do
+  test "dht node reaches out for peers", %{lsock: lsock} do
     old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
     Application.put_env(:effusion, :enabled_extensions, [:dht])
     on_exit(fn ->
@@ -361,5 +363,33 @@ defmodule EffusionTest do
     assert actual_info_hash == @info_hash
     assert not is_nil(transaction_id)
     assert transaction_id != "null"
+
+    # Now let's respond with a peer and see if the app tries to connect
+    # we're cheating a little since the host & port is the same as
+    # the one that returned the data, but this app isn't smart enough to notice.
+
+    packet =
+      {
+        :get_peers_matching,
+        transaction_id,
+        Effusion.Hash.decode(remote_node_id),
+        DHT.token(),
+        [{@localhost, @remote_dht_port}]
+      }
+      |> Response.encode()
+      |> Bento.encode!()
+
+    {:ok, socket} = :gen_udp.open(0)
+    :ok = :gen_udp.send(socket, @localhost, @local_dht_port, packet)
+    :ok = :gen_udp.close(socket)
+
+    {:ok, sock, _remote_peer, []} =
+      Socket.accept(
+        lsock,
+        @info_hash,
+        @local_peer_id,
+        @remote_peer.peer_id,
+        []
+      )
   end
 end

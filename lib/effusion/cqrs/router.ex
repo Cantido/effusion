@@ -45,6 +45,7 @@ defmodule Effusion.CQRS.Router do
   dispatch [
     Commands.GetPeers,
     Commands.AddDHTNode,
-    Commands.StartDHTNode
+    Commands.StartDHTNode,
+    Commands.HandlePeersMatching
   ], to: Node, identity: :node_id
 end
