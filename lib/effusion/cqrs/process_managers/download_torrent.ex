@@ -65,6 +65,10 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     {:continue!, info_hash}
   end
 
+  def interested?(%PeerAdded{expected_info_hash: info_hash, from: "dht"}) do
+    {:continue!, info_hash}
+  end
+
   def interested?(%AttemptingToConnect{info_hash: info_hash}) do
     {:continue!, info_hash}
   end
@@ -124,6 +128,15 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   def handle(
     %__MODULE__{} = download,
     %PeerAdded{peer_uuid: peer_uuid, from: "tracker"}
+  ) do
+    if attempt_to_connect_to_new_peers?(download) do
+      %AttemptToConnect{peer_uuid: peer_uuid}
+    end
+  end
+
+  def handle(
+    %__MODULE__{} = download,
+    %PeerAdded{peer_uuid: peer_uuid, from: "dht"}
   ) do
     if attempt_to_connect_to_new_peers?(download) do
       %AttemptToConnect{peer_uuid: peer_uuid}

@@ -374,7 +374,7 @@ defmodule EffusionTest do
         transaction_id,
         Effusion.Hash.decode(remote_node_id),
         DHT.token(),
-        [{@localhost, @remote_dht_port}]
+        [{@localhost, @remote_port}]
       }
       |> Response.encode()
       |> Bento.encode!()
@@ -383,7 +383,7 @@ defmodule EffusionTest do
     :ok = :gen_udp.send(socket, @localhost, @local_dht_port, packet)
     :ok = :gen_udp.close(socket)
 
-    {:ok, sock, _remote_peer, []} =
+    {:ok, sock, _remote_peer, [:dht]} =
       Socket.accept(
         lsock,
         @info_hash,

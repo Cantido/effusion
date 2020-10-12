@@ -12,6 +12,7 @@ defmodule Effusion.Application do
     SessionStats.init()
 
     port = Application.get_env(:effusion, :port)
+    dht_port = Application.fetch_env!(:effusion, :dht_port)
 
     children = [
       Effusion.Repo,
@@ -20,7 +21,7 @@ defmodule Effusion.Application do
       Effusion.CQRS.Supervisor,
       Effusion.Application.ConnectionSupervisor,
       {Registry, keys: :unique, name: ConnectionRegistry},
-      Effusion.DHT.Server,
+      {Effusion.DHT.Listener, port: dht_port},
       EffusionWeb.Endpoint,
       :ranch.child_spec(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Connection, [])
     ]
