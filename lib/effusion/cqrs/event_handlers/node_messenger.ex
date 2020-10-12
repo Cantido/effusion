@@ -13,14 +13,15 @@ defmodule Effusion.CQRS.EventHandlers.NodeMessenger do
       primary_node_id: sender_id,
       host: host,
       port: port,
-      info_hash: info_hash
+      info_hash: info_hash,
+      transaction_id: transaction_id
     },
     _metadata
   ) do
     send_query(
       {
         :get_peers,
-        nil,
+        transaction_id,
         Effusion.Hash.decode(sender_id),
         Effusion.Hash.decode(info_hash)
       },

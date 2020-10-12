@@ -361,5 +361,6 @@ defmodule EffusionTest do
     assert Effusion.Hash.encode(actual_node_id) == primary_node_id
     assert actual_info_hash == @info_hash
     assert not is_nil(transaction_id)
+    assert transaction_id != "null"
   end
 end

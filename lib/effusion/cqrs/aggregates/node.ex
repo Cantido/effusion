@@ -9,6 +9,7 @@ defmodule Effusion.CQRS.Aggregates.Node do
     DHTNodeAdded,
     GettingPeers
   }
+  alias Effusion.DHT
 
   defstruct [
     :primary_node_id,
@@ -50,7 +51,8 @@ defmodule Effusion.CQRS.Aggregates.Node do
       node_id: node_id,
       host: host,
       port: port,
-      info_hash: info_hash
+      info_hash: info_hash,
+      transaction_id: DHT.transaction_id()
     }
   end
 
