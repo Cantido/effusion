@@ -21,8 +21,9 @@ defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
     Logger.debug("****** Download starting, notifying tracker")
 
     thp_client  = Application.fetch_env!(:effusion, :thp_client)
-    peer_id = Application.fetch_env!(:effusion, :peer_id)
-    {local_host, local_port} = Application.fetch_env!(:effusion, :server_address)
+    peer_id = Application.fetch_env!(:effusion, :peer_id
+    local_host = Application.fetch_env!(:effusion, :host)
+    local_port = Application.fetch_env!(:effusion, :port)
     tracker_numwant = Application.fetch_env!(:effusion, :max_peers)
 
     opts = [event: "started", numwant: tracker_numwant]
