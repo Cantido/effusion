@@ -11,7 +11,6 @@ defmodule Effusion.CQRS.EventHandlers.NodeMessenger do
   def handle(
     %GettingPeers{
       primary_node_id: sender_id,
-      node_id: recipient_id,
       host: host,
       port: port,
       info_hash: info_hash

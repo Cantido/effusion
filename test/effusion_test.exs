@@ -357,6 +357,9 @@ defmodule EffusionTest do
       500 -> flunk "No KRPC response"
     end
 
-    assert {:get_peers, _transaction_id, _server_node_id, @info_hash} = Bento.decode!(packet) |> Query.decode()
+    assert {:get_peers, transaction_id, actual_node_id, actual_info_hash} = Bento.decode!(packet) |> Query.decode()
+    assert Effusion.Hash.encode(actual_node_id) == primary_node_id
+    assert actual_info_hash == @info_hash
+    assert not is_nil(transaction_id)
   end
 end
