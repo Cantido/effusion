@@ -18,18 +18,26 @@ defmodule Effusion.CQRS.EventHandlers.NodeMessenger do
     },
     _metadata
   ) do
-    query =
-      Query.encode({
+    send_query(
+      {
         :get_peers,
         nil,
         Effusion.Hash.decode(sender_id),
         Effusion.Hash.decode(info_hash)
-      })
+      },
+      host,
+      port
+      )
+  end
+
+  defp send_query(query, host, port) do
+    encoded_query =
+      Query.encode(query)
       |> Bento.encode!()
 
     # If Port == 0, the underlying OS assigns a free UDP port, use inet:port/1 to retrieve it.
     {:ok, socket} = :gen_udp.open(0)
-    :ok = :gen_udp.send(socket, host, port, query)
+    :ok = :gen_udp.send(socket, host, port, encoded_query)
     :ok = :gen_udp.close(socket)
   end
 end
