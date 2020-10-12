@@ -1,6 +1,5 @@
 defmodule Effusion.DHT.ProtocolHandler do
   alias Effusion.DHT
-  alias Effusion.DHT.{Bucket, Node}
   alias Effusion.Repo
   import Bitwise
   import Effusion.DHT, only: [is_node_id: 1]
@@ -84,16 +83,11 @@ defmodule Effusion.DHT.ProtocolHandler do
   end
 
   defp closest_nodes(target_id) when is_node_id(target_id) do
-    # I really wish I could do this in the DB, it's way easier,
-    # but Postgres does not have a bitwise XOR operator for numerics
     <<target_id_int::160>> = target_id
     Repo.all(Node)
-    |> Enum.map(fn node ->
-      <<node_id::160>> = node.node_id
-      {bxor(node_id, target_id_int), node}
-    end)
-    |> Enum.sort_by(fn {distance, _node} ->
-      distance
+    |> Enum.sort_by(fn node ->
+      <<node_id::160>> = Effusion.Hash.decode(node.node_id)
+      DHT.distance(node_id, target_id_int)
     end)
     |> Enum.take(8)
     |> Enum.map(&elem(&1, 1))

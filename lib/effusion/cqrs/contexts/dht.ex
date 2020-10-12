@@ -30,6 +30,10 @@ defmodule Effusion.CQRS.Contexts.DHT do
     )
   end
 
+  def mark_node_as_contacted(node_id, contacted_at) do
+
+  end
+
   def handle_peers_matching(transaction_id, node_id, token, peers) do
     CQRS.dispatch(
       %HandlePeersMatching{
