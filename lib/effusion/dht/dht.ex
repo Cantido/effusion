@@ -27,7 +27,7 @@ defmodule Effusion.DHT do
   Generates a token for use in `get_peers` responses.
   """
   def token do
-    Base.encode64(:crypto.strong_rand_bytes(4))
+    Base.encode64(:crypto.strong_rand_bytes(6))
   end
 
   @doc """
