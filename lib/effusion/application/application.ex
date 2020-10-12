@@ -22,7 +22,6 @@ defmodule Effusion.Application do
       Effusion.Application.ConnectionSupervisor,
       {Registry, keys: :unique, name: ConnectionRegistry},
       {Effusion.DHT.Listener, port: dht_port},
-      EffusionWeb.Endpoint,
       :ranch.child_spec(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Connection, [])
     ]
 
@@ -34,12 +33,5 @@ defmodule Effusion.Application do
 
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]
     Supervisor.start_link(children, opts)
-  end
-
-  # Tell Phoenix to update the endpoint configuration
-  # whenever the application is updated.
-  def config_change(changed, _new, removed) do
-    EffusionWeb.Endpoint.config_change(changed, removed)
-    :ok
   end
 end
