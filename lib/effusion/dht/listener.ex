@@ -17,8 +17,16 @@ defmodule Effusion.DHT.Listener do
     {:ok, de_bencoded} = Bento.decode(packet)
 
     case Map.get(de_bencoded, "y") do
-      "q" -> Query.decode(de_bencoded) |> DHTContext.dispatch_query()
-      "r" -> Response.decode(de_bencoded) |> DHTContext.dispatch_response()
+      "q" ->
+        Task.start(
+          Effusion.DHT.Handler,
+          :handle_query,
+          [Query.decode(de_bencoded)])
+      "r" ->
+        Task.start(
+          Effusion.DHT.Handler,
+          :handle_response,
+          [Response.decode(de_bencoded)])
     end
     {:noreply, state}
   end
