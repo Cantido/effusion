@@ -20,7 +20,8 @@ defmodule Effusion.CQRS.Supervisor do
       EventHandlers.NetStatsUpdater,
       EventHandlers.PeerStatsUpdater,
       EventHandlers.SessionStatsUpdater,
-      EventHandlers.NodeMessenger
+      EventHandlers.NodeMessenger,
+      Effusion.CQRS.Projectors.Node
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.CQRS.Supervisor]
