@@ -62,8 +62,6 @@ defmodule Effusion.Mixfile do
       {:jason, "~> 1.2"},
       {:logger_file_backend, "~> 0.0.10"},
       {:metatorrent, "~> 1.0"},
-      {:phoenix, "~> 1.5"},
-      # {:phoenix_pubsub, "~> 2.0", override: true},
       {:plug_cowboy, "~> 2.0"},
       {:ranch, "~> 1.7"},
       {:timex, "~> 3.6"},
