@@ -10,14 +10,19 @@ defmodule Effusion.CQRS.Projectors.Node do
   }
   require Logger
 
-  project %DHTNodeAdded{node_id: node_id, host: host, port: port}, fn multi ->
+  project %DHTNodeAdded{
+    node_id: node_id,
+    host: host,
+    port: port
+  }, fn multi ->
     Ecto.Multi.insert(
       multi,
       :node,
       %NodeProjection{
         node_id: node_id,
         host: host,
-        port: port
+        port: port,
+        last_heard_from: DateTime.utc_now()
       })
   end
 
