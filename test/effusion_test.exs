@@ -328,25 +328,19 @@ defmodule EffusionTest do
 
     :ok = Effusion.start_download(@torrent)
 
-    primary_node_id = DHT.node_id() |> Effusion.Hash.encode()
-    remote_node_id = DHT.node_id() |> Effusion.Hash.encode()
+    primary_node_id = DHT.node_id()
+    remote_node_id = DHT.node_id()
 
-    :ok = CQRS.dispatch(%Effusion.CQRS.Commands.StartDHTNode{
-      node_id: primary_node_id
-    })
-    CQRS.dispatch(
-      %Effusion.CQRS.Commands.AddDHTNode{
-        primary_node_id: primary_node_id,
-        node_id: remote_node_id,
-        host: {127, 0, 0, 1},
-        port: @remote_dht_port
-      }
+    :ok = Effusion.CQRS.Contexts.DHT.start_dht(primary_node_id)
+    :ok = Effusion.CQRS.Contexts.DHT.add_node(
+      primary_node_id,
+      remote_node_id,
+      {127, 0, 0, 1},
+      @remote_dht_port
     )
-    CQRS.dispatch(
-      %Effusion.CQRS.Commands.EnableDHTForDownload{
-        node_id: primary_node_id,
-        info_hash: Effusion.Hash.encode(@info_hash)
-      }
+    :ok = Effusion.CQRS.Contexts.DHT.enable_dht_for_download(
+      @info_hash,
+      primary_node_id
     )
 
     # Now the DHT node knows a remote node exists, and then DHT is enabled.
@@ -359,7 +353,7 @@ defmodule EffusionTest do
     end
 
     assert {:get_peers, transaction_id, actual_node_id, actual_info_hash} = Bento.decode!(packet) |> Query.decode()
-    assert Effusion.Hash.encode(actual_node_id) == primary_node_id
+    assert actual_node_id == primary_node_id
     assert actual_info_hash == @info_hash
     assert not is_nil(transaction_id)
     assert transaction_id != "null"
@@ -372,7 +366,7 @@ defmodule EffusionTest do
       {
         :get_peers_matching,
         transaction_id,
-        Effusion.Hash.decode(remote_node_id),
+        remote_node_id,
         DHT.token(),
         [{@localhost, @remote_port}]
       }
