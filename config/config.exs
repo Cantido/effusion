@@ -8,7 +8,6 @@
 use Mix.Config
 
 config :effusion,
-  ecto_repos: [Effusion.Repo],
   block_size: 16384,
   peer_id: "Effusion Experiment!",
   host: {127, 0, 0, 1},
@@ -22,7 +21,6 @@ config :effusion,
   # dht_node_id should be generated fresh for new installations,
   # by calling Effusion.DHT.node_id() |> Base.encode64()
   dht_node_id: "zjuXKldLo4rJMGR1Ww/ykZFlXLQ=",
-  peers_count_to_add_on_speedup: 10,
   enabled_extensions: [],
   event_stores: [Effusion.CQRS.EventStore]
 
@@ -43,20 +41,11 @@ config :effusion, Effusion.CQRS.EventStore,
   hostname: "localhost",
   pool_size: 10
 
-# Configures the endpoint
-config :effusion, EffusionWeb.Endpoint,
-  url: [host: "localhost"],
-  secret_key_base: "MthtN4P5iyPai9u+Unl04vOhNnflrEL8haKx+g4Sik2SZqWIy7nM9U1RnQjUpyx/",
-  render_errors: [view: EffusionWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: Effusion.PubSub, adapter: Phoenix.PubSub.PG2]
-
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-# Use Jason for JSON parsing in Phoenix
-config :phoenix, :json_library, Jason
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
