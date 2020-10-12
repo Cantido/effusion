@@ -350,7 +350,6 @@ defmodule EffusionTest do
     # Now the DHT node knows a remote node exists, and then DHT is enabled.
     # It should send a request to us for peers related to @info_hash
 
-
     packet = receive do
       {:udp, _socket, _ip, _in_port_no, packet} -> packet
     after
