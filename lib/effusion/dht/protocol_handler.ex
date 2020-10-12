@@ -90,7 +90,6 @@ defmodule Effusion.DHT.ProtocolHandler do
       DHT.distance(node_id, target_id_int)
     end)
     |> Enum.take(8)
-    |> Enum.map(&elem(&1, 1))
   end
 
   def handle_krpc_response({:ping, _transaction_id, node_id}, %{remote_address: {host, port}, current_timestamp: now}) do
