@@ -22,21 +22,22 @@ config :effusion,
   # by calling Effusion.DHT.node_id() |> Base.encode64()
   dht_node_id: "zjuXKldLo4rJMGR1Ww/ykZFlXLQ=",
   enabled_extensions: [],
+  ecto_repos: [Effusion.Repo],
   event_stores: [Effusion.CQRS.EventStore]
 
 
 config :commanded, event_store_adapter: Commanded.EventStore.Adapters.EventStore
 
 config :effusion, Effusion.Repo,
-  database: "effusion_repo",
-  username: "effusion",
+  database: "effusion_dev",
+  username: "effusion_dev",
   password: "zkwNw2P8t&Vec#ebMr5&cjzj",
   hostname: "localhost"
 
 config :effusion, Effusion.CQRS.EventStore,
   serializer: Commanded.Serialization.JsonSerializer,
-  database: "event_store",
-  username: "effusion",
+  database: "event_store_dev",
+  username: "effusion_dev",
   password: "zkwNw2P8t&Vec#ebMr5&cjzj",
   hostname: "localhost",
   pool_size: 10
