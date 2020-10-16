@@ -29,7 +29,12 @@ defmodule Effusion.DHT.ProtocolHandler do
 
     token = DHT.token()
 
-    :ok = DHTContext.issue_token(token, host, port)
+    :ok = DHTContext.issue_token(
+      sender_id,
+      info_hash,
+      token,
+      Timex.shift(Timex.now(), minutes: 15)
+    )
 
     nodes = closest_nodes(info_hash)
     matching_nodes = Enum.filter(nodes, fn node ->

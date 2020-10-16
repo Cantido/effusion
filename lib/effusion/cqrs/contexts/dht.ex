@@ -49,7 +49,7 @@ defmodule Effusion.CQRS.Contexts.DHT do
 
   end
 
-  def issue_token(token, host, port) do
+  def issue_token(node_id, info_hash, token, expiry) do
 
   end
 
