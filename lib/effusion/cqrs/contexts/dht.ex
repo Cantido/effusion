@@ -4,6 +4,7 @@ defmodule Effusion.CQRS.Contexts.DHT do
     AddPeer,
     AddDHTNode,
     StartDHTNode,
+    RefreshNode,
     EnableDHTForDownload,
     HandlePeersMatching,
     IssueToken
@@ -49,8 +50,13 @@ defmodule Effusion.CQRS.Contexts.DHT do
     )
   end
 
-  def mark_node_as_contacted(node_id, contacted_at) do
-
+  def mark_node_as_contacted(node_id, last_contacted) do
+    CQRS.dispatch(
+      %RefreshNode{
+        node_id: Effusion.Hash.encode(node_id),
+        last_contacted: last_contacted
+      }
+    )
   end
 
   def issue_token(node_id, info_hash, token, expiry) do
