@@ -1,4 +1,4 @@
-defmodule Effusion.DHT.Listener do
+defmodule Effusion.DHT.Server do
   use GenServer
   alias Effusion.CQRS.Contexts.DHT, as: DHTContext
   alias Effusion.DHT.KRPC.{Query, Response}
@@ -15,34 +15,34 @@ defmodule Effusion.DHT.Listener do
   end
 
   def handle_info({:udp, socket, ip, port, packet}, %{node_id: node_id} = state) do
-    {:ok, de_bencoded} = Bento.decode(packet)
-
+    now = DateTime.utc_now()
     context = %{
-      current_timestamp: DateTime.utc_now(),
+      current_timestamp: now,
       local_node_id: node_id,
-      remote_address: {ip, in_port_no}
+      remote_address: {ip, port}
     }
+
+    DHTContext.mark_node_as_contacted(node_id, now)
+
+    {:ok, de_bencoded} = Bento.decode(packet)
 
     case Map.get(de_bencoded, "y") do
       "q" ->
         Task.start(fn ->
-          Effusion.DHT.Handler.handle_krpc_query,
-            Query.decode(de_bencoded),
-            context
-          )
-          |> Response.encode()
-          |> Bento.encode!()
+          response =
+            Effusion.DHT.ProtocolHandler.handle_krpc_query(
+              Query.decode(de_bencoded),
+              context
+            )
+            |> Response.encode()
+            |> Bento.encode!()
           _ = :gen_udp.send(socket, ip, port, response)
         end)
       "r" ->
-        Task.start(
-          Effusion.DHT.Handler,
-          :handle_krpc_response,
-          [
+          Effusion.DHT.ProtocolHandler.handle_krpc_response(
             Response.decode(de_bencoded),
             context
-          ]
-        )
+          )
     end
     {:noreply, state}
   end

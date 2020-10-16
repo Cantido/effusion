@@ -1,4 +1,5 @@
 defmodule Effusion.DHT.ProtocolHandler do
+  alias Effusion.CQRS.Contexts.DHT, as: DHTContext
   alias Effusion.DHT
   alias Effusion.Repo
   import Bitwise
@@ -25,25 +26,10 @@ defmodule Effusion.DHT.ProtocolHandler do
 
   def handle_krpc_query({:get_peers, transaction_id, sender_id, info_hash},
                         %{remote_address: {host, port}, current_timestamp: now, local_node_id: local_node_id}) do
+
     token = DHT.token()
 
-    case Repo.one(from node in Node, where: node.node_id == ^sender_id) do
-      nil ->
-        Node.changeset(%Node{}, %{
-          node_id: sender_id,
-          address: host,
-          port: port,
-          sent_token: token,
-          sent_token_timestamp: now,
-          last_contacted: now
-        }) |> Repo.insert!()
-      node ->
-        Node.changeset(node, %{
-          sent_token: token,
-          sent_token_timestamp: now,
-          last_contacted: now
-        }) |> Repo.update!()
-    end
+    :ok = DHTContext.issue_token(token, host, port)
 
     nodes = closest_nodes(info_hash)
     matching_nodes = Enum.filter(nodes, fn node ->
@@ -54,7 +40,7 @@ defmodule Effusion.DHT.ProtocolHandler do
       nodes = Enum.map(nodes, &Node.compact/1)
       {:get_peers_nearest, transaction_id, local_node_id, token, nodes}
     else
-      matching_peers = Enum.map(matching_nodes, &Peer.compact/1)
+      matching_peers = Enum.map(matching_nodes, &compact_peer(&1.host, &1.port))
       {:get_peers_matching, transaction_id, local_node_id, token, matching_peers}
     end
   end
@@ -92,72 +78,26 @@ defmodule Effusion.DHT.ProtocolHandler do
     |> Enum.take(8)
   end
 
-  def handle_krpc_response({:ping, _transaction_id, node_id}, %{remote_address: {host, port}, current_timestamp: now}) do
-    case Repo.one(from node in Node, where: node.node_id == ^node_id) do
-      nil ->
-        Node.changeset(%Node{}, %{
-          node_id: node_id,
-          address: host,
-          port: port,
-          last_contacted: now
-        }) |> Repo.insert()
-      node ->
-        Node.changeset(node, %{
-          last_contacted: now
-        }) |> Repo.update()
-    end
+  def handle_krpc_response({:ping, _transaction_id, node_id}, %{current_timestamp: now}) do
     :ok
   end
 
-  def handle_krpc_response({:find_node, _transaction_id, _node_id, nodes}, %{local_node_id: local_node_id, current_timestamp: now}) when is_node_id(local_node_id) do
-    <<local_node_id_int::160>> = local_node_id
-    Logger.debug("local node ID: #{inspect local_node_id_int}")
+  def handle_krpc_response(
+    {:find_node, _transaction_id, _node_id, nodes},
+    %{local_node_id: local_node_id}
+  ) when is_node_id(local_node_id) do
     nodes
     |> Enum.map(fn {node_id, {host, port}} ->
-      bucket = Bucket.for_node_id(node_id) |> Repo.one!() |> Repo.preload(:nodes)
-      bucket_size = Enum.count(bucket.nodes)
-
-      if bucket_size >= 8 do
-        # when bucket is full
-        # does our own node ID fit within this bucket?
-        our_bucket = Bucket.for_node_id(local_node_id) |> Repo.one!()
-
-        if bucket.id == our_bucket.id do
-          Logger.debug("Node exists in our own bucket (we are #{inspect local_node_id_int}); splitting bucket #{inspect bucket.range}")
-          Bucket.split(local_node_id)
-          insert_node({node_id, {host, port}})
-        else
-          # ping all older nodes in the bucket, see if they are still active, or drop the node we're inserting if they're all still active
-          deleted_buckets_count = bucket.nodes
-          |> Enum.filter(&Node.expired?(&1, now))
-          |> Enum.filter(fn node ->
-            Logger.debug("Expired node: #{inspect node}")
-            # TODO: ping the node, drop them if they don't respond
-            # returning true right now means we drop this old node
-            true
-          end)
-          |> Enum.map(&Repo.delete!/1)
-          |> Enum.count()
-
-          if deleted_buckets_count > 0 do
-            insert_node({node_id, {host, port}})
-          end
-          # If all our nodes are active, just drop what we're inserting
-        end
-      else
-        # when bucket is not full
-        insert_node({node_id, {host, port}})
-      end
+      DHTContext.add_node(local_node_id, node_id, host, port)
     end)
     :ok
   end
 
   def handle_krpc_response(
-    {:get_peers_matching, response_transaction_id, _node_id, _token, peers},
-    %{query: {:get_peers, query_transaction_id, _sender_id, info_hash}})
-    when response_transaction_id == query_transaction_id do
-
-    # TODO
+    {:get_peers_matching, response_transaction_id, node_id, token, peers},
+    _context
+  ) do
+    DHTContext.handle_peers_matching(node_id, response_transaction_id, token, peers)
   end
 
   def handle_krpc_response({:get_peers_nearest, _transaction_id, _node_id, token, nodes}, _context) do
@@ -179,12 +119,8 @@ defmodule Effusion.DHT.ProtocolHandler do
     :ok
   end
 
-  defp insert_node({node_id, {host, port}}) do
-    Node.changeset(%Node{}, %{
-      node_id: node_id,
-      address: %Postgrex.INET{address: host},
-      port: port
-    })
-    |> Repo.insert!(on_conflict: :nothing)
+  def compact_peer(host, port) do
+    {ip0, ip1, ip2, ip3} = host
+    <<ip0, ip1, ip2, ip3, port::16>>
   end
 end
