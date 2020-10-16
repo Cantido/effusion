@@ -50,7 +50,14 @@ defmodule Effusion.CQRS.Contexts.DHT do
   end
 
   def issue_token(node_id, info_hash, token, expiry) do
-
+    CQRS.dispatch(
+      %Effusion.CQRS.Commands.IssueToken{
+        node_id: Effusion.Hash.encode(node_id),
+        info_hash: Effusion.Hash.encode(info_hash),
+        token: token,
+        expires_at: expiry
+      }
+    )
   end
 
   def accept_token(token, host, port) do
