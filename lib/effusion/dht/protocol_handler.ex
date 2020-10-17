@@ -1,5 +1,6 @@
 defmodule Effusion.DHT.ProtocolHandler do
   alias Effusion.CQRS.Contexts.DHT, as: DHTContext
+  alias Effusion.DHT.{Tokens, Nodes}
   alias Effusion.DHT
   alias Effusion.Repo
   import Bitwise
@@ -20,7 +21,7 @@ defmodule Effusion.DHT.ProtocolHandler do
      and is_node_id(target_id) do
     nodes = target_id
       |> closest_nodes()
-      |> Enum.map(&Node.compact/1)
+      |> Enum.map(fn {node_id, {host, port}} -> compact_node(node_id, host, port) end)
     {:find_node, transaction_id, context.local_node_id, nodes}
   end
 
@@ -29,7 +30,7 @@ defmodule Effusion.DHT.ProtocolHandler do
 
     token = DHT.token()
 
-    :ok = DHTContext.issue_token(
+    :ok = Tokens.issue_token(
       sender_id,
       info_hash,
       token,
@@ -51,15 +52,11 @@ defmodule Effusion.DHT.ProtocolHandler do
   end
 
   def handle_krpc_query({:announce_peer, transaction_id, sender_id, _info_hash, _port, _token}, %{local_node_id: local_node_id, current_timestamp: now}) do
-    token_query =
-      from node in Node,
-      where: node.node_id == ^sender_id,
-      select: {node.sent_token, node.sent_token_timestamp}
+    token_query = nil
 
     case Repo.one(token_query) do
-      {_token, timestamp} ->
-        token_expiry = timestamp |> Timex.shift(minutes: 15)
-        if Timex.before?(now, token_expiry) do
+      token ->
+        if Timex.before?(now, token.expires_at) do
           {:announce_peer, transaction_id, local_node_id}
         else
           {:error, [203, "token expired"]}
@@ -69,8 +66,9 @@ defmodule Effusion.DHT.ProtocolHandler do
     end
   end
 
-  def handle_krpc_query({:announce_peer, transaction_id, _sender_id, _info_hash, _port, _token, :implied_port}, context) do
-    {:announce_peer, transaction_id, context.local_node_id}
+  def handle_krpc_query({:announce_peer, transaction_id, sender_id, info_hash, _port, token, :implied_port}, context) do
+    {_address, port} = context.remote_address
+    handle_krpc_query({:announce_peer, transaction_id, sender_id, info_hash, port, token}, context)
   end
 
   defp closest_nodes(target_id) when is_node_id(target_id) do
@@ -92,7 +90,7 @@ defmodule Effusion.DHT.ProtocolHandler do
   ) when is_node_id(local_node_id) do
     nodes
     |> Enum.map(fn {node_id, {host, port}} ->
-      DHTContext.add_node(local_node_id, node_id, host, port)
+      Nodes.add(local_node_id, node_id, host, port)
     end)
     :ok
   end
@@ -104,23 +102,22 @@ defmodule Effusion.DHT.ProtocolHandler do
     DHTContext.handle_peers_matching(node_id, response_transaction_id, token, peers)
   end
 
-  def handle_krpc_response({:get_peers_nearest, _transaction_id, _node_id, token, nodes}, _context) do
-    nodes_to_insert = Enum.map(nodes, fn {node_id, {ip, port}} ->
-      %{
-        node_id: node_id,
-        address: ip,
-        port: port,
-        received_token: token,
-        last_contacted: DateTime.utc_now()
-      }
-    end)
-    Repo.insert_all(Node, nodes_to_insert)
+  def handle_krpc_response(
+    {:get_peers_nearest, _transaction_id, node_id, token, nodes},
+    %{local_node_id: primary_node_id}
+  ) do
 
-    :ok
+    Enum.each(nodes, fn {node_id, {host, port}} ->
+      Nodes.add(primary_node_id, node_id, host, port)
+    end)
   end
 
   def handle_krpc_response({:announce_peer, _transaction_id, _node_id}, _context) do
     :ok
+  end
+
+  def compact_node(node_id, host, port) do
+    node_id <> compact_peer(host, port)
   end
 
   def compact_peer(host, port) do

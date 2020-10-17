@@ -2,6 +2,7 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
   use Effusion.EventStoreCase
   alias Effusion.Factory
   alias Effusion.DHT
+  alias Effusion.DHT.Nodes
   alias Effusion.CQRS.Contexts.Downloads, as: DownloadsContext
   alias Effusion.CQRS.Contexts.Peers, as: PeersContext
   alias Effusion.CQRS.Contexts.DHT, as: DHTContext
@@ -32,7 +33,7 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
 
     :ok = DownloadsContext.add(meta)
     :ok = DHTContext.start_dht(primary_node_id)
-    :ok = DHTContext.add_node(
+    :ok = Nodes.add(
       primary_node_id,
       other_node_id,
       {127, 0, 0, 1},

@@ -3,17 +3,19 @@ defmodule Effusion.CQRS.Aggregates.Node do
     AddDHTNode,
     StartDHTNode,
     GetPeers,
+    HandlePeersMatching,
+    AcceptToken,
     IssueToken,
-    RefreshNode,
-    HandlePeersMatching
+    RefreshNode
   }
   alias Effusion.CQRS.Events.{
     DHTNodeStarted,
     DHTNodeAdded,
     GettingPeers,
+    ReceivedPeersMatching,
+    TokenAccepted,
     TokenIssued,
-    NodeRefreshed,
-    ReceivedPeersMatching
+    NodeRefreshed
   }
   alias Effusion.DHT
 
@@ -24,7 +26,7 @@ defmodule Effusion.CQRS.Aggregates.Node do
     port: nil,
     transactions: %{},
     issued_token: nil,
-    recieved_token: nil,
+    received_token: nil,
     last_contacted: nil
   ]
 
@@ -78,32 +80,6 @@ defmodule Effusion.CQRS.Aggregates.Node do
   def execute(
     %__MODULE__{
       primary_node_id: primary_node_id,
-      node_id: node_id
-    },
-    %IssueToken{token: token, expires_at: expires_at, info_hash: info_hash}
-  ) do
-    %TokenIssued{
-      primary_node_id: primary_node_id,
-      node_id: node_id,
-      info_hash: info_hash,
-      token: token,
-      expires_at: expires_at
-    }
-  end
-
-  def execute(
-    %__MODULE__{node_id: node_id},
-    %RefreshNode{last_contacted: last_contacted}
-  ) do
-    %NodeRefreshed{
-      node_id: node_id,
-      last_contacted: last_contacted
-    }
-  end
-
-  def execute(
-    %__MODULE__{
-      primary_node_id: primary_node_id,
       transactions: transactions
     },
     %HandlePeersMatching{
@@ -126,6 +102,48 @@ defmodule Effusion.CQRS.Aggregates.Node do
     else
       {:error, "transaction ID not found"}
     end
+  end
+
+  def execute(
+    %__MODULE__{
+      primary_node_id: primary_node_id,
+      node_id: node_id
+    },
+    %IssueToken{token: token, expires_at: expires_at, info_hash: info_hash}
+  ) do
+    %TokenIssued{
+      primary_node_id: primary_node_id,
+      node_id: node_id,
+      info_hash: info_hash,
+      token: token,
+      expires_at: expires_at
+    }
+  end
+
+  def execute(
+    %__MODULE__{
+      primary_node_id: primary_node_id,
+      node_id: node_id
+    },
+    %AcceptToken{token: token, expires_at: expires_at, info_hash: info_hash}
+  ) do
+    %TokenAccepted{
+      primary_node_id: primary_node_id,
+      node_id: node_id,
+      info_hash: info_hash,
+      token: token,
+      expires_at: expires_at
+    }
+  end
+
+  def execute(
+    %__MODULE__{node_id: node_id},
+    %RefreshNode{last_contacted: last_contacted}
+  ) do
+    %NodeRefreshed{
+      node_id: node_id,
+      last_contacted: last_contacted
+    }
   end
 
   def apply(
@@ -176,6 +194,13 @@ defmodule Effusion.CQRS.Aggregates.Node do
 
   def apply(
     %__MODULE__{} = node,
+    %TokenAccepted{token: token}
+  ) do
+    %__MODULE__{node | received_token: token}
+  end
+
+  def apply(
+    %__MODULE__{} = node,
     %NodeRefreshed{last_contacted: last_contacted}
   ) do
     %__MODULE__{node | last_contacted: last_contacted}
@@ -183,8 +208,8 @@ defmodule Effusion.CQRS.Aggregates.Node do
 
   def apply(
     %__MODULE__{} = node,
-    %ReceivedPeersMatching{}
+    %ReceivedPeersMatching{token: token}
   ) do
-    node
+    %__MODULE__{node | received_token: token}
   end
 end

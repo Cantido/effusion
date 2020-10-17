@@ -6,6 +6,7 @@ defmodule Effusion.CQRS.Projectors.Token do
 
   alias Effusion.CQRS.Projections.Token, as: TokenProjection
   alias Effusion.CQRS.Events.{
+    TokenAccepted,
     TokenIssued
   }
   require Logger
@@ -21,6 +22,26 @@ defmodule Effusion.CQRS.Projectors.Token do
       :token,
       %TokenProjection{
         issued_to: node_id,
+        info_hash: info_hash,
+        value: token,
+        expires_at: expires_at
+      })
+  end
+
+
+  project %TokenAccepted{
+    primary_node_id: primary_node_id,
+    node_id: node_id,
+    info_hash: info_hash,
+    token: token,
+    expires_at: expires_at
+  }, fn multi ->
+    Ecto.Multi.insert(
+      multi,
+      :token,
+      %TokenProjection{
+        issued_by: node_id,
+        issued_to: primary_node_id,
         info_hash: info_hash,
         value: token,
         expires_at: expires_at

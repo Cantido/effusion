@@ -332,7 +332,7 @@ defmodule EffusionTest do
     remote_node_id = DHT.node_id()
 
     :ok = Effusion.CQRS.Contexts.DHT.start_dht(primary_node_id)
-    :ok = Effusion.CQRS.Contexts.DHT.add_node(
+    :ok = Effusion.DHT.Nodes.add(
       primary_node_id,
       remote_node_id,
       {127, 0, 0, 1},

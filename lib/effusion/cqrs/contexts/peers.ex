@@ -16,6 +16,17 @@ defmodule Effusion.CQRS.Contexts.Peers do
     HandleUnchoke,
     HandleUninterested
   }
+
+  def add(peer_uuid, info_hash, host, port, from) do
+    %AddPeer{
+      peer_uuid: peer_uuid,
+      expected_info_hash: Effusion.Hash.encode(info_hash),
+      host: to_string(:inet.ntoa(host)),
+      port: port,
+      from: from}
+    |> CQRS.dispatch()
+  end
+
   def add(peer_uuid, info_hash, peer_id, host, port, from) do
     %AddPeer{
       peer_uuid: peer_uuid,
