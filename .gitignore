@@ -14,19 +14,19 @@
 /.fetch
 
 # If the VM crashes, it generates a dump, let's ignore it too.
-/erl_crash.dump
+erl_crash.dump
 
 # Also ignore archive artifacts (built via "mix archive.build").
-/*.ez
+*.ez
 
 # Ignore the compiled CLI
 /effusion
 
 # Ignore package tarball (built via "mix hex.build").
-/effusion-*.tar
+effusion-*.tar
 
 # If NPM crashes, it generates a log, let's ignore it too.
-/npm-debug.log
+npm-debug.log
 
 # The directory NPM downloads your dependencies sources to.
 /assets/node_modules/
@@ -40,5 +40,5 @@
 /tmp
 
 # Test torrents that I download using the program
-/linuxmint-19.2-cinnamon-64bit.iso
-/linuxmint-20-cinnamon-64bit.iso
+linuxmint-19.2-cinnamon-64bit.iso
+linuxmint-20-cinnamon-64bit.iso
