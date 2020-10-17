@@ -74,11 +74,10 @@ defmodule Effusion.DHT.ProtocolHandler do
   end
 
   defp closest_nodes(target_id) when is_node_id(target_id) do
-    <<target_id_int::160>> = target_id
     Repo.all(Node)
     |> Enum.sort_by(fn node ->
-      <<node_id::160>> = Effusion.Hash.decode(node.node_id)
-      DHT.distance(node_id, target_id_int)
+      node_id = Effusion.Hash.decode(node.node_id)
+      DHT.distance(node_id, target_id)
     end)
     |> Enum.take(8)
   end
