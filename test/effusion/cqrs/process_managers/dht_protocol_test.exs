@@ -29,7 +29,7 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
 
     meta = TestHelper.mint_meta()
     info_hash = TestHelper.mint_info_hash()
-    other_node_id = "other node id~~~~~~~"
+    other_node_id = DHT.node_id()
 
     :ok = DownloadsContext.add(meta)
     :ok = DHTContext.start_dht(primary_node_id)
@@ -118,6 +118,32 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
       assert event.node_id == Effusion.Hash.encode(other_other_node_id)
       assert event.host == to_string(:inet.ntoa({127, 0, 0, 1}))
       assert event.port == 7000
+    end)
+  end
+
+  test "when DHT gets nearest nodes back, it will emit a DHTNodeAdded for them",
+  %{primary_node_id: primary_node_id, info_hash: info_hash, other_node_id: other_node_id} do
+    other_other_node_id = DHT.node_id()
+    token = DHT.token()
+
+    wait_for_event(CQRS, DHTNodeAdded)
+
+    assert_receive_event(CQRS, GettingPeers, fn event ->
+      :ok = DHTContext.handle_nodes_nearest(
+        other_node_id,
+        event.transaction_id,
+        token,
+        [{other_other_node_id, {{127, 0, 0, 1}, 7000}}]
+      )
+    end)
+
+    assert_receive_event(CQRS, GettingPeers, fn event ->
+      assert event.primary_node_id == Effusion.Hash.encode(primary_node_id)
+      assert event.node_id == Effusion.Hash.encode(other_node_id)
+      assert event.host == to_string(:inet.ntoa({127, 0, 0, 1}))
+      assert event.port == 6881
+      assert event.info_hash == Effusion.Hash.encode(info_hash)
+      assert not is_nil(event.transaction_id)
     end)
   end
 end
