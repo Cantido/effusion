@@ -103,7 +103,7 @@ defmodule Effusion.DHT.ProtocolHandler do
   end
 
   def handle_krpc_response(
-    {:get_peers_nearest, _transaction_id, node_id, token, nodes},
+    {:get_peers_nearest, _transaction_id, sender_node_id, token, nodes},
     %{local_node_id: primary_node_id}
   ) do
 

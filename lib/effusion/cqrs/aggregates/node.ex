@@ -4,6 +4,7 @@ defmodule Effusion.CQRS.Aggregates.Node do
     StartDHTNode,
     GetPeers,
     HandlePeersMatching,
+    HandleNodesNearest,
     AcceptToken,
     IssueToken,
     RefreshNode
@@ -13,6 +14,7 @@ defmodule Effusion.CQRS.Aggregates.Node do
     DHTNodeAdded,
     GettingPeers,
     ReceivedPeersMatching,
+    ReceivedNodesNearest,
     TokenAccepted,
     TokenIssued,
     NodeRefreshed
@@ -100,7 +102,34 @@ defmodule Effusion.CQRS.Aggregates.Node do
         peers: peers
       }
     else
-      {:error, "transaction ID not found"}
+      {:error, "transaction ID not found: #{inspect transaction_id}"}
+    end
+  end
+
+  def execute(
+    %__MODULE__{
+      primary_node_id: primary_node_id,
+      transactions: transactions
+    },
+    %HandleNodesNearest{
+      transaction_id: transaction_id,
+      node_id: node_id,
+      token: token,
+      nodes: nodes
+    }
+  ) do
+    if Map.has_key?(transactions, transaction_id) do
+      info_hash = Map.fetch!(transactions, transaction_id)
+      %ReceivedNodesNearest{
+        primary_node_id: primary_node_id,
+        transaction_id: transaction_id,
+        info_hash: info_hash,
+        node_id: node_id,
+        token: token,
+        nodes: nodes
+      }
+    else
+      {:error, "transaction ID not found: #{inspect transaction_id}"}
     end
   end
 
@@ -209,6 +238,13 @@ defmodule Effusion.CQRS.Aggregates.Node do
   def apply(
     %__MODULE__{} = node,
     %ReceivedPeersMatching{token: token}
+  ) do
+    %__MODULE__{node | received_token: token}
+  end
+
+  def apply(
+    %__MODULE__{} = node,
+    %ReceivedNodesNearest{token: token}
   ) do
     %__MODULE__{node | received_token: token}
   end

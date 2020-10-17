@@ -7,6 +7,7 @@ defmodule Effusion.CQRS.Contexts.DHT do
     RefreshNode,
     EnableDHTForDownload,
     HandlePeersMatching,
+    HandleNodesNearest,
     IssueToken,
     AcceptToken
   }
@@ -40,8 +41,22 @@ defmodule Effusion.CQRS.Contexts.DHT do
     )
   end
 
-  def handle_peers_nearest(remote_node_id, transaction_id, token, peers) do
+  def handle_nodes_nearest(remote_node_id, transaction_id, token, nodes) do
+    stringified_nodes = Enum.map(nodes, fn {node_id, {host, port}} ->
+      {
+        Effusion.Hash.encode(node_id),
+        {to_string(:inet.ntoa(host)), port}
+      }
 
+    end)
+    CQRS.dispatch(
+      %HandleNodesNearest{
+        transaction_id: transaction_id,
+        node_id: Effusion.Hash.encode(remote_node_id),
+        token: token,
+        nodes: stringified_nodes
+      }
+    )
   end
 
   def mark_node_as_contacted(node_id, last_contacted) do
