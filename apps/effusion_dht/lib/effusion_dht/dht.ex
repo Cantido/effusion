@@ -1,5 +1,5 @@
 defmodule Effusion.CQRS.Contexts.DHT do
-  alias Effusion.CQRS.Application, as: CQRS
+  alias Effusion.DHT.Application, as: CQRS
   alias Effusion.CQRS.Commands.{
     AddPeer,
     AddDHTNode,
