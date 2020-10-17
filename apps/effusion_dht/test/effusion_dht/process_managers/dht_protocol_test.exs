@@ -6,7 +6,7 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
   alias Effusion.CQRS.Contexts.Downloads, as: DownloadsContext
   alias Effusion.CQRS.Contexts.Peers, as: PeersContext
   alias Effusion.CQRS.Contexts.DHT, as: DHTContext
-  alias Effusion.CQRS.Application, as: CQRS
+  alias Effusion.DHT.CQRS
   alias Effusion.CQRS.Commands.{
     AddDHTNode,
     AddTorrent,

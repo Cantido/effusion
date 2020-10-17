@@ -13,7 +13,8 @@ defmodule Effusion.DHT.Router do
   ], to: Peer, identity: :peer_uuid
 
   dispatch [
-    Commands.StartDHTNode
+    Commands.StartDHTNode,
+    Commands.EnableDHTForDownload
   ], to: DHT, identity: :node_id
 
   dispatch [

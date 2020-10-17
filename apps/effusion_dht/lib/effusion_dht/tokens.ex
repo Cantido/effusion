@@ -1,5 +1,5 @@
 defmodule Effusion.DHT.Tokens do
-  alias Effusion.CQRS.Application, as: CQRS
+  alias Effusion.DHT.CQRS
   alias Effusion.CQRS.Commands.{
     IssueToken,
     AcceptToken
