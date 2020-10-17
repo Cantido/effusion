@@ -1,6 +1,6 @@
 defmodule Effusion.CQRS.ProcessManagers.DHTProtocol do
   use Commanded.ProcessManagers.ProcessManager,
-    application: Effusion.CQRS.Application,
+    application: Effusion.DHT.CQRS,
     name: __MODULE__
 
   alias Effusion.CQRS.Commands.{

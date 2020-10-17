@@ -18,7 +18,8 @@ defmodule EffusionDht.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger],
+      mod: {Effusion.DHT.Application, []}
     ]
   end
 
@@ -28,7 +29,9 @@ defmodule EffusionDht.MixProject do
       {:effusion, in_umbrella: true},
       {:bento, "~> 0.9"},
       {:commanded, "~> 1.2"},
-      {:commanded_ecto_projections, "~> 1.2"}
+      {:commanded_ecto_projections, "~> 1.2"},
+      {:temp, "~> 0.4", only: :test},
+      {:mox, "~> 0.3", only: :test}
     ]
   end
 end

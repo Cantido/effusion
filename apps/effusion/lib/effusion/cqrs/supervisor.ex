@@ -13,15 +13,12 @@ defmodule Effusion.CQRS.Supervisor do
       ProcessManagers.DownloadTorrent,
       ProcessManagers.IncomingPeerConnection,
       ProcessManagers.OutgoingPeerConnection,
-      ProcessManagers.DHTProtocol,
       EventHandlers.FileWriter,
       EventHandlers.TrackerAnnouncer,
       EventHandlers.PeerMessenger,
       EventHandlers.NetStatsUpdater,
       EventHandlers.PeerStatsUpdater,
-      EventHandlers.SessionStatsUpdater,
-      EventHandlers.NodeMessenger,
-      Effusion.CQRS.Projectors.Node
+      EventHandlers.SessionStatsUpdater
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.CQRS.Supervisor]

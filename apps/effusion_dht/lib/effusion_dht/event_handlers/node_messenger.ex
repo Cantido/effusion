@@ -1,6 +1,6 @@
 defmodule Effusion.CQRS.EventHandlers.NodeMessenger do
   use Commanded.Event.Handler,
-    application: Effusion.CQRS.Application,
+    application: Effusion.DHT.CQRS,
     name: __MODULE__
 
   alias Effusion.DHT.KRPC.Query

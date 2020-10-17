@@ -1,6 +1,6 @@
 defmodule Effusion.CQRS.Projectors.Node do
   use Commanded.Projections.Ecto,
-    application: Effusion.CQRS.Application,
+    application: Effusion.DHT.CQRS,
     repo: Effusion.Repo,
     name: "node"
 

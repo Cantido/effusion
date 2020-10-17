@@ -12,8 +12,7 @@ defmodule Effusion.CQRS.Router do
     Commands.StartDownload,
     Commands.StopDownload,
     Commands.StoreBlock,
-    Commands.HandleCompletedDownload,
-    Commands.EnableDHTForDownload
+    Commands.HandleCompletedDownload
   ], to: Torrent, identity: :info_hash
 
   dispatch [

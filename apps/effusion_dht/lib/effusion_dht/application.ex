@@ -1,11 +1,21 @@
 defmodule Effusion.DHT.Application do
-  alias Effusion.DHT.Router
-  use Commanded.Application,
-    otp_app: :effusion_dht,
-    event_store: [
-      adapter: Application.fetch_env!(:commanded, :event_store_adapter),
-      event_store: Effusion.CQRS.EventStore
+  @moduledoc false
+
+  use Application
+
+
+  def start(_type, _args) do
+    dht_port = Application.fetch_env!(:effusion_dht, :port)
+
+    children = [
+      Effusion.DHT.CQRS,
+      Effusion.CQRS.ProcessManagers.DHTProtocol,
+      Effusion.CQRS.EventHandlers.NodeMessenger,
+      Effusion.CQRS.Projectors.Node,
+      {Effusion.DHT.Server, port: dht_port}
     ]
 
-  router Router
+    opts = [strategy: :one_for_one, name: Effusion.DHT.Supervisor]
+    Supervisor.start_link(children, opts)
+  end
 end

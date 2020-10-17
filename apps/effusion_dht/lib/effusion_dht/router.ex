@@ -3,7 +3,8 @@ defmodule Effusion.DHT.Router do
 
   alias Effusion.CQRS.Aggregates.{
     Node,
-    Peer
+    Peer,
+    DHT
   }
   alias Effusion.CQRS.Commands
 
@@ -12,9 +13,12 @@ defmodule Effusion.DHT.Router do
   ], to: Peer, identity: :peer_uuid
 
   dispatch [
+    Commands.StartDHTNode
+  ], to: DHT, identity: :node_id
+
+  dispatch [
     Commands.GetPeers,
     Commands.AddDHTNode,
-    Commands.StartDHTNode,
     Commands.HandlePeersMatching,
     Commands.HandleNodesNearest
   ], to: Node, identity: :node_id
