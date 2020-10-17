@@ -138,6 +138,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{} = download,
     %PeerAdded{peer_uuid: peer_uuid, from: "dht"}
   ) do
+    Logger.debug("********* DownloadTorrent got the peer")
     if attempt_to_connect_to_new_peers?(download) do
       %AttemptToConnect{peer_uuid: peer_uuid}
     end
@@ -299,6 +300,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     %__MODULE__{failcounts: failcounts, connecting_to_peers: connecting_to_peers} = download,
     %PeerAdded{peer_uuid: peer_uuid}
   ) do
+    Logger.debug("********** peer added, seeing if we should connect")
     connecting_to_peers = if attempt_to_connect_to_new_peers?(download) do
       MapSet.put(connecting_to_peers, peer_uuid)
     else

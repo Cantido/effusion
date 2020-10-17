@@ -54,24 +54,6 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocol do
   end
 
   def handle(
-    %__MODULE__{} = dht,
-    %ReceivedPeersMatching{
-      peers: peers,
-      info_hash: info_hash
-    }
-  ) do
-    Enum.map(peers, fn {host, port} ->
-      %AddPeer{
-        peer_uuid: UUID.uuid4(),
-        expected_info_hash: info_hash,
-        host: host,
-        port: port,
-        from: "dht"
-      }
-    end)
-  end
-
-  def handle(
     %__MODULE__{
       primary_node_id: primary_node_id
     } = dht,

@@ -11,6 +11,7 @@ defmodule Effusion.DHT.Application do
       Effusion.DHT.CQRS,
       Effusion.CQRS.ProcessManagers.DHTProtocol,
       Effusion.CQRS.EventHandlers.NodeMessenger,
+      Effusion.CQRS.EventHandlers.CoreMessenger,
       Effusion.CQRS.Projectors.Node,
       {Effusion.DHT.Server, port: dht_port}
     ]
