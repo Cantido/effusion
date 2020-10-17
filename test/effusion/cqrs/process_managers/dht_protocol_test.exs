@@ -95,7 +95,7 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
     end)
   end
 
-  test "when DHT gets a nearest nodes back, it will emit a DHTNodeAdded for them",
+  test "when DHT gets nearest nodes back, it will emit a DHTNodeAdded for them",
   %{primary_node_id: primary_node_id, info_hash: info_hash, other_node_id: other_node_id} do
     other_other_node_id = "other OTHER node id~"
     token = DHT.token()
