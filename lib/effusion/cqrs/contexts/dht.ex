@@ -7,7 +7,8 @@ defmodule Effusion.CQRS.Contexts.DHT do
     RefreshNode,
     EnableDHTForDownload,
     HandlePeersMatching,
-    IssueToken
+    IssueToken,
+    AcceptToken
   }
 
   def start_dht(node_id) do
@@ -21,17 +22,6 @@ defmodule Effusion.CQRS.Contexts.DHT do
       %EnableDHTForDownload{
         node_id: Effusion.Hash.encode(primary_node_id),
         info_hash: Effusion.Hash.encode(info_hash)
-      }
-    )
-  end
-
-  def add_node(primary_node_id, remote_node_id, host, port) do
-    CQRS.dispatch(
-      %AddDHTNode{
-        primary_node_id: Effusion.Hash.encode(primary_node_id),
-        node_id: Effusion.Hash.encode(remote_node_id),
-        host: to_string(:inet.ntoa(host)),
-        port: port
       }
     )
   end
@@ -50,6 +40,10 @@ defmodule Effusion.CQRS.Contexts.DHT do
     )
   end
 
+  def handle_peers_nearest(remote_node_id, transaction_id, token, peers) do
+
+  end
+
   def mark_node_as_contacted(node_id, last_contacted) do
     CQRS.dispatch(
       %RefreshNode{
@@ -57,21 +51,6 @@ defmodule Effusion.CQRS.Contexts.DHT do
         last_contacted: last_contacted
       }
     )
-  end
-
-  def issue_token(node_id, info_hash, token, expiry) do
-    CQRS.dispatch(
-      %IssueToken{
-        node_id: Effusion.Hash.encode(node_id),
-        info_hash: Effusion.Hash.encode(info_hash),
-        token: token,
-        expires_at: expiry
-      }
-    )
-  end
-
-  def accept_token(token, host, port) do
-
   end
 
   def add_peer(info_hash, host, port) do
