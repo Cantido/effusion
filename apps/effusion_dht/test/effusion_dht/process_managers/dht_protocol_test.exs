@@ -25,6 +25,11 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
   import Commanded.Assertions.EventAssertions
 
   setup do
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
+  end
+
+  setup do
     primary_node_id = DHT.node_id()
 
     meta = TestHelper.mint_meta()
