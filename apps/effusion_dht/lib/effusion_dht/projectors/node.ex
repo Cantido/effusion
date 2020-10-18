@@ -2,7 +2,7 @@ defmodule Effusion.CQRS.Projectors.Node do
   use Commanded.Projections.Ecto,
     application: Effusion.DHT.CQRS,
     repo: Effusion.Repo,
-    name: "node"
+    name: __MODULE__
 
   alias Effusion.CQRS.Projections.Node, as: NodeProjection
   alias Effusion.CQRS.Events.{
