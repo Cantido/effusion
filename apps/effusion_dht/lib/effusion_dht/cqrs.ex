@@ -6,10 +6,5 @@ defmodule Effusion.DHT.CQRS do
       event_store: Effusion.CQRS.EventStore
     ]
 
-  def init(config) do
-    IO.puts("DHT App config: #{inspect config}")
-    {:ok, config}
-  end
-
   router Effusion.DHT.Router
 end

@@ -1,5 +1,5 @@
 defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
-  use Effusion.EventStoreCase
+  use Effusion.DHT.EventStoreCase
   alias Effusion.Factory
   alias Effusion.DHT
   alias Effusion.DHT.Nodes
@@ -44,7 +44,7 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
       {127, 0, 0, 1},
       6881
     )
-    wait_for_event(CQRS, DHTNodeAdded)
+
     :ok = DHTContext.enable_dht_for_download(
       info_hash,
       primary_node_id
@@ -78,31 +78,9 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
     end)
   end
 
-  test "when DHT gets a matching peer back, it will emit an AddPeer for that peer",
-  %{primary_node_id: primary_node_id, info_hash: info_hash, other_node_id: other_node_id} do
-    token = DHT.token()
-
-    assert_receive_event(CQRS, GettingPeers, fn event ->
-      :ok = DHTContext.handle_peers_matching(
-        other_node_id,
-        event.transaction_id,
-        token,
-        [{{127, 0, 0, 1}, 9001}]
-      )
-    end)
-
-    assert_receive_event(CQRS, PeerAdded, fn event ->
-      assert not is_nil(event.peer_uuid)
-      assert event.expected_info_hash == Effusion.Hash.encode(info_hash)
-      assert event.host == to_string(:inet.ntoa({127, 0, 0, 1}))
-      assert event.port == 9001
-      assert event.from == "dht"
-    end)
-  end
-
   test "when DHT gets nearest nodes back, it will emit a DHTNodeAdded for them",
   %{primary_node_id: primary_node_id, info_hash: info_hash, other_node_id: other_node_id} do
-    other_other_node_id = "other OTHER node id~"
+    other_other_node_id = DHT.node_id()
     token = DHT.token()
 
     assert_receive_event(CQRS, GettingPeers, fn event ->
