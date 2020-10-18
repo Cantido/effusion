@@ -8,6 +8,7 @@ defmodule Effusion.DHTTest do
   alias Effusion.PWP.TCP.Socket
   import Mox
   import Ecto.Query
+  import Commanded.Assertions.EventAssertions
   require Logger
 
   setup :verify_on_exit!
@@ -138,6 +139,7 @@ defmodule Effusion.DHTTest do
       {127, 0, 0, 1},
       @remote_dht_port
     )
+    wait_for_event(CQRS, Effusion.CQRS.Events.DHTNodeAdded, fn event -> event.node_id == Effusion.Hash.encode(remote_node_id) end)
     :ok = Effusion.CQRS.Contexts.DHT.enable_dht_for_download(
       @info_hash,
       primary_node_id
@@ -185,5 +187,7 @@ defmodule Effusion.DHTTest do
         @remote_peer.peer_id,
         []
       )
+
+    Process.sleep(100)
   end
 end
