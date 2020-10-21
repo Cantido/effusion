@@ -24,12 +24,6 @@ defmodule Effusion.Application do
       :ranch.child_spec(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Connection, [])
     ]
 
-    children = if :dht in Application.fetch_env!(:effusion, :enabled_extensions) do
-      children ++ [{Effusion.DHT.Server, port: port}]
-    else
-      children
-    end
-
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]
     Supervisor.start_link(children, opts)
   end
