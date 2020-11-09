@@ -68,7 +68,7 @@ defmodule Effusion.Mixfile do
       {:queutils, "~> 1.2"},
       {:temp, "~> 0.4", only: :test},
       {:mox, "~> 0.3", only: :test},
-      {:credo, "~> 1.1.0", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.5.1", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
     ]
