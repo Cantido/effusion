@@ -51,7 +51,7 @@ defmodule Effusion.Mixfile do
       {:ecto_network, "~> 1.2.0"},
       {:postgrex, ">= 0.0.0"},
       {:int_set, "~> 1.4"},
-      {:httpotion, "~> 3.0.2"},
+      {:httpotion, "~> 3.1.3"},
       {:httpoison, "~> 1.6"},
       {:gen_stage, "~> 1.0"},
       {:gettext, "~> 0.11"},
