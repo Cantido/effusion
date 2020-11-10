@@ -48,10 +48,10 @@ defmodule Effusion.Mixfile do
       {:cors_plug, "~> 2.0"},
       {:decimal, "~> 1.0"},
       {:ecto_sql, "~> 3.0"},
-      {:ecto_network, "~> 1.2.0"},
+      {:ecto_network, "~> 1.3.0"},
       {:postgrex, ">= 0.0.0"},
       {:int_set, "~> 1.4"},
-      {:httpotion, "~> 3.0.2"},
+      {:httpotion, "~> 3.1.3"},
       {:httpoison, "~> 1.6"},
       {:gen_stage, "~> 1.0"},
       {:gettext, "~> 0.11"},
@@ -64,13 +64,13 @@ defmodule Effusion.Mixfile do
       {:ranch, "~> 1.7"},
       {:telemetry, "~> 0.4.1"},
       {:timex, "~> 3.6"},
-      {:tzdata, "~> 0.1.7"},
+      {:tzdata, "~> 1.0.4"},
       {:queutils, "~> 1.2"},
       {:temp, "~> 0.4", only: :test},
       {:mox, "~> 1.0", only: :test},
-      {:credo, "~> 1.1.0", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.5.1", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
-      {:dialyxir, "~> 0.5", only: [:dev], runtime: false}
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
     ]
   end
 
