@@ -12,7 +12,6 @@ defmodule Effusion.Application do
     SessionStats.init()
 
     port = Application.get_env(:effusion, :port)
-    dht_port = Application.fetch_env!(:effusion, :dht_port)
 
     children = [
       Effusion.Repo,
