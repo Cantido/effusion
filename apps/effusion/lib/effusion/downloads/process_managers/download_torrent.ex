@@ -18,6 +18,13 @@ defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
     StopDownload,
     StoreBlock,
   }
+  alias Effusion.PWP.Events.Outgoing.BlockRequested
+  alias Effusion.PWP.Events.Incoming.{
+    PeerHasBitfield,
+    PeerHasPiece,
+    PeerSentBlock,
+    PeerUnchokedUs
+  }
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
     ConnectionAttemptFailed,
@@ -28,12 +35,7 @@ defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
     DownloadCompleted,
     PieceHashSucceeded,
     PeerAdded,
-    PeerHasBitfield,
-    PeerHasPiece,
-    PeerSentBlock,
-    PeerUnchokedUs,
-    AllPiecesVerified,
-    BlockRequested
+    AllPiecesVerified
   }
   require Logger
 

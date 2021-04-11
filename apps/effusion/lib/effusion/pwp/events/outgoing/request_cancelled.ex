@@ -1,17 +1,17 @@
-defmodule Effusion.CQRS.Events.PeerSentBlock do
+defmodule Effusion.PWP.Events.Outgoing.RequestCancelled do
   @derive Jason.Encoder
   @enforce_keys [
     :peer_uuid,
     :info_hash,
     :index,
     :offset,
-    :data
+    :size
   ]
   defstruct [
     :peer_uuid,
     :info_hash,
     :index,
     :offset,
-    :data
+    :size
   ]
 end

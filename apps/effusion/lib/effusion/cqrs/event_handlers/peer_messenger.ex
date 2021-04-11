@@ -6,15 +6,17 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
   alias Effusion.PWP.TCP.Connection
   alias Effusion.CQRS.Application, as: CQRS
   alias Effusion.PWP.Commands.Handshake.HandleHandshake
+  alias Effusion.PWP.Events.Outgoing.{
+    BitfieldSent,
+    BlockRequested,
+    InterestedSent,
+    RequestCancelled,
+    SendingHave
+  }
+  alias Effusion.PWP.Events.Incoming.SuccessfulHandshake
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
-    InterestedSent,
-    BlockRequested,
-    RequestCancelled,
-    BitfieldSent,
-    SendingHandshake,
-    SendingHave,
-    SuccessfulHandshake
+    SendingHandshake
   }
   require Logger
 

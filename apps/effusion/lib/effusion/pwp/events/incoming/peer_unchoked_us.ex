@@ -1,11 +1,11 @@
-defmodule Effusion.CQRS.Events.SuccessfulHandshake do
+defmodule Effusion.PWP.Events.Incoming.PeerUnchokedUs do
   @derive Jason.Encoder
   @enforce_keys [
     :peer_uuid,
-    :initiated_by
+    :info_hash
   ]
   defstruct [
     :peer_uuid,
-    :initiated_by
+    :info_hash
   ]
 end

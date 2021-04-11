@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.Events.SendingHave do
+defmodule Effusion.PWP.Events.Outgoing.SendingHave do
   @derive Jason.Encoder
   @enforce_keys [
     :peer_uuid,

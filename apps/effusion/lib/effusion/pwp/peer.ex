@@ -30,6 +30,26 @@ defmodule Effusion.PWP.Peer do
     SendInterested
   }
   alias Effusion.PWP.Commands.Swarm.AddPeerAddress
+  alias Effusion.PWP.Events.Incoming.{
+    PeerCancelledRequest,
+    PeerChokedUs,
+    PeerHasBitfield,
+    PeerHasPiece,
+    PeerInterestedInUs,
+    PeerRequestedBlock,
+    PeerSentBlock,
+    PeerSentHandshake,
+    PeerUnchokedUs,
+    PeerUninterestedInUs,
+    SuccessfulHandshake
+  }
+  alias Effusion.PWP.Events.Outgoing.{
+    BitfieldSent,
+    BlockRequested,
+    InterestedSent,
+    RequestCancelled,
+    SendingHave
+  }
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
     ConnectionAttemptFailed,
@@ -37,24 +57,8 @@ defmodule Effusion.PWP.Peer do
     PeerConnectionOpened,
     PeerConnected,
     PeerDisconnected,
-    PeerChokedUs,
-    PeerUnchokedUs,
-    PeerInterestedInUs,
-    PeerUninterestedInUs,
-    PeerHasPiece,
-    PeerHasBitfield,
-    PeerRequestedBlock,
-    PeerCancelledRequest,
-    PeerSentBlock,
-    SuccessfulHandshake,
-    RequestCancelled,
-    InterestedSent,
-    BlockRequested,
-    BitfieldSent,
     SendingHandshake,
     FailedHandshake,
-    PeerSentHandshake,
-    SendingHave
   }
   alias Commanded.Aggregate.Multi
   require Logger

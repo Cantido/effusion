@@ -5,7 +5,7 @@ defmodule Effusion.CQRS.EventHandlers.NetStatsUpdater do
 
   alias Effusion.PWP.Messages
   alias Effusion.Statistics.Net, as: NetStats
-  alias Effusion.CQRS.Events.{
+  alias Effusion.PWP.Events.Incoming.{
     PeerChokedUs,
     PeerHasBitfield,
     PeerHasPiece,
@@ -15,6 +15,8 @@ defmodule Effusion.CQRS.EventHandlers.NetStatsUpdater do
     PeerSentHandshake,
     PeerUnchokedUs,
     PeerUninterestedInUs,
+  }
+  alias Effusion.PWP.Events.Outgoing.{
     BitfieldSent,
     BlockRequested,
     InterestedSent,

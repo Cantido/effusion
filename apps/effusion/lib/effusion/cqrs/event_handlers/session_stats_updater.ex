@@ -4,7 +4,7 @@ defmodule Effusion.CQRS.EventHandlers.SessionStatsUpdater do
     name: __MODULE__
 
   alias Effusion.Statistics.Session, as: SessionStats
-  alias Effusion.CQRS.Events.{
+  alias Effusion.PWP.Events.Incoming.{
     PeerChokedUs,
     PeerUnchokedUs,
     PeerInterestedInUs,
@@ -13,7 +13,9 @@ defmodule Effusion.CQRS.EventHandlers.SessionStatsUpdater do
     PeerHasBitfield,
     PeerRequestedBlock,
     PeerSentBlock,
-    PeerCancelledRequest,
+    PeerCancelledRequest
+  }
+  alias Effusion.PWP.Events.Outgoing.{
     BitfieldSent,
     BlockRequested,
     InterestedSent,

@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.Events.PeerHasBitfield do
+defmodule Effusion.PWP.Events.Outgoing.BitfieldSent do
   @derive Jason.Encoder
   @enforce_keys [
     :peer_uuid,

@@ -1,17 +1,13 @@
-defmodule Effusion.CQRS.Events.BlockRequested do
+defmodule Effusion.PWP.Events.Incoming.PeerHasBitfield do
   @derive Jason.Encoder
   @enforce_keys [
     :peer_uuid,
     :info_hash,
-    :index,
-    :offset,
-    :size
+    :bitfield
   ]
   defstruct [
     :peer_uuid,
     :info_hash,
-    :index,
-    :offset,
-    :size
+    :bitfield
   ]
 end
