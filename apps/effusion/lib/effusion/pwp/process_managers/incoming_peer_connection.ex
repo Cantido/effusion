@@ -12,11 +12,11 @@ defmodule Effusion.PWP.ProcessManagers.IncomingPeerConnection do
   alias Effusion.PWP.Commands.Handshake.SendHandshake
 
   alias Effusion.PWP.Events.Handshake.{
+    FailedHandshake,
     PeerSentHandshake,
     SuccessfulHandshake
   }
-  alias Effusion.CQRS.Events.FailedHandshake
-  alias Effusion.CQRS.Events.PeerDisconnected
+  alias Effusion.PWP.Events.Connection.PeerDisconnected
 
   def interested?(%PeerSentHandshake{peer_uuid: peer_uuid, initiated_by: "them"}) do
     {:start!, peer_uuid}

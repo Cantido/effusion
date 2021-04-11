@@ -32,13 +32,13 @@ defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
     PieceHashSucceeded,
     AllPiecesVerified
   }
-  alias Effusion.CQRS.Events.{
+  alias Effusion.PWP.Events.Connection.{
     AttemptingToConnect,
     ConnectionAttemptFailed,
     PeerConnected,
-    PeerDisconnected,
-    PeerAdded
+    PeerDisconnected
   }
+  alias Effusion.PWP.Events.Swarm.PeerAdded
   require Logger
 
   @derive Jason.Encoder

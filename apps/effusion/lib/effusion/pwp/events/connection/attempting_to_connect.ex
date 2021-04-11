@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.Events.AttemptingToConnect do
+defmodule Effusion.PWP.Events.Connection.AttemptingToConnect do
   @derive Jason.Encoder
   @enforce_keys [
     :peer_uuid,

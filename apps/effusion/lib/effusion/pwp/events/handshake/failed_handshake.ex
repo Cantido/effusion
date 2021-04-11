@@ -1,13 +1,11 @@
-defmodule Effusion.CQRS.Events.PeerConnectionOpened do
+defmodule Effusion.PWP.Events.Handshake.FailedHandshake do
   @derive Jason.Encoder
   @enforce_keys [
     :peer_uuid,
-    :host,
-    :port
+    :failure_reason
   ]
   defstruct [
     :peer_uuid,
-    :host,
-    :port
+    :failure_reason
   ]
 end
