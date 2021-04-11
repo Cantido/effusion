@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.Aggregates.PeerTest do
+defmodule Effusion.PWP.PeerTest do
   use Effusion.EventStoreCase
   alias Effusion.Factory
   alias Effusion.CQRS.Commands.{
@@ -15,9 +15,9 @@ defmodule Effusion.CQRS.Aggregates.PeerTest do
     PeerSentHandshake,
     BlockRequested
   }
-  alias Effusion.CQRS.Aggregates.Peer
+  alias Effusion.PWP.Peer
   alias Commanded.Aggregate.Multi
-  doctest Effusion.CQRS.Aggregates.Peer
+  doctest Effusion.PWP.Peer
 
   describe "Handling TimeoutHandshake" do
     test "emits FailedHandshake and ConnectionAttemptFailed when connection state is disconnected" do

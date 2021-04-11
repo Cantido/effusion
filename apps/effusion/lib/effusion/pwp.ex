@@ -4,12 +4,13 @@ defmodule Effusion.PWP do
   """
 
   alias Effusion.CQRS.Application, as: CQRS
-  alias Effusion.CQRS.Commands.{
-    AddPeer,
+  alias Effusion.PWP.Commands.Connection.{
     AddOpenedPeerConnection,
     HandleFailedConnectionAttempt,
-    HandleHandshake,
-    RemoveConnectedPeer,
+    RemoveConnectedPeer
+  }
+  alias Effusion.PWP.Commands.Handshake.HandleHandshake
+  alias Effusion.PWP.Commands.Incoming.{
     HandleBitfield,
     HandleCancel,
     HandleChoke,
@@ -20,6 +21,7 @@ defmodule Effusion.PWP do
     HandleUnchoke,
     HandleUninterested
   }
+  alias Effusion.PWP.Commands.Swarm.AddPeerAddress
 
   defguard is_peer_id(term) when not is_nil(term) and is_binary(term) and byte_size(term) == 20
 
@@ -27,7 +29,7 @@ defmodule Effusion.PWP do
   Add a new peer to possibly connect to.
   """
   def add(info_hash, host, port, from) do
-    %AddPeer{
+    %AddPeerAddress{
       peer_uuid: UUID.uuid4(),
       expected_info_hash: Effusion.Hash.encode(info_hash),
       host: to_string(:inet.ntoa(host)),
@@ -40,7 +42,7 @@ defmodule Effusion.PWP do
   Add a new peer to possibly connect to.
   """
   def add(peer_uuid, info_hash, host, port, from) do
-    %AddPeer{
+    %AddPeerAddress{
       peer_uuid: peer_uuid,
       expected_info_hash: Effusion.Hash.encode(info_hash),
       host: to_string(:inet.ntoa(host)),
@@ -53,7 +55,7 @@ defmodule Effusion.PWP do
   Add a new peer to possibly connect to.
   """
   def add(peer_uuid, info_hash, peer_id, host, port, from) do
-    %AddPeer{
+    %AddPeerAddress{
       peer_uuid: peer_uuid,
       expected_info_hash: Effusion.Hash.encode(info_hash),
       expected_peer_id: Effusion.Hash.encode(peer_id),

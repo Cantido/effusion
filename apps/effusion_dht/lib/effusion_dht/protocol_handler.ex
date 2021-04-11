@@ -3,9 +3,7 @@ defmodule Effusion.DHT.ProtocolHandler do
   alias Effusion.DHT.{Tokens, Nodes}
   alias Effusion.DHT
   alias Effusion.Repo
-  import Bitwise
   import Effusion.DHT, only: [is_node_id: 1]
-  import Ecto.Query
   require Logger
 
   @moduledoc """
@@ -26,7 +24,7 @@ defmodule Effusion.DHT.ProtocolHandler do
   end
 
   def handle_krpc_query({:get_peers, transaction_id, sender_id, info_hash},
-                        %{remote_address: {host, port}, current_timestamp: now, local_node_id: local_node_id}) do
+                        %{local_node_id: local_node_id}) do
 
     token = DHT.token()
 

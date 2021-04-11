@@ -48,7 +48,7 @@ defmodule Effusion.CQRS.Aggregates.HandshakeProcessTest do
         max_half_open_connections: 2,
         max_connections: 1
       })
-      :ok = CQRS.dispatch(%AddPeer{
+      :ok = CQRS.dispatch(%AddPeerAddress{
         peer_uuid: peer_uuid,
         expected_info_hash: info_hash,
         expected_peer_id: remote_peer_id,
@@ -123,7 +123,7 @@ defmodule Effusion.CQRS.Aggregates.HandshakeProcessTest do
         max_half_open_connections: 2,
         max_connections: 1
       })
-      :ok = CQRS.dispatch(%AddPeer{
+      :ok = CQRS.dispatch(%AddPeerAddress{
         peer_uuid: peer_uuid,
         expected_info_hash: info_hash,
         expected_peer_id: remote_peer_id,
@@ -193,7 +193,7 @@ defmodule Effusion.CQRS.Aggregates.HandshakeProcessTest do
       host = "127.0.0.1"
       port = 6801
 
-      :ok = CQRS.dispatch(%AddPeer{
+      :ok = CQRS.dispatch(%AddPeerAddress{
         peer_uuid: peer_uuid,
         expected_info_hash: info_hash,
         expected_peer_id: remote_peer_id,
@@ -272,7 +272,7 @@ defmodule Effusion.CQRS.Aggregates.HandshakeProcessTest do
         max_half_open_connections: 2,
         max_connections: 1
       })
-      :ok = CQRS.dispatch(%AddPeer{
+      :ok = CQRS.dispatch(%AddPeerAddress{
         peer_uuid: peer_uuid,
         expected_info_hash: info_hash,
         expected_peer_id: remote_peer_id,

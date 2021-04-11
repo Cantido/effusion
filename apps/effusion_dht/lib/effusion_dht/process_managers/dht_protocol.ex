@@ -4,7 +4,6 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocol do
     name: __MODULE__
 
   alias Effusion.CQRS.Commands.{
-    AddPeer,
     AddDHTNode,
     GetPeers
   }
@@ -56,7 +55,7 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocol do
   def handle(
     %__MODULE__{
       primary_node_id: primary_node_id
-    } = dht,
+    },
     %ReceivedNodesNearest{
       nodes: nodes
     }
@@ -79,7 +78,7 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocol do
   end
 
   def apply(
-    %__MODULE__{primary_node_id: primary_node_id} = dht,
+    %__MODULE__{primary_node_id: _primary_node_id} = dht,
     %DHTNodeStarted{node_id: node_id}
   ) do
     %__MODULE__{dht |

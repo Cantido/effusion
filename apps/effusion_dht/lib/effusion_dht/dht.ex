@@ -1,7 +1,7 @@
 defmodule Effusion.CQRS.Contexts.DHT do
   alias Effusion.DHT.CQRS
   alias Effusion.CQRS.Commands.{
-    AddPeer,
+    AddPeerAddress,
     AddDHTNode,
     StartDHTNode,
     RefreshNode,
@@ -66,15 +66,5 @@ defmodule Effusion.CQRS.Contexts.DHT do
         last_contacted: last_contacted
       }
     )
-  end
-
-  def add_peer(info_hash, host, port) do
-    %AddPeer{
-      peer_uuid: UUID.uuid4(),
-      expected_info_hash: Effusion.Hash.encode(info_hash),
-      host: to_string(:inet.ntoa(host)),
-      port: port,
-      from: "dht"}
-    |> CQRS.dispatch()
   end
 end

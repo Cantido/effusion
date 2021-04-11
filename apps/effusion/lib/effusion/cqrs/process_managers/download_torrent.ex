@@ -3,16 +3,20 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     application: Effusion.CQRS.Application,
     name: __MODULE__
 
-  alias Effusion.CQRS.Commands.{
+  alias Effusion.PWP.Commands.Connection.{
     AttemptToConnect,
-    DisconnectPeer,
+    DisconnectPeer
+  }
+  alias Effusion.PWP.Commands.Outgoing.{
+    CancelRequest,
+    RequestBlock,
+    SendBitfield,
+    SendHave,
+    SendInterested
+  }
+  alias Effusion.CQRS.Commands.{
     StopDownload,
     StoreBlock,
-    SendInterested,
-    RequestBlock,
-    CancelRequest,
-    SendBitfield,
-    SendHave
   }
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,

@@ -8,4 +8,5 @@ defmodule Effusion.CQRS.Application do
     ]
 
   router Router
+  router Effusion.PWP.Router
 end
