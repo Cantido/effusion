@@ -13,7 +13,7 @@ defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
     RequestCancelled,
     SendingHave
   }
-  alias Effusion.PWP.Events.Incoming.SuccessfulHandshake
+  alias Effusion.PWP.Events.Handshake.SuccessfulHandshake
   alias Effusion.CQRS.Events.{
     AttemptingToConnect,
     SendingHandshake
