@@ -4,9 +4,7 @@ defmodule Effusion.CQRS.EventHandlers.FileWriter do
     name: __MODULE__,
     consistency: :strong
 
-  alias Effusion.CQRS.Events.{
-    PieceHashSucceeded
-  }
+  alias Effusion.Downloads.Events.PieceHashSucceeded
   alias Effusion.Range
   require Logger
 

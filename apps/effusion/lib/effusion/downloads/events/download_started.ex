@@ -1,29 +1,29 @@
-defmodule Effusion.CQRS.Events.DownloadStopped do
+defmodule Effusion.Downloads.Events.DownloadStarted do
   @derive Jason.Encoder
   @enforce_keys [
     :announce,
     :announce_list,
-    :comment,
-    :created_by,
-    :creation_date,
     :info,
     :info_hash,
+    :block_size,
     :bytes_uploaded,
     :bytes_downloaded,
     :bytes_left,
-    :tracker_event
+    :max_requests_per_peer,
+    :max_half_open_connections,
+    :max_connections
   ]
   defstruct [
     :announce,
     :announce_list,
-    :comment,
-    :created_by,
-    :creation_date,
     :info,
     :info_hash,
+    :block_size,
     :bytes_uploaded,
     :bytes_downloaded,
     :bytes_left,
-    :tracker_event
+    :max_requests_per_peer,
+    :max_half_open_connections,
+    :max_connections
   ]
 end

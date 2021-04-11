@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.Events.TorrentAdded do
+defmodule Effusion.Downloads.Events.TorrentAdded do
   @derive Jason.Encoder
   @enforce_keys [
     :announce,

@@ -1,19 +1,15 @@
-defmodule Effusion.CQRS.Events.BlockStored do
+defmodule Effusion.Downloads.Events.PieceHashSucceeded do
   @derive Jason.Encoder
   @enforce_keys [
-    :from,
     :info_hash,
     :index,
-    :offset,
     :data,
-    :pieces
+    :info
   ]
   defstruct [
-    :from,
     :info_hash,
     :index,
-    :offset,
     :data,
-    :pieces
+    :info
   ]
 end

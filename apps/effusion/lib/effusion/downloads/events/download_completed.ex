@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.Events.DownloadFailed do
+defmodule Effusion.Downloads.Events.DownloadCompleted do
   @derive Jason.Encoder
   @enforce_keys [
     :info_hash
