@@ -1,4 +1,9 @@
-defmodule Effusion.CQRS.Contexts.Downloads do
+defmodule Effusion.Downloads do
+  @moduledoc """
+  The Downloads context.
+
+  Add, start, and stop downloads.
+  """
   alias Effusion.CQRS.Commands.{
     AddTorrent,
     StartDownload,
@@ -6,6 +11,9 @@ defmodule Effusion.CQRS.Contexts.Downloads do
   }
   alias Effusion.CQRS.Application, as: CQRS
 
+  @doc """
+  Add a download, without starting it.
+  """
   def add(meta) do
     %AddTorrent{
       announce: meta.announce,
@@ -27,6 +35,11 @@ defmodule Effusion.CQRS.Contexts.Downloads do
     end)
   end
 
+  @doc """
+  Start downloading a torrent.
+
+  You must have already added the torrent with `add/1` before starting it.
+  """
   def start(info_hash, block_size, max_requests_per_peer, max_half_open_connections, max_connections) do
     %StartDownload{
       info_hash: Effusion.Hash.encode(info_hash),
@@ -38,6 +51,9 @@ defmodule Effusion.CQRS.Contexts.Downloads do
     |> CQRS.dispatch()
   end
 
+  @doc """
+  Stop downloading a torrent.
+  """
   def stop(info_hash) do
     %StopDownload{
       info_hash: Effusion.Hash.encode(info_hash),

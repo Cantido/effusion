@@ -3,7 +3,7 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
   alias Effusion.Factory
   alias Effusion.DHT
   alias Effusion.DHT.Nodes
-  alias Effusion.CQRS.Contexts.Downloads, as: DownloadsContext
+  alias Effusion.Downloads, as: DownloadsContext
   alias Effusion.PWP, as: PeersContext
   alias Effusion.CQRS.Contexts.DHT, as: DHTContext
   alias Effusion.DHT.CQRS

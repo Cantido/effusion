@@ -31,8 +31,8 @@ defmodule Effusion.CLI do
     |> Enum.map(fn file ->
       contents = File.read!(file)
       {:ok, meta} = Metatorrent.decode(contents)
-      Effusion.CQRS.Contexts.Downloads.add(meta)
-      Effusion.CQRS.Contexts.Downloads.start(
+      Effusion.Downloads.add(meta)
+      Effusion.Downloads.start(
         meta.info_hash,
         Application.fetch_env!(:effusion, :block_size),
         Application.fetch_env!(:effusion, :max_requests_per_peer),
