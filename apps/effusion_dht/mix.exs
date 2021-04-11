@@ -35,7 +35,7 @@ defmodule EffusionDht.MixProject do
       {:commanded, "~> 1.2"},
       {:commanded_ecto_projections, "~> 1.2"},
       {:temp, "~> 0.4", only: :test},
-      {:mox, "~> 0.3", only: :test}
+      {:mox, "~> 1.0", only: :test}
     ]
   end
 end

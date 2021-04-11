@@ -52,20 +52,19 @@ defmodule Effusion.Mixfile do
       {:commanded_ecto_projections, "~> 1.2"},
       {:commanded_eventstore_adapter, "~> 1.2"},
       {:int_set, "~> 1.5"},
-      {:httpotion, "~> 3.0.2"},
       {:httpoison, "~> 1.6"},
       {:jason, "~> 1.2"},
       {:logger_file_backend, "~> 0.0.10"},
       {:metatorrent, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:ranch, "~> 1.7"},
-      {:timex, "~> 3.6"},
-      {:tzdata, "~> 0.1.7"},
+      {:ranch, "~> 1.0"},
+      {:timex, "~> 3.7"},
+      {:tzdata, "~> 1.1"},
       {:temp, "~> 0.4", only: :test},
-      {:mox, "~> 0.3", only: :test},
-      {:credo, "~> 1.1.0", only: [:dev, :test], runtime: false},
+      {:mox, "~> 1.0", only: :test},
+      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
-      {:dialyxir, "~> 0.5", only: [:dev], runtime: false}
+      {:dialyxir, "~> 1.1", only: [:dev], runtime: false}
     ]
   end
 
