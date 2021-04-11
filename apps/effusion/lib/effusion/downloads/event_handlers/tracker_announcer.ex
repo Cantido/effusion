@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
+defmodule Effusion.Downloads.EventHandlers.TrackerAnnouncer do
   use Commanded.Event.Handler,
     application: Effusion.CQRS.Application,
     name: __MODULE__,

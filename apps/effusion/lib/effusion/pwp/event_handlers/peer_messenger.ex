@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.EventHandlers.PeerMessenger do
+defmodule Effusion.PWP.EventHandlers.PeerMessenger do
   use Commanded.Event.Handler,
     application: Effusion.CQRS.Application,
     name: __MODULE__

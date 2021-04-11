@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.EventHandlers.FileWriter do
+defmodule Effusion.Downloads.EventHandlers.FileWriter do
   use Commanded.Event.Handler,
     application: Effusion.CQRS.Application,
     name: __MODULE__,

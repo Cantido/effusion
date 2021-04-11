@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.EventHandlers.PeerStatsUpdater do
+defmodule Effusion.PWP.EventHandlers.PeerStatsUpdater do
   use Commanded.Event.Handler,
     application: Effusion.CQRS.Application,
     name: __MODULE__
