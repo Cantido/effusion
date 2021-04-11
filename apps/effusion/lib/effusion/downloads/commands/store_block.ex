@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.Commands.StoreBlock do
+defmodule Effusion.Downloads.Commands.StoreBlock do
   @enforce_keys [
     :from,
     :info_hash,

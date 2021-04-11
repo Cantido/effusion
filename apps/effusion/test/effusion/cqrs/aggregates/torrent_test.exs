@@ -1,5 +1,5 @@
-defmodule Effusion.CQRS.Aggregates.TorrentTest do
+defmodule Effusion.Downloads.TorrentTest do
   use Effusion.EventStoreCase
-  doctest Effusion.CQRS.Aggregates.Torrent
+  doctest Effusion.Downloads.Torrent
 
 end

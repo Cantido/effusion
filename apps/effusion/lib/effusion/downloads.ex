@@ -4,7 +4,7 @@ defmodule Effusion.Downloads do
 
   Add, start, and stop downloads.
   """
-  alias Effusion.CQRS.Commands.{
+  alias Effusion.Downloads.Commands.{
     AddTorrent,
     StartDownload,
     StopDownload

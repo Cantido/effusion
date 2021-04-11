@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.Commands.HandleCompletedDownload do
+defmodule Effusion.Downloads.Commands.HandleCompletedDownload do
   @enforce_keys [
     :info_hash
   ]

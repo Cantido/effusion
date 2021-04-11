@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.Commands.AddTorrent do
+defmodule Effusion.Downloads.Commands.AddTorrent do
   @enforce_keys [
     :announce,
     :announce_list,

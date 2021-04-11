@@ -1,4 +1,4 @@
-defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
+defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
   use Commanded.ProcessManagers.ProcessManager,
     application: Effusion.CQRS.Application,
     name: __MODULE__
@@ -14,7 +14,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
     SendHave,
     SendInterested
   }
-  alias Effusion.CQRS.Commands.{
+  alias Effusion.Downloads.Commands.{
     StopDownload,
     StoreBlock,
   }
@@ -404,8 +404,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
   def apply(
     %__MODULE__{
       blocks: blocks,
-      requests: requests,
-      block_size: block_size
+      requests: requests
     } = download,
     %PeerSentBlock{
       peer_uuid: peer_uuid,
@@ -526,14 +525,14 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrent do
 
   defimpl Commanded.Serialization.JsonDecoder, for: Effusion.CQRS.ProcessManagers.DownloadTorrent do
     def decode(
-      %Effusion.CQRS.ProcessManagers.DownloadTorrent{
+      %Effusion.Downloads.ProcessManagers.DownloadTorrent{
         pieces: pieces,
         connecting_to_peers: connecting_to_peers,
         connected_peers: connected_peers,
         peer_bitfields: peer_bitfields
       } = state
     ) do
-      %Effusion.CQRS.ProcessManagers.DownloadTorrent{state |
+      %Effusion.Downloads.ProcessManagers.DownloadTorrent{state |
         pieces: IntSet.new(Base.decode64!(pieces)),
         connecting_to_peers: MapSet.new(connecting_to_peers),
         connected_peers: MapSet.new(connected_peers),

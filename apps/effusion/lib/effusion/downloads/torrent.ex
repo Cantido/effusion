@@ -1,11 +1,10 @@
-defmodule Effusion.CQRS.Aggregates.Torrent do
-  alias Effusion.CQRS.Commands.{
+defmodule Effusion.Downloads.Torrent do
+  alias Effusion.Downloads.Commands.{
     HandleCompletedDownload,
     AddTorrent,
     StartDownload,
     StopDownload,
     StoreBlock
-
   }
   alias Effusion.CQRS.Events.{
     BlockStored,
@@ -16,8 +15,7 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     DownloadCompleted,
     PieceHashSucceeded,
     PieceHashFailed,
-    TorrentAdded,
-    DHTEnabledForDownload
+    TorrentAdded
   }
   alias Commanded.Aggregate.Multi
   require Logger
@@ -305,13 +303,13 @@ defmodule Effusion.CQRS.Aggregates.Torrent do
     }
   end
 
-  defimpl Commanded.Serialization.JsonDecoder, for: Effusion.CQRS.Aggregates.Torrent do
+  defimpl Commanded.Serialization.JsonDecoder, for: Effusion.Downloads.Torrent do
     def decode(
-      %Effusion.CQRS.Aggregates.Torrent{
+      %Effusion.Downloads.Torrent{
         verified: verified
       } = state
     ) do
-      %Effusion.CQRS.Aggregates.Torrent{state |
+      %Effusion.Downloads.Torrent{state |
         verified: IntSet.new(verified)
       }
     end

@@ -1,8 +1,7 @@
-defmodule Effusion.CQRS.Router do
+defmodule Effusion.Downloads.Router do
   use Commanded.Commands.Router
-  alias Effusion.CQRS.Aggregates.Torrent
-  alias Effusion.CQRS.Commands
-
+  alias Effusion.Downloads.Torrent
+  alias Effusion.Downloads.Commands
 
   dispatch [
     Commands.AddTorrent,

@@ -1,5 +1,4 @@
 defmodule Effusion.CQRS.Application do
-  alias Effusion.CQRS.Router
   use Commanded.Application,
     otp_app: :effusion,
     event_store: [
@@ -7,6 +6,6 @@ defmodule Effusion.CQRS.Application do
       event_store: Effusion.CQRS.EventStore
     ]
 
-  router Router
+  router Effusion.Downloads.Router
   router Effusion.PWP.Router
 end
