@@ -77,11 +77,11 @@ defmodule Effusion.PWP.TCP.Connection do
   def handle_continue(:connect, %{address: {host, port}, peer_uuid: peer_uuid} = state) do
     with {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
          {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 1_000),
-         :ok <- Effusion.CQRS.Contexts.Peers.add_opened_peer_connection(peer_uuid, host, port) do
+         :ok <- Effusion.PWP.add_opened_peer_connection(peer_uuid, host, port) do
       {:noreply, Map.put(state, :socket, socket)}
     else
       _ ->
-      Effusion.CQRS.Contexts.Peers.handle_failed_connection_attempt(peer_uuid, "Failed to open initial connection to peer")
+      Effusion.PWP.handle_failed_connection_attempt(peer_uuid, "Failed to open initial connection to peer")
       {:stop, :failed_to_connect, state}
     end
   end
@@ -96,13 +96,13 @@ defmodule Effusion.PWP.TCP.Connection do
      and is_hash(info_hash) do
     peer_uuid = UUID.uuid4()
     {:ok, _pid} = Registry.register(ConnectionRegistry, peer_uuid, nil)
-    :ok = Effusion.CQRS.Contexts.Peers.add(peer_uuid, info_hash, remote_peer_id, host, port, :connection)
-    :ok = Effusion.CQRS.Contexts.Peers.handle_message(peer_uuid, message, "them")
+    :ok = Effusion.PWP.add(peer_uuid, info_hash, remote_peer_id, host, port, :connection)
+    :ok = Effusion.PWP.handle_message(peer_uuid, message, "them")
     {:noreply, Map.merge(state, %{info_hash: info_hash, remote_peer_id: remote_peer_id, peer_uuid: peer_uuid})}
   end
 
   def handle_btp(msg, state = %{peer_uuid: peer_uuid}) do
-    :ok = Effusion.CQRS.Contexts.Peers.handle_message(peer_uuid, msg)
+    :ok = Effusion.PWP.handle_message(peer_uuid, msg)
     {:noreply, state}
   end
 
@@ -150,7 +150,7 @@ defmodule Effusion.PWP.TCP.Connection do
   def terminate(reason, state) when is_map(state) do
     if Map.has_key?(state, :socket) do
       Socket.close(state.socket)
-      Effusion.CQRS.Contexts.Peers.disconnected(
+      Effusion.PWP.disconnected(
           Map.get(state, :peer_uuid),
           reason
         )

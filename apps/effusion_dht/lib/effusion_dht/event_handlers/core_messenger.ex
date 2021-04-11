@@ -3,7 +3,7 @@ defmodule Effusion.CQRS.EventHandlers.CoreMessenger do
     application: Effusion.DHT.CQRS,
     name: __MODULE__
 
-  alias Effusion.CQRS.Contexts.Peers
+  alias Effusion.PWP
   alias Effusion.CQRS.Events.ReceivedPeersMatching
 
   def handle(
@@ -15,7 +15,7 @@ defmodule Effusion.CQRS.EventHandlers.CoreMessenger do
   ) do
     Enum.map(peers, fn {host, port} ->
       {:ok, host} = :inet.parse_address(String.to_charlist(host))
-      Peers.add(Effusion.Hash.decode(info_hash), host, port, "dht")
+      PWP.add(Effusion.Hash.decode(info_hash), host, port, "dht")
     end)
     :ok
   end

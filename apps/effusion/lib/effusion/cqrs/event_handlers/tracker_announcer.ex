@@ -45,7 +45,7 @@ defmodule Effusion.CQRS.EventHandlers.TrackerAnnouncer do
       peer.port > 0
     end)
     |> Enum.each(fn peer ->
-      Effusion.CQRS.Contexts.Peers.add(
+      Effusion.PWP.add(
         UUID.uuid4(),
         Effusion.Hash.decode(info_hash),
         Map.get(peer, :peer_id, nil),
