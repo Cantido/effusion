@@ -2,8 +2,7 @@ defmodule Effusion.CQRS.Contexts.Downloads do
   alias Effusion.CQRS.Commands.{
     AddTorrent,
     StartDownload,
-    StopDownload,
-    StoreBlock
+    StopDownload
   }
   alias Effusion.CQRS.Application, as: CQRS
 
