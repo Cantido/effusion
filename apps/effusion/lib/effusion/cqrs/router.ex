@@ -2,8 +2,7 @@ defmodule Effusion.CQRS.Router do
   use Commanded.Commands.Router
   alias Effusion.CQRS.Aggregates.{
     Torrent,
-    Peer,
-    Node
+    Peer
   }
   alias Effusion.CQRS.Commands
 
