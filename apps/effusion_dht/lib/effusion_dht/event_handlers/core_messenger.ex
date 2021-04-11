@@ -5,7 +5,6 @@ defmodule Effusion.CQRS.EventHandlers.CoreMessenger do
 
   alias Effusion.CQRS.Contexts.Peers
   alias Effusion.CQRS.Events.ReceivedPeersMatching
-  alias Effusion.CQRS.Commands.AddPeer
 
   def handle(
     %ReceivedPeersMatching{
