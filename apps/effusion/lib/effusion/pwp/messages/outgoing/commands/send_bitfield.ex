@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Outgoing.SendBitfield do
+defmodule Effusion.PWP.Messages.Outgoing.Commands.SendBitfield do
   @enforce_keys [
     :peer_uuid,
     :bitfield

@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Outgoing.CancelRequest do
+defmodule Effusion.PWP.Messages.Outgoing.Commands.CancelRequest do
   @enforce_keys [
     :peer_uuid,
     :index,

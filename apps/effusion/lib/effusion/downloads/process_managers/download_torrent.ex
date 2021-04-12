@@ -7,7 +7,7 @@ defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
     AttemptToConnect,
     DisconnectPeer
   }
-  alias Effusion.PWP.Commands.Outgoing.{
+  alias Effusion.PWP.Messages.Outgoing.Commands.{
     CancelRequest,
     RequestBlock,
     SendBitfield,

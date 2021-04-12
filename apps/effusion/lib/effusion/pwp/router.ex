@@ -5,8 +5,8 @@ defmodule Effusion.PWP.Router do
   alias Effusion.PWP.Handshake.Commands, as: HandshakeCommands
   alias Effusion.PWP.Connection.Commands, as: ConnectionCommands
   alias Effusion.PWP.Messages.Incoming.Commands, as: IncomingMessageCommands
+  alias Effusion.PWP.Messages.Outgoing.Commands, as: OutgoingMessageCommands
   alias Effusion.PWP.Commands.{
-    Outgoing,
     Swarm,
   }
 
@@ -29,11 +29,11 @@ defmodule Effusion.PWP.Router do
     IncomingMessageCommands.HandleRequest,
     IncomingMessageCommands.HandleUnchoke,
     IncomingMessageCommands.HandleUninterested,
-    Outgoing.CancelRequest,
-    Outgoing.RequestBlock,
-    Outgoing.SendBitfield,
-    Outgoing.SendHave,
-    Outgoing.SendInterested,
+    OutgoingMessageCommands.CancelRequest,
+    OutgoingMessageCommands.RequestBlock,
+    OutgoingMessageCommands.SendBitfield,
+    OutgoingMessageCommands.SendHave,
+    OutgoingMessageCommands.SendInterested,
     Swarm.AddPeerAddress
   ], to: Peer, identity: :peer_uuid
 end

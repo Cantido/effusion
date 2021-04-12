@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Outgoing.SendInterested do
+defmodule Effusion.PWP.Messages.Outgoing.Commands.SendInterested do
   @enforce_keys [
     :peer_uuid
   ]

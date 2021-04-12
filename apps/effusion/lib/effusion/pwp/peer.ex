@@ -22,7 +22,7 @@ defmodule Effusion.PWP.Peer do
     HandleUnchoke,
     HandleUninterested
   }
-  alias Effusion.PWP.Commands.Outgoing.{
+  alias Effusion.PWP.Messages.Outgoing.Commands.{
     CancelRequest,
     RequestBlock,
     SendBitfield,

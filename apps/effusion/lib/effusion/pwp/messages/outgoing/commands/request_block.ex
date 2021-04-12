@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Outgoing.RequestBlock do
+defmodule Effusion.PWP.Messages.Outgoing.Commands.RequestBlock do
   @enforce_keys [
     :peer_uuid,
     :index,
