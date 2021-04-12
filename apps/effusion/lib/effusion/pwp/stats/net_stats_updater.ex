@@ -16,7 +16,7 @@ defmodule Effusion.PWP.EventHandlers.NetStatsUpdater do
     PeerUnchokedUs,
     PeerUninterestedInUs,
   }
-  alias Effusion.PWP.Events.Outgoing.{
+  alias Effusion.PWP.Messages.Outgoing.Events.{
     BitfieldSent,
     BlockRequested,
     InterestedSent,

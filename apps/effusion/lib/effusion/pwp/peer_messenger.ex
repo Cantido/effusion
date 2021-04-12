@@ -6,7 +6,7 @@ defmodule Effusion.PWP.EventHandlers.PeerMessenger do
   alias Effusion.PWP.TCP.Connection
   alias Effusion.CQRS.Application, as: CQRS
   alias Effusion.PWP.Handshake.Commands.HandleHandshake
-  alias Effusion.PWP.Events.Outgoing.{
+  alias Effusion.PWP.Messages.Outgoing.Events.{
     BitfieldSent,
     BlockRequested,
     InterestedSent,

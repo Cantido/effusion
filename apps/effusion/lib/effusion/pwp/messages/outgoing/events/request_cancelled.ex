@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Events.Outgoing.RequestCancelled do
+defmodule Effusion.PWP.Messages.Outgoing.Events.RequestCancelled do
   @derive Jason.Encoder
   @enforce_keys [
     :peer_uuid,

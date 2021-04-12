@@ -15,7 +15,7 @@ defmodule Effusion.PWP.EventHandlers.SessionStatsUpdater do
     PeerSentBlock,
     PeerCancelledRequest
   }
-  alias Effusion.PWP.Events.Outgoing.{
+  alias Effusion.PWP.Messages.Outgoing.Events.{
     BitfieldSent,
     BlockRequested,
     InterestedSent,
