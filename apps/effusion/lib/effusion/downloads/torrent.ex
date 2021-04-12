@@ -6,7 +6,7 @@ defmodule Effusion.Downloads.Torrent do
     StopDownload,
     StoreBlock
   }
-  alias Effusion.CQRS.Events.{
+  alias Effusion.Downloads.Events.{
     BlockStored,
     AllPiecesVerified,
     DownloadStarted,
