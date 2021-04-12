@@ -23,7 +23,7 @@ config :effusion,
   dht_node_id: "zjuXKldLo4rJMGR1Ww/ykZFlXLQ=",
   enabled_extensions: [],
   ecto_repos: [Effusion.Repo],
-  event_stores: [Effusion.CQRS.EventStore]
+  event_stores: [Effusion.EventStore]
 
 
 config :commanded, event_store_adapter: Commanded.EventStore.Adapters.EventStore
@@ -34,7 +34,7 @@ config :effusion, Effusion.Repo,
   password: "zkwNw2P8t&Vec#ebMr5&cjzj",
   hostname: "localhost"
 
-config :effusion, Effusion.CQRS.EventStore,
+config :effusion, Effusion.EventStore,
   serializer: Commanded.Serialization.JsonSerializer,
   database: "event_store_dev",
   username: "effusion_dev",
