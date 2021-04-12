@@ -3,20 +3,20 @@ defmodule Effusion.PWP.Router do
 
   alias Effusion.PWP.Peer
   alias Effusion.PWP.Handshake.Commands, as: HandshakeCommands
+  alias Effusion.PWP.Connection.Commands, as: ConnectionCommands
   alias Effusion.PWP.Commands.{
-    Connection,
     Incoming,
     Outgoing,
     Swarm,
   }
 
   dispatch [
-    Connection.AddConnectedPeer,
-    Connection.AddOpenedPeerConnection,
-    Connection.AttemptToConnect,
-    Connection.DisconnectPeer,
-    Connection.HandleFailedConnectionAttempt,
-    Connection.RemoveConnectedPeer,
+    ConnectionCommands.AddConnectedPeer,
+    ConnectionCommands.AddOpenedPeerConnection,
+    ConnectionCommands.AttemptToConnect,
+    ConnectionCommands.DisconnectPeer,
+    ConnectionCommands.HandleFailedConnectionAttempt,
+    ConnectionCommands.RemoveConnectedPeer,
     HandshakeCommands.HandleHandshake,
     HandshakeCommands.SendHandshake,
     HandshakeCommands.TimeoutHandshake,

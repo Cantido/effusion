@@ -4,7 +4,7 @@ defmodule Effusion.PWP do
   """
 
   alias Effusion.CQRS.Application, as: CQRS
-  alias Effusion.PWP.Commands.Connection.{
+  alias Effusion.PWP.Connection.Commands.{
     AddOpenedPeerConnection,
     HandleFailedConnectionAttempt,
     RemoveConnectedPeer

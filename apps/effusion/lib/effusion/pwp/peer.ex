@@ -1,5 +1,5 @@
 defmodule Effusion.PWP.Peer do
-  alias Effusion.PWP.Commands.Connection.{
+  alias Effusion.PWP.Connection.Commands.{
     AddConnectedPeer,
     AddOpenedPeerConnection,
     AttemptToConnect,

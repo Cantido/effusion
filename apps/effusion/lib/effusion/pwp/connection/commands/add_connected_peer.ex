@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Connection.AddConnectedPeer do
+defmodule Effusion.PWP.Connection.Commands.AddConnectedPeer do
   @enforce_keys [
     :peer_uuid,
     :initiated_by

@@ -3,7 +3,7 @@ defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
     application: Effusion.CQRS.Application,
     name: __MODULE__
 
-  alias Effusion.PWP.Commands.Connection.{
+  alias Effusion.PWP.Connection.Commands.{
     AttemptToConnect,
     DisconnectPeer
   }

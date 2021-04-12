@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Connection.RemoveConnectedPeer do
+defmodule Effusion.PWP.Connection.Commands.RemoveConnectedPeer do
   @enforce_keys [
     :peer_uuid,
     :reason

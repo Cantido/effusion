@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Connection.DisconnectPeer do
+defmodule Effusion.PWP.Connection.Commands.DisconnectPeer do
   @enforce_keys [
     :peer_uuid
   ]

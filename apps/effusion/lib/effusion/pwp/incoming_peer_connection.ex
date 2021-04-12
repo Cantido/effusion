@@ -8,7 +8,7 @@ defmodule Effusion.PWP.ProcessManagers.IncomingPeerConnection do
   @derive Jason.Encoder
   defstruct []
 
-  alias Effusion.PWP.Commands.Connection.AddConnectedPeer
+  alias Effusion.PWP.Connection.Commands.AddConnectedPeer
   alias Effusion.PWP.Handshake.Commands.SendHandshake
 
   alias Effusion.PWP.Handshake.Events.{

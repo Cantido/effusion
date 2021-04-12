@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Connection.AttemptToConnect do
+defmodule Effusion.PWP.Connection.Commands.AttemptToConnect do
   @enforce_keys [
     :peer_uuid
   ]
