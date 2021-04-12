@@ -19,7 +19,7 @@ defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
     StoreBlock,
   }
   alias Effusion.PWP.Events.Outgoing.BlockRequested
-  alias Effusion.PWP.Events.Incoming.{
+  alias Effusion.PWP.Messages.Incoming.Events.{
     PeerHasBitfield,
     PeerHasPiece,
     PeerSentBlock,

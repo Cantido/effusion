@@ -30,7 +30,7 @@ defmodule Effusion.PWP.Peer do
     SendInterested
   }
   alias Effusion.PWP.Commands.Swarm.AddPeerAddress
-  alias Effusion.PWP.Events.Incoming.{
+  alias Effusion.PWP.Messages.Incoming.Events.{
     PeerCancelledRequest,
     PeerChokedUs,
     PeerHasBitfield,

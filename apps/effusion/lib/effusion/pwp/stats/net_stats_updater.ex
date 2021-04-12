@@ -6,7 +6,7 @@ defmodule Effusion.PWP.EventHandlers.NetStatsUpdater do
   alias Effusion.PWP.Messages
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.PWP.Handshake.Events.PeerSentHandshake
-  alias Effusion.PWP.Events.Incoming.{
+  alias Effusion.PWP.Messages.Incoming.Events.{
     PeerChokedUs,
     PeerHasBitfield,
     PeerHasPiece,

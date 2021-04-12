@@ -4,7 +4,7 @@ defmodule Effusion.PWP.EventHandlers.SessionStatsUpdater do
     name: __MODULE__
 
   alias Effusion.Statistics.Session, as: SessionStats
-  alias Effusion.PWP.Events.Incoming.{
+  alias Effusion.PWP.Messages.Incoming.Events.{
     PeerChokedUs,
     PeerUnchokedUs,
     PeerInterestedInUs,

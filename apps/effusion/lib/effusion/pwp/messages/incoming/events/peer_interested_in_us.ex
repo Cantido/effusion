@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Events.Incoming.PeerInterestedInUs do
+defmodule Effusion.PWP.Messages.Incoming.Events.PeerInterestedInUs do
   @derive Jason.Encoder
   @enforce_keys [
     :peer_uuid,
