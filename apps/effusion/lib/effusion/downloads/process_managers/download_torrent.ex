@@ -38,7 +38,7 @@ defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
     PeerConnected,
     PeerDisconnected
   }
-  alias Effusion.PWP.Events.Swarm.PeerAdded
+  alias Effusion.PWP.Swarm.Events.PeerAdded
   require Logger
 
   @derive Jason.Encoder

@@ -61,7 +61,7 @@ defmodule Effusion.PWP.Peer do
     SendingHandshake,
     SuccessfulHandshake
   }
-  alias Effusion.PWP.Events.Swarm.PeerAdded
+  alias Effusion.PWP.Swarm.Events.PeerAdded
   alias Commanded.Aggregate.Multi
   require Logger
 
