@@ -4,7 +4,7 @@ defmodule Effusion.PWP.EventHandlers.PeerStatsUpdater do
     name: __MODULE__
 
   alias Effusion.Statistics.Peer, as: PeerStats
-  alias Effusion.PWP.Events.Connection.{
+  alias Effusion.PWP.Connection.Events.{
     PeerConnected,
     PeerDisconnected,
     AttemptingToConnect,

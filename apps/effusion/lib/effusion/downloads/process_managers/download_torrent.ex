@@ -32,7 +32,7 @@ defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
     PieceHashSucceeded,
     AllPiecesVerified
   }
-  alias Effusion.PWP.Events.Connection.{
+  alias Effusion.PWP.Connection.Events.{
     AttemptingToConnect,
     ConnectionAttemptFailed,
     PeerConnected,

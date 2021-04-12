@@ -14,7 +14,7 @@ defmodule Effusion.PWP.EventHandlers.PeerMessenger do
     SendingHave
   }
   alias Effusion.PWP.Handshake.Events.SuccessfulHandshake
-  alias Effusion.PWP.Events.Connection.AttemptingToConnect
+  alias Effusion.PWP.Connection.Events.AttemptingToConnect
   alias Effusion.PWP.Handshake.Events.SendingHandshake
   require Logger
 

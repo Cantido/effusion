@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Events.Connection.PeerDisconnected do
+defmodule Effusion.PWP.Connection.Events.PeerDisconnected do
   @derive Jason.Encoder
   @enforce_keys [
     :peer_uuid,

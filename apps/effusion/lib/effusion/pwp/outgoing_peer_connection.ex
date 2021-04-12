@@ -15,7 +15,7 @@ defmodule Effusion.PWP.ProcessManagers.OutgoingPeerConnection do
     FailedHandshake,
     SuccessfulHandshake
   }
-  alias Effusion.PWP.Events.Connection.{
+  alias Effusion.PWP.Connection.Events.{
     AttemptingToConnect,
     ConnectionAttemptFailed,
     PeerConnectionOpened,

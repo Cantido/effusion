@@ -48,7 +48,7 @@ defmodule Effusion.PWP.Peer do
     RequestCancelled,
     SendingHave
   }
-  alias Effusion.PWP.Events.Connection.{
+  alias Effusion.PWP.Connection.Events.{
     AttemptingToConnect,
     ConnectionAttemptFailed,
     PeerConnectionOpened,

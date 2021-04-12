@@ -16,7 +16,7 @@ defmodule Effusion.PWP.ProcessManagers.IncomingPeerConnection do
     PeerSentHandshake,
     SuccessfulHandshake
   }
-  alias Effusion.PWP.Events.Connection.PeerDisconnected
+  alias Effusion.PWP.Connection.Events.PeerDisconnected
 
   def interested?(%PeerSentHandshake{peer_uuid: peer_uuid, initiated_by: "them"}) do
     {:start!, peer_uuid}
