@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Swarm.AddPeerAddress do
+defmodule Effusion.PWP.Swarm.Commands.AddPeerAddress do
   @enforce_keys [
     :peer_uuid,
     :expected_info_hash,

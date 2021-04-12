@@ -6,9 +6,7 @@ defmodule Effusion.PWP.Router do
   alias Effusion.PWP.Connection.Commands, as: ConnectionCommands
   alias Effusion.PWP.Messages.Incoming.Commands, as: IncomingMessageCommands
   alias Effusion.PWP.Messages.Outgoing.Commands, as: OutgoingMessageCommands
-  alias Effusion.PWP.Commands.{
-    Swarm,
-  }
+  alias Effusion.PWP.Swarm.Commands, as: SwarmCommands
 
   dispatch [
     ConnectionCommands.AddConnectedPeer,
@@ -34,6 +32,6 @@ defmodule Effusion.PWP.Router do
     OutgoingMessageCommands.SendBitfield,
     OutgoingMessageCommands.SendHave,
     OutgoingMessageCommands.SendInterested,
-    Swarm.AddPeerAddress
+    SwarmCommands.AddPeerAddress
   ], to: Peer, identity: :peer_uuid
 end
