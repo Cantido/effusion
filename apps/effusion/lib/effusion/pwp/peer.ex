@@ -6,7 +6,7 @@ defmodule Effusion.PWP.Peer do
     HandleFailedConnectionAttempt,
     RemoveConnectedPeer
   }
-  alias Effusion.PWP.Commands.Handshake.{
+  alias Effusion.PWP.Handshake.Commands.{
     HandleHandshake,
     SendHandshake,
     TimeoutHandshake

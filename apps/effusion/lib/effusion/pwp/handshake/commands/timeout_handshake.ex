@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Handshake.TimeoutHandshake do
+defmodule Effusion.PWP.Handshake.Commands.TimeoutHandshake do
   @enforce_keys [
     :peer_uuid
   ]

@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Handshake.SendHandshake do
+defmodule Effusion.PWP.Handshake.Commands.SendHandshake do
   @enforce_keys [
     :peer_uuid,
     :our_peer_id,

@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Handshake.HandleHandshake do
+defmodule Effusion.PWP.Handshake.Commands.HandleHandshake do
   @enforce_keys [
     :peer_uuid,
     :info_hash,

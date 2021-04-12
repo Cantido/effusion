@@ -9,7 +9,7 @@ defmodule Effusion.PWP.ProcessManagers.IncomingPeerConnection do
   defstruct []
 
   alias Effusion.PWP.Commands.Connection.AddConnectedPeer
-  alias Effusion.PWP.Commands.Handshake.SendHandshake
+  alias Effusion.PWP.Handshake.Commands.SendHandshake
 
   alias Effusion.PWP.Events.Handshake.{
     FailedHandshake,
