@@ -20,7 +20,7 @@ defmodule Effusion.CQRS.ProcessManagers.DHTProtocolTest do
     DHTNodeAdded,
     GettingPeers,
     DHTEnabledForDownload,
-    PeerAdded
+    PeerAddressAdded
   }
   import Commanded.Assertions.EventAssertions
 

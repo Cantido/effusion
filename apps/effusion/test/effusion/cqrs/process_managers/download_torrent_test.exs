@@ -12,7 +12,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
     RequestBlock
   }
   alias Effusion.CQRS.Events.{
-    PeerAdded,
+    PeerAddressAdded,
     PeerConnected,
     PeerHasBitfield,
     PeerUnchokedUs,
@@ -20,13 +20,13 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
   }
   doctest Effusion.CQRS.ProcessManagers.DownloadTorrent
 
-  describe "handling PeerAdded" do
+  describe "handling PeerAddressAdded" do
     test "issues an AttemptToConnect command if we're not at our limit" do
       peer_uuid = UUID.uuid4()
       command =
         DownloadTorrent.handle(
           %DownloadTorrent{},
-          %PeerAdded{
+          %PeerAddressAdded{
             peer_uuid: peer_uuid,
             expected_info_hash: Factory.encoded_info_hash(),
             expected_peer_id: Factory.encoded_peer_id(),
@@ -49,7 +49,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
             connected_peers: MapSet.new([UUID.uuid4()]),
             max_connections: 1
           },
-          %PeerAdded{
+          %PeerAddressAdded{
             peer_uuid: peer_uuid,
             expected_info_hash: Factory.encoded_info_hash(),
             expected_peer_id: Factory.encoded_peer_id(),
@@ -70,7 +70,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
             connecting_to_peers: MapSet.new([UUID.uuid4()]),
             max_connections: 1
           },
-          %PeerAdded{
+          %PeerAddressAdded{
             peer_uuid: peer_uuid,
             expected_info_hash: Factory.encoded_info_hash(),
             expected_peer_id: Factory.encoded_peer_id(),
@@ -93,7 +93,7 @@ defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
             max_connections: 2,
             max_half_open_connections: 2
           },
-          %PeerAdded{
+          %PeerAddressAdded{
             peer_uuid: peer_uuid,
             expected_info_hash: Factory.encoded_info_hash(),
             expected_peer_id: Factory.encoded_peer_id(),

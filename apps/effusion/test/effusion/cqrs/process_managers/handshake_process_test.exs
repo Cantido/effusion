@@ -11,7 +11,7 @@ defmodule Effusion.CQRS.Aggregates.HandshakeProcessTest do
     HandleHandshake
   }
   alias Effusion.CQRS.Events.{
-    PeerAdded,
+    PeerAddressAdded,
     PeerConnectionOpened,
     PeerSentHandshake,
     SendingHandshake,
@@ -70,7 +70,7 @@ defmodule Effusion.CQRS.Aggregates.HandshakeProcessTest do
         initiated_by: "them"
       })
 
-      assert_receive_event(CQRS, PeerAdded, fn event ->
+      assert_receive_event(CQRS, PeerAddressAdded, fn event ->
         assert event.peer_uuid == peer_uuid
         assert event.expected_info_hash == info_hash
         assert event.expected_peer_id == remote_peer_id
@@ -153,7 +153,7 @@ defmodule Effusion.CQRS.Aggregates.HandshakeProcessTest do
         initiated_by: "us"
       })
 
-      assert_receive_event(CQRS, PeerAdded, fn event ->
+      assert_receive_event(CQRS, PeerAddressAdded, fn event ->
         assert event.peer_uuid == peer_uuid
         assert event.expected_info_hash == info_hash
         assert event.expected_peer_id == remote_peer_id
@@ -218,7 +218,7 @@ defmodule Effusion.CQRS.Aggregates.HandshakeProcessTest do
         initiated_by: "us"
       })
 
-      assert_receive_event(CQRS, PeerAdded, fn event ->
+      assert_receive_event(CQRS, PeerAddressAdded, fn event ->
         assert event.peer_uuid == peer_uuid
         assert event.expected_info_hash == info_hash
         assert event.expected_peer_id == remote_peer_id
@@ -294,7 +294,7 @@ defmodule Effusion.CQRS.Aggregates.HandshakeProcessTest do
         initiated_by: "them"
       })
 
-      assert_receive_event(CQRS, PeerAdded, fn event ->
+      assert_receive_event(CQRS, PeerAddressAdded, fn event ->
         assert event.peer_uuid == peer_uuid
         assert event.expected_info_hash == info_hash
         assert event.expected_peer_id == remote_peer_id

@@ -38,7 +38,7 @@ defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
     PeerConnected,
     PeerDisconnected
   }
-  alias Effusion.PWP.Swarm.Events.PeerAdded
+  alias Effusion.PWP.Swarm.Events.PeerAddressAdded
   require Logger
 
   @derive Jason.Encoder
@@ -69,11 +69,11 @@ defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
     {:start!, info_hash}
   end
 
-  def interested?(%PeerAdded{expected_info_hash: info_hash, from: "tracker"}) do
+  def interested?(%PeerAddressAdded{expected_info_hash: info_hash, from: "tracker"}) do
     {:continue!, info_hash}
   end
 
-  def interested?(%PeerAdded{expected_info_hash: info_hash, from: "dht"}) do
+  def interested?(%PeerAddressAdded{expected_info_hash: info_hash, from: "dht"}) do
     {:continue!, info_hash}
   end
 
@@ -135,7 +135,7 @@ defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
 
   def handle(
     %__MODULE__{} = download,
-    %PeerAdded{peer_uuid: peer_uuid, from: "tracker"}
+    %PeerAddressAdded{peer_uuid: peer_uuid, from: "tracker"}
   ) do
     if attempt_to_connect_to_new_peers?(download) do
       %AttemptToConnect{peer_uuid: peer_uuid}
@@ -144,7 +144,7 @@ defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
 
   def handle(
     %__MODULE__{} = download,
-    %PeerAdded{peer_uuid: peer_uuid, from: "dht"}
+    %PeerAddressAdded{peer_uuid: peer_uuid, from: "dht"}
   ) do
     Logger.debug("********* DownloadTorrent got the peer")
     if attempt_to_connect_to_new_peers?(download) do
@@ -306,7 +306,7 @@ defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
 
   def apply(
     %__MODULE__{failcounts: failcounts, connecting_to_peers: connecting_to_peers} = download,
-    %PeerAdded{peer_uuid: peer_uuid}
+    %PeerAddressAdded{peer_uuid: peer_uuid}
   ) do
     Logger.debug("********** peer added, seeing if we should connect")
     connecting_to_peers = if attempt_to_connect_to_new_peers?(download) do

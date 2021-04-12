@@ -61,7 +61,7 @@ defmodule Effusion.PWP.Peer do
     SendingHandshake,
     SuccessfulHandshake
   }
-  alias Effusion.PWP.Swarm.Events.PeerAdded
+  alias Effusion.PWP.Swarm.Events.PeerAddressAdded
   alias Commanded.Aggregate.Multi
   require Logger
 
@@ -86,7 +86,7 @@ defmodule Effusion.PWP.Peer do
     %__MODULE__{peer_uuid: nil},
     %AddPeerAddress{peer_uuid: peer_uuid, expected_info_hash: info_hash, expected_peer_id: peer_id, host: host, port: port, from: source}
   ) do
-    %PeerAdded{peer_uuid: peer_uuid, expected_info_hash: info_hash, expected_peer_id: peer_id, host: host, port: port, from: source}
+    %PeerAddressAdded{peer_uuid: peer_uuid, expected_info_hash: info_hash, expected_peer_id: peer_id, host: host, port: port, from: source}
   end
 
   def execute(%__MODULE__{}, %AddPeerAddress{}) do
@@ -380,7 +380,7 @@ defmodule Effusion.PWP.Peer do
 
   def apply(
     %__MODULE__{info_hash: nil, host: nil, port: nil} = peer,
-    %PeerAdded{peer_uuid: peer_uuid, expected_info_hash: info_hash, expected_peer_id: peer_id, host: host, port: port}
+    %PeerAddressAdded{peer_uuid: peer_uuid, expected_info_hash: info_hash, expected_peer_id: peer_id, host: host, port: port}
   ) do
     %__MODULE__{peer |
       peer_uuid: peer_uuid,
