@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Incoming.HandleCancel do
+defmodule Effusion.PWP.Messages.Incoming.Commands.HandleCancel do
   @enforce_keys [
     :peer_uuid,
     :index,

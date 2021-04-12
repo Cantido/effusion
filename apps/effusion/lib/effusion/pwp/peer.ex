@@ -11,7 +11,7 @@ defmodule Effusion.PWP.Peer do
     SendHandshake,
     TimeoutHandshake
   }
-  alias Effusion.PWP.Commands.Incoming.{
+  alias Effusion.PWP.Messages.Incoming.Commands.{
     HandleBitfield,
     HandleCancel,
     HandleChoke,

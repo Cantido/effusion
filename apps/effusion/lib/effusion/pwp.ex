@@ -10,7 +10,7 @@ defmodule Effusion.PWP do
     RemoveConnectedPeer
   }
   alias Effusion.PWP.Handshake.Commands.HandleHandshake
-  alias Effusion.PWP.Commands.Incoming.{
+  alias Effusion.PWP.Messages.Incoming.Commands.{
     HandleBitfield,
     HandleCancel,
     HandleChoke,

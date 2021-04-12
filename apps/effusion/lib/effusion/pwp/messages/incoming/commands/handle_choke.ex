@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Commands.Incoming.HandleChoke do
+defmodule Effusion.PWP.Messages.Incoming.Commands.HandleChoke do
   @enforce_keys [
     :peer_uuid
   ]
