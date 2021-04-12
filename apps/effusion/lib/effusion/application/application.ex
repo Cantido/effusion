@@ -15,8 +15,10 @@ defmodule Effusion.Application do
 
     children = [
       Effusion.Repo,
-      Effusion.Statistics.Supervisor,
       Effusion.Commanded,
+      Effusion.Statistics.PeerDownloadAverage,
+      Effusion.Statistics.SessionDownloadAverage,
+      Effusion.Statistics.SessionUploadAverage,
       Effusion.Downloads.ProcessManagers.DownloadTorrent,
       Effusion.Downloads.EventHandlers.FileWriter,
       Effusion.Downloads.EventHandlers.TrackerAnnouncer,
