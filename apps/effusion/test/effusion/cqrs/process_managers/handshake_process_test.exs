@@ -1,6 +1,6 @@
 defmodule Effusion.CQRS.Aggregates.HandshakeProcessTest do
   use Effusion.EventStoreCase
-  alias Effusion.CQRS.Application, as: CQRS
+  alias Effusion.Commanded, as: CQRS
   alias Effusion.CQRS.Commands.{
     AddTorrent,
     StartDownload,

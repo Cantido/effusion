@@ -1,6 +1,6 @@
 defmodule Effusion.PWP.ProcessManagers.OutgoingPeerConnection do
   use Commanded.ProcessManagers.ProcessManager,
-    application: Effusion.CQRS.Application,
+    application: Effusion.Commanded,
     name: __MODULE__
 
   require Logger
@@ -8,7 +8,7 @@ defmodule Effusion.PWP.ProcessManagers.OutgoingPeerConnection do
   @derive Jason.Encoder
   defstruct []
 
-  alias Effusion.CQRS.Application, as: CQRS
+  alias Effusion.Commanded, as: CQRS
   alias Effusion.PWP.Connection.Commands.AddConnectedPeer
   alias Effusion.PWP.Handshake.Commands.{SendHandshake, TimeoutHandshake}
   alias Effusion.PWP.Handshake.Events.{

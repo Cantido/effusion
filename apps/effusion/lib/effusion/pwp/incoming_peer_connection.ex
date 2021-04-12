@@ -1,6 +1,6 @@
 defmodule Effusion.PWP.ProcessManagers.IncomingPeerConnection do
   use Commanded.ProcessManagers.ProcessManager,
-    application: Effusion.CQRS.Application,
+    application: Effusion.Commanded,
     name: __MODULE__
 
   require Logger

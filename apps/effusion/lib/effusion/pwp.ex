@@ -3,7 +3,7 @@ defmodule Effusion.PWP do
   The Peer Wire Protocol (PWP) context.
   """
 
-  alias Effusion.CQRS.Application, as: CQRS
+  alias Effusion.Commanded, as: CQRS
   alias Effusion.PWP.Connection.Commands.{
     AddOpenedPeerConnection,
     HandleFailedConnectionAttempt,

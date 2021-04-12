@@ -1,10 +1,10 @@
 defmodule Effusion.PWP.EventHandlers.PeerMessenger do
   use Commanded.Event.Handler,
-    application: Effusion.CQRS.Application,
+    application: Effusion.Commanded,
     name: __MODULE__
 
   alias Effusion.PWP.TCP.Connection
-  alias Effusion.CQRS.Application, as: CQRS
+  alias Effusion.Commanded, as: CQRS
   alias Effusion.PWP.Handshake.Commands.HandleHandshake
   alias Effusion.PWP.Messages.Outgoing.Events.{
     BitfieldSent,

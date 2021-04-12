@@ -9,7 +9,7 @@ defmodule Effusion.Downloads do
     StartDownload,
     StopDownload
   }
-  alias Effusion.CQRS.Application, as: CQRS
+  alias Effusion.Commanded, as: CQRS
 
   @doc """
   Add a download, without starting it.

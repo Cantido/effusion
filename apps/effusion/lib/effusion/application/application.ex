@@ -16,7 +16,7 @@ defmodule Effusion.Application do
     children = [
       Effusion.Repo,
       Effusion.Statistics.Supervisor,
-      Effusion.CQRS.Application,
+      Effusion.Commanded,
       Effusion.CQRS.Supervisor,
       Effusion.Application.ConnectionSupervisor,
       {Registry, keys: :unique, name: ConnectionRegistry},

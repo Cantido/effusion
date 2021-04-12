@@ -1,6 +1,6 @@
 defmodule Effusion.PWP.EventHandlers.SessionStatsUpdater do
   use Commanded.Event.Handler,
-    application: Effusion.CQRS.Application,
+    application: Effusion.Commanded,
     name: __MODULE__
 
   alias Effusion.Statistics.Session, as: SessionStats

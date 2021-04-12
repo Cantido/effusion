@@ -3,7 +3,7 @@ defmodule EffusionTest do
   doctest Effusion
   alias Effusion.BTP.Peer
   alias Effusion.DHT
-  alias Effusion.CQRS.Application, as: CQRS
+  alias Effusion.Commanded, as: CQRS
   alias Effusion.DHT.KRPC.{Query, Response}
   alias Effusion.PWP.TCP.Socket
   import Mox

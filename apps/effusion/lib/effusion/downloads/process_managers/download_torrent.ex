@@ -1,6 +1,6 @@
 defmodule Effusion.Downloads.ProcessManagers.DownloadTorrent do
   use Commanded.ProcessManagers.ProcessManager,
-    application: Effusion.CQRS.Application,
+    application: Effusion.Commanded,
     name: __MODULE__
 
   alias Effusion.PWP.Connection.Commands.{

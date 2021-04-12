@@ -1,6 +1,6 @@
 defmodule Effusion.Downloads.EventHandlers.FileWriter do
   use Commanded.Event.Handler,
-    application: Effusion.CQRS.Application,
+    application: Effusion.Commanded,
     name: __MODULE__,
     consistency: :strong
 
