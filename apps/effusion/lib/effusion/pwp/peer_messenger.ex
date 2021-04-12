@@ -13,9 +13,9 @@ defmodule Effusion.PWP.EventHandlers.PeerMessenger do
     RequestCancelled,
     SendingHave
   }
-  alias Effusion.PWP.Events.Handshake.SuccessfulHandshake
+  alias Effusion.PWP.Handshake.Events.SuccessfulHandshake
   alias Effusion.PWP.Events.Connection.AttemptingToConnect
-  alias Effusion.PWP.Events.Handshake.SendingHandshake
+  alias Effusion.PWP.Handshake.Events.SendingHandshake
   require Logger
 
   def handle(

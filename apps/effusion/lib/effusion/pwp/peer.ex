@@ -55,7 +55,7 @@ defmodule Effusion.PWP.Peer do
     PeerConnected,
     PeerDisconnected
   }
-  alias Effusion.PWP.Events.Handshake.{
+  alias Effusion.PWP.Handshake.Events.{
     FailedHandshake,
     PeerSentHandshake,
     SendingHandshake,

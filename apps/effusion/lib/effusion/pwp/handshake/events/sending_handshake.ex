@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Events.Handshake.SendingHandshake do
+defmodule Effusion.PWP.Handshake.Events.SendingHandshake do
   @derive Jason.Encoder
   @enforce_keys [
     :peer_uuid,

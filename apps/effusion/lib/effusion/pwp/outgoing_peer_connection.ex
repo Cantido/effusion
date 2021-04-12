@@ -11,7 +11,7 @@ defmodule Effusion.PWP.ProcessManagers.OutgoingPeerConnection do
   alias Effusion.CQRS.Application, as: CQRS
   alias Effusion.PWP.Commands.Connection.AddConnectedPeer
   alias Effusion.PWP.Handshake.Commands.{SendHandshake, TimeoutHandshake}
-  alias Effusion.PWP.Events.Handshake.{
+  alias Effusion.PWP.Handshake.Events.{
     FailedHandshake,
     SuccessfulHandshake
   }
