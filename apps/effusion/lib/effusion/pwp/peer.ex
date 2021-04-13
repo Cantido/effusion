@@ -7,10 +7,25 @@ defmodule Effusion.PWP.Peer do
     RemoveConnectedPeer
   }
 
+  alias Effusion.PWP.Connection.Events.{
+    AttemptingToConnect,
+    ConnectionAttemptFailed,
+    PeerConnectionOpened,
+    PeerConnected,
+    PeerDisconnected
+  }
+
   alias Effusion.PWP.Handshake.Commands.{
     HandleHandshake,
     SendHandshake,
     TimeoutHandshake
+  }
+
+  alias Effusion.PWP.Handshake.Events.{
+    FailedHandshake,
+    PeerSentHandshake,
+    SendingHandshake,
+    SuccessfulHandshake
   }
 
   alias Effusion.PWP.Messages.Incoming.Commands.{
@@ -25,16 +40,6 @@ defmodule Effusion.PWP.Peer do
     HandleUninterested
   }
 
-  alias Effusion.PWP.Messages.Outgoing.Commands.{
-    CancelRequest,
-    RequestBlock,
-    SendBitfield,
-    SendHave,
-    SendInterested
-  }
-
-  alias Effusion.PWP.Swarm.Commands.AddPeerAddress
-
   alias Effusion.PWP.Messages.Incoming.Events.{
     PeerCancelledRequest,
     PeerChokedUs,
@@ -47,6 +52,14 @@ defmodule Effusion.PWP.Peer do
     PeerUninterestedInUs
   }
 
+  alias Effusion.PWP.Messages.Outgoing.Commands.{
+    CancelRequest,
+    RequestBlock,
+    SendBitfield,
+    SendHave,
+    SendInterested
+  }
+
   alias Effusion.PWP.Messages.Outgoing.Events.{
     BitfieldSent,
     BlockRequested,
@@ -55,23 +68,11 @@ defmodule Effusion.PWP.Peer do
     SendingHave
   }
 
-  alias Effusion.PWP.Connection.Events.{
-    AttemptingToConnect,
-    ConnectionAttemptFailed,
-    PeerConnectionOpened,
-    PeerConnected,
-    PeerDisconnected
-  }
-
-  alias Effusion.PWP.Handshake.Events.{
-    FailedHandshake,
-    PeerSentHandshake,
-    SendingHandshake,
-    SuccessfulHandshake
-  }
-
+  alias Effusion.PWP.Swarm.Commands.AddPeerAddress
   alias Effusion.PWP.Swarm.Events.PeerAddressAdded
+
   alias Commanded.Aggregate.Multi
+  
   require Logger
 
   defstruct peer_uuid: nil,
