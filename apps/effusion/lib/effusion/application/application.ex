@@ -1,15 +1,9 @@
 defmodule Effusion.Application do
   @moduledoc false
-  alias Effusion.Statistics.Net, as: NetStats
-  alias Effusion.Statistics.Peer, as: PeerStats
-  alias Effusion.Statistics.Session, as: SessionStats
-
-   use Application
+  use Application
 
   def start(_type, _args) do
-    NetStats.init()
-    PeerStats.init()
-    SessionStats.init()
+    Effusion.Statistics.init()
 
     port = Application.get_env(:effusion, :port)
 
@@ -27,7 +21,7 @@ defmodule Effusion.Application do
       Effusion.PWP.EventHandlers.PeerMessenger,
       Effusion.PWP.EventHandlers.NetStatsUpdater,
       Effusion.PWP.EventHandlers.PeerStatsUpdater,
-      Effusion.PWP.EventHandlers.SessionStatsUpdater
+      Effusion.PWP.EventHandlers.SessionStatsUpdater,
       Effusion.Application.ConnectionSupervisor,
       {Registry, keys: :unique, name: ConnectionRegistry},
       :ranch.child_spec(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Connection, [])
