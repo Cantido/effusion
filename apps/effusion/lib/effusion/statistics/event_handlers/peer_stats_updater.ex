@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.EventHandlers.PeerStatsUpdater do
+defmodule Effusion.Statistics.EventHandlers.PeerStatsUpdater do
   use Commanded.Event.Handler,
     application: Effusion.Commanded,
     name: __MODULE__

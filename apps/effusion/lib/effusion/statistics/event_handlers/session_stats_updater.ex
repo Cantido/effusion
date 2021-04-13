@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.EventHandlers.SessionStatsUpdater do
+defmodule Effusion.Statistics.EventHandlers.SessionStatsUpdater do
   use Commanded.Event.Handler,
     application: Effusion.Commanded,
     name: __MODULE__
