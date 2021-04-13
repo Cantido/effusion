@@ -29,8 +29,8 @@ config :commanded, event_store_adapter: Commanded.EventStore.Adapters.EventStore
 
 config :effusion, Effusion.Repo,
   database: "effusion_dev",
-  username: "effusion_dev",
-  password: "zkwNw2P8t&Vec#ebMr5&cjzj",
+  username: "postgres",
+  password: "postgres",
   hostname: "localhost"
 
 config :effusion, Effusion.EventStore,
