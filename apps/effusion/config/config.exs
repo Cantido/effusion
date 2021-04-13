@@ -36,8 +36,8 @@ config :effusion, Effusion.Repo,
 config :effusion, Effusion.EventStore,
   serializer: Commanded.Serialization.JsonSerializer,
   database: "event_store_dev",
-  username: "effusion_dev",
-  password: "zkwNw2P8t&Vec#ebMr5&cjzj",
+  username: "postgres",
+  password: "postgres",
   hostname: "localhost",
   pool_size: 10
 
