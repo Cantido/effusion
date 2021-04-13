@@ -1,4 +1,4 @@
-defmodule Effusion.Downloads.DownloadTorrentTest do
+defmodule Effusion.Downloads.ProcessManagers.DownloadTorrentTest do
   use ExUnit.Case
   alias Effusion.Factory
   alias Effusion.Downloads.ProcessManagers.DownloadTorrent
