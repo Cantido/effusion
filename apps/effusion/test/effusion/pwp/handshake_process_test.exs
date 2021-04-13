@@ -1,25 +1,27 @@
-defmodule Effusion.CQRS.Aggregates.HandshakeProcessTest do
+defmodule Effusion.PWP.HandshakeProcessTest do
   use Effusion.EventStoreCase
   alias Effusion.Commanded, as: CQRS
-
-  alias Effusion.CQRS.Commands.{
+  alias Effusion.Downloads.Commands.{
     AddTorrent,
-    StartDownload,
-    AddPeer,
+    StartDownload
+  }
+  alias Effusion.PWP.Connection.Commands.{
     AttemptToConnect,
-    AddOpenedPeerConnection,
+    AddOpenedPeerConnection
+  }
+  alias Effusion.PWP.Connection.Events.PeerConnectionOpened
+  alias Effusion.PWP.Handshake.Commands.{
     SendHandshake,
     HandleHandshake
   }
-
-  alias Effusion.CQRS.Events.{
-    PeerAddressAdded,
-    PeerConnectionOpened,
+  alias Effusion.PWP.Handshake.Events.{
     PeerSentHandshake,
     SendingHandshake,
     SuccessfulHandshake,
     FailedHandshake
   }
+  alias Effusion.PWP.Swarm.Commands.AddPeerAddress
+  alias Effusion.PWP.Swarm.Events.PeerAddressAdded
 
   import Commanded.Assertions.EventAssertions
 

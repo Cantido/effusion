@@ -1,12 +1,9 @@
-defmodule Effusion.CQRS.EventHandlers.FileWriterTest do
+defmodule Effusion.Downloads.EventHandlers.FileWriterTest do
   use ExUnit.Case
-  alias Effusion.CQRS.EventHandlers.FileWriter
+  alias Effusion.Downloads.EventHandlers.FileWriter
+  alias Effusion.Downloads.Events.PieceHashSucceeded
 
-  alias Effusion.CQRS.Events.{
-    PieceHashSucceeded
-  }
-
-  doctest Effusion.CQRS.EventHandlers.FileWriter
+  doctest Effusion.Downloads.EventHandlers.FileWriter
 
   setup do
     meta =

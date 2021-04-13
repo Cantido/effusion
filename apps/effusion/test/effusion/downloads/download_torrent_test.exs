@@ -1,27 +1,25 @@
-defmodule Effusion.CQRS.ProcessManagers.DownloadTorrentTest do
+defmodule Effusion.Downloads.DownloadTorrentTest do
   use ExUnit.Case
   alias Effusion.Factory
-  alias Effusion.CQRS.ProcessManagers.DownloadTorrent
+  alias Effusion.Downloads.ProcessManagers.DownloadTorrent
+  alias Effusion.Downloads.Commands.StoreBlock
+  alias Effusion.PWP.Connection.Commands.AttemptToConnect
+  alias Effusion.PWP.Connection.Events.PeerConnected
 
-  alias Effusion.CQRS.Commands.{
-    AttemptToConnect,
-    SendBitfield,
-    SendInterested,
-    RequestBlock,
-    StoreBlock,
-    CancelRequest,
-    RequestBlock
-  }
-
-  alias Effusion.CQRS.Events.{
-    PeerAddressAdded,
-    PeerConnected,
+  alias Effusion.PWP.Messages.Incoming.Events.{
     PeerHasBitfield,
     PeerUnchokedUs,
     PeerSentBlock
   }
+  alias Effusion.PWP.Messages.Outgoing.Commands.{
+    CancelRequest,
+    SendInterested,
+    RequestBlock
+  }
 
-  doctest Effusion.CQRS.ProcessManagers.DownloadTorrent
+  alias Effusion.PWP.Swarm.Events.PeerAddressAdded
+
+  doctest Effusion.Downloads.ProcessManagers.DownloadTorrent
 
   describe "handling PeerAddressAdded" do
     test "issues an AttemptToConnect command if we're not at our limit" do

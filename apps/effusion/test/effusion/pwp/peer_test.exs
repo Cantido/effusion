@@ -2,22 +2,20 @@ defmodule Effusion.PWP.PeerTest do
   use Effusion.EventStoreCase
   alias Effusion.Factory
 
-  alias Effusion.CQRS.Commands.{
-    TimeoutHandshake,
-    SendHandshake,
+  alias Effusion.PWP.Connection.Events.ConnectionAttemptFailed
+  alias Effusion.PWP.Handshake.Commands.{
     HandleHandshake,
-    RequestBlock
+    SendHandshake,
+    TimeoutHandshake
   }
-
-  alias Effusion.CQRS.Events.{
+  alias Effusion.PWP.Handshake.Events.{
     FailedHandshake,
-    ConnectionAttemptFailed,
-    SendingHandshake,
-    SuccessfulHandshake,
     PeerSentHandshake,
-    BlockRequested
+    SendingHandshake,
+    SuccessfulHandshake
   }
-
+  alias Effusion.PWP.Messages.Outgoing.Commands.RequestBlock
+  alias Effusion.PWP.Messages.Outgoing.Events.BlockRequested
   alias Effusion.PWP.Peer
   alias Commanded.Aggregate.Multi
   doctest Effusion.PWP.Peer

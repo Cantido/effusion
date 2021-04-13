@@ -1,4 +1,4 @@
-defmodule Effusion.Format do
+defmodule Effusion.CLI.Format do
   import Effusion.Hash
 
   @moduledoc """
