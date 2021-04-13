@@ -15,19 +15,19 @@ defmodule Effusion.CLI.Format do
 
   ## Examples
 
-      iex> Effusion.Format.bytes(109)
+      iex> Effusion.CLI.Format.bytes(109)
       "109 B"
 
-      iex> Effusion.Format.bytes(108_462)
+      iex> Effusion.CLI.Format.bytes(108_462)
       "105.9 kiB"
 
-      iex> Effusion.Format.bytes(64_700_000)
+      iex> Effusion.CLI.Format.bytes(64_700_000)
       "61.7 MiB"
 
-      iex> Effusion.Format.bytes(150_000_000_000)
+      iex> Effusion.CLI.Format.bytes(150_000_000_000)
       "139.7 GiB"
 
-      iex> Effusion.Format.bytes(426_000_000_000_000)
+      iex> Effusion.CLI.Format.bytes(426_000_000_000_000)
       "387.4 TiB"
   """
   def bytes(n) when n >= 0 do
@@ -52,28 +52,28 @@ defmodule Effusion.CLI.Format do
 
   ## Examples
 
-      iex> Effusion.Format.progress_bar(0.0, 20)
+      iex> Effusion.CLI.Format.progress_bar(0.0, 20)
       "├──────────────────┤"
 
-      iex> Effusion.Format.progress_bar(50.0, 20)
+      iex> Effusion.CLI.Format.progress_bar(50.0, 20)
       "██████████─────────┤"
 
-      iex> Effusion.Format.progress_bar(33.0, 10)
+      iex> Effusion.CLI.Format.progress_bar(33.0, 10)
       "███░─────┤"
 
-      iex> Effusion.Format.progress_bar(36.0, 10)
+      iex> Effusion.CLI.Format.progress_bar(36.0, 10)
       "███▒─────┤"
 
-      iex> Effusion.Format.progress_bar(38.0, 10)
+      iex> Effusion.CLI.Format.progress_bar(38.0, 10)
       "███▓─────┤"
 
-      iex> Effusion.Format.progress_bar(90.0, 10)
+      iex> Effusion.CLI.Format.progress_bar(90.0, 10)
       "█████████┤"
 
-      iex> Effusion.Format.progress_bar(96.0, 10)
+      iex> Effusion.CLI.Format.progress_bar(96.0, 10)
       "█████████▒"
 
-      iex> Effusion.Format.progress_bar(100.0, 10)
+      iex> Effusion.CLI.Format.progress_bar(100.0, 10)
       "██████████"
 
   """
