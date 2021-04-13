@@ -8,7 +8,7 @@ defmodule Effusion.PWP.Messages.Handshake do
   @protocol_name <<"BitTorrent protocol"::utf8>>
   @protocol_name_size <<19::integer-size(8)>>
   @extension_masks %{
-    dht:  0x0000_0000_0000_0001,
+    dht: 0x0000_0000_0000_0001,
     fast: 0x0000_0000_0000_0004
   }
 

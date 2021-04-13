@@ -4,6 +4,7 @@ defmodule Effusion.PWP.EventHandlers.SessionStatsUpdater do
     name: __MODULE__
 
   alias Effusion.Statistics.Session, as: SessionStats
+
   alias Effusion.PWP.Messages.Incoming.Events.{
     PeerChokedUs,
     PeerUnchokedUs,
@@ -15,6 +16,7 @@ defmodule Effusion.PWP.EventHandlers.SessionStatsUpdater do
     PeerSentBlock,
     PeerCancelledRequest
   }
+
   alias Effusion.PWP.Messages.Outgoing.Events.{
     BitfieldSent,
     BlockRequested,
@@ -22,80 +24,86 @@ defmodule Effusion.PWP.EventHandlers.SessionStatsUpdater do
     RequestCancelled,
     SendingHave
   }
+
   require Logger
 
-  def handle(%PeerChokedUs{},_metadata) do
+  def handle(%PeerChokedUs{}, _metadata) do
     SessionStats.inc_incoming_choke()
     :ok
   end
 
-  def handle(%PeerUnchokedUs{},_metadata) do
+  def handle(%PeerUnchokedUs{}, _metadata) do
     SessionStats.inc_incoming_unchoke()
     :ok
   end
 
-  def handle(%PeerInterestedInUs{},_metadata) do
-   SessionStats.inc_incoming_interested()
-   :ok
- end
+  def handle(%PeerInterestedInUs{}, _metadata) do
+    SessionStats.inc_incoming_interested()
+    :ok
+  end
 
-  def handle(%PeerUninterestedInUs{},_metadata) do
+  def handle(%PeerUninterestedInUs{}, _metadata) do
     SessionStats.inc_incoming_uninterested()
     :ok
   end
 
-  def handle(%PeerHasPiece{},_metadata) do
+  def handle(%PeerHasPiece{}, _metadata) do
     SessionStats.inc_incoming_have()
     :ok
   end
 
-  def handle(%PeerHasBitfield{},_metadata) do
+  def handle(%PeerHasBitfield{}, _metadata) do
     SessionStats.inc_incoming_bitfield()
     :ok
   end
 
-  def handle(%PeerRequestedBlock{},_metadata) do
+  def handle(%PeerRequestedBlock{}, _metadata) do
     SessionStats.inc_incoming_request()
     :ok
   end
 
-  def handle(%PeerSentBlock{},_metadata) do
+  def handle(%PeerSentBlock{}, _metadata) do
     SessionStats.inc_incoming_piece()
     :ok
   end
 
-  def handle(%PeerCancelledRequest{},_metadata) do
+  def handle(%PeerCancelledRequest{}, _metadata) do
     SessionStats.inc_incoming_cancel()
     :ok
   end
 
-  def handle(%BitfieldSent{},_metadata) do
+  def handle(%BitfieldSent{}, _metadata) do
     SessionStats.inc_outgoing_bitfield()
     :ok
   end
 
-  def handle(%BlockRequested{},_metadata) do
+  def handle(%BlockRequested{}, _metadata) do
     SessionStats.inc_outgoing_request()
     :ok
   end
 
-  def handle(%InterestedSent{},_metadata) do
+  def handle(%InterestedSent{}, _metadata) do
     SessionStats.inc_outgoing_interested()
     :ok
   end
 
-  def handle(%RequestCancelled{},_metadata) do
+  def handle(%RequestCancelled{}, _metadata) do
     SessionStats.inc_outgoing_cancel()
     :ok
   end
 
-  def handle(%SendingHave{},_metadata) do
+  def handle(%SendingHave{}, _metadata) do
     SessionStats.inc_outgoing_cancel()
     :ok
   end
 
   def error(error, failed_event, _context) do
-    Logger.error("SessionStatsUpdater failed to process event #{inspect failed_event} due to error #{inspect error}")
+    Logger.error(
+      "SessionStatsUpdater failed to process event #{inspect(failed_event)} due to error #{
+        inspect(error)
+      }"
+    )
+
     :skip
   end
 end

@@ -13,5 +13,4 @@ config :effusion,
   server_port: 4001,
   server_address: {{127, 0, 0, 1}, 4001}
 
-config :effusion, Effusion.Repo,
-  log: false
+config :effusion, Effusion.Repo, log: false

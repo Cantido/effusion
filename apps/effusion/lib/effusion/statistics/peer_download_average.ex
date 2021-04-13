@@ -26,6 +26,7 @@ defmodule Effusion.Statistics.PeerDownloadAverage do
 
   def handle_call({:peer_20sec_download_avg, peer_id}, _from, state) do
     peer_stats = Map.get(state, peer_id)
+
     if peer_stats != nil do
       bytes_per_second = peer_stats.bytes_per_second
       {:reply, avg(bytes_per_second), state}
@@ -36,13 +37,28 @@ defmodule Effusion.Statistics.PeerDownloadAverage do
 
   def handle_info(:accumulate, state) do
     Process.send_after(self(), :accumulate, 1_000)
-    state = :ets.foldl(fn {peer_id, bytes}, acc ->
-      Map.update(acc, peer_id, %{last_total_seen: bytes, bytes_per_second: [bytes, 0]}, &update_peer_speed(&1, bytes))
-    end, state, PeerDownloadStatsTable)
+
+    state =
+      :ets.foldl(
+        fn {peer_id, bytes}, acc ->
+          Map.update(
+            acc,
+            peer_id,
+            %{last_total_seen: bytes, bytes_per_second: [bytes, 0]},
+            &update_peer_speed(&1, bytes)
+          )
+        end,
+        state,
+        PeerDownloadStatsTable
+      )
+
     {:noreply, state}
   end
 
-  defp update_peer_speed(%{last_total_seen: last_total_seen, bytes_per_second: bytes_per_second}, new_total_seen) do
+  defp update_peer_speed(
+         %{last_total_seen: last_total_seen, bytes_per_second: bytes_per_second},
+         new_total_seen
+       ) do
     bytes_this_second = new_total_seen - last_total_seen
     new_bytes_per_second = [bytes_this_second | List.delete_at(bytes_per_second, 19)]
 

@@ -1,12 +1,14 @@
 defmodule Effusion.PWP.PeerTest do
   use Effusion.EventStoreCase
   alias Effusion.Factory
+
   alias Effusion.CQRS.Commands.{
     TimeoutHandshake,
     SendHandshake,
     HandleHandshake,
     RequestBlock
   }
+
   alias Effusion.CQRS.Events.{
     FailedHandshake,
     ConnectionAttemptFailed,
@@ -15,6 +17,7 @@ defmodule Effusion.PWP.PeerTest do
     PeerSentHandshake,
     BlockRequested
   }
+
   alias Effusion.PWP.Peer
   alias Commanded.Aggregate.Multi
   doctest Effusion.PWP.Peer
@@ -23,6 +26,7 @@ defmodule Effusion.PWP.PeerTest do
     test "emits FailedHandshake and ConnectionAttemptFailed when connection state is disconnected" do
       peer_uuid = UUID.uuid4()
       info_hash = Factory.info_hash() |> Effusion.Hash.encode()
+
       events =
         Peer.execute(
           %Peer{
@@ -34,16 +38,16 @@ defmodule Effusion.PWP.PeerTest do
         )
 
       assert events == [
-        %FailedHandshake{
-          peer_uuid: peer_uuid,
-          failure_reason: "handshake timed out"
-        },
-        %ConnectionAttemptFailed{
-          peer_uuid: peer_uuid,
-          info_hash: info_hash,
-          reason: "handshake timed out"
-        }
-      ]
+               %FailedHandshake{
+                 peer_uuid: peer_uuid,
+                 failure_reason: "handshake timed out"
+               },
+               %ConnectionAttemptFailed{
+                 peer_uuid: peer_uuid,
+                 info_hash: info_hash,
+                 reason: "handshake timed out"
+               }
+             ]
     end
   end
 
@@ -53,6 +57,7 @@ defmodule Effusion.PWP.PeerTest do
       info_hash = Factory.info_hash() |> Effusion.Hash.encode()
       our_peer_id = Factory.peer_id() |> Effusion.Hash.encode()
       our_extensions = [:fast, :dht]
+
       events =
         Peer.execute(
           %Peer{
@@ -68,13 +73,13 @@ defmodule Effusion.PWP.PeerTest do
         )
 
       assert events ==
-        %SendingHandshake{
-          peer_uuid: peer_uuid,
-          info_hash: info_hash,
-          our_peer_id: our_peer_id,
-          our_extensions: our_extensions,
-          initiated_by: "us"
-        }
+               %SendingHandshake{
+                 peer_uuid: peer_uuid,
+                 info_hash: info_hash,
+                 our_peer_id: our_peer_id,
+                 our_extensions: our_extensions,
+                 initiated_by: "us"
+               }
     end
 
     test "when intitated_by is 'them', SendingHandshake and SuccessfulHandshake" do
@@ -82,6 +87,7 @@ defmodule Effusion.PWP.PeerTest do
       info_hash = Factory.info_hash() |> Effusion.Hash.encode()
       our_peer_id = Factory.peer_id() |> Effusion.Hash.encode()
       our_extensions = [:fast, :dht]
+
       events =
         Peer.execute(
           %Peer{
@@ -97,18 +103,18 @@ defmodule Effusion.PWP.PeerTest do
         )
 
       assert events == [
-        %SendingHandshake{
-          peer_uuid: peer_uuid,
-          info_hash: info_hash,
-          our_peer_id: our_peer_id,
-          our_extensions: our_extensions,
-          initiated_by: "them"
-        },
-        %SuccessfulHandshake{
-          peer_uuid: peer_uuid,
-          initiated_by: "them"
-        }
-      ]
+               %SendingHandshake{
+                 peer_uuid: peer_uuid,
+                 info_hash: info_hash,
+                 our_peer_id: our_peer_id,
+                 our_extensions: our_extensions,
+                 initiated_by: "them"
+               },
+               %SuccessfulHandshake{
+                 peer_uuid: peer_uuid,
+                 initiated_by: "them"
+               }
+             ]
     end
   end
 
@@ -117,6 +123,7 @@ defmodule Effusion.PWP.PeerTest do
       peer_uuid = UUID.uuid4()
       info_hash = Factory.info_hash() |> Effusion.Hash.encode()
       peer_id = Factory.peer_id() |> Effusion.Hash.encode()
+
       {_agg, events} =
         Peer.execute(
           %Peer{
@@ -135,13 +142,13 @@ defmodule Effusion.PWP.PeerTest do
         |> Multi.run()
 
       assert events == [
-        %PeerSentHandshake{
-          peer_uuid: peer_uuid,
-          info_hash: info_hash,
-          peer_id: peer_id,
-          initiated_by: "them"
-        }
-      ]
+               %PeerSentHandshake{
+                 peer_uuid: peer_uuid,
+                 info_hash: info_hash,
+                 peer_id: peer_id,
+                 initiated_by: "them"
+               }
+             ]
     end
 
     test "emits FailedHandshake when the info hash does not match what we expected" do
@@ -149,6 +156,7 @@ defmodule Effusion.PWP.PeerTest do
       info_hash = Factory.info_hash() |> Effusion.Hash.encode()
       other_info_hash = Factory.info_hash() |> Effusion.Hash.encode()
       peer_id = Factory.peer_id() |> Effusion.Hash.encode()
+
       {_agg, events} =
         Peer.execute(
           %Peer{
@@ -167,17 +175,17 @@ defmodule Effusion.PWP.PeerTest do
         |> Multi.run()
 
       assert events == [
-        %PeerSentHandshake{
-          peer_uuid: peer_uuid,
-          info_hash: info_hash,
-          peer_id: peer_id,
-          initiated_by: "them"
-        },
-        %FailedHandshake{
-          peer_uuid: peer_uuid,
-          failure_reason: :info_hash
-        }
-      ]
+               %PeerSentHandshake{
+                 peer_uuid: peer_uuid,
+                 info_hash: info_hash,
+                 peer_id: peer_id,
+                 initiated_by: "them"
+               },
+               %FailedHandshake{
+                 peer_uuid: peer_uuid,
+                 failure_reason: :info_hash
+               }
+             ]
     end
 
     test "emits FailedHandshake when the peer_id does not match what we expected" do
@@ -185,6 +193,7 @@ defmodule Effusion.PWP.PeerTest do
       info_hash = Factory.info_hash() |> Effusion.Hash.encode()
       peer_id = Factory.peer_id() |> Effusion.Hash.encode()
       other_peer_id = Factory.peer_id() |> Effusion.Hash.encode()
+
       {_agg, events} =
         Peer.execute(
           %Peer{
@@ -203,23 +212,24 @@ defmodule Effusion.PWP.PeerTest do
         |> Multi.run()
 
       assert events == [
-        %PeerSentHandshake{
-          peer_uuid: peer_uuid,
-          info_hash: info_hash,
-          peer_id: peer_id,
-          initiated_by: "them"
-        },
-        %FailedHandshake{
-          peer_uuid: peer_uuid,
-          failure_reason: :peer_id
-        }
-      ]
+               %PeerSentHandshake{
+                 peer_uuid: peer_uuid,
+                 info_hash: info_hash,
+                 peer_id: peer_id,
+                 initiated_by: "them"
+               },
+               %FailedHandshake{
+                 peer_uuid: peer_uuid,
+                 failure_reason: :peer_id
+               }
+             ]
     end
 
     test "emits SuccessfulHandshake when initiated_by us and all fields match" do
       peer_uuid = UUID.uuid4()
       info_hash = Factory.info_hash() |> Effusion.Hash.encode()
       peer_id = Factory.peer_id() |> Effusion.Hash.encode()
+
       {_agg, events} =
         Peer.execute(
           %Peer{
@@ -238,17 +248,17 @@ defmodule Effusion.PWP.PeerTest do
         |> Multi.run()
 
       assert events == [
-        %PeerSentHandshake{
-          peer_uuid: peer_uuid,
-          info_hash: info_hash,
-          peer_id: peer_id,
-          initiated_by: "us"
-        },
-        %SuccessfulHandshake{
-          peer_uuid: peer_uuid,
-          initiated_by: "us"
-        }
-      ]
+               %PeerSentHandshake{
+                 peer_uuid: peer_uuid,
+                 info_hash: info_hash,
+                 peer_id: peer_id,
+                 initiated_by: "us"
+               },
+               %SuccessfulHandshake{
+                 peer_uuid: peer_uuid,
+                 initiated_by: "us"
+               }
+             ]
     end
   end
 
@@ -256,6 +266,7 @@ defmodule Effusion.PWP.PeerTest do
     test "return an error if the peer is choking us" do
       peer_uuid = UUID.uuid4()
       info_hash = Factory.info_hash() |> Effusion.Hash.encode()
+
       ret =
         Peer.execute(
           %Peer{
@@ -278,6 +289,7 @@ defmodule Effusion.PWP.PeerTest do
     test "return an error if the peer does not have the block being requested" do
       peer_uuid = UUID.uuid4()
       info_hash = Factory.info_hash() |> Effusion.Hash.encode()
+
       ret =
         Peer.execute(
           %Peer{
@@ -300,6 +312,7 @@ defmodule Effusion.PWP.PeerTest do
     test "return an error if we already requested this piece from this peer" do
       peer_uuid = UUID.uuid4()
       info_hash = Factory.info_hash() |> Effusion.Hash.encode()
+
       ret =
         Peer.execute(
           %Peer{
@@ -323,6 +336,7 @@ defmodule Effusion.PWP.PeerTest do
     test "return BlockRequested if everything is right" do
       peer_uuid = UUID.uuid4()
       info_hash = Factory.info_hash() |> Effusion.Hash.encode()
+
       ret =
         Peer.execute(
           %Peer{
@@ -341,13 +355,13 @@ defmodule Effusion.PWP.PeerTest do
         )
 
       assert ret ==
-        %BlockRequested{
-          peer_uuid: peer_uuid,
-          info_hash: info_hash,
-          index: 0,
-          offset: 0,
-          size: 16384
-        }
+               %BlockRequested{
+                 peer_uuid: peer_uuid,
+                 info_hash: info_hash,
+                 index: 0,
+                 offset: 0,
+                 size: 16384
+               }
     end
   end
 end

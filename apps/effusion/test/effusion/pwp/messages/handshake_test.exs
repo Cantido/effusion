@@ -42,7 +42,9 @@ defmodule Effusion.PWP.Messages.HandshakeTest do
   test "encodes a handshake with the fast extension" do
     encoded = Handshake.encode(@peer_id, @info_hash, [:fast])
 
-    expected = <<19>> <> "BitTorrent protocol" <> <<0, 0, 0, 0, 0, 0, 0, 0b00000100>> <> @info_hash <> @peer_id
+    expected =
+      <<19>> <>
+        "BitTorrent protocol" <> <<0, 0, 0, 0, 0, 0, 0, 0b00000100>> <> @info_hash <> @peer_id
 
     assert encoded == expected
   end

@@ -33,10 +33,10 @@ defmodule Effusion.Mixfile do
   end
 
   defp aliases do
-  [
-    test: ["ecto.create --quiet", "ecto.migrate", "test"],
-    "event_store.reset": ["event_store.drop", "event_store.create", "event_store.init"]
-  ]
+    [
+      test: ["ecto.create --quiet", "ecto.migrate", "test"],
+      "event_store.reset": ["event_store.drop", "event_store.create", "event_store.init"]
+    ]
   end
 
   defp deps do

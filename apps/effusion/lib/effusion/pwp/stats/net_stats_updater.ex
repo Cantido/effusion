@@ -6,6 +6,7 @@ defmodule Effusion.PWP.EventHandlers.NetStatsUpdater do
   alias Effusion.PWP.Messages
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.PWP.Handshake.Events.PeerSentHandshake
+
   alias Effusion.PWP.Messages.Incoming.Events.{
     PeerChokedUs,
     PeerHasBitfield,
@@ -14,8 +15,9 @@ defmodule Effusion.PWP.EventHandlers.NetStatsUpdater do
     PeerCancelledRequest,
     PeerSentBlock,
     PeerUnchokedUs,
-    PeerUninterestedInUs,
+    PeerUninterestedInUs
   }
+
   alias Effusion.PWP.Messages.Outgoing.Events.{
     BitfieldSent,
     BlockRequested,
@@ -23,6 +25,7 @@ defmodule Effusion.PWP.EventHandlers.NetStatsUpdater do
     RequestCancelled,
     SendingHave
   }
+
   require Logger
 
   def handle(%PeerChokedUs{}, _metadata) do
@@ -45,7 +48,10 @@ defmodule Effusion.PWP.EventHandlers.NetStatsUpdater do
     add_recv_bytes({:cancel, index, offset, size})
   end
 
-  def handle(%PeerSentBlock{info_hash: info_hash, index: index, offset: offset, data: data}, _metadata) do
+  def handle(
+        %PeerSentBlock{info_hash: info_hash, index: index, offset: offset, data: data},
+        _metadata
+      ) do
     data = Base.decode64!(data)
     add_recv_bytes({:piece, index, offset, data})
     NetStats.add_recv_payload_bytes(byte_size(data))
@@ -66,38 +72,38 @@ defmodule Effusion.PWP.EventHandlers.NetStatsUpdater do
   end
 
   def handle(
-    %BitfieldSent{bitfield: bitfield},
-    _metadata
-  ) do
+        %BitfieldSent{bitfield: bitfield},
+        _metadata
+      ) do
     {:ok, bitfield} = Base.decode64(bitfield)
     add_sent_bytes({:bitfield, bitfield})
   end
 
   def handle(
-    %BlockRequested{index: index, offset: offset, size: size},
-    _metadata
-  ) do
+        %BlockRequested{index: index, offset: offset, size: size},
+        _metadata
+      ) do
     add_sent_bytes({:request, index, offset, size})
   end
 
   def handle(
-    %InterestedSent{},
-    _metadata
-  ) do
+        %InterestedSent{},
+        _metadata
+      ) do
     add_sent_bytes(:interested)
   end
 
   def handle(
-    %RequestCancelled{index: index, offset: offset, size: size},
-    _metadata
-  ) do
+        %RequestCancelled{index: index, offset: offset, size: size},
+        _metadata
+      ) do
     add_sent_bytes({:cancel, index, offset, size})
   end
 
   def handle(
-    %SendingHave{index: index},
-    _metadata
-  ) do
+        %SendingHave{index: index},
+        _metadata
+      ) do
     add_sent_bytes({:have, index})
   end
 
@@ -114,7 +120,12 @@ defmodule Effusion.PWP.EventHandlers.NetStatsUpdater do
   end
 
   def error(error, failed_event, _context) do
-    Logger.error("NetStatsUpdater failed to process event #{inspect failed_event} due to error #{inspect error}")
+    Logger.error(
+      "NetStatsUpdater failed to process event #{inspect(failed_event)} due to error #{
+        inspect(error)
+      }"
+    )
+
     :skip
   end
 end

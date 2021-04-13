@@ -9,6 +9,7 @@ defmodule Effusion.Downloads do
     StartDownload,
     StopDownload
   }
+
   alias Effusion.Commanded, as: CQRS
 
   @doc """
@@ -40,7 +41,13 @@ defmodule Effusion.Downloads do
 
   You must have already added the torrent with `add/1` before starting it.
   """
-  def start(info_hash, block_size, max_requests_per_peer, max_half_open_connections, max_connections) do
+  def start(
+        info_hash,
+        block_size,
+        max_requests_per_peer,
+        max_half_open_connections,
+        max_connections
+      ) do
     %StartDownload{
       info_hash: Effusion.Hash.encode(info_hash),
       block_size: block_size,

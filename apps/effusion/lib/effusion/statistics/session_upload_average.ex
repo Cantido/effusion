@@ -36,7 +36,10 @@ defmodule Effusion.Statistics.SessionUploadAverage do
     {:noreply, state}
   end
 
-  defp update_speed(%{last_total_seen: last_total_seen, bytes_per_second: bytes_per_second}, new_total_seen) do
+  defp update_speed(
+         %{last_total_seen: last_total_seen, bytes_per_second: bytes_per_second},
+         new_total_seen
+       ) do
     bytes_this_second = new_total_seen - last_total_seen
     new_bytes_per_second = [bytes_this_second | List.delete_at(bytes_per_second, 19)]
 

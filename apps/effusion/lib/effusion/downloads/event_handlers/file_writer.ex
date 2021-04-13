@@ -9,10 +9,10 @@ defmodule Effusion.Downloads.EventHandlers.FileWriter do
   require Logger
 
   def handle(
-    %PieceHashSucceeded{info_hash: info_hash, index: index, data: data, info: info},
-    _metadata
-  ) do
-    Logger.debug "**** CQRS is writing piece #{index} of #{info_hash}"
+        %PieceHashSucceeded{info_hash: info_hash, index: index, data: data, info: info},
+        _metadata
+      ) do
+    Logger.debug("**** CQRS is writing piece #{index} of #{info_hash}")
     data = Base.decode64!(data)
     files = Map.get(info, :files, [])
 

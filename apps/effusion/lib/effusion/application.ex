@@ -6,6 +6,6 @@ defmodule Effusion.Commanded do
       event_store: Effusion.EventStore
     ]
 
-  router Effusion.Downloads.Router
-  router Effusion.PWP.Router
+  router(Effusion.Downloads.Router)
+  router(Effusion.PWP.Router)
 end

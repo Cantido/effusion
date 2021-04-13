@@ -33,6 +33,7 @@ defmodule Effusion.THP.Decode do
   def decode_compact_peers(bin)
 
   def decode_compact_peers(<<>>), do: []
+
   def decode_compact_peers(peers) when is_binary(peers) do
     peers
     |> :binary.bin_to_list()
@@ -41,12 +42,12 @@ defmodule Effusion.THP.Decode do
   end
 
   defp decode_compact_peer([ip0, ip1, ip2, ip3, p0, p1])
-    when ip0 in 0..255
-      and ip1 in 0..255
-      and ip2 in 0..255
-      and ip3 in 0..255
-      and p0 in 0..255
-      and p1 in 0..255 do
+       when ip0 in 0..255 and
+              ip1 in 0..255 and
+              ip2 in 0..255 and
+              ip3 in 0..255 and
+              p0 in 0..255 and
+              p1 in 0..255 do
     <<port::16>> = <<p0, p1>>
 
     %{
@@ -84,6 +85,7 @@ defmodule Effusion.THP.Decode do
   def decode_standard_peers(list)
 
   def decode_standard_peers([]), do: []
+
   def decode_standard_peers(peers) when is_list(peers) do
     Enum.map(peers, &decode_standard_peer/1)
   end

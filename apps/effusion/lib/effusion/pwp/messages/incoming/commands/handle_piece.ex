@@ -1,5 +1,5 @@
 defmodule Effusion.PWP.Messages.Incoming.Commands.HandlePiece do
-  @enforce_keys  [
+  @enforce_keys [
     :peer_uuid,
     :index,
     :offset,

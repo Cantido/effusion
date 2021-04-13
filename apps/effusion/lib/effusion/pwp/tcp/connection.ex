@@ -64,6 +64,7 @@ defmodule Effusion.PWP.TCP.Connection do
       address: address,
       peer_uuid: peer_uuid
     }
+
     {:ok, state, {:continue, :connect}}
   end
 
@@ -71,18 +72,28 @@ defmodule Effusion.PWP.TCP.Connection do
     :ok = :ranch.accept_ack(ref)
     :ok = transport.setopts(socket, active: :once)
     {:ok, address} = :inet.peername(socket)
-    :gen_server.enter_loop(__MODULE__, [], %{address: address, socket: socket, transport: transport})
+
+    :gen_server.enter_loop(__MODULE__, [], %{
+      address: address,
+      socket: socket,
+      transport: transport
+    })
   end
 
   def handle_continue(:connect, %{address: {host, port}, peer_uuid: peer_uuid} = state) do
     with {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
-         {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 1_000),
+         {:ok, socket} <-
+           :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 1_000),
          :ok <- Effusion.PWP.add_opened_peer_connection(peer_uuid, host, port) do
       {:noreply, Map.put(state, :socket, socket)}
     else
       _ ->
-      Effusion.PWP.handle_failed_connection_attempt(peer_uuid, "Failed to open initial connection to peer")
-      {:stop, :failed_to_connect, state}
+        Effusion.PWP.handle_failed_connection_attempt(
+          peer_uuid,
+          "Failed to open initial connection to peer"
+        )
+
+        {:stop, :failed_to_connect, state}
     end
   end
 
@@ -91,14 +102,23 @@ defmodule Effusion.PWP.TCP.Connection do
   """
   def handle_btp(btp_message, state)
 
-  def handle_btp(message = {:handshake, remote_peer_id, info_hash, _extensions}, state = %{address: {host, port}})
-    when is_peer_id(remote_peer_id)
-     and is_hash(info_hash) do
+  def handle_btp(
+        message = {:handshake, remote_peer_id, info_hash, _extensions},
+        state = %{address: {host, port}}
+      )
+      when is_peer_id(remote_peer_id) and
+             is_hash(info_hash) do
     peer_uuid = UUID.uuid4()
     {:ok, _pid} = Registry.register(ConnectionRegistry, peer_uuid, nil)
     :ok = Effusion.PWP.add(peer_uuid, info_hash, remote_peer_id, host, port, :connection)
     :ok = Effusion.PWP.handle_message(peer_uuid, message, "them")
-    {:noreply, Map.merge(state, %{info_hash: info_hash, remote_peer_id: remote_peer_id, peer_uuid: peer_uuid})}
+
+    {:noreply,
+     Map.merge(state, %{
+       info_hash: info_hash,
+       remote_peer_id: remote_peer_id,
+       peer_uuid: peer_uuid
+     })}
   end
 
   def handle_btp(msg, state = %{peer_uuid: peer_uuid}) do
@@ -107,7 +127,7 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def handle_btp(msg, state) do
-    Logger.error("Connection not able to handle message #{inspect msg}.")
+    Logger.error("Connection not able to handle message #{inspect(msg)}.")
     {:stop, :unexpected_message, state}
   end
 
@@ -118,13 +138,17 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def handle_call(:handshake_successful, _from, %{socket: socket} = state) do
-    Logger.debug("********** Handshake successful, setting socket to packet mode for peer #{state.peer_uuid}")
-    ret =  :inet.setopts(socket, active: :once, packet: 4)
+    Logger.debug(
+      "********** Handshake successful, setting socket to packet mode for peer #{state.peer_uuid}"
+    )
+
+    ret = :inet.setopts(socket, active: :once, packet: 4)
     {:reply, ret, state}
   end
 
   def handle_call({:btp_send, msg}, _from, state = %{socket: socket}) do
-    Logger.debug("********** Sending message #{inspect msg}")
+    Logger.debug("********** Sending message #{inspect(msg)}")
+
     case Socket.send_msg(socket, msg) do
       :ok -> {:reply, :ok, state}
       {:error, reason} -> {:reply, {:error, reason}, state}
@@ -150,11 +174,13 @@ defmodule Effusion.PWP.TCP.Connection do
   def terminate(reason, state) when is_map(state) do
     if Map.has_key?(state, :socket) do
       Socket.close(state.socket)
+
       Effusion.PWP.disconnected(
-          Map.get(state, :peer_uuid),
-          reason
-        )
+        Map.get(state, :peer_uuid),
+        reason
+      )
     end
+
     :ok
   end
 end

@@ -4,12 +4,15 @@ defmodule Effusion.PWP do
   """
 
   alias Effusion.Commanded, as: CQRS
+
   alias Effusion.PWP.Connection.Commands.{
     AddOpenedPeerConnection,
     HandleFailedConnectionAttempt,
     RemoveConnectedPeer
   }
+
   alias Effusion.PWP.Handshake.Commands.HandleHandshake
+
   alias Effusion.PWP.Messages.Incoming.Commands.{
     HandleBitfield,
     HandleCancel,
@@ -21,6 +24,7 @@ defmodule Effusion.PWP do
     HandleUnchoke,
     HandleUninterested
   }
+
   alias Effusion.PWP.Swarm.Commands.AddPeerAddress
 
   defguard is_peer_id(term) when not is_nil(term) and is_binary(term) and byte_size(term) == 20
@@ -34,7 +38,8 @@ defmodule Effusion.PWP do
       expected_info_hash: Effusion.Hash.encode(info_hash),
       host: to_string(:inet.ntoa(host)),
       port: port,
-      from: from}
+      from: from
+    }
     |> CQRS.dispatch()
   end
 
@@ -47,7 +52,8 @@ defmodule Effusion.PWP do
       expected_info_hash: Effusion.Hash.encode(info_hash),
       host: to_string(:inet.ntoa(host)),
       port: port,
-      from: from}
+      from: from
+    }
     |> CQRS.dispatch()
   end
 
@@ -61,7 +67,8 @@ defmodule Effusion.PWP do
       expected_peer_id: Effusion.Hash.encode(peer_id),
       host: to_string(:inet.ntoa(host)),
       port: port,
-      from: from}
+      from: from
+    }
     |> CQRS.dispatch()
   end
 
@@ -83,7 +90,8 @@ defmodule Effusion.PWP do
   def disconnected(peer_uuid, reason) do
     %RemoveConnectedPeer{
       peer_uuid: peer_uuid,
-      reason: inspect(reason)}
+      reason: inspect(reason)
+    }
     |> CQRS.dispatch()
   end
 
@@ -109,16 +117,50 @@ defmodule Effusion.PWP do
           info_hash: Effusion.Hash.encode(info_hash),
           peer_id: Effusion.Hash.encode(peer_id),
           initiated_by: initiated_by,
-          extensions: extensions}
-      :choke -> %HandleChoke{peer_uuid: peer_uuid}
-      :unchoke -> %HandleUnchoke{peer_uuid: peer_uuid}
-      :interested -> %HandleInterested{peer_uuid: peer_uuid}
-      :uninterested -> %HandleUninterested{peer_uuid: peer_uuid}
-      {:have, index} -> %HandleHave{peer_uuid: peer_uuid, index: index}
-      {:bitfield, bitfield} -> %HandleBitfield{peer_uuid: peer_uuid, bitfield: Base.encode64(bitfield)}
-      {:request, block} -> %HandleRequest{peer_uuid: peer_uuid, index: block.index, offset: block.offset, size: block.size}
-      {:cancel, block} -> %HandleCancel{peer_uuid: peer_uuid, index: block.index, offset: block.offset, size: block.size}
-      {:piece, block} -> %HandlePiece{peer_uuid: peer_uuid, index: block.index, offset: block.offset, data: Base.encode64(block.data)}
+          extensions: extensions
+        }
+
+      :choke ->
+        %HandleChoke{peer_uuid: peer_uuid}
+
+      :unchoke ->
+        %HandleUnchoke{peer_uuid: peer_uuid}
+
+      :interested ->
+        %HandleInterested{peer_uuid: peer_uuid}
+
+      :uninterested ->
+        %HandleUninterested{peer_uuid: peer_uuid}
+
+      {:have, index} ->
+        %HandleHave{peer_uuid: peer_uuid, index: index}
+
+      {:bitfield, bitfield} ->
+        %HandleBitfield{peer_uuid: peer_uuid, bitfield: Base.encode64(bitfield)}
+
+      {:request, block} ->
+        %HandleRequest{
+          peer_uuid: peer_uuid,
+          index: block.index,
+          offset: block.offset,
+          size: block.size
+        }
+
+      {:cancel, block} ->
+        %HandleCancel{
+          peer_uuid: peer_uuid,
+          index: block.index,
+          offset: block.offset,
+          size: block.size
+        }
+
+      {:piece, block} ->
+        %HandlePiece{
+          peer_uuid: peer_uuid,
+          index: block.index,
+          offset: block.offset,
+          data: Base.encode64(block.data)
+        }
     end
     |> CQRS.dispatch()
   end

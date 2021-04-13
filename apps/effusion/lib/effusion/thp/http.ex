@@ -47,26 +47,29 @@ defmodule Effusion.THP.HTTP do
              left >= 0 do
     sanitized_opts = Keyword.take(opts, @allowed_opts) |> Map.new()
 
-    tracker_request = %{
-      info_hash: info_hash,
-      peer_id: peer_id,
-      port: peer_port,
-      uploaded: uploaded,
-      downloaded: downloaded,
-      left: left,
-      ip: to_string(:inet.ntoa(peer_host))
-    }
-    |> Map.merge(sanitized_opts)
+    tracker_request =
+      %{
+        info_hash: info_hash,
+        peer_id: peer_id,
+        port: peer_port,
+        uploaded: uploaded,
+        downloaded: downloaded,
+        left: left,
+        ip: to_string(:inet.ntoa(peer_host))
+      }
+      |> Map.merge(sanitized_opts)
 
     Logger.debug("Making announce to #{tracker_url}")
 
     query = URI.encode_query(tracker_request)
+
     case get(tracker_url <> "?" <> query) do
       {:ok, resp} ->
         Logger.debug("Announce to #{tracker_url} successful.")
         {:ok, resp.body}
+
       {:error, reason} ->
-        Logger.error("Announce to #{tracker_url} failed: #{inspect reason}")
+        Logger.error("Announce to #{tracker_url} failed: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -90,9 +93,10 @@ defmodule Effusion.THP.HTTP do
   def process_response_body(body) do
     case Bento.decode(body) do
       {:ok, bterm} ->
-          bterm
-          |> Effusion.Map.rename_keys(@body_names)
-          |> Map.update(:peers, [], &Decode.decode_peers/1)
+        bterm
+        |> Effusion.Map.rename_keys(@body_names)
+        |> Map.update(:peers, [], &Decode.decode_peers/1)
+
       _err ->
         raise "tracker response body had bad bencoding"
     end

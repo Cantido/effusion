@@ -21,6 +21,7 @@ defmodule Effusion do
     block_size = Application.fetch_env!(:effusion, :block_size)
     max_requests_per_peer = Application.fetch_env!(:effusion, :max_requests_per_peer)
     Effusion.Downloads.add(meta)
+
     Effusion.Downloads.start(
       info_hash,
       block_size,

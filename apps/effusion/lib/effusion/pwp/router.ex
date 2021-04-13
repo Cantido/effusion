@@ -8,30 +8,34 @@ defmodule Effusion.PWP.Router do
   alias Effusion.PWP.Messages.Outgoing.Commands, as: OutgoingMessageCommands
   alias Effusion.PWP.Swarm.Commands, as: SwarmCommands
 
-  dispatch [
-    ConnectionCommands.AddConnectedPeer,
-    ConnectionCommands.AddOpenedPeerConnection,
-    ConnectionCommands.AttemptToConnect,
-    ConnectionCommands.DisconnectPeer,
-    ConnectionCommands.HandleFailedConnectionAttempt,
-    ConnectionCommands.RemoveConnectedPeer,
-    HandshakeCommands.HandleHandshake,
-    HandshakeCommands.SendHandshake,
-    HandshakeCommands.TimeoutHandshake,
-    IncomingMessageCommands.HandleBitfield,
-    IncomingMessageCommands.HandleCancel,
-    IncomingMessageCommands.HandleChoke,
-    IncomingMessageCommands.HandleHave,
-    IncomingMessageCommands.HandleInterested,
-    IncomingMessageCommands.HandlePiece,
-    IncomingMessageCommands.HandleRequest,
-    IncomingMessageCommands.HandleUnchoke,
-    IncomingMessageCommands.HandleUninterested,
-    OutgoingMessageCommands.CancelRequest,
-    OutgoingMessageCommands.RequestBlock,
-    OutgoingMessageCommands.SendBitfield,
-    OutgoingMessageCommands.SendHave,
-    OutgoingMessageCommands.SendInterested,
-    SwarmCommands.AddPeerAddress
-  ], to: Peer, identity: :peer_uuid
+  dispatch(
+    [
+      ConnectionCommands.AddConnectedPeer,
+      ConnectionCommands.AddOpenedPeerConnection,
+      ConnectionCommands.AttemptToConnect,
+      ConnectionCommands.DisconnectPeer,
+      ConnectionCommands.HandleFailedConnectionAttempt,
+      ConnectionCommands.RemoveConnectedPeer,
+      HandshakeCommands.HandleHandshake,
+      HandshakeCommands.SendHandshake,
+      HandshakeCommands.TimeoutHandshake,
+      IncomingMessageCommands.HandleBitfield,
+      IncomingMessageCommands.HandleCancel,
+      IncomingMessageCommands.HandleChoke,
+      IncomingMessageCommands.HandleHave,
+      IncomingMessageCommands.HandleInterested,
+      IncomingMessageCommands.HandlePiece,
+      IncomingMessageCommands.HandleRequest,
+      IncomingMessageCommands.HandleUnchoke,
+      IncomingMessageCommands.HandleUninterested,
+      OutgoingMessageCommands.CancelRequest,
+      OutgoingMessageCommands.RequestBlock,
+      OutgoingMessageCommands.SendBitfield,
+      OutgoingMessageCommands.SendHave,
+      OutgoingMessageCommands.SendInterested,
+      SwarmCommands.AddPeerAddress
+    ],
+    to: Peer,
+    identity: :peer_uuid
+  )
 end

@@ -10,14 +10,12 @@ defmodule EffusionTest do
   import Ecto.Query
   require Logger
 
-
-
   setup :verify_on_exit!
   setup :set_mox_global
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
-    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, { :shared, self() })
+    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, {:shared, self()})
   end
 
   @localhost {127, 0, 0, 1}
@@ -30,7 +28,7 @@ defmodule EffusionTest do
 
   @torrent TestHelper.tiny_meta()
 
-  @remote_peer %{address: {{127, 0, 0, 1},  @remote_port}, peer_id: "Effusion Experiment!"}
+  @remote_peer %{address: {{127, 0, 0, 1}, @remote_port}, peer_id: "Effusion Experiment!"}
   @local_peer_id "Fake-Remote-Peer----"
   @info_hash @torrent.info_hash
 
@@ -86,6 +84,7 @@ defmodule EffusionTest do
   test "download a file", %{lsock: lsock, destfile: file} do
     old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
     Application.put_env(:effusion, :enabled_extensions, [])
+
     on_exit(fn ->
       Application.put_env(:effusion, :enabled_extensions, old_supported_extensions)
     end)
@@ -218,9 +217,11 @@ defmodule EffusionTest do
   test "receive a connection from a peer", %{destfile: file} do
     old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
     Application.put_env(:effusion, :enabled_extensions, [])
+
     on_exit(fn ->
       Application.put_env(:effusion, :enabled_extensions, old_supported_extensions)
     end)
+
     Application.put_env(:effusion, :download_destination, file)
 
     # Expect started and completed message.

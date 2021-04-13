@@ -16,6 +16,7 @@ defmodule Effusion.PWP.ProcessManagers.IncomingPeerConnection do
     PeerSentHandshake,
     SuccessfulHandshake
   }
+
   alias Effusion.PWP.Connection.Events.PeerDisconnected
 
   def interested?(%PeerSentHandshake{peer_uuid: peer_uuid, initiated_by: "them"}) do
@@ -35,13 +36,14 @@ defmodule Effusion.PWP.ProcessManagers.IncomingPeerConnection do
   end
 
   def handle(
-    %__MODULE__{},
-    %PeerSentHandshake{
-      peer_uuid: peer_uuid,
-      initiated_by: "them"
-    }
-  ) do
+        %__MODULE__{},
+        %PeerSentHandshake{
+          peer_uuid: peer_uuid,
+          initiated_by: "them"
+        }
+      ) do
     Logger.debug("****** Peer sent a handshake, dispatching send handshake command")
+
     %SendHandshake{
       peer_uuid: peer_uuid,
       our_peer_id: Application.fetch_env!(:effusion, :peer_id) |> Effusion.Hash.encode(),
@@ -51,13 +53,14 @@ defmodule Effusion.PWP.ProcessManagers.IncomingPeerConnection do
   end
 
   def handle(
-    %__MODULE__{},
-    %SuccessfulHandshake{
-      peer_uuid: peer_uuid,
-      initiated_by: initiated_by
-    }
-  ) do
+        %__MODULE__{},
+        %SuccessfulHandshake{
+          peer_uuid: peer_uuid,
+          initiated_by: initiated_by
+        }
+      ) do
     Logger.debug("****** Handshake successful")
+
     %AddConnectedPeer{
       peer_uuid: peer_uuid,
       initiated_by: initiated_by

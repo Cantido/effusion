@@ -18,8 +18,17 @@ defmodule Effusion.PWP.TCP.Socket do
   """
   def connect({host, port}, local_info_hash, local_peer_id, expected_peer_id, our_extensions) do
     case :gen_tcp.connect(host, port, [:binary, active: false], 10_000) do
-      {:ok, socket} -> perform_handshake(socket, local_peer_id, expected_peer_id, local_info_hash, our_extensions)
-      err -> err
+      {:ok, socket} ->
+        perform_handshake(
+          socket,
+          local_peer_id,
+          expected_peer_id,
+          local_info_hash,
+          our_extensions
+        )
+
+      err ->
+        err
     end
   end
 
@@ -29,8 +38,17 @@ defmodule Effusion.PWP.TCP.Socket do
   """
   def accept(lsock, local_info_hash, local_peer_id, expected_peer_id, our_extensions \\ []) do
     case :gen_tcp.accept(lsock, 5_000) do
-      {:ok, socket} -> perform_handshake(socket, local_peer_id, expected_peer_id, local_info_hash, our_extensions)
-      err -> err
+      {:ok, socket} ->
+        perform_handshake(
+          socket,
+          local_peer_id,
+          expected_peer_id,
+          local_info_hash,
+          our_extensions
+        )
+
+      err ->
+        err
     end
   end
 

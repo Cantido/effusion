@@ -1,15 +1,18 @@
 defmodule Effusion.CQRS.EventHandlers.FileWriterTest do
   use ExUnit.Case
   alias Effusion.CQRS.EventHandlers.FileWriter
+
   alias Effusion.CQRS.Events.{
     PieceHashSucceeded
   }
+
   doctest Effusion.CQRS.EventHandlers.FileWriter
 
   setup do
     meta =
       TestHelper.tiny_meta()
       |> Map.update!(:info_hash, &Effusion.Hash.encode/1)
+
     %{single_file_meta: meta}
   end
 
@@ -36,17 +39,51 @@ defmodule Effusion.CQRS.EventHandlers.FileWriterTest do
     %{destfile: file}
   end
 
-  test "writes the contents of the torrent out to a file", %{destfile: file, single_file_meta: meta} do
-    :ok = FileWriter.handle(%PieceHashSucceeded{info_hash: meta.info_hash, info: meta.info, index: 0, data: Base.encode64("tin")}, %{})
-    :ok = FileWriter.handle(%PieceHashSucceeded{info_hash: meta.info_hash, info: meta.info, index: 1, data: Base.encode64("y\n")}, %{})
+  test "writes the contents of the torrent out to a file", %{
+    destfile: file,
+    single_file_meta: meta
+  } do
+    :ok =
+      FileWriter.handle(
+        %PieceHashSucceeded{
+          info_hash: meta.info_hash,
+          info: meta.info,
+          index: 0,
+          data: Base.encode64("tin")
+        },
+        %{}
+      )
+
+    :ok =
+      FileWriter.handle(
+        %PieceHashSucceeded{
+          info_hash: meta.info_hash,
+          info: meta.info,
+          index: 1,
+          data: Base.encode64("y\n")
+        },
+        %{}
+      )
 
     file = File.read!(Path.join(file, "tiny.txt"))
 
     assert file == "tiny\n"
   end
 
-  test "writes the contents of a multi-file torrent out into a directory", %{destfile: file, multi_file_meta: meta} do
-    :ok = FileWriter.handle(%PieceHashSucceeded{info_hash: meta.info_hash, info: meta.info, index: 0, data: Base.encode64("Hello\nworld!\n")}, %{})
+  test "writes the contents of a multi-file torrent out into a directory", %{
+    destfile: file,
+    multi_file_meta: meta
+  } do
+    :ok =
+      FileWriter.handle(
+        %PieceHashSucceeded{
+          info_hash: meta.info_hash,
+          info: meta.info,
+          index: 0,
+          data: Base.encode64("Hello\nworld!\n")
+        },
+        %{}
+      )
 
     hello = File.read!(Path.join(file, "hello_world/hello.txt"))
     world = File.read!(Path.join(file, "hello_world/world.txt"))

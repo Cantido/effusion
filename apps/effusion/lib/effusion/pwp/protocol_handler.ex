@@ -42,7 +42,11 @@ defmodule Effusion.PWP.ProtocolHandler do
   @doc """
   Validate and handle the given handshake tuple, expecting a given info hash and peer ID.
   """
-  def recv_handshake({:handshake, remote_peer_id, remote_info_hash, _extensions}, info_hash, expected_peer_id) do
+  def recv_handshake(
+        {:handshake, remote_peer_id, remote_info_hash, _extensions},
+        info_hash,
+        expected_peer_id
+      ) do
     with :ok <- validate_info_hash(info_hash, remote_info_hash),
          :ok <- validate_peer_id(expected_peer_id, remote_peer_id) do
       :ok
