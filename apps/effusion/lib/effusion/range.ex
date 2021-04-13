@@ -1,6 +1,4 @@
 defmodule Effusion.Range do
-  require Logger
-
   @moduledoc """
   Functions for working with `Range`s.
 
