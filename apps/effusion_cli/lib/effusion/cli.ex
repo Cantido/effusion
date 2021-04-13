@@ -1,11 +1,9 @@
 defmodule Effusion.CLI do
   alias Effusion.Format
-  alias Effusion.Repo
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.Statistics.Peer, as: PeerStats
   alias Effusion.Statistics.Session, as: SessionStats
   alias Effusion.Statistics.SessionDownloadAverage
-  import Ecto.Query
   use Timex
 
   @moduledoc """

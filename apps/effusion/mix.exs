@@ -11,11 +11,8 @@ defmodule Effusion.Mixfile do
       config_path: "../../config/config.exs",
       deps_path: "../../deps",
       lockfile: "../../mix.lock",
-      escript: escript(),
       start_permanent: Mix.env() == :prod,
       description: "A BitTorrent library.",
-      # build with `mix escript.build`
-      escript: [main_module: Effusion.CLI],
       package: package(),
       deps: deps(),
       docs: docs(),
@@ -65,12 +62,6 @@ defmodule Effusion.Mixfile do
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false}
-    ]
-  end
-
-  defp escript do
-    [
-      main_module: Effusion.CLI
     ]
   end
 
