@@ -18,7 +18,7 @@ defmodule Effusion.Application do
       Effusion.Statistics.EventHandlers.SessionStatsUpdater,
       Effusion.Downloads.ProcessManagers.DownloadTorrent,
       Effusion.Downloads.EventHandlers.FileWriter,
-      Effusion.Downloads.EventHandlers.TrackerAnnouncer,
+      Effusion.THP.EventHandlers.TrackerAnnouncer,
       Effusion.PWP.ProcessManagers.IncomingPeerConnection,
       Effusion.PWP.ProcessManagers.OutgoingPeerConnection,
       Effusion.PWP.EventHandlers.PeerMessenger,

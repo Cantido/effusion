@@ -1,4 +1,4 @@
-defmodule Effusion.Downloads.EventHandlers.TrackerAnnouncer do
+defmodule Effusion.THP.EventHandlers.TrackerAnnouncer do
   use Commanded.Event.Handler,
     application: Effusion.Commanded,
     name: __MODULE__,
