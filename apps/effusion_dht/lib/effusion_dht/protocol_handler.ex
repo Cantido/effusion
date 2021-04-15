@@ -41,7 +41,7 @@ defmodule Effusion.DHT.ProtocolHandler do
     end)
 
     if Enum.empty?(matching_nodes) do
-      nodes = Enum.map(nodes, &Node.compact/1)
+      nodes = Enum.map(nodes, compact_node())
       {:get_peers_nearest, transaction_id, local_node_id, token, nodes}
     else
       matching_peers = Enum.map(matching_nodes, &compact_peer(&1.host, &1.port))
@@ -53,14 +53,14 @@ defmodule Effusion.DHT.ProtocolHandler do
     token_query = nil
 
     case Repo.one(token_query) do
+      nil ->
+        {:error, [203, "token not recognized"]}
       token ->
         if Timex.before?(now, token.expires_at) do
           {:announce_peer, transaction_id, local_node_id}
         else
           {:error, [203, "token expired"]}
         end
-      nil ->
-        {:error, [203, "token not recognized"]}
     end
   end
 
