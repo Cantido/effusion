@@ -1,9 +1,9 @@
 defmodule Effusion.DHT do
-  alias Effusion.DHT.KRPC.{Query, Response}
-
   @moduledoc """
   Documentation for Effusion.DHT.
   """
+
+  alias Effusion.DHT.KRPC.{Query, Response}
 
   defguard is_node_id(binary) when is_binary(binary) and byte_size(binary) == 20
   defguard is_info_hash(binary) when is_binary(binary) and byte_size(binary) == 20

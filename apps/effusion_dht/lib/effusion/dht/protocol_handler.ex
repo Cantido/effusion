@@ -1,14 +1,14 @@
 defmodule Effusion.DHT.ProtocolHandler do
+  @moduledoc """
+  Handles incoming KRPC queries and responses.
+  """
+
   alias Effusion.CQRS.Contexts.DHT, as: DHTContext
   alias Effusion.DHT.{Tokens, Nodes}
   alias Effusion.DHT
   alias Effusion.Repo
   import Effusion.DHT, only: [is_node_id: 1]
   require Logger
-
-  @moduledoc """
-  Handles incoming KRPC queries and responses.
-  """
 
   def handle_krpc_query({:ping, transaction_id, _sender_id}, context) do
     {:ping, transaction_id, context.local_node_id}

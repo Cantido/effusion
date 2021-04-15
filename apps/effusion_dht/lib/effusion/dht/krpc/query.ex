@@ -1,9 +1,9 @@
 defmodule Effusion.DHT.KRPC.Query do
-  import Effusion.DHT
-
   @moduledoc """
   Encodes and decodes KRPC queries.
   """
+  
+  import Effusion.DHT
 
   def encode({:ping, transaction_id, sender_id}) when is_node_id(sender_id) do
     query(transaction_id, sender_id, "ping")

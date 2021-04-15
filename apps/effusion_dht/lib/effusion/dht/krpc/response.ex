@@ -1,5 +1,4 @@
 defmodule Effusion.DHT.KRPC.Response do
-
   @moduledoc """
   Encodes and decodes KRPC responses.
   """
