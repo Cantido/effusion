@@ -1,4 +1,4 @@
-defmodule Effusion.DHT.Transaction do
+defmodule Effusion.DHT.KRPC.Transaction do
   @moduledoc """
   A correlated request & response.
   """

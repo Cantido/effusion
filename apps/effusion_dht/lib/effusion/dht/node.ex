@@ -5,15 +5,18 @@ defmodule Effusion.DHT.Node do
 
   import Bitwise
 
+  @enforce_keys [:id]
+  defstruct [
+    id: nil,
+    last_response_received_at: :never,
+    last_query_received_at: :never
+  ]
+
   @doc """
   Generates twenty-byte node ID.
   """
   def generate_id do
     :crypto.strong_rand_bytes(20)
-  end
-
-  def local_node_id do
-    Base.decode64!(Application.fetch_env!(:effusion, :dht_node_id))
   end
 
   @doc """

@@ -3,37 +3,38 @@ defmodule Effusion.DHT do
   Documentation for Effusion.DHT.
   """
 
-  alias Effusion.DHT.KRPC.{Query, Response}
+  alias Effusion.DHT.Messages.Ping
+  alias Effusion.DHT.Node
+
+  @enforce_keys [:local_id]
+  defstruct [
+    local_id: nil,
+    nodes: Map.new()
+  ]
 
   defguard is_node_id(binary) when is_binary(binary) and byte_size(binary) == 20
   defguard is_info_hash(binary) when is_binary(binary) and byte_size(binary) == 20
   defguard is_inet_port(n) when is_integer(n) and n in 1..65_535
 
-  @doc """
-  Generates a token for use in `get_peers` responses.
-  """
-  def token do
-    Base.encode64(:crypto.strong_rand_bytes(6))
+  def new do
+    %__MODULE__{
+      local_id: Base.decode64!(Application.fetch_env!(:effusion, :dht_node_id))
+    }
   end
 
-  def send_response(response, host, port) do
-    Response.encode(response)
-    |> Bento.encode!()
-    |> send(host, port)
-  end
+  def handle_message(dht, %Ping.Query{sender_id: sender_id}, _context) do
+    nodes =
+      Map.update(
+        dht.nodes,
+        sender_id,
+        %Node{id: sender_id, last_query_received_at: DateTime.utc_now()},
+        fn node ->
+          %Node{node | last_query_received_at: DateTime.utc_now()}
+        end
+      )
 
-  def send_query(query, host, port) do
-    Query.encode(query)
-    |> Bento.encode!()
-    |> send(host, port)
-  end
+    dht = %__MODULE__{dht | nodes: nodes}
 
-  defp send(message, host, port) do
-    with {:ok, host} <- :inet.parse_address(String.to_charlist(host)),
-         {:ok, socket} <- :gen_udp.open(0),
-         :ok <- :gen_udp.send(socket, host, port, message),
-         :ok <- :gen_udp.close(socket) do
-      :ok
-    end
+    {:reply, %Ping.Response{sender_id: dht.local_id}, dht}
   end
 end
