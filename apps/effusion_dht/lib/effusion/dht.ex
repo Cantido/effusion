@@ -1,5 +1,5 @@
 defmodule Effusion.DHT do
-  import Bitwise
+  alias Effusion.DHT.KRPC.{Query, Response}
 
   @moduledoc """
   Documentation for Effusion.DHT.
@@ -10,41 +10,30 @@ defmodule Effusion.DHT do
   defguard is_inet_port(n) when is_integer(n) and n in 1..65_535
 
   @doc """
-  Generates twenty-byte node ID.
-  """
-  def node_id do
-    :crypto.strong_rand_bytes(20)
-  end
-
-  @doc """
-  Generates a unique ID for transactions.
-  """
-  def transaction_id do
-    Base.encode64(:crypto.strong_rand_bytes(1), padding: false)
-  end
-
-  @doc """
   Generates a token for use in `get_peers` responses.
   """
   def token do
     Base.encode64(:crypto.strong_rand_bytes(6))
   end
 
-  @doc """
-    Calcuates the distance between two node IDs.
-    Smaller values mean the two nodes are closer.
+  def send_response(response, host, port) do
+    Response.encode(response)
+    |> Bento.encode!()
+    |> send(host, port)
+  end
 
-    This function uses the Kademlia distance metric: XOR.
+  def send_query(query, host, port) do
+    Query.encode(query)
+    |> Bento.encode!()
+    |> send(host, port)
+  end
 
-    ## Examples
-
-        iex> Effusion.DHT.distance("12345678901234567890", "12345678901234567890")
-        0
-
-        iex> Effusion.DHT.distance("12345678901234567890", "09876543210987654321")
-        5955258228003349104393039705260020053666630401
-  """
-  def distance(<<a::160>>, <<b::160>>) do
-    bxor(a, b)
+  defp send(message, host, port) do
+    with {:ok, host} <- :inet.parse_address(String.to_charlist(host)),
+         {:ok, socket} <- :gen_udp.open(0),
+         :ok <- :gen_udp.send(socket, host, port, message),
+         :ok <- :gen_udp.close(socket) do
+      :ok
+    end
   end
 end
