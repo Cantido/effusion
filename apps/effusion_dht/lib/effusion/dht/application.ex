@@ -5,7 +5,7 @@ defmodule Effusion.DHT.Application do
 
   def start(_type, _args) do
     children = [
-      Effusion.DHT.CQRS
+      Effusion.DHT.Commanded
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.DHT.Supervisor]

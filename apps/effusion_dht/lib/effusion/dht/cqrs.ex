@@ -1,4 +1,4 @@
-defmodule Effusion.DHT.CQRS do
+defmodule Effusion.DHT.Commanded do
   use Commanded.Application,
     otp_app: :effusion_dht,
     event_store: [
