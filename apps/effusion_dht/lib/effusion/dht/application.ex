@@ -3,7 +3,6 @@ defmodule Effusion.DHT.Application do
 
   use Application
 
-
   def start(_type, _args) do
     children = [
       Effusion.DHT.CQRS
