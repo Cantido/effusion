@@ -83,4 +83,29 @@ defmodule Effusion.DHTTest do
     assert response["r"]["sender_id"] == DHT.local_node_id()
     assert response["r"]["nodes"] == <<>>
   end
+
+  test "response to announce_peer with a bad token", %{port: port} do
+    {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
+    on_exit fn ->
+      :gen_udp.close(socket)
+    end
+
+    txid = KRPC.generate_transaction_id()
+    get_peers =
+      txid
+      |> KRPC.new_query("announce_peer", %{
+          sender_id: DHT.generate_node_id(),
+          target: :crypto.strong_rand_bytes(20)
+        })
+      |> KRPC.encode!()
+
+    :ok = :gen_udp.send(socket, 'localhost', port, get_peers)
+
+    {:ok, {_host, _port, data}} = :gen_udp.recv(socket, 0, 5_000)
+    response = KRPC.decode!(data)
+
+    assert response["t"] == txid
+    assert response["y"] == "e"
+    assert response["e"] == [203, "Bad token"]
+  end
 end

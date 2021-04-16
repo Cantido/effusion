@@ -55,6 +55,13 @@ defmodule Effusion.DHT.UDPListener do
           |> KRPC.encode!()
 
         :ok = :gen_udp.send(socket, ip, port, response)
+      "announce_peer" ->
+        response =
+          message["t"]
+          |> KRPC.new_error([203, "Bad token"])
+          |> KRPC.encode!()
+
+        :ok = :gen_udp.send(socket, ip, port, response)
       _ ->
         Logger.error("Unrecognized message: #{inspect message}")
     end
