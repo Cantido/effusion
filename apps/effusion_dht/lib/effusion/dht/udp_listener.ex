@@ -43,6 +43,18 @@ defmodule Effusion.DHT.UDPListener do
           |> KRPC.encode!()
 
         :ok = :gen_udp.send(socket, ip, port, response)
+      "find_node" ->
+        response_params = %{
+          sender_id: DHT.local_node_id(),
+          nodes: <<>>
+        }
+
+        response =
+          message["t"]
+          |> KRPC.new_response(response_params)
+          |> KRPC.encode!()
+
+        :ok = :gen_udp.send(socket, ip, port, response)
       _ ->
         Logger.error("Unrecognized message: #{inspect message}")
     end
