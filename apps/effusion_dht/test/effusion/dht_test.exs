@@ -15,7 +15,7 @@ defmodule Effusion.DHTTest do
     :ok = :gen_udp.send(socket, 'localhost', port, ping())
 
     {:ok, {_host, _port, data}} = :gen_udp.recv(socket, 0, 1_000)
-    response = Bento.decode!(data)
+    response = KRPC.decode!(data)
 
     assert response["y"] == "r"
     assert response["r"] == %{"sender_id" => DHT.local_node_id()}
