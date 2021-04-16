@@ -5,6 +5,7 @@ defmodule Effusion.DHT.Application do
 
   def start(_type, _args) do
     children = [
+      {Effusion.DHT.UDPListener, port: Application.fetch_env!(:effusion_dht, :port)},
       Effusion.DHT.Commanded
     ]
 

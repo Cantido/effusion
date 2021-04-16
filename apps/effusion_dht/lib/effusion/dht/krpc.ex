@@ -11,7 +11,7 @@ defmodule Effusion.DHT.KRPC do
   def new_response(txid, return_values) do
     %{
       t: txid,
-      y: "q",
+      y: "r",
       r: return_values
     }
   end
@@ -36,17 +36,15 @@ defmodule Effusion.DHT.KRPC do
   end
 
   def decode!(message) do
-    Bento.decode!(message) do
+    Bento.decode!(message)
   end
 
   @doc """
   Send a KRPC message
   """
-  def send_message(message, host, port) when is_map(message) do
-    with {:ok, dict} <- Message.encode(),
-         {:ok, host} <- :inet.parse_address(String.to_charlist(host)),
-         {:ok, socket} <- :gen_udp.open(0),
-         :ok <- :gen_udp.send(socket, host, port, dict),
+  def send_message(message, host, port) when is_binary(message) do
+    with {:ok, socket} <- :gen_udp.open(0),
+         :ok <- :gen_udp.send(socket, host, port, message),
          :ok <- :gen_udp.close(socket) do
       :ok
     end

@@ -16,6 +16,10 @@ defmodule Effusion.DHT do
     Base.encode64(:crypto.strong_rand_bytes(6))
   end
 
+  def local_node_id do
+    Application.fetch_env!(:effusion_dht, :node_id) |> Base.decode64!()
+  end
+
   @doc """
   Generates twenty-byte node ID.
   """
