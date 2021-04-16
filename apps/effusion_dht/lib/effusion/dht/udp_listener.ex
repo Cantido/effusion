@@ -15,28 +15,43 @@ defmodule Effusion.DHT.UDPListener do
   end
 
   def handle_continue(:open_socket, %{port: port}) do
-    socket = :gen_udp.open(port, [:binary, {:active, :once}])
+    {:ok, socket} = :gen_udp.open(port, [:binary, {:active, 1}])
     {:noreply, %{port: port, socket: socket}}
   end
 
-  def handle_info({:udp, _socket, ip, port, packet}, state) do
+  def handle_info({:udp, socket, ip, port, packet}, state) do
     message = KRPC.decode!(packet)
 
-    if message["q"] == "ping" do
-      :ok =
-        message["t"]
-        |> KRPC.new_response(%{sender_id: DHT.local_node_id()})
-        |> KRPC.encode!()
-        |> KRPC.send_message(ip, port)
-    else
-      Logger.error("Unrecognized message: #{message}")
+    case message["q"] do
+      "ping" ->
+        response =
+          message["t"]
+          |> KRPC.new_response(%{sender_id: DHT.local_node_id()})
+          |> KRPC.encode!()
+
+        :ok = :gen_udp.send(socket, ip, port, response)
+      "get_peers" ->
+        response_params = %{
+          sender_id: DHT.local_node_id(),
+          token: DHT.generate_announce_peer_token(),
+          nodes: <<>>
+        }
+
+        response =
+          message["t"]
+          |> KRPC.new_response(response_params)
+          |> KRPC.encode!()
+
+        :ok = :gen_udp.send(socket, ip, port, response)
+      _ ->
+        Logger.error("Unrecognized message: #{inspect message}")
     end
 
     {:noreply, state}
   end
 
   def handle_info({:udp_passive, socket}, state) do
-    :ok = :inet.setopts(socket, active: :once)
+    :ok = :inet.setopts(socket, active: 1)
     {:noreply, state}
   end
 end

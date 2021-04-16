@@ -38,15 +38,4 @@ defmodule Effusion.DHT.KRPC do
   def decode!(message) do
     Bento.decode!(message)
   end
-
-  @doc """
-  Send a KRPC message
-  """
-  def send_message(message, host, port) when is_binary(message) do
-    with {:ok, socket} <- :gen_udp.open(0),
-         :ok <- :gen_udp.send(socket, host, port, message),
-         :ok <- :gen_udp.close(socket) do
-      :ok
-    end
-  end
 end

@@ -4,7 +4,6 @@ defmodule Effusion.DHTTest do
   alias Effusion.DHT.KRPC
   doctest Effusion.DHT
 
-
   setup do
     port = Application.fetch_env!(:effusion_dht, :port)
     %{port: port}
@@ -12,6 +11,9 @@ defmodule Effusion.DHTTest do
 
   test "responds to ping", %{port: port} do
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
+    on_exit fn ->
+      :gen_udp.close(socket)
+    end
 
     txid = KRPC.generate_transaction_id()
     ping =
@@ -21,11 +23,38 @@ defmodule Effusion.DHTTest do
 
     :ok = :gen_udp.send(socket, 'localhost', port, ping)
 
-    {:ok, {_host, _port, data}} = :gen_udp.recv(socket, 0, 1_000)
+    {:ok, {_host, _port, data}} = :gen_udp.recv(socket, 0, 5_000)
     response = KRPC.decode!(data)
 
     assert response["t"] == txid
     assert response["y"] == "r"
     assert response["r"] == %{"sender_id" => DHT.local_node_id()}
+  end
+
+  test "response to get_peers", %{port: port} do
+    {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
+    on_exit fn ->
+      :gen_udp.close(socket)
+    end
+
+    txid = KRPC.generate_transaction_id()
+    get_peers =
+      txid
+      |> KRPC.new_query("get_peers", %{
+          sender_id: DHT.generate_node_id(),
+          info_hash: :crypto.strong_rand_bytes(20)
+        })
+      |> KRPC.encode!()
+
+    :ok = :gen_udp.send(socket, 'localhost', port, get_peers)
+
+    {:ok, {_host, _port, data}} = :gen_udp.recv(socket, 0, 5_000)
+    response = KRPC.decode!(data)
+
+    assert response["t"] == txid
+    assert response["y"] == "r"
+    assert response["r"]["sender_id"] == DHT.local_node_id()
+    assert not is_nil(response["r"]["token"])
+    assert response["r"]["nodes"] == <<>>
   end
 end
