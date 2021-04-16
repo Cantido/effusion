@@ -1,17 +1,15 @@
 defmodule Effusion.DHT.KRPC do
-  alias Effusion.DHT.KRPC.Message
-
   def new_query(txid, method_name, arguments) do
-    %Message{
+    %{
       t: txid,
-      y: "q"
+      y: "q",
       q: method_name,
       a: arguments
     }
   end
 
   def new_response(txid, return_values) do
-    %Message{
+    %{
       t: txid,
       y: "q",
       r: return_values
@@ -19,31 +17,26 @@ defmodule Effusion.DHT.KRPC do
   end
 
   def new_error(txid, error_message) do
-    %Message{
+    %{
       t: txid,
       y: "e",
       e: error_message
     }
   end
 
+  @doc """
+  Generates a unique ID for transactions.
+  """
+  def generate_transaction_id do
+    Base.encode64(:crypto.strong_rand_bytes(1), padding: false)
+  end
+
   def encode!(message) do
-    message
-    |> Map.from_struct()
-    |> Bento.encode!()
+    Bento.encode!(message)
   end
 
   def decode!(message) do
-    m = Bento.decode!(message)
-
-    %Message{
-      t: m["t"],
-      y: m["y"],
-      v: m["v"],
-      q: m["q"],
-      a: m["a"],
-      r: m["r"],
-      e: m["e"]
-    }
+    Bento.decode!(message) do
   end
 
   @doc """

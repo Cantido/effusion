@@ -3,38 +3,41 @@ defmodule Effusion.DHT do
   Documentation for Effusion.DHT.
   """
 
-  alias Effusion.DHT.Messages.Ping
-  alias Effusion.DHT.Node
-
-  @enforce_keys [:local_id]
-  defstruct [
-    local_id: nil,
-    nodes: Map.new()
-  ]
+  import Bitwise
 
   defguard is_node_id(binary) when is_binary(binary) and byte_size(binary) == 20
   defguard is_info_hash(binary) when is_binary(binary) and byte_size(binary) == 20
   defguard is_inet_port(n) when is_integer(n) and n in 1..65_535
 
-  def new do
-    %__MODULE__{
-      local_id: Base.decode64!(Application.fetch_env!(:effusion, :dht_node_id))
-    }
+  @doc """
+  Generates a token for use in `get_peers` responses.
+  """
+  def token do
+    Base.encode64(:crypto.strong_rand_bytes(6))
   end
 
-  def handle_message(dht, %Ping.Query{sender_id: sender_id}, _context) do
-    nodes =
-      Map.update(
-        dht.nodes,
-        sender_id,
-        %Node{id: sender_id, last_query_received_at: DateTime.utc_now()},
-        fn node ->
-          %Node{node | last_query_received_at: DateTime.utc_now()}
-        end
-      )
+  @doc """
+  Generates twenty-byte node ID.
+  """
+  def generate_node_id do
+    :crypto.strong_rand_bytes(20)
+  end
 
-    dht = %__MODULE__{dht | nodes: nodes}
+  @doc """
+    Calcuates the distance between two node IDs.
+    Smaller values mean the two nodes are closer.
 
-    {:reply, %Ping.Response{sender_id: dht.local_id}, dht}
+    This function uses the Kademlia distance metric: XOR.
+
+    ## Examples
+
+        iex> Effusion.DHT.distance("12345678901234567890", "12345678901234567890")
+        0
+
+        iex> Effusion.DHT.distance("12345678901234567890", "09876543210987654321")
+        5955258228003349104393039705260020053666630401
+  """
+  def distance(<<a::160>>, <<b::160>>) do
+    bxor(a, b)
   end
 end
