@@ -5,11 +5,8 @@ defmodule Effusion.DHT.Application do
 
 
   def start(_type, _args) do
-    dht_port = Application.fetch_env!(:effusion_dht, :port)
-
     children = [
-      Effusion.DHT.CQRS,
-      {Effusion.DHT.Server, port: dht_port}
+      Effusion.DHT.CQRS
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.DHT.Supervisor]
