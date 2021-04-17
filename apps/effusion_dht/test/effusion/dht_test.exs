@@ -27,7 +27,7 @@ defmodule Effusion.DHTTest do
     txid = KRPC.generate_transaction_id()
     ping =
       txid
-      |> KRPC.new_query("ping", %{sender_id: DHT.generate_node_id()})
+      |> KRPC.new_query("ping", %{id: DHT.generate_node_id()})
       |> KRPC.encode!()
 
     :ok = :gen_udp.send(socket, 'localhost', port, ping)
@@ -37,7 +37,7 @@ defmodule Effusion.DHTTest do
 
     assert response["t"] == txid
     assert response["y"] == "r"
-    assert response["r"] == %{"sender_id" => DHT.local_node_id()}
+    assert response["r"] == %{"id" => DHT.local_node_id()}
   end
 
   test "get_peers responds with nodes when we don't have any peers", %{port: port} do
@@ -68,7 +68,7 @@ defmodule Effusion.DHTTest do
     Enum.each(peers, fn peer ->
       query =
         KRPC.generate_transaction_id()
-        |> KRPC.new_query("ping", %{sender_id: peer.id})
+        |> KRPC.new_query("ping", %{id: peer.id})
         |> KRPC.encode!()
 
       :ok = :gen_udp.send(peer.socket, 'localhost', port, query)
@@ -81,7 +81,7 @@ defmodule Effusion.DHTTest do
     get_peers =
       txid
       |> KRPC.new_query("get_peers", %{
-          sender_id: DHT.generate_node_id(),
+          id: DHT.generate_node_id(),
           info_hash: target
         })
       |> KRPC.encode!()
@@ -93,7 +93,7 @@ defmodule Effusion.DHTTest do
 
     assert response["t"] == txid
     assert response["y"] == "r"
-    assert response["r"]["sender_id"] == DHT.local_node_id()
+    assert response["r"]["id"] == DHT.local_node_id()
     assert not is_nil(response["r"]["token"])
 
     Enum.map(peers, fn peer ->
@@ -122,7 +122,7 @@ defmodule Effusion.DHTTest do
     get_peers =
       txid
       |> KRPC.new_query("get_peers", %{
-          sender_id: DHT.generate_node_id(),
+          id: DHT.generate_node_id(),
           info_hash: target
         })
       |> KRPC.encode!()
@@ -134,7 +134,7 @@ defmodule Effusion.DHTTest do
 
     assert response["t"] == txid
     assert response["y"] == "r"
-    assert response["r"]["sender_id"] == DHT.local_node_id()
+    assert response["r"]["id"] == DHT.local_node_id()
     assert not is_nil(response["r"]["token"])
 
     assert response["r"]["values"] == <<127, 0, 0, 1, 8080::integer-size(16)>>
@@ -183,7 +183,7 @@ defmodule Effusion.DHTTest do
     Enum.each(peers, fn peer ->
       query =
         KRPC.generate_transaction_id()
-        |> KRPC.new_query("ping", %{sender_id: peer.id})
+        |> KRPC.new_query("ping", %{id: peer.id})
         |> KRPC.encode!()
 
       :ok = :gen_udp.send(peer.socket, 'localhost', port, query)
@@ -198,7 +198,7 @@ defmodule Effusion.DHTTest do
     get_peers =
       txid
       |> KRPC.new_query("find_node", %{
-          sender_id: DHT.generate_node_id(),
+          id: DHT.generate_node_id(),
           target: target
         })
       |> KRPC.encode!()
@@ -210,7 +210,7 @@ defmodule Effusion.DHTTest do
 
     assert response["t"] == txid
     assert response["y"] == "r"
-    assert response["r"]["sender_id"] == DHT.local_node_id()
+    assert response["r"]["id"] == DHT.local_node_id()
 
     # Assert that the close peers show in the resposne
 
@@ -246,7 +246,7 @@ defmodule Effusion.DHTTest do
     get_peers =
       txid
       |> KRPC.new_query("announce_peer", %{
-          sender_id: DHT.generate_node_id(),
+          id: DHT.generate_node_id(),
           target: :crypto.strong_rand_bytes(20)
         })
       |> KRPC.encode!()
@@ -275,7 +275,7 @@ defmodule Effusion.DHTTest do
     get_peers =
       txid
       |> KRPC.new_query("get_peers", %{
-          sender_id: DHT.generate_node_id(),
+          id: DHT.generate_node_id(),
           info_hash: target
         })
       |> KRPC.encode!()

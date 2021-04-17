@@ -31,7 +31,7 @@ defmodule Effusion.DHT.UDPListener do
         "ping" ->
 
           response_params = %{
-            sender_id: DHT.local_node_id(),
+            id: DHT.local_node_id(),
           }
 
           response =
@@ -40,7 +40,7 @@ defmodule Effusion.DHT.UDPListener do
             |> KRPC.encode!()
 
           peer = %{
-            id: message["a"]["sender_id"],
+            id: message["a"]["id"],
             ip: ip,
             port: port
           }
@@ -66,7 +66,7 @@ defmodule Effusion.DHT.UDPListener do
             token = DHT.generate_announce_peer_token()
 
             response_params = %{
-              sender_id: DHT.local_node_id(),
+              id: DHT.local_node_id(),
               token: token,
               nodes: nodes
             }
@@ -95,7 +95,7 @@ defmodule Effusion.DHT.UDPListener do
             token = DHT.generate_announce_peer_token()
 
             response_params = %{
-              sender_id: DHT.local_node_id(),
+              id: DHT.local_node_id(),
               token: token,
               values: peers
             }
@@ -127,7 +127,7 @@ defmodule Effusion.DHT.UDPListener do
             |> Enum.join()
 
           response_params = %{
-            sender_id: DHT.local_node_id(),
+            id: DHT.local_node_id(),
             nodes: nodes
           }
 
