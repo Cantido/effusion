@@ -148,7 +148,6 @@ defmodule Effusion.DHTTest do
     |> Enum.each(fn compacted_peer ->
       assert :binary.match(response["r"]["nodes"], compacted_peer) == :nomatch
     end)
-
   end
 
   defp generate_close_id(target, distance) do
