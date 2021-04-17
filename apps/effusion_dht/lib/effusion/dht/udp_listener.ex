@@ -161,11 +161,18 @@ defmodule Effusion.DHT.UDPListener do
               |> KRPC.new_response(response_params)
               |> KRPC.encode!()
 
+            peer_port =
+              if message["a"]["implied_port"] == 1 do
+                port
+              else
+                message["a"]["port"]
+              end
+
             :ok =
               Effusion.PWP.add(
                 message["a"]["info_hash"],
                 ip,
-                message["a"]["port"],
+                peer_port,
                 "dht"
               )
 

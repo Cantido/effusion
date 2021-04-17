@@ -319,6 +319,60 @@ defmodule Effusion.DHTTest do
     assert Enum.any?(peers, & &1.port == peer_port)
   end
 
+  test "response to announce_peer with a good token with an implied port", %{port: port} do
+    {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
+    on_exit fn ->
+      :gen_udp.close(socket)
+    end
+
+    target = :crypto.strong_rand_bytes(20)
+
+    txid = KRPC.generate_transaction_id()
+    get_peers =
+      txid
+      |> KRPC.new_query("get_peers", %{
+          id: DHT.generate_node_id(),
+          info_hash: target
+        })
+      |> KRPC.encode!()
+
+    :ok = :gen_udp.send(socket, 'localhost', port, get_peers)
+
+    {:ok, {_host, _port, data}} = :gen_udp.recv(socket, 0, 5_000)
+    response = KRPC.decode!(data)
+
+    token = response["r"]["token"]
+
+    txid_announce_peer = KRPC.generate_transaction_id()
+    announce_peer =
+      txid_announce_peer
+      |> KRPC.new_query("announce_peer", %{
+          id: DHT.generate_node_id(),
+          info_hash: target,
+          port: Enum.random(1025..65535),
+          implied_port: 1,
+          token: token
+        })
+      |> KRPC.encode!()
+
+    :ok = :gen_udp.send(socket, 'localhost', port, announce_peer)
+
+    {:ok, {_host, _port, data}} = :gen_udp.recv(socket, 0, 5_000)
+    response = KRPC.decode!(data)
+
+    assert response["t"] == txid_announce_peer
+    assert response["y"] == "r"
+    assert response["r"]["id"] == DHT.local_node_id()
+
+    Process.sleep(100)
+
+    peers = Effusion.PWP.get_peers_for_download(target)
+
+    {:ok, peer_port} = :inet.port(socket)
+
+    assert Enum.any?(peers, & &1.port == peer_port), "No peers with port #{peer_port} found"
+  end
+
   test "response to announce_peer with a mismatched token", %{port: port} do
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
     on_exit fn ->
