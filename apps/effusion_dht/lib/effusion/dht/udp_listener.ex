@@ -62,8 +62,12 @@ defmodule Effusion.DHT.UDPListener do
           :ok = :gen_udp.send(socket, ip, port, response)
           state
         "find_node" ->
+          target = message["a"]["target"]
+
           nodes =
             Map.get(state, :peers, [])
+            |> Enum.sort_by(&DHT.distance(target, &1.id))
+            |> Enum.take(8)
             |> Enum.map(fn peer ->
               {ip0, ip1, ip2, ip3} = peer.ip
               peer.id <> <<ip0, ip1, ip2, ip3>> <> <<peer.port::integer-size(16)>>

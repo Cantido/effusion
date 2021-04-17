@@ -69,7 +69,7 @@ defmodule Effusion.DHTTest do
 
     # generate 8 peers with node IDs very close to the target
 
-    peers =
+    close_peers =
       Enum.map(1..8, fn distance ->
         id = generate_close_id(target, distance)
         {:ok, socket} = :gen_udp.open(0, [:binary, {:active, :false}])
@@ -81,6 +81,21 @@ defmodule Effusion.DHTTest do
           port: port
         }
       end)
+
+    far_peers =
+      Enum.map(1..8, fn _index ->
+        id = :crypto.strong_rand_bytes(20)
+        {:ok, socket} = :gen_udp.open(0, [:binary, {:active, :false}])
+        {:ok, port} = :inet.port(socket)
+
+        %{
+          id: id,
+          socket: socket,
+          port: port
+        }
+      end)
+
+    peers = close_peers ++ far_peers
 
     # have those peers ping the server, so it remembers them
 
@@ -112,18 +127,30 @@ defmodule Effusion.DHTTest do
     {:ok, {_host, _port, data}} = :gen_udp.recv(socket, 0, 5_000)
     response = KRPC.decode!(data)
 
-    compacted_peers =
-      Enum.map(peers, fn peer ->
-        peer.id <> <<127, 0, 0, 1>> <> <<peer.port::integer-size(16)>>
-      end)
+
 
     assert response["t"] == txid
     assert response["y"] == "r"
     assert response["r"]["sender_id"] == DHT.local_node_id()
 
-    Enum.each(compacted_peers, fn compacted_peer ->
+    # Assert that the close peers show in the resposne
+
+    Enum.map(close_peers, fn peer ->
+      peer.id <> <<127, 0, 0, 1>> <> <<peer.port::integer-size(16)>>
+    end)
+    |> Enum.each(fn compacted_peer ->
       assert :binary.match(response["r"]["nodes"], compacted_peer) != :nomatch
     end)
+
+    # Assert that the far-away peers are not in the response
+
+    Enum.map(far_peers, fn peer ->
+      peer.id <> <<127, 0, 0, 1>> <> <<peer.port::integer-size(16)>>
+    end)
+    |> Enum.each(fn compacted_peer ->
+      assert :binary.match(response["r"]["nodes"], compacted_peer) == :nomatch
+    end)
+
   end
 
   defp generate_close_id(target, distance) do
