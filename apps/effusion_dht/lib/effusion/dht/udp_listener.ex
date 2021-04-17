@@ -11,7 +11,8 @@ defmodule Effusion.DHT.UDPListener do
 
   def init(opts) do
     port = Keyword.fetch!(opts, :port)
-    {:ok, %{port: port}, {:continue, :open_socket}}
+    node_id = Keyword.fetch!(opts, :node_id)
+    {:ok, %{port: port, node_id: node_id}, {:continue, :open_socket}}
   end
 
   def handle_continue(:open_socket, state = %{port: port}) do
@@ -23,7 +24,7 @@ defmodule Effusion.DHT.UDPListener do
     {:noreply, state}
   end
 
-  def handle_info({:udp, socket, ip, port, packet}, state) do
+  def handle_info({:udp, socket, ip, port, packet}, state = %{node_id: node_id}) do
     message = KRPC.decode!(packet)
 
     state =
@@ -31,7 +32,7 @@ defmodule Effusion.DHT.UDPListener do
         "ping" ->
 
           response_params = %{
-            id: DHT.local_node_id(),
+            id: node_id,
           }
 
           response =
@@ -66,7 +67,7 @@ defmodule Effusion.DHT.UDPListener do
             token = DHT.generate_announce_peer_token()
 
             response_params = %{
-              id: DHT.local_node_id(),
+              id: node_id,
               token: token,
               nodes: nodes
             }
@@ -95,7 +96,7 @@ defmodule Effusion.DHT.UDPListener do
             token = DHT.generate_announce_peer_token()
 
             response_params = %{
-              id: DHT.local_node_id(),
+              id: node_id,
               token: token,
               values: peers
             }
@@ -127,7 +128,7 @@ defmodule Effusion.DHT.UDPListener do
             |> Enum.join()
 
           response_params = %{
-            id: DHT.local_node_id(),
+            id: node_id,
             nodes: nodes
           }
 
@@ -153,7 +154,7 @@ defmodule Effusion.DHT.UDPListener do
             state
           else
             response_params = %{
-              id: DHT.local_node_id(),
+              id: node_id,
             }
 
             response =

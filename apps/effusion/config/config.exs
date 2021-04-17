@@ -18,9 +18,6 @@ config :effusion,
   max_peers: 200,
   handshake_timeout: 5_000,
   download_destination: File.cwd!(),
-  # dht_node_id should be generated fresh for new installations,
-  # by calling Effusion.DHT.node_id() |> Base.encode64()
-  dht_node_id: "zjuXKldLo4rJMGR1Ww/ykZFlXLQ=",
   enabled_extensions: [],
   ecto_repos: [Effusion.Repo],
   event_stores: [Effusion.EventStore]

@@ -12,13 +12,14 @@ defmodule Effusion.DHTTest do
 
   setup do
     port = Enum.random(1025..65535)
+    node_id = Effusion.DHT.generate_node_id()
 
-    start_supervised({Effusion.DHT.UDPListener, [port: port]})
+    start_supervised({Effusion.DHT.UDPListener, [port: port, node_id: node_id]})
 
-    %{port: port}
+    %{port: port, node_id: node_id}
   end
 
-  test "responds to ping", %{port: port} do
+  test "responds to ping", %{port: port, node_id: node_id} do
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
     on_exit fn ->
       :gen_udp.close(socket)
@@ -37,10 +38,10 @@ defmodule Effusion.DHTTest do
 
     assert response["t"] == txid
     assert response["y"] == "r"
-    assert response["r"] == %{"id" => DHT.local_node_id()}
+    assert response["r"] == %{"id" => node_id}
   end
 
-  test "get_peers responds with nodes when we don't have any peers", %{port: port} do
+  test "get_peers responds with nodes when we don't have any peers", %{port: port, node_id: node_id} do
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
     on_exit fn ->
       :gen_udp.close(socket)
@@ -93,7 +94,7 @@ defmodule Effusion.DHTTest do
 
     assert response["t"] == txid
     assert response["y"] == "r"
-    assert response["r"]["id"] == DHT.local_node_id()
+    assert response["r"]["id"] == node_id
     assert not is_nil(response["r"]["token"])
 
     Enum.map(peers, fn peer ->
@@ -104,7 +105,7 @@ defmodule Effusion.DHTTest do
     end)
   end
 
-  test "get_peers responds with peers when we know about the torrent", %{port: port} do
+  test "get_peers responds with peers when we know about the torrent", %{port: port, node_id: node_id} do
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
     on_exit fn ->
       :gen_udp.close(socket)
@@ -134,13 +135,13 @@ defmodule Effusion.DHTTest do
 
     assert response["t"] == txid
     assert response["y"] == "r"
-    assert response["r"]["id"] == DHT.local_node_id()
+    assert response["r"]["id"] == node_id
     assert not is_nil(response["r"]["token"])
 
     assert response["r"]["values"] == <<127, 0, 0, 1, 8080::integer-size(16)>>
   end
 
-  test "find_node responds with closest nodes", %{port: port} do
+  test "find_node responds with closest nodes", %{port: port, node_id: node_id} do
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
     on_exit fn ->
       :gen_udp.close(socket)
@@ -210,7 +211,7 @@ defmodule Effusion.DHTTest do
 
     assert response["t"] == txid
     assert response["y"] == "r"
-    assert response["r"]["id"] == DHT.local_node_id()
+    assert response["r"]["id"] == node_id
 
     # Assert that the close peers show in the resposne
 
@@ -236,7 +237,7 @@ defmodule Effusion.DHTTest do
     <<id_int::integer-size(160)>>
   end
 
-  test "response to announce_peer with a bad token", %{port: port} do
+  test "response to announce_peer with a bad token", %{port: port, node_id: node_id} do
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
     on_exit fn ->
       :gen_udp.close(socket)
@@ -266,7 +267,7 @@ defmodule Effusion.DHTTest do
     assert response["e"] == [203, "Bad token"]
   end
 
-  test "response to announce_peer with a good token", %{port: port} do
+  test "response to announce_peer with a good token", %{port: port, node_id: node_id} do
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
     on_exit fn ->
       :gen_udp.close(socket)
@@ -310,7 +311,7 @@ defmodule Effusion.DHTTest do
 
     assert response["t"] == txid_announce_peer
     assert response["y"] == "r"
-    assert response["r"]["id"] == DHT.local_node_id()
+    assert response["r"]["id"] == node_id
 
     Process.sleep(100)
 
@@ -319,7 +320,7 @@ defmodule Effusion.DHTTest do
     assert Enum.any?(peers, & &1.port == peer_port)
   end
 
-  test "response to announce_peer with a good token with an implied port", %{port: port} do
+  test "response to announce_peer with a good token with an implied port", %{port: port, node_id: node_id} do
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
     on_exit fn ->
       :gen_udp.close(socket)
@@ -362,7 +363,7 @@ defmodule Effusion.DHTTest do
 
     assert response["t"] == txid_announce_peer
     assert response["y"] == "r"
-    assert response["r"]["id"] == DHT.local_node_id()
+    assert response["r"]["id"] == node_id
 
     Process.sleep(100)
 
@@ -373,7 +374,7 @@ defmodule Effusion.DHTTest do
     assert Enum.any?(peers, & &1.port == peer_port), "No peers with port #{peer_port} found"
   end
 
-  test "response to announce_peer with a mismatched token", %{port: port} do
+  test "response to announce_peer with a mismatched token", %{port: port, node_id: node_id} do
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
     on_exit fn ->
       :gen_udp.close(socket)
