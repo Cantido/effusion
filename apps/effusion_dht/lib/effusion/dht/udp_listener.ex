@@ -143,7 +143,7 @@ defmodule Effusion.DHT.UDPListener do
             Map.get(state, :tokens, %{})
             |> Map.get(ip)
 
-          if is_nil(expected_token) do
+          if is_nil(expected_token) or message["a"]["token"] != expected_token do
             response =
               message["t"]
               |> KRPC.new_error([203, "Bad token"])
