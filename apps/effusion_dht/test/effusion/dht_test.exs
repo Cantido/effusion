@@ -11,7 +11,10 @@ defmodule Effusion.DHTTest do
   end
 
   setup do
-    port = Application.fetch_env!(:effusion_dht, :port)
+    port = Enum.random(1025..65535)
+
+    start_supervised({Effusion.DHT.UDPListener, [port: port]})
+
     %{port: port}
   end
 
