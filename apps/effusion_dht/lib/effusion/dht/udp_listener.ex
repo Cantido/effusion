@@ -48,10 +48,22 @@ defmodule Effusion.DHT.UDPListener do
 
           Map.update(state, :peers, [peer], &([peer | &1]))
         "get_peers" ->
+          info_hash = message["a"]["info_hash"]
+
+          nodes =
+            Map.get(state, :peers, [])
+            |> Enum.sort_by(&DHT.distance(info_hash, &1.id))
+            |> Enum.take(8)
+            |> Enum.map(fn peer ->
+              {ip0, ip1, ip2, ip3} = peer.ip
+              peer.id <> <<ip0, ip1, ip2, ip3>> <> <<peer.port::integer-size(16)>>
+            end)
+            |> Enum.join()
+
           response_params = %{
             sender_id: DHT.local_node_id(),
             token: DHT.generate_announce_peer_token(),
-            nodes: <<>>
+            nodes: nodes
           }
 
           response =

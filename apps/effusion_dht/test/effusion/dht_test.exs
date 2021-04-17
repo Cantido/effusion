@@ -32,18 +32,49 @@ defmodule Effusion.DHTTest do
     assert response["r"] == %{"sender_id" => DHT.local_node_id()}
   end
 
-  test "response to get_peers", %{port: port} do
+  test "get_peers responds with nodes when we don't have any peers", %{port: port} do
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
     on_exit fn ->
       :gen_udp.close(socket)
     end
+
+    target = :crypto.strong_rand_bytes(20)
+
+    # generate 8 peers with node IDs very close to the target
+
+    peers =
+      Enum.map(1..8, fn distance ->
+        id = generate_close_id(target, distance)
+        {:ok, socket} = :gen_udp.open(0, [:binary, {:active, :false}])
+        {:ok, port} = :inet.port(socket)
+
+        %{
+          id: id,
+          socket: socket,
+          port: port
+        }
+      end)
+
+    # have those peers ping the server, so it remembers them
+
+    Enum.each(peers, fn peer ->
+      query =
+        KRPC.generate_transaction_id()
+        |> KRPC.new_query("ping", %{sender_id: peer.id})
+        |> KRPC.encode!()
+
+      :ok = :gen_udp.send(peer.socket, 'localhost', port, query)
+      # read to clear the response from the socket
+      {:ok, {_host, _port, _data}} = :gen_udp.recv(peer.socket, 0, 5_000)
+      :ok = :gen_udp.close(peer.socket)
+    end)
 
     txid = KRPC.generate_transaction_id()
     get_peers =
       txid
       |> KRPC.new_query("get_peers", %{
           sender_id: DHT.generate_node_id(),
-          info_hash: :crypto.strong_rand_bytes(20)
+          info_hash: target
         })
       |> KRPC.encode!()
 
@@ -56,7 +87,13 @@ defmodule Effusion.DHTTest do
     assert response["y"] == "r"
     assert response["r"]["sender_id"] == DHT.local_node_id()
     assert not is_nil(response["r"]["token"])
-    assert response["r"]["nodes"] == <<>>
+
+    Enum.map(peers, fn peer ->
+      peer.id <> <<127, 0, 0, 1>> <> <<peer.port::integer-size(16)>>
+    end)
+    |> Enum.each(fn compacted_peer ->
+      assert :binary.match(response["r"]["nodes"], compacted_peer) != :nomatch
+    end)
   end
 
   test "find_node responds with closest nodes", %{port: port} do
