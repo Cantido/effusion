@@ -22,6 +22,7 @@ defmodule Effusion.Application do
       Effusion.PWP.ProcessManagers.IncomingPeerConnection,
       Effusion.PWP.ProcessManagers.OutgoingPeerConnection,
       Effusion.PWP.EventHandlers.PeerMessenger,
+      Effusion.PWP.Swarm.PeerProjector,
       Effusion.Application.ConnectionSupervisor,
       {Registry, keys: :unique, name: ConnectionRegistry},
       :ranch.child_spec(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Connection, [])

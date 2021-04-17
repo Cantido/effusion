@@ -6,6 +6,11 @@ defmodule Effusion.DHTTest do
   doctest Effusion.DHT
 
   setup do
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, {:shared, self()})
+  end
+
+  setup do
     port = Application.fetch_env!(:effusion_dht, :port)
     %{port: port}
   end
@@ -94,6 +99,44 @@ defmodule Effusion.DHTTest do
     |> Enum.each(fn compacted_peer ->
       assert :binary.match(response["r"]["nodes"], compacted_peer) != :nomatch
     end)
+  end
+
+  test "get_peers responds with peers when we know about the torrent", %{port: port} do
+    {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
+    on_exit fn ->
+      :gen_udp.close(socket)
+    end
+
+    torrent = TestHelper.mint_meta()
+    target = torrent.info_hash
+
+    # generate 8 peers for the torrent we're after
+
+    :ok = Effusion.Downloads.add(torrent)
+    :ok = Effusion.PWP.add(target, {127, 0, 0, 1}, 8080, "tracker")
+
+    # Ask the DHT for peers
+
+    txid = KRPC.generate_transaction_id()
+    get_peers =
+      txid
+      |> KRPC.new_query("get_peers", %{
+          sender_id: DHT.generate_node_id(),
+          info_hash: target
+        })
+      |> KRPC.encode!()
+
+    :ok = :gen_udp.send(socket, 'localhost', port, get_peers)
+
+    {:ok, {_host, _port, data}} = :gen_udp.recv(socket, 0, 5_000)
+    response = KRPC.decode!(data)
+
+    assert response["t"] == txid
+    assert response["y"] == "r"
+    assert response["r"]["sender_id"] == DHT.local_node_id()
+    assert not is_nil(response["r"]["token"])
+
+    assert response["r"]["values"] == <<127, 0, 0, 1, 8080::integer-size(16)>>
   end
 
   test "find_node responds with closest nodes", %{port: port} do

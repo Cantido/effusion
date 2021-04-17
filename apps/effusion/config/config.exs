@@ -28,6 +28,9 @@ config :effusion,
 config :commanded, event_store_adapter: Commanded.EventStore.Adapters.EventStore
 
 config :effusion, Effusion.Repo,
+  migration_primary_key: [type: :uuid],
+  migration_foreign_key: [type: :uuid],
+  migration_timestamps: [type: :utc_datetime_usec],
   database: "effusion_dev",
   username: "postgres",
   password: "postgres",

@@ -50,29 +50,56 @@ defmodule Effusion.DHT.UDPListener do
         "get_peers" ->
           info_hash = message["a"]["info_hash"]
 
-          nodes =
-            Map.get(state, :peers, [])
-            |> Enum.sort_by(&DHT.distance(info_hash, &1.id))
-            |> Enum.take(8)
-            |> Enum.map(fn peer ->
-              {ip0, ip1, ip2, ip3} = peer.ip
-              peer.id <> <<ip0, ip1, ip2, ip3>> <> <<peer.port::integer-size(16)>>
-            end)
-            |> Enum.join()
+          peers = Effusion.PWP.get_peers_for_download(info_hash)
 
-          response_params = %{
-            sender_id: DHT.local_node_id(),
-            token: DHT.generate_announce_peer_token(),
-            nodes: nodes
-          }
+          Logger.info("processing peers: #{inspect peers}")
+          if Enum.empty?(peers) do
+            nodes =
+              Map.get(state, :peers, [])
+              |> Enum.sort_by(&DHT.distance(info_hash, &1.id))
+              |> Enum.take(8)
+              |> Enum.map(fn peer ->
+                {ip0, ip1, ip2, ip3} = peer.ip
+                peer.id <> <<ip0, ip1, ip2, ip3>> <> <<peer.port::integer-size(16)>>
+              end)
+              |> Enum.join()
 
-          response =
-            message["t"]
-            |> KRPC.new_response(response_params)
-            |> KRPC.encode!()
+            response_params = %{
+              sender_id: DHT.local_node_id(),
+              token: DHT.generate_announce_peer_token(),
+              nodes: nodes
+            }
 
-          :ok = :gen_udp.send(socket, ip, port, response)
-          state
+            response =
+              message["t"]
+              |> KRPC.new_response(response_params)
+              |> KRPC.encode!()
+
+            :ok = :gen_udp.send(socket, ip, port, response)
+            state
+          else
+            peers =
+              peers
+              |> Enum.map(fn peer ->
+                {:ok, {ip0, ip1, ip2, ip3}} = :inet.parse_ipv4strict_address(String.to_charlist(peer.host))
+                <<ip0, ip1, ip2, ip3>> <> <<peer.port::integer-size(16)>>
+              end)
+              |> Enum.join()
+
+            response_params = %{
+              sender_id: DHT.local_node_id(),
+              token: DHT.generate_announce_peer_token(),
+              values: peers
+            }
+
+            response =
+              message["t"]
+              |> KRPC.new_response(response_params)
+              |> KRPC.encode!()
+
+            :ok = :gen_udp.send(socket, ip, port, response)
+            state
+          end
         "find_node" ->
           target = message["a"]["target"]
 

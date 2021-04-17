@@ -164,4 +164,11 @@ defmodule Effusion.PWP do
     end
     |> CQRS.dispatch()
   end
+
+  @doc """
+  Get info for all the peers we know about for the given info hash.
+  """
+  def get_peers_for_download(info_hash) do
+    Effusion.Repo.all(Effusion.PWP.Swarm.PeerProjection, [info_hash: info_hash])
+  end
 end

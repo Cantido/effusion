@@ -41,19 +41,18 @@ defmodule Effusion.Mixfile do
 
   defp deps do
     [
-      # {:absinthe, "~> 1.4"},
-      # {:absinthe_plug, "~> 1.4"},
-      # {:absinthe_phoenix, "~> 1.4"},
       {:bento, "~> 0.9"},
       {:commanded, "~> 1.2"},
       {:commanded_ecto_projections, "~> 1.2"},
       {:commanded_eventstore_adapter, "~> 1.2"},
+      {:ecto_sql, "~> 3.0"},
       {:int_set, "~> 1.5"},
       {:httpoison, "~> 1.6"},
       {:jason, "~> 1.2"},
       {:logger_file_backend, "~> 0.0.10"},
       {:metatorrent, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
+      {:postgrex, ">= 0.0.0"},
       {:ranch, "~> 1.0"},
       {:timex, "~> 3.7"},
       {:tzdata, "~> 1.1"},
