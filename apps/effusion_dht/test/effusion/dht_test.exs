@@ -274,8 +274,6 @@ defmodule Effusion.DHTTest do
 
     target = :crypto.strong_rand_bytes(20)
 
-    :ok = Effusion.PWP.add(target, {127, 0, 0, 1}, 8080, "tracker")
-
     txid = KRPC.generate_transaction_id()
     get_peers =
       txid
@@ -292,13 +290,14 @@ defmodule Effusion.DHTTest do
 
     token = response["r"]["token"]
 
+    peer_port = Enum.random(1025..65535)
     txid_announce_peer = KRPC.generate_transaction_id()
     announce_peer =
       txid_announce_peer
       |> KRPC.new_query("announce_peer", %{
           id: DHT.generate_node_id(),
           info_hash: target,
-          port: 8080,
+          port: peer_port,
           implied_port: 0,
           token: token
         })
@@ -312,6 +311,12 @@ defmodule Effusion.DHTTest do
     assert response["t"] == txid_announce_peer
     assert response["y"] == "r"
     assert response["r"]["id"] == DHT.local_node_id()
+
+    Process.sleep(100)
+
+    peers = Effusion.PWP.get_peers_for_download(target)
+
+    assert Enum.any?(peers, & &1.port == peer_port)
   end
 
   test "response to announce_peer with a mismatched token", %{port: port} do
@@ -321,8 +326,6 @@ defmodule Effusion.DHTTest do
     end
 
     target = :crypto.strong_rand_bytes(20)
-
-    :ok = Effusion.PWP.add(target, {127, 0, 0, 1}, 8080, "tracker")
 
     txid = KRPC.generate_transaction_id()
     get_peers =

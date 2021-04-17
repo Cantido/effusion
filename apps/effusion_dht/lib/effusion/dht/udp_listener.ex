@@ -161,8 +161,15 @@ defmodule Effusion.DHT.UDPListener do
               |> KRPC.new_response(response_params)
               |> KRPC.encode!()
 
-            :ok = :gen_udp.send(socket, ip, port, response)
+            :ok =
+              Effusion.PWP.add(
+                message["a"]["info_hash"],
+                ip,
+                message["a"]["port"],
+                "dht"
+              )
 
+            :ok = :gen_udp.send(socket, ip, port, response)
             tokens = Map.delete(state.tokens, ip)
             %{state | tokens: tokens}
           end
