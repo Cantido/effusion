@@ -52,7 +52,6 @@ defmodule Effusion.DHT.UDPListener do
 
           peers = Effusion.PWP.get_peers_for_download(info_hash)
 
-          Logger.info("processing peers: #{inspect peers}")
           if Enum.empty?(peers) do
             nodes =
               Map.get(state, :peers, [])
@@ -64,9 +63,11 @@ defmodule Effusion.DHT.UDPListener do
               end)
               |> Enum.join()
 
+            token = DHT.generate_announce_peer_token()
+
             response_params = %{
               sender_id: DHT.local_node_id(),
-              token: DHT.generate_announce_peer_token(),
+              token: token,
               nodes: nodes
             }
 
@@ -76,7 +77,12 @@ defmodule Effusion.DHT.UDPListener do
               |> KRPC.encode!()
 
             :ok = :gen_udp.send(socket, ip, port, response)
-            state
+
+            tokens =
+              Map.get(state, :tokens, %{})
+              |> Map.put(ip, token)
+
+            Map.put(state, :tokens, tokens)
           else
             peers =
               peers
@@ -86,9 +92,11 @@ defmodule Effusion.DHT.UDPListener do
               end)
               |> Enum.join()
 
+            token = DHT.generate_announce_peer_token()
+
             response_params = %{
               sender_id: DHT.local_node_id(),
-              token: DHT.generate_announce_peer_token(),
+              token: token,
               values: peers
             }
 
@@ -98,7 +106,12 @@ defmodule Effusion.DHT.UDPListener do
               |> KRPC.encode!()
 
             :ok = :gen_udp.send(socket, ip, port, response)
-            state
+
+            tokens =
+              Map.get(state, :tokens, %{})
+              |> Map.put(ip, token)
+
+            Map.put(state, :tokens, tokens)
           end
         "find_node" ->
           target = message["a"]["target"]
@@ -126,13 +139,33 @@ defmodule Effusion.DHT.UDPListener do
           :ok = :gen_udp.send(socket, ip, port, response)
           state
         "announce_peer" ->
-          response =
-            message["t"]
-            |> KRPC.new_error([203, "Bad token"])
-            |> KRPC.encode!()
+          expected_token =
+            Map.get(state, :tokens, %{})
+            |> Map.get(ip)
 
-          :ok = :gen_udp.send(socket, ip, port, response)
-          state
+          if is_nil(expected_token) do
+            response =
+              message["t"]
+              |> KRPC.new_error([203, "Bad token"])
+              |> KRPC.encode!()
+
+            :ok = :gen_udp.send(socket, ip, port, response)
+            state
+          else
+            response_params = %{
+              id: DHT.local_node_id(),
+            }
+
+            response =
+              message["t"]
+              |> KRPC.new_response(response_params)
+              |> KRPC.encode!()
+
+            :ok = :gen_udp.send(socket, ip, port, response)
+
+            tokens = Map.delete(state.tokens, ip)
+            %{state | tokens: tokens}
+          end
         _ ->
           Logger.error("Unrecognized message: #{inspect message}")
           state

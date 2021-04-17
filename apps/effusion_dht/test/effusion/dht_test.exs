@@ -107,12 +107,10 @@ defmodule Effusion.DHTTest do
       :gen_udp.close(socket)
     end
 
-    torrent = TestHelper.mint_meta()
-    target = torrent.info_hash
+    target = :crypto.strong_rand_bytes(20)
 
-    # generate 8 peers for the torrent we're after
+    # generate the peer we'll respond with
 
-    :ok = Effusion.Downloads.add(torrent)
     :ok = Effusion.PWP.add(target, {127, 0, 0, 1}, 8080, "tracker")
 
     # Ask the DHT for peers
@@ -258,5 +256,53 @@ defmodule Effusion.DHTTest do
     assert response["t"] == txid
     assert response["y"] == "e"
     assert response["e"] == [203, "Bad token"]
+  end
+
+  test "response to announce_peer with a good token", %{port: port} do
+    {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
+    on_exit fn ->
+      :gen_udp.close(socket)
+    end
+
+    target = :crypto.strong_rand_bytes(20)
+
+    :ok = Effusion.PWP.add(target, {127, 0, 0, 1}, 8080, "tracker")
+
+    txid = KRPC.generate_transaction_id()
+    get_peers =
+      txid
+      |> KRPC.new_query("get_peers", %{
+          sender_id: DHT.generate_node_id(),
+          info_hash: target
+        })
+      |> KRPC.encode!()
+
+    :ok = :gen_udp.send(socket, 'localhost', port, get_peers)
+
+    {:ok, {_host, _port, data}} = :gen_udp.recv(socket, 0, 5_000)
+    response = KRPC.decode!(data)
+
+    token = response["r"]["token"]
+
+    txid_announce_peer = KRPC.generate_transaction_id()
+    announce_peer =
+      txid_announce_peer
+      |> KRPC.new_query("announce_peer", %{
+          id: DHT.generate_node_id(),
+          info_hash: target,
+          port: 8080,
+          implied_port: 0,
+          token: token
+        })
+      |> KRPC.encode!()
+
+    :ok = :gen_udp.send(socket, 'localhost', port, announce_peer)
+
+    {:ok, {_host, _port, data}} = :gen_udp.recv(socket, 0, 5_000)
+    response = KRPC.decode!(data)
+
+    assert response["t"] == txid_announce_peer
+    assert response["y"] == "r"
+    assert response["r"]["id"] == DHT.local_node_id()
   end
 end

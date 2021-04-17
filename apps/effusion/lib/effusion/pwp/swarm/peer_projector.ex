@@ -16,8 +16,6 @@ defmodule Effusion.PWP.Swarm.PeerProjector do
     host: host,
     port: port
   }, _metadata, fn multi ->
-    Logger.info("Inserting Peer")
-
     Ecto.Multi.insert(multi, :peer, %PeerProjection{
       id: uuid,
       info_hash: info_hash,
