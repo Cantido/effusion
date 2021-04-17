@@ -127,8 +127,6 @@ defmodule Effusion.DHTTest do
     {:ok, {_host, _port, data}} = :gen_udp.recv(socket, 0, 5_000)
     response = KRPC.decode!(data)
 
-
-
     assert response["t"] == txid
     assert response["y"] == "r"
     assert response["r"]["sender_id"] == DHT.local_node_id()
