@@ -1,6 +1,6 @@
 defmodule Effusion.DHT.Table do
   alias Effusion.DHT.Node
-  
+
   defstruct [
     nodes: []
   ]
@@ -22,6 +22,6 @@ defmodule Effusion.DHT.Table do
   def take_closest_to(%__MODULE__{nodes: nodes}, target, count) do
     nodes
     |> Enum.sort_by(&Node.distance(target, &1.id))
-    |> Enum.take(8)
+    |> Enum.take(count)
   end
 end
