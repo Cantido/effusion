@@ -3,6 +3,58 @@ defmodule Effusion.DHT.NodeTest do
   alias Effusion.DHT.Node
   doctest Effusion.DHT.Node
 
+  describe "new/3" do
+    test "initializes consecutive_failed_queries to zero" do
+      node =
+        Node.generate_node_id()
+        |> Node.new({127, 0, 0, 1}, Enum.random(1024..65535))
+
+      assert node.consecutive_failed_queries == 0
+    end
+
+    test "initializes host to the given host argument" do
+      node =
+        Node.generate_node_id()
+        |> Node.new({127, 0, 0, 1}, Enum.random(1024..65535))
+
+      assert node.host == {127, 0, 0, 1}
+    end
+
+    test "initializes port to the given port argument" do
+      port = Enum.random(1024..65535)
+
+      node =
+        Node.generate_node_id()
+        |> Node.new({127, 0, 0, 1}, port)
+
+      assert node.port == port
+    end
+
+    test "initializes id to the given id argument" do
+      id = Node.generate_node_id()
+
+      node = Node.new(id, {127, 0, 0, 1}, Enum.random(1024..65535))
+
+      assert node.id == id
+    end
+
+    test "initializes last_query_received_at to nil" do
+      node =
+        Node.generate_node_id()
+        |> Node.new({127, 0, 0, 1}, Enum.random(1024..65535))
+
+      assert is_nil(node.last_query_received_at)
+    end
+
+    test "initializes last_response_received_at to nil" do
+      node =
+        Node.generate_node_id()
+        |> Node.new({127, 0, 0, 1}, Enum.random(1024..65535))
+
+      assert is_nil(node.last_response_received_at)
+    end
+  end
+
   describe "query_received_at/2" do
     test "updates last_query_recieved_at" do
       node =
@@ -33,6 +85,16 @@ defmodule Effusion.DHT.NodeTest do
         |> Node.response_received_at(~U[2021-04-17T14:11:00Z])
 
       assert DateTime.compare(node.last_response_received_at, ~U[2021-04-18T14:11:00Z]) == :eq
+    end
+
+    test "resets consectuve_failed_queries" do
+      node =
+        Node.generate_node_id()
+        |> Node.new({127, 0, 0, 1}, Enum.random(1024..65535))
+        |> Node.failed_query()
+        |> Node.response_received_at(~U[2021-04-18T14:11:00Z])
+
+      assert node.consecutive_failed_queries == 0
     end
   end
 
@@ -94,6 +156,15 @@ defmodule Effusion.DHT.NodeTest do
     end
   end
 
+  test "failed_query increments consecutive_failed_queries" do
+    node =
+      Node.generate_node_id()
+      |> Node.new({127, 0, 0, 1}, Enum.random(1024..65535))
+      |> Node.failed_query()
+
+    assert node.consecutive_failed_queries == 1
+  end
+
   test "time_since_last_response returns a positive value" do
     seconds =
       Node.generate_node_id()
@@ -112,5 +183,47 @@ defmodule Effusion.DHT.NodeTest do
       |> Node.time_since_last_query(~U[2021-04-18T12:00:01Z], :second)
 
     assert seconds == 1
+  end
+
+  describe "ever_responded?/1" do
+    test "returns false on a new node" do
+      responded =
+        Node.generate_node_id()
+        |> Node.new({127, 0, 0, 1}, Enum.random(1024..65535))
+        |> Node.ever_responded?()
+
+      refute responded
+    end
+
+    test "returns true after we've received a response" do
+      responded =
+        Node.generate_node_id()
+        |> Node.new({127, 0, 0, 1}, Enum.random(1024..65535))
+        |> Node.response_received_at(~U[2021-04-18T12:00:00Z])
+        |> Node.ever_responded?()
+
+      assert responded
+    end
+  end
+
+  describe "ever_queried?/1" do
+    test "returns false on a new node" do
+      queried =
+        Node.generate_node_id()
+        |> Node.new({127, 0, 0, 1}, Enum.random(1024..65535))
+        |> Node.ever_queried?()
+
+      refute queried
+    end
+
+    test "returns true after we've received a response" do
+      queried =
+        Node.generate_node_id()
+        |> Node.new({127, 0, 0, 1}, Enum.random(1024..65535))
+        |> Node.query_received_at(~U[2021-04-18T12:00:00Z])
+        |> Node.ever_queried?()
+
+      assert queried
+    end
   end
 end

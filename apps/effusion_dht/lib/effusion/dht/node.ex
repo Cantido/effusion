@@ -64,7 +64,10 @@ defmodule Effusion.DHT.Node do
 
   def response_received_at(node = %__MODULE__{last_response_received_at: prev_timestamp}, timestamp) do
     if is_nil(prev_timestamp) or DateTime.compare(prev_timestamp, timestamp) == :lt do
-      %__MODULE__{node | last_response_received_at: timestamp}
+      %__MODULE__{node |
+        last_response_received_at: timestamp,
+        consecutive_failed_queries: 0
+      }
     else
       node
     end
