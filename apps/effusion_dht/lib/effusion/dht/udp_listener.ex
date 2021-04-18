@@ -39,9 +39,10 @@ defmodule Effusion.DHT.UDPListener do
 
     {reply, next_server} = Server.handle_message(state.server, message, context)
 
-    reply = KRPC.encode!(reply)
-
-    :ok = :gen_udp.send(socket, ip, port, reply)
+    Task.start(fn ->
+      reply = KRPC.encode!(reply)
+      :ok = :gen_udp.send(socket, ip, port, reply)
+    end)
 
     {:noreply, %{state | server: next_server}}
   end
