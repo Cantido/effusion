@@ -2,6 +2,7 @@ defmodule Effusion.DHTTest do
   use ExUnit.Case
   alias Effusion.DHT
   alias Effusion.DHT.KRPC
+  alias Effusion.DHT.Node
   import Bitwise
   doctest Effusion.DHT
 
@@ -12,7 +13,7 @@ defmodule Effusion.DHTTest do
 
   setup do
     port = Enum.random(1025..65535)
-    node_id = Effusion.DHT.generate_node_id()
+    node_id = Effusion.Node.generate_node_id()
 
     start_supervised({Effusion.DHT.UDPListener, [port: port, node_id: node_id]})
 
@@ -28,7 +29,7 @@ defmodule Effusion.DHTTest do
     txid = KRPC.generate_transaction_id()
     ping =
       txid
-      |> KRPC.new_query("ping", %{id: DHT.generate_node_id()})
+      |> KRPC.new_query("ping", %{id: Node.generate_node_id()})
       |> KRPC.encode!()
 
     :ok = :gen_udp.send(socket, 'localhost', port, ping)
@@ -82,7 +83,7 @@ defmodule Effusion.DHTTest do
     get_peers =
       txid
       |> KRPC.new_query("get_peers", %{
-          id: DHT.generate_node_id(),
+          id: Node.generate_node_id(),
           info_hash: target
         })
       |> KRPC.encode!()
@@ -123,7 +124,7 @@ defmodule Effusion.DHTTest do
     get_peers =
       txid
       |> KRPC.new_query("get_peers", %{
-          id: DHT.generate_node_id(),
+          id: Node.generate_node_id(),
           info_hash: target
         })
       |> KRPC.encode!()
@@ -199,7 +200,7 @@ defmodule Effusion.DHTTest do
     get_peers =
       txid
       |> KRPC.new_query("find_node", %{
-          id: DHT.generate_node_id(),
+          id: Node.generate_node_id(),
           target: target
         })
       |> KRPC.encode!()
@@ -249,7 +250,7 @@ defmodule Effusion.DHTTest do
     get_peers =
       txid
       |> KRPC.new_query("announce_peer", %{
-          id: DHT.generate_node_id(),
+          id: Node.generate_node_id(),
           info_hash: target,
           port: 8080,
           implied_port: 0,
@@ -279,7 +280,7 @@ defmodule Effusion.DHTTest do
     get_peers =
       txid
       |> KRPC.new_query("get_peers", %{
-          id: DHT.generate_node_id(),
+          id: Node.generate_node_id(),
           info_hash: target
         })
       |> KRPC.encode!()
@@ -296,7 +297,7 @@ defmodule Effusion.DHTTest do
     announce_peer =
       txid_announce_peer
       |> KRPC.new_query("announce_peer", %{
-          id: DHT.generate_node_id(),
+          id: Node.generate_node_id(),
           info_hash: target,
           port: peer_port,
           implied_port: 0,
@@ -332,7 +333,7 @@ defmodule Effusion.DHTTest do
     get_peers =
       txid
       |> KRPC.new_query("get_peers", %{
-          id: DHT.generate_node_id(),
+          id: Node.generate_node_id(),
           info_hash: target
         })
       |> KRPC.encode!()
@@ -348,7 +349,7 @@ defmodule Effusion.DHTTest do
     announce_peer =
       txid_announce_peer
       |> KRPC.new_query("announce_peer", %{
-          id: DHT.generate_node_id(),
+          id: Node.generate_node_id(),
           info_hash: target,
           port: Enum.random(1025..65535),
           implied_port: 1,
@@ -386,7 +387,7 @@ defmodule Effusion.DHTTest do
     get_peers =
       txid
       |> KRPC.new_query("get_peers", %{
-          id: DHT.generate_node_id(),
+          id: Node.generate_node_id(),
           info_hash: target
         })
       |> KRPC.encode!()
@@ -399,7 +400,7 @@ defmodule Effusion.DHTTest do
     announce_peer =
       txid_announce_peer
       |> KRPC.new_query("announce_peer", %{
-          id: DHT.generate_node_id(),
+          id: Node.generate_node_id(),
           info_hash: target,
           port: 8080,
           implied_port: 0,

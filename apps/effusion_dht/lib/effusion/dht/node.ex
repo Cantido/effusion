@@ -13,6 +13,13 @@ defmodule Effusion.DHT.Node do
   ]
 
   @doc """
+  Generates twenty-byte node ID.
+  """
+  def generate_node_id do
+    :crypto.strong_rand_bytes(20)
+  end
+
+  @doc """
     Calcuates the distance between two node IDs.
     Smaller values mean the two nodes are closer.
 
