@@ -37,7 +37,20 @@ defmodule Effusion.DHT.UDPListener do
       port: port
     }
 
-    {reply, next_server} = Server.handle_message(state.server, message, context)
+    {reply, next_server} =
+      try do
+        Server.handle_message(state.server, message, context)
+      rescue
+        _ ->
+          if message["y"] == "q" do
+            {
+              KRPC.new_error(message["t"], [202, "Server Error"]),
+              state.server
+            }
+          else
+            {:noreply, state.server}
+          end
+      end
 
     Task.start(fn ->
       reply = KRPC.encode!(reply)
