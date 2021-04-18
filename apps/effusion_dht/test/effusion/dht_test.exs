@@ -238,7 +238,7 @@ defmodule Effusion.DHTTest do
     <<id_int::integer-size(160)>>
   end
 
-  test "response to announce_peer with a bad token", %{port: port, node_id: node_id} do
+  test "response to announce_peer with a bad token", %{port: port} do
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
     on_exit fn ->
       :gen_udp.close(socket)
@@ -375,7 +375,7 @@ defmodule Effusion.DHTTest do
     assert Enum.any?(peers, & &1.port == peer_port), "No peers with port #{peer_port} found"
   end
 
-  test "response to announce_peer with a mismatched token", %{port: port, node_id: node_id} do
+  test "response to announce_peer with a mismatched token", %{port: port} do
     {:ok, socket} = :gen_udp.open(0, [:binary, {:active, false}])
     on_exit fn ->
       :gen_udp.close(socket)
