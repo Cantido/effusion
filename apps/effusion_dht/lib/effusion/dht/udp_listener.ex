@@ -4,6 +4,7 @@ defmodule Effusion.DHT.UDPListener do
   alias Effusion.DHT.KRPC
   alias Effusion.DHT.Node
   alias Effusion.DHT.Peer
+  alias Effusion.DHT.Table
 
   require Logger
 
@@ -48,7 +49,13 @@ defmodule Effusion.DHT.UDPListener do
             port: port
           }
 
-          state = Map.update(state, :nodes, [node], &([node | &1]))
+          state =
+            Map.update(
+              state,
+              :table,
+              Table.new([node]),
+              &Table.add(&1, node)
+            )
           {response, state}
         "get_peers" ->
           info_hash = message["a"]["info_hash"]
@@ -57,9 +64,8 @@ defmodule Effusion.DHT.UDPListener do
 
           if Enum.empty?(peers) do
             nodes =
-              Map.get(state, :nodes, [])
-              |> Enum.sort_by(&Node.distance(info_hash, &1.id))
-              |> Enum.take(8)
+              Map.get(state, :table, Table.new())
+              |> Table.take_closest_to(info_hash, 8)
               |> Enum.map(&Node.compact/1)
               |> Enum.join()
 
@@ -113,9 +119,8 @@ defmodule Effusion.DHT.UDPListener do
           target = message["a"]["target"]
 
           nodes =
-            Map.get(state, :nodes, [])
-            |> Enum.sort_by(&Node.distance(target, &1.id))
-            |> Enum.take(8)
+            Map.get(state, :table, Table.new())
+            |> Table.take_closest_to(target, 8)
             |> Enum.map(&Node.compact/1)
             |> Enum.join()
 
