@@ -12,141 +12,161 @@ defmodule Effusion.DHT.Server do
     tokens: %{}
   ]
 
-  def handle_message(state, message, context) do
+  def new do
+    %__MODULE__{}
+  end
+
+  def handle_message(state, message = %{"q" => "ping"}, context) do
     node_id = context.node_id
     ip = context.ip
     port = context.port
 
-    case message["q"] do
-      "ping" ->
+    response_params = %{
+      id: node_id,
+    }
 
-        response_params = %{
-          id: node_id,
-        }
-
-        response = KRPC.new_response(message["t"], response_params)
+    response = KRPC.new_response(message["t"], response_params)
 
 
-        node = %Node{
-          id: message["a"]["id"],
-          host: ip,
-          port: port
-        }
+    node = %Node{
+      id: message["a"]["id"],
+      host: ip,
+      port: port
+    }
 
-        state =
-          Map.update(
-            state,
-            :table,
-            Table.new([node]),
-            &Table.add(&1, node)
-          )
-        {response, state}
-      "get_peers" ->
-        info_hash = message["a"]["info_hash"]
+    state =
+      Map.update(
+        state,
+        :table,
+        Table.new([node]),
+        &Table.add(&1, node)
+      )
+    {response, state}
+  end
 
-        peers = Effusion.PWP.get_peers_for_download(info_hash)
+  def handle_message(state, message = %{"q" => "get_peers"}, context) do
+    node_id = context.node_id
+    ip = context.ip
 
-        if Enum.empty?(peers) do
-          nodes =
-            Map.get(state, :table, Table.new())
-            |> Table.take_closest_to(info_hash, 8)
-            |> Enum.map(&Node.compact/1)
-            |> Enum.join()
+    info_hash = message["a"]["info_hash"]
 
-          token = DHT.generate_announce_peer_token()
+    peers = Effusion.PWP.get_peers_for_download(info_hash)
 
-          response_params = %{
-            id: node_id,
-            token: token,
-            nodes: nodes
-          }
+    if Enum.empty?(peers) do
+      nodes =
+        Map.get(state, :table, Table.new())
+        |> Table.take_closest_to(info_hash, 8)
+        |> Enum.map(&Node.compact/1)
+        |> Enum.join()
 
-          response = KRPC.new_response(message["t"], response_params)
+      token = DHT.generate_announce_peer_token()
 
-          tokens =
-            Map.get(state, :tokens, %{})
-            |> Map.put(ip, token)
+      response_params = %{
+        id: node_id,
+        token: token,
+        nodes: nodes
+      }
 
-          state = Map.put(state, :tokens, tokens)
-          {response, state}
-        else
-          peers =
-            peers
-            |> Enum.map(&Peer.compact/1)
-            |> Enum.join()
+      response = KRPC.new_response(message["t"], response_params)
 
-          token = DHT.generate_announce_peer_token()
+      tokens =
+        Map.get(state, :tokens, %{})
+        |> Map.put(ip, token)
 
-          response_params = %{
-            id: node_id,
-            token: token,
-            values: peers
-          }
+      state = Map.put(state, :tokens, tokens)
+      {response, state}
+    else
+      peers =
+        peers
+        |> Enum.map(&Peer.compact/1)
+        |> Enum.join()
 
-          response = KRPC.new_response(message["t"], response_params)
+      token = DHT.generate_announce_peer_token()
 
-          tokens =
-            Map.get(state, :tokens, %{})
-            |> Map.put(ip, token)
+      response_params = %{
+        id: node_id,
+        token: token,
+        values: peers
+      }
 
-          state = Map.put(state, :tokens, tokens)
+      response = KRPC.new_response(message["t"], response_params)
 
-          {response, state}
-        end
-      "find_node" ->
-        target = message["a"]["target"]
+      tokens =
+        Map.get(state, :tokens, %{})
+        |> Map.put(ip, token)
 
-        nodes =
-          Map.get(state, :table, Table.new())
-          |> Table.take_closest_to(target, 8)
-          |> Enum.map(&Node.compact/1)
-          |> Enum.join()
+      state = Map.put(state, :tokens, tokens)
 
-        response_params = %{
-          id: node_id,
-          nodes: nodes
-        }
-
-        response = KRPC.new_response(message["t"], response_params)
-
-        {response, state}
-      "announce_peer" ->
-        expected_token =
-          Map.get(state, :tokens, %{})
-          |> Map.get(ip)
-
-        if is_nil(expected_token) or message["a"]["token"] != expected_token do
-          response = KRPC.new_error(message["t"], [203, "Bad token"])
-
-          {response, state}
-        else
-          response_params = %{
-            id: node_id,
-          }
-
-          response = KRPC.new_response(message["t"], response_params)
-
-          peer_port =
-            if message["a"]["implied_port"] == 1 do
-              port
-            else
-              message["a"]["port"]
-            end
-
-          :ok =
-            Effusion.PWP.add(
-              message["a"]["info_hash"],
-              ip,
-              peer_port,
-              "dht"
-            )
-
-          tokens = Map.delete(state.tokens, ip)
-          {response, %{state | tokens: tokens}}
-        end
-      _ ->
-        Logger.error("Unrecognized message: #{inspect message}")
-        state
+      {response, state}
     end
+  end
+
+  def handle_message(state, message = %{"q" => "find_node"}, context) do
+    node_id = context.node_id
+
+    target = message["a"]["target"]
+
+    nodes =
+      Map.get(state, :table, Table.new())
+      |> Table.take_closest_to(target, 8)
+      |> Enum.map(&Node.compact/1)
+      |> Enum.join()
+
+    response_params = %{
+      id: node_id,
+      nodes: nodes
+    }
+
+    response = KRPC.new_response(message["t"], response_params)
+
+    {response, state}
+  end
+
+  def handle_message(state, message = %{"q" => "announce_peer"}, context) do
+    node_id = context.node_id
+    ip = context.ip
+    port = context.port
+
+    expected_token =
+      Map.get(state, :tokens, %{})
+      |> Map.get(ip)
+
+    if is_nil(expected_token) or message["a"]["token"] != expected_token do
+      response = KRPC.new_error(message["t"], [203, "Bad token"])
+
+      {response, state}
+    else
+      response_params = %{
+        id: node_id,
+      }
+
+      response = KRPC.new_response(message["t"], response_params)
+
+      peer_port =
+        if message["a"]["implied_port"] == 1 do
+          port
+        else
+          message["a"]["port"]
+        end
+
+      :ok =
+        Effusion.PWP.add(
+          message["a"]["info_hash"],
+          ip,
+          peer_port,
+          "dht"
+        )
+
+      tokens = Map.delete(state.tokens, ip)
+      {response, %{state | tokens: tokens}}
+    end
+  end
+
+  def handle_message(state, message = %{"q" => query}, _context) do
+    Logger.error("Unrecognized message: #{inspect message}")
+
+    response = KRPC.new_error(message["t"], [204, "Unknown method #{query}"])
+
+    {response, state}
   end
 end

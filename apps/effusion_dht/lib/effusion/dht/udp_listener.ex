@@ -1,6 +1,5 @@
 defmodule Effusion.DHT.UDPListener do
   use GenServer
-  alias Effusion.DHT
   alias Effusion.DHT.KRPC
   alias Effusion.DHT.Server
 
@@ -11,9 +10,13 @@ defmodule Effusion.DHT.UDPListener do
   end
 
   def init(opts) do
-    port = Keyword.fetch!(opts, :port)
-    node_id = Keyword.fetch!(opts, :node_id)
-    {:ok, %{port: port, node_id: node_id}, {:continue, :open_socket}}
+    state = %{
+      port: Keyword.fetch!(opts, :port),
+      node_id: Keyword.fetch!(opts, :node_id),
+      server: Server.new()
+    }
+
+    {:ok, state, {:continue, :open_socket}}
   end
 
   def handle_continue(:open_socket, state = %{port: port}) do
@@ -34,13 +37,13 @@ defmodule Effusion.DHT.UDPListener do
       port: port
     }
 
-    {reply, state} = Server.handle_message(state, message, context)
+    {reply, next_server} = Server.handle_message(state.server, message, context)
 
     reply = KRPC.encode!(reply)
 
     :ok = :gen_udp.send(socket, ip, port, reply)
 
-    {:noreply, state}
+    {:noreply, %{state | server: next_server}}
   end
 
   def handle_info({:udp_passive, socket}, state) do
