@@ -174,7 +174,6 @@ defmodule Effusion.DHT.UDPListener do
                 "dht"
               )
 
-            :ok = :gen_udp.send(socket, ip, port, response)
             tokens = Map.delete(state.tokens, ip)
             {response, %{state | tokens: tokens}}
           end
