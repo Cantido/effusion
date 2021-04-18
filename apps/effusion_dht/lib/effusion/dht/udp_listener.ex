@@ -2,6 +2,7 @@ defmodule Effusion.DHT.UDPListener do
   use GenServer
   alias Effusion.DHT
   alias Effusion.DHT.KRPC
+  alias Effusion.DHT.Node
 
   require Logger
 
@@ -40,9 +41,9 @@ defmodule Effusion.DHT.UDPListener do
             |> KRPC.new_response(response_params)
             |> KRPC.encode!()
 
-          peer = %{
+          peer = %Node{
             id: message["a"]["id"],
-            ip: ip,
+            host: ip,
             port: port
           }
 
@@ -56,12 +57,9 @@ defmodule Effusion.DHT.UDPListener do
           if Enum.empty?(peers) do
             nodes =
               Map.get(state, :peers, [])
-              |> Enum.sort_by(&DHT.distance(info_hash, &1.id))
+              |> Enum.sort_by(&Node.distance(info_hash, &1.id))
               |> Enum.take(8)
-              |> Enum.map(fn peer ->
-                {ip0, ip1, ip2, ip3} = peer.ip
-                peer.id <> <<ip0, ip1, ip2, ip3>> <> <<peer.port::integer-size(16)>>
-              end)
+              |> Enum.map(&Node.compact/1)
               |> Enum.join()
 
             token = DHT.generate_announce_peer_token()
@@ -118,12 +116,9 @@ defmodule Effusion.DHT.UDPListener do
 
           nodes =
             Map.get(state, :peers, [])
-            |> Enum.sort_by(&DHT.distance(target, &1.id))
+            |> Enum.sort_by(&Node.distance(target, &1.id))
             |> Enum.take(8)
-            |> Enum.map(fn peer ->
-              {ip0, ip1, ip2, ip3} = peer.ip
-              peer.id <> <<ip0, ip1, ip2, ip3>> <> <<peer.port::integer-size(16)>>
-            end)
+            |> Enum.map(&Node.compact/1)
             |> Enum.join()
 
           response_params = %{
