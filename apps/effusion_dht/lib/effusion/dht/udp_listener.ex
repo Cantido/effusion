@@ -27,7 +27,7 @@ defmodule Effusion.DHT.UDPListener do
   def handle_info({:udp, socket, ip, port, packet}, state = %{node_id: node_id}) do
     message = KRPC.decode!(packet)
 
-    state =
+    {reply, state} =
       case message["q"] do
         "ping" ->
 
@@ -45,9 +45,9 @@ defmodule Effusion.DHT.UDPListener do
             ip: ip,
             port: port
           }
-          :ok = :gen_udp.send(socket, ip, port, response)
 
-          Map.update(state, :peers, [peer], &([peer | &1]))
+          state = Map.update(state, :peers, [peer], &([peer | &1]))
+          {response, state}
         "get_peers" ->
           info_hash = message["a"]["info_hash"]
 
@@ -77,13 +77,12 @@ defmodule Effusion.DHT.UDPListener do
               |> KRPC.new_response(response_params)
               |> KRPC.encode!()
 
-            :ok = :gen_udp.send(socket, ip, port, response)
-
             tokens =
               Map.get(state, :tokens, %{})
               |> Map.put(ip, token)
 
-            Map.put(state, :tokens, tokens)
+            state = Map.put(state, :tokens, tokens)
+            {response, state}
           else
             peers =
               peers
@@ -106,13 +105,13 @@ defmodule Effusion.DHT.UDPListener do
               |> KRPC.new_response(response_params)
               |> KRPC.encode!()
 
-            :ok = :gen_udp.send(socket, ip, port, response)
-
             tokens =
               Map.get(state, :tokens, %{})
               |> Map.put(ip, token)
 
-            Map.put(state, :tokens, tokens)
+            state = Map.put(state, :tokens, tokens)
+
+            {response, state}
           end
         "find_node" ->
           target = message["a"]["target"]
@@ -137,8 +136,7 @@ defmodule Effusion.DHT.UDPListener do
             |> KRPC.new_response(response_params)
             |> KRPC.encode!()
 
-          :ok = :gen_udp.send(socket, ip, port, response)
-          state
+          {response, state}
         "announce_peer" ->
           expected_token =
             Map.get(state, :tokens, %{})
@@ -150,8 +148,7 @@ defmodule Effusion.DHT.UDPListener do
               |> KRPC.new_error([203, "Bad token"])
               |> KRPC.encode!()
 
-            :ok = :gen_udp.send(socket, ip, port, response)
-            state
+            {response, state}
           else
             response_params = %{
               id: node_id,
@@ -179,12 +176,14 @@ defmodule Effusion.DHT.UDPListener do
 
             :ok = :gen_udp.send(socket, ip, port, response)
             tokens = Map.delete(state.tokens, ip)
-            %{state | tokens: tokens}
+            {response, %{state | tokens: tokens}}
           end
         _ ->
           Logger.error("Unrecognized message: #{inspect message}")
           state
       end
+
+    :ok = :gen_udp.send(socket, ip, port, reply)
 
     {:noreply, state}
   end
