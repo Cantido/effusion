@@ -42,13 +42,13 @@ defmodule Effusion.DHT.UDPListener do
             |> KRPC.new_response(response_params)
             |> KRPC.encode!()
 
-          peer = %Node{
+          node = %Node{
             id: message["a"]["id"],
             host: ip,
             port: port
           }
 
-          state = Map.update(state, :peers, [peer], &([peer | &1]))
+          state = Map.update(state, :nodes, [node], &([node | &1]))
           {response, state}
         "get_peers" ->
           info_hash = message["a"]["info_hash"]
@@ -57,7 +57,7 @@ defmodule Effusion.DHT.UDPListener do
 
           if Enum.empty?(peers) do
             nodes =
-              Map.get(state, :peers, [])
+              Map.get(state, :nodes, [])
               |> Enum.sort_by(&Node.distance(info_hash, &1.id))
               |> Enum.take(8)
               |> Enum.map(&Node.compact/1)
@@ -113,7 +113,7 @@ defmodule Effusion.DHT.UDPListener do
           target = message["a"]["target"]
 
           nodes =
-            Map.get(state, :peers, [])
+            Map.get(state, :nodes, [])
             |> Enum.sort_by(&Node.distance(target, &1.id))
             |> Enum.take(8)
             |> Enum.map(&Node.compact/1)
