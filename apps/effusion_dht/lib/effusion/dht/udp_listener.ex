@@ -41,8 +41,9 @@ defmodule Effusion.DHT.UDPListener do
       try do
         Server.handle_message(state.server, message, context)
       rescue
-        _ ->
+        err ->
           if message["y"] == "q" do
+            Logger.error("Error while handling message: #{inspect err}")
             {
               KRPC.new_error(message["t"], [202, "Server Error"]),
               state.server
