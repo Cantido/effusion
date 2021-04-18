@@ -2,9 +2,7 @@ defmodule Effusion.DHT.UDPListener do
   use GenServer
   alias Effusion.DHT
   alias Effusion.DHT.KRPC
-  alias Effusion.DHT.Node
-  alias Effusion.DHT.Peer
-  alias Effusion.DHT.Table
+  alias Effusion.DHT.Server
 
   require Logger
 
@@ -30,155 +28,15 @@ defmodule Effusion.DHT.UDPListener do
   def handle_info({:udp, socket, ip, port, packet}, state = %{node_id: node_id}) do
     message = KRPC.decode!(packet)
 
-    {reply, state} =
-      case message["q"] do
-        "ping" ->
+    context = %{
+      node_id: node_id,
+      ip: ip,
+      port: port
+    }
 
-          response_params = %{
-            id: node_id,
-          }
+    {reply, state} = Server.handle_message(state, message, context)
 
-          response =
-            message["t"]
-            |> KRPC.new_response(response_params)
-            |> KRPC.encode!()
-
-          node = %Node{
-            id: message["a"]["id"],
-            host: ip,
-            port: port
-          }
-
-          state =
-            Map.update(
-              state,
-              :table,
-              Table.new([node]),
-              &Table.add(&1, node)
-            )
-          {response, state}
-        "get_peers" ->
-          info_hash = message["a"]["info_hash"]
-
-          peers = Effusion.PWP.get_peers_for_download(info_hash)
-
-          if Enum.empty?(peers) do
-            nodes =
-              Map.get(state, :table, Table.new())
-              |> Table.take_closest_to(info_hash, 8)
-              |> Enum.map(&Node.compact/1)
-              |> Enum.join()
-
-            token = DHT.generate_announce_peer_token()
-
-            response_params = %{
-              id: node_id,
-              token: token,
-              nodes: nodes
-            }
-
-            response =
-              message["t"]
-              |> KRPC.new_response(response_params)
-              |> KRPC.encode!()
-
-            tokens =
-              Map.get(state, :tokens, %{})
-              |> Map.put(ip, token)
-
-            state = Map.put(state, :tokens, tokens)
-            {response, state}
-          else
-            peers =
-              peers
-              |> Enum.map(&Peer.compact/1)
-              |> Enum.join()
-
-            token = DHT.generate_announce_peer_token()
-
-            response_params = %{
-              id: node_id,
-              token: token,
-              values: peers
-            }
-
-            response =
-              message["t"]
-              |> KRPC.new_response(response_params)
-              |> KRPC.encode!()
-
-            tokens =
-              Map.get(state, :tokens, %{})
-              |> Map.put(ip, token)
-
-            state = Map.put(state, :tokens, tokens)
-
-            {response, state}
-          end
-        "find_node" ->
-          target = message["a"]["target"]
-
-          nodes =
-            Map.get(state, :table, Table.new())
-            |> Table.take_closest_to(target, 8)
-            |> Enum.map(&Node.compact/1)
-            |> Enum.join()
-
-          response_params = %{
-            id: node_id,
-            nodes: nodes
-          }
-
-          response =
-            message["t"]
-            |> KRPC.new_response(response_params)
-            |> KRPC.encode!()
-
-          {response, state}
-        "announce_peer" ->
-          expected_token =
-            Map.get(state, :tokens, %{})
-            |> Map.get(ip)
-
-          if is_nil(expected_token) or message["a"]["token"] != expected_token do
-            response =
-              message["t"]
-              |> KRPC.new_error([203, "Bad token"])
-              |> KRPC.encode!()
-
-            {response, state}
-          else
-            response_params = %{
-              id: node_id,
-            }
-
-            response =
-              message["t"]
-              |> KRPC.new_response(response_params)
-              |> KRPC.encode!()
-
-            peer_port =
-              if message["a"]["implied_port"] == 1 do
-                port
-              else
-                message["a"]["port"]
-              end
-
-            :ok =
-              Effusion.PWP.add(
-                message["a"]["info_hash"],
-                ip,
-                peer_port,
-                "dht"
-              )
-
-            tokens = Map.delete(state.tokens, ip)
-            {response, %{state | tokens: tokens}}
-          end
-        _ ->
-          Logger.error("Unrecognized message: #{inspect message}")
-          state
-      end
+    reply = KRPC.encode!(reply)
 
     :ok = :gen_udp.send(socket, ip, port, reply)
 
