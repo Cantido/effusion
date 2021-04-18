@@ -3,6 +3,7 @@ defmodule Effusion.DHT.UDPListener do
   alias Effusion.DHT
   alias Effusion.DHT.KRPC
   alias Effusion.DHT.Node
+  alias Effusion.DHT.Peer
 
   require Logger
 
@@ -84,10 +85,7 @@ defmodule Effusion.DHT.UDPListener do
           else
             peers =
               peers
-              |> Enum.map(fn peer ->
-                {:ok, {ip0, ip1, ip2, ip3}} = :inet.parse_ipv4strict_address(String.to_charlist(peer.host))
-                <<ip0, ip1, ip2, ip3>> <> <<peer.port::integer-size(16)>>
-              end)
+              |> Enum.map(&Peer.compact/1)
               |> Enum.join()
 
             token = DHT.generate_announce_peer_token()
