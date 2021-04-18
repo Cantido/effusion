@@ -13,7 +13,7 @@ defmodule Effusion.DHT.UDPListener do
     state = %{
       port: Keyword.fetch!(opts, :port),
       node_id: Keyword.fetch!(opts, :node_id),
-      server: Server.new()
+      server: Server.new(Keyword.fetch!(opts, :node_id))
     }
 
     {:ok, state, {:continue, :open_socket}}

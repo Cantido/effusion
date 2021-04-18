@@ -1,16 +1,23 @@
 defmodule Effusion.DHT.Table do
   alias Effusion.DHT.Node
 
+  @enforce_keys [
+    :local_id
+  ]
   defstruct [
+    local_id: nil,
     nodes: []
   ]
 
-  def new do
-    %__MODULE__{}
+  def new(local_id) do
+    %__MODULE__{
+      local_id: local_id
+    }
   end
 
-  def new(nodes) when is_list(nodes) do
+  def new(local_id, nodes) when is_list(nodes) do
     %__MODULE__{
+      local_id: local_id,
       nodes: nodes
     }
   end

@@ -7,13 +7,18 @@ defmodule Effusion.DHT.Server do
 
   require Logger
 
+  @enforce_keys [
+    :table
+  ]
   defstruct [
-    table: Table.new(),
+    table: nil,
     tokens: %{}
   ]
 
-  def new do
-    %__MODULE__{}
+  def new(local_id) do
+    %__MODULE__{
+      table: Table.new(local_id)
+    }
   end
 
   def handle_message(state, message = %{"q" => "ping"}, context) do
@@ -35,10 +40,9 @@ defmodule Effusion.DHT.Server do
     }
 
     state =
-      Map.update(
+      Map.update!(
         state,
         :table,
-        Table.new([node]),
         &Table.add(&1, node)
       )
     {response, state}
@@ -54,7 +58,7 @@ defmodule Effusion.DHT.Server do
 
     if Enum.empty?(peers) do
       nodes =
-        Map.get(state, :table, Table.new())
+        Map.get(state, :table)
         |> Table.take_closest_to(info_hash, 8)
         |> Enum.map(&Node.compact/1)
         |> Enum.join()
@@ -107,7 +111,7 @@ defmodule Effusion.DHT.Server do
     target = message["a"]["target"]
 
     nodes =
-      Map.get(state, :table, Table.new())
+      Map.get(state, :table)
       |> Table.take_closest_to(target, 8)
       |> Enum.map(&Node.compact/1)
       |> Enum.join()
