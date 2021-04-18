@@ -1,4 +1,6 @@
 defmodule Effusion.DHT.Node do
+  import Bitwise
+
   @enforce_keys [
     :id,
     :host,
