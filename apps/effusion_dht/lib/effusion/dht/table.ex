@@ -1,4 +1,5 @@
 defmodule Effusion.DHT.Table do
+  alias Effusion.DHT.Bucket
   alias Effusion.DHT.Node
 
   @enforce_keys [
@@ -6,7 +7,7 @@ defmodule Effusion.DHT.Table do
   ]
   defstruct [
     local_id: nil,
-    nodes: []
+    buckets: [Bucket.new()]
   ]
 
   def new(local_id) do
@@ -16,18 +17,23 @@ defmodule Effusion.DHT.Table do
   end
 
   def new(local_id, nodes) when is_list(nodes) do
-    %__MODULE__{
-      local_id: local_id,
-      nodes: nodes
-    }
-  end
-
-  def add(table = %__MODULE__{nodes: nodes}, node) do
-    %__MODULE__{ table | nodes: [node | nodes]}
-  end
-
-  def take_closest_to(%__MODULE__{nodes: nodes}, target, count) do
     nodes
+    |> Enum.reduce(new(local_id), fn node, table ->
+      add(table, node)
+    end)
+  end
+
+  def add(table = %__MODULE__{buckets: buckets}, node) do
+    bucket_index = Enum.find_index(buckets, &Bucket.node_in_range?(&1, node))
+
+    updated_buckets = List.update_at(buckets, bucket_index, &Bucket.add_node(&1, node))
+
+    %__MODULE__{ table | buckets: updated_buckets}
+  end
+
+  def take_closest_to(%__MODULE__{buckets: buckets}, target, count) do
+    buckets
+    |> Enum.flat_map(& &1.nodes)
     |> Enum.sort_by(&Node.distance(target, &1.id))
     |> Enum.take(count)
   end
