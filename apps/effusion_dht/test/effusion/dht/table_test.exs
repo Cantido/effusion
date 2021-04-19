@@ -24,6 +24,29 @@ defmodule Effusion.DHT.TableTest do
     assert result_node.id == id
   end
 
+  test "stores multiple buckets" do
+    local_node_id = <<0::160>>
+
+    table =
+      Table.new(local_node_id)
+      |> Table.add(generate_node(<<1::160>>))
+      |> Table.add(generate_node(<<2::160>>))
+      |> Table.add(generate_node(<<3::160>>))
+      |> Table.add(generate_node(<<4::160>>))
+      |> Table.add(generate_node(<<5::160>>))
+      |> Table.add(generate_node(<<6::160>>))
+      |> Table.add(generate_node(<<7::160>>))
+      |> Table.add(generate_node(<<8::160>>))
+
+    # Bucket should split after we add this one
+
+    table = Table.add(table, generate_node(<<0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF>>))
+
+    nodes = Table.nodes(table)
+
+    assert Enum.any?(nodes, & &1.id == <<0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF>>)
+  end
+
   test "new nodes are rejected if the bucket is full" do
     local_node_id = <<0::160>>
 
@@ -46,9 +69,9 @@ defmodule Effusion.DHT.TableTest do
 
     table = Table.add(table, generate_node(<<9::160>>))
 
-    [closest] = Table.take_closest_to(table, <<9::160>>, 1)
+    nodes = Table.nodes(table)
 
-    assert closest.id == <<8::160>>
+    refute Enum.any?(nodes, & &1.id == <<9::160>>)
   end
 
   defp generate_node(id) do

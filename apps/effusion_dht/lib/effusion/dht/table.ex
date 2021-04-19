@@ -24,9 +24,29 @@ defmodule Effusion.DHT.Table do
   end
 
   def add(table = %__MODULE__{buckets: buckets}, node) do
-    bucket_index = Enum.find_index(buckets, &Bucket.node_in_range?(&1, node))
+    bucket = Enum.find(buckets, &Bucket.id_in_range?(&1, node.id))
 
-    updated_buckets = List.update_at(buckets, bucket_index, &Bucket.add_node(&1, node))
+    if is_nil(bucket) do
+      raise "Got a node with ID #{Base.encode16(node.id)} and it doesn't fit in any buckets!"
+    end
+
+    split_buckets =
+      if Bucket.full?(bucket) and Bucket.id_in_range?(bucket, table.local_id) do
+        bucket_index = Enum.find_index(buckets, &Bucket.id_in_range?(&1, node.id))
+        buckets =
+          List.update_at(buckets, bucket_index, &Bucket.split/1)
+          |> List.flatten()
+      else
+        buckets
+      end
+
+    bucket_index = Enum.find_index(split_buckets, &Bucket.id_in_range?(&1, node.id))
+
+    if is_nil(bucket_index) do
+      raise "Got a node with ID #{Base.encode16(node.id)} and it doesn't fit in any buckets after we split them!"
+    end
+
+    updated_buckets = List.update_at(split_buckets, bucket_index, &Bucket.add_node(&1, node))
 
     %__MODULE__{ table | buckets: updated_buckets}
   end
@@ -36,5 +56,9 @@ defmodule Effusion.DHT.Table do
     |> Enum.flat_map(& &1.nodes)
     |> Enum.sort_by(&Node.distance(target, &1.id))
     |> Enum.take(count)
+  end
+
+  def nodes(%__MODULE__{buckets: buckets}) do
+    Enum.flat_map(buckets, & &1.nodes)
   end
 end
