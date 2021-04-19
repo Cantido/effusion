@@ -25,6 +25,10 @@ defmodule Effusion.DHT.Bucket do
   end
 
   def add_node(bucket, node) do
+    unless id_in_range?(bucket, node.id) do
+      raise "Node with ID #{Base.encode16(node.id)} does not in bucket's range of #{inspect bucket.range}"
+    end
+
     if full?(bucket) do
       bucket
     else

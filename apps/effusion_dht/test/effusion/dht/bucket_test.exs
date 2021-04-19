@@ -1,6 +1,7 @@
 defmodule Effusion.DHT.BucketTest do
   use ExUnit.Case, async: true
   alias Effusion.DHT.Bucket
+  alias Effusion.DHT.Node
   doctest Effusion.DHT.Bucket
 
   test "A new bucket covers the entire ID range" do
@@ -37,6 +38,15 @@ defmodule Effusion.DHT.BucketTest do
         |> Bucket.add_node(ignored_node)
 
       refute Enum.any?(bucket.nodes, & &1.id == ignored_node.id)
+    end
+
+    test "throws an error if the node's ID is outside of the bucket's range" do
+      bucket = Bucket.new(0..128)
+      node = Node.new(<<255>>, {127, 0, 0, 1}, 8420)
+
+      assert_raise RuntimeError, fn ->
+        Bucket.add_node(bucket, node)
+      end
     end
   end
 end
