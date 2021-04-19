@@ -33,9 +33,9 @@ defmodule Effusion.DHT.Table do
     split_buckets =
       if Bucket.full?(bucket) and Bucket.id_in_range?(bucket, table.local_id) do
         bucket_index = Enum.find_index(buckets, &Bucket.id_in_range?(&1, node.id))
-        buckets =
-          List.update_at(buckets, bucket_index, &Bucket.split/1)
-          |> List.flatten()
+        
+        List.update_at(buckets, bucket_index, &Bucket.split/1)
+        |> List.flatten()
       else
         buckets
       end
