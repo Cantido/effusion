@@ -40,6 +40,37 @@ defmodule Effusion.DHT.BucketTest do
       refute Enum.any?(bucket.nodes, & &1.id == ignored_node.id)
     end
 
+    test "storing a new node after eight replaces bad nodes" do
+
+      bad_node = generate_bad_node()
+      replacing_node = TestHelper.generate_node()
+
+      bucket =
+        Bucket.new()
+        |> Bucket.add_node(TestHelper.generate_node())
+        |> Bucket.add_node(TestHelper.generate_node())
+        |> Bucket.add_node(TestHelper.generate_node())
+        |> Bucket.add_node(TestHelper.generate_node())
+        |> Bucket.add_node(TestHelper.generate_node())
+        |> Bucket.add_node(TestHelper.generate_node())
+        |> Bucket.add_node(TestHelper.generate_node())
+        |> Bucket.add_node(bad_node)
+        |> Bucket.add_node(replacing_node)
+
+      assert Enum.any?(bucket.nodes, & &1.id == replacing_node.id)
+      refute Enum.any?(bucket.nodes, & &1.id == bad_node.id)
+    end
+
+    def generate_bad_node do
+      Node.generate_node_id()
+      |> Node.new({127, 0, 0, 1}, Enum.random(1024..65535))
+      |> Node.failed_query()
+      |> Node.failed_query()
+      |> Node.failed_query()
+      |> Node.failed_query()
+      |> Node.failed_query()
+    end
+
     test "throws an error if the node's ID is outside of the bucket's range" do
       bucket = Bucket.new(0..128)
       node = Node.new(<<255>>, {127, 0, 0, 1}, 8420)

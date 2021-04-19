@@ -1,4 +1,5 @@
 defmodule Effusion.DHT.Bucket do
+  alias Effusion.DHT.Node
   @max_node_count 8
 
   defstruct [
@@ -30,7 +31,16 @@ defmodule Effusion.DHT.Bucket do
     end
 
     if full?(bucket) do
-      bucket
+      first_bad_index = Enum.find_index(bucket.nodes, &Node.bad?/1)
+      if first_bad_index do
+        nodes = List.replace_at(bucket.nodes, first_bad_index, node)
+
+        %__MODULE__{ bucket |
+          nodes: nodes
+        }
+      else
+        bucket
+      end
     else
       %__MODULE__{ bucket |
         nodes: [node | bucket.nodes]

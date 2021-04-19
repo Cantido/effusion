@@ -79,7 +79,7 @@ defmodule Effusion.DHT.Node do
 
   def status(node, now) do
     cond do
-      node.consecutive_failed_queries >= 5 ->
+      bad?(node) ->
         :bad
       ever_responded?(node) and time_since_last_response(node, now, :second) <= @fifteen_minutes_in_seconds ->
         :good
@@ -92,6 +92,10 @@ defmodule Effusion.DHT.Node do
       true ->
         :unknown
     end
+  end
+
+  def bad?(node) do
+    node.consecutive_failed_queries >= 5
   end
 
   def ever_responded?(node) do
