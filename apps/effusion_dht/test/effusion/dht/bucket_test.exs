@@ -19,7 +19,7 @@ defmodule Effusion.DHT.BucketTest do
         Bucket.new()
         |> Bucket.add_node(node)
 
-      assert Enum.any?(bucket.nodes, & &1.id == node.id)
+      assert Bucket.member?(bucket, node.id)
     end
 
     test "can't store more than eight" do
@@ -37,7 +37,7 @@ defmodule Effusion.DHT.BucketTest do
         |> Bucket.add_node(TestHelper.generate_node())
         |> Bucket.add_node(ignored_node)
 
-      refute Enum.any?(bucket.nodes, & &1.id == ignored_node.id)
+      refute Bucket.member?(bucket, ignored_node.id)
     end
 
     test "storing a new node after eight replaces bad nodes" do
@@ -57,8 +57,8 @@ defmodule Effusion.DHT.BucketTest do
         |> Bucket.add_node(bad_node)
         |> Bucket.add_node(replacing_node)
 
-      assert Enum.any?(bucket.nodes, & &1.id == replacing_node.id)
-      refute Enum.any?(bucket.nodes, & &1.id == bad_node.id)
+      assert Bucket.member?(bucket, replacing_node.id)
+      refute Bucket.member?(bucket, bad_node.id)
     end
 
     def generate_bad_node do
@@ -78,6 +78,19 @@ defmodule Effusion.DHT.BucketTest do
       assert_raise RuntimeError, fn ->
         Bucket.add_node(bucket, node)
       end
+    end
+
+    test "replaces nodes with the same ID" do
+      first = TestHelper.generate_node()
+      second = TestHelper.generate_node(first.id)
+
+      size =
+        Bucket.new()
+        |> Bucket.add_node(first)
+        |> Bucket.add_node(second)
+        |> Bucket.size()
+
+      assert size == 1
     end
   end
 end

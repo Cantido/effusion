@@ -33,7 +33,7 @@ defmodule Effusion.DHT.Table do
     split_buckets =
       if Bucket.full?(bucket) and Bucket.id_in_range?(bucket, table.local_id) do
         bucket_index = Enum.find_index(buckets, &Bucket.id_in_range?(&1, node.id))
-        
+
         List.update_at(buckets, bucket_index, &Bucket.split/1)
         |> List.flatten()
       else
@@ -53,12 +53,12 @@ defmodule Effusion.DHT.Table do
 
   def take_closest_to(%__MODULE__{buckets: buckets}, target, count) do
     buckets
-    |> Enum.flat_map(& &1.nodes)
+    |> Enum.flat_map(&Bucket.nodes/1)
     |> Enum.sort_by(&Node.distance(target, &1.id))
     |> Enum.take(count)
   end
 
   def nodes(%__MODULE__{buckets: buckets}) do
-    Enum.flat_map(buckets, & &1.nodes)
+    Enum.flat_map(buckets, &Bucket.nodes/1)
   end
 end
