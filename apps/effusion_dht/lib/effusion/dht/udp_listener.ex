@@ -20,10 +20,7 @@ defmodule Effusion.DHT.UDPListener do
 
   def handle_continue(:open_socket, state = %{port: port}) do
     {:ok, socket} = :gen_udp.open(port, [:binary, {:active, 1}])
-    state =
-      state
-      |> Map.put(:port, port)
-      |> Map.put(:socket, socket)
+    state = Map.put(state, :socket, socket)
     {:noreply, state}
   end
 
