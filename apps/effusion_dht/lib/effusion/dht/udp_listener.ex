@@ -12,7 +12,6 @@ defmodule Effusion.DHT.UDPListener do
   def init(opts) do
     state = %{
       port: Keyword.fetch!(opts, :port),
-      node_id: Keyword.fetch!(opts, :node_id),
       server: Server.new(Keyword.fetch!(opts, :node_id))
     }
 
@@ -28,11 +27,10 @@ defmodule Effusion.DHT.UDPListener do
     {:noreply, state}
   end
 
-  def handle_info({:udp, socket, ip, port, packet}, state = %{node_id: node_id}) do
+  def handle_info({:udp, socket, ip, port, packet}, state) do
     message = KRPC.decode!(packet)
 
     context = %{
-      node_id: node_id,
       ip: ip,
       port: port
     }

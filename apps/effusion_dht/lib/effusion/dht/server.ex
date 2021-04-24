@@ -8,21 +8,24 @@ defmodule Effusion.DHT.Server do
   require Logger
 
   @enforce_keys [
+    :node_id,
     :table
   ]
   defstruct [
+    node_id: nil,
     table: nil,
     tokens: %{}
   ]
 
-  def new(local_id) do
+  def new(node_id) do
     %__MODULE__{
-      table: Table.new(local_id)
+      node_id: node_id,
+      table: Table.new(node_id)
     }
   end
 
   def handle_message(state, message = %{"q" => "ping"}, context) do
-    node_id = context.node_id
+    node_id = state.node_id
     ip = context.ip
     port = context.port
 
@@ -49,7 +52,7 @@ defmodule Effusion.DHT.Server do
   end
 
   def handle_message(state, message = %{"q" => "get_peers"}, context) do
-    node_id = context.node_id
+    node_id = state.node_id
     ip = context.ip
 
     info_hash = message["a"]["info_hash"]
@@ -106,7 +109,7 @@ defmodule Effusion.DHT.Server do
   end
 
   def handle_message(state, message = %{"q" => "find_node"}, context) do
-    node_id = context.node_id
+    node_id = state.node_id
 
     target = message["a"]["target"]
 
@@ -127,7 +130,7 @@ defmodule Effusion.DHT.Server do
   end
 
   def handle_message(state, message = %{"q" => "announce_peer"}, context) do
-    node_id = context.node_id
+    node_id = state.node_id
     ip = context.ip
     port = context.port
 
