@@ -15,7 +15,8 @@ defmodule Effusion.DHTTest do
     port = Enum.random(1025..65535)
     node_id = Node.generate_node_id()
 
-    start_supervised({Effusion.DHT.UDPListener, [port: port, node_id: node_id]})
+    {:ok, server} = start_supervised({Effusion.DHT.ServerManager, [node_id: node_id]})
+    {:ok, _udp} = start_supervised({Effusion.DHT.UDPListener, [port: port, server: server]})
 
     %{port: port, node_id: node_id}
   end

@@ -1,7 +1,7 @@
 defmodule Effusion.DHT.UDPListener do
   use GenServer
   alias Effusion.DHT.KRPC
-  alias Effusion.DHT.Server
+  alias Effusion.DHT.ServerManager
 
   require Logger
 
@@ -12,7 +12,7 @@ defmodule Effusion.DHT.UDPListener do
   def init(opts) do
     state = %{
       port: Keyword.fetch!(opts, :port),
-      server: Server.new(Keyword.fetch!(opts, :node_id))
+      server: Keyword.fetch!(opts, :server)
     }
 
     {:ok, state, {:continue, :open_socket}}
@@ -24,7 +24,7 @@ defmodule Effusion.DHT.UDPListener do
     {:noreply, state}
   end
 
-  def handle_info({:udp, socket, ip, port, packet}, state) do
+  def handle_info({:udp, socket, ip, port, packet}, state = %{server: server}) do
     message = KRPC.decode!(packet)
 
     context = %{
@@ -32,19 +32,16 @@ defmodule Effusion.DHT.UDPListener do
       port: port
     }
 
-    {reply, next_server} =
+    reply =
       try do
-        Server.handle_message(state.server, message, context)
+        ServerManager.handle_message(server, message, context)
       rescue
         err ->
           if message["y"] == "q" do
             Logger.error("Error while handling message: #{inspect err}")
-            {
-              KRPC.new_error(message["t"], [202, "Server Error"]),
-              state.server
-            }
+            KRPC.new_error(message["t"], [202, "Server Error"])
           else
-            {:noreply, state.server}
+            raise "I don't know how to handle responses yet :("
           end
       end
 
@@ -53,7 +50,7 @@ defmodule Effusion.DHT.UDPListener do
       :ok = :gen_udp.send(socket, ip, port, reply)
     end)
 
-    {:noreply, %{state | server: next_server}}
+    {:noreply, state}
   end
 
   def handle_info({:udp_passive, socket}, state) do
