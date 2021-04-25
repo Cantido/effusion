@@ -108,7 +108,7 @@ defmodule Effusion.DHT.Server do
     end
   end
 
-  def handle_message(state, message = %{"q" => "find_node"}, context) do
+  def handle_message(state, message = %{"q" => "find_node"}, _context) do
     node_id = state.node_id
 
     target = message["a"]["target"]
