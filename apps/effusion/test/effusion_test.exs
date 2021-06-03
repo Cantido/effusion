@@ -23,7 +23,7 @@ defmodule EffusionTest do
   @local_port Application.fetch_env!(:effusion, :port)
   @remote_port 8002
 
-  @local_dht_port Application.fetch_env!(:effusion, :dht_port)
+  @local_dht_port 8008
   @remote_dht_port 8007
 
   @torrent TestHelper.tiny_meta()
