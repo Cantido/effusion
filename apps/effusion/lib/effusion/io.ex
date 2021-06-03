@@ -1,6 +1,6 @@
 defmodule Effusion.IO do
 
-  def write_piece(data, info_hash, index, info)
+  def write_piece(data, info_hash, index, info) do
     files = Map.get(info, :files, [])
     destdir = Application.fetch_env!(:effusion, :download_destination)
 
