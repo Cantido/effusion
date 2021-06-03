@@ -1,4 +1,5 @@
 defmodule Effusion.IO do
+  alias Effusion.Range
 
   def write_piece(data, info_hash, index, info) do
     files = Map.get(info, :files, [])
