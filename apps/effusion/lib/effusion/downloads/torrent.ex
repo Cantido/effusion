@@ -1,4 +1,5 @@
 defmodule Effusion.Downloads.Torrent do
+  alias Effusion.Downloads.{Piece, Block}
   alias Effusion.Downloads.Commands.{
     HandleCompletedDownload,
     AddTorrent,
@@ -175,13 +176,19 @@ defmodule Effusion.Downloads.Torrent do
     %DownloadCompleted{info_hash: info_hash}
   end
 
-  defp store_block(%__MODULE__{info_hash: info_hash, pieces: pieces}, from, index, offset, data) do
+  defp store_block(%__MODULE__{info_hash: info_hash, pieces: pieces, info: info}, from, index, offset, data) do
+    piece_size = Effusion.Metadata.piece_size(info, index)
+    piece_hash = Effusion.Hash.decode(Enum.at(info.pieces, index))
+    new_piece =
+      %Piece{index: index, expected_hash: piece_hash, expected_size: piece_size}
+      |> Piece.add_block(offset, Base.decode64!(data))
+
     pieces =
       Map.update(
         pieces,
         index,
-        [%{offset: offset, data: data}],
-        &[%{offset: offset, data: data} | &1]
+        new_piece,
+        &Piece.add_block(&1, offset, Base.decode64!(data))
       )
 
     %BlockStored{
@@ -198,36 +205,15 @@ defmodule Effusion.Downloads.Torrent do
          %__MODULE__{info_hash: info_hash, pieces: pieces, info: info},
          index
        ) do
-    piece_size =
-      pieces[index]
-      |> Enum.map(& &1.data)
-      |> Enum.map(&Base.decode64!/1)
-      |> Enum.map(&byte_size/1)
-      |> Enum.sum()
+    piece = pieces[index]
 
-    expected_piece_count = Enum.count(info.pieces)
-    last_piece_size = info.length - (expected_piece_count - 1) * info.piece_length
-
-    normal_piece_done = index < expected_piece_count - 1 and piece_size == info.piece_length
-    last_piece_done = index == expected_piece_count - 1 and last_piece_size
-
-    if normal_piece_done or last_piece_done do
-      piece_data =
-        pieces[index]
-        |> Enum.map(& &1.data)
-        |> Enum.map(&Base.decode64!/1)
-        |> Enum.join()
-
-      if Effusion.Hash.calc(piece_data) == Effusion.Hash.decode(Enum.at(info.pieces, index)) do
-        %PieceHashSucceeded{
-          info_hash: info_hash,
-          index: index,
-          data: Base.encode64(piece_data),
-          info: info
-        }
-      else
-        %PieceHashFailed{info_hash: info_hash, index: index}
-      end
+    if Piece.finished?(piece) do
+      %PieceHashSucceeded{
+        info_hash: info_hash,
+        index: index,
+        data: Base.encode64(Piece.data(piece)),
+        info: info
+      }
     end
   end
 
@@ -270,14 +256,7 @@ defmodule Effusion.Downloads.Torrent do
   def apply(%__MODULE__{bytes_left: bytes_left, info: info} = torrent, %PieceHashSucceeded{
         index: index
       }) do
-    piece_size =
-      if index == Enum.count(info.pieces) - 1 do
-        # This is the last piece of the torrent, so it is smaller
-        expected_piece_count = Enum.count(info.pieces)
-        info.length - (expected_piece_count - 1) * info.piece_length
-      else
-        info.piece_length
-      end
+    piece_size = Effusion.Metadata.piece_size(info, index)
 
     %__MODULE__{
       torrent
