@@ -1,4 +1,8 @@
 defmodule Effusion.Downloads.Block do
+  @enforce_keys [
+    :offset,
+    :data
+  ]
   defstruct [
     :offset,
     :data
