@@ -9,7 +9,6 @@ defmodule Effusion.Application do
     port = Application.get_env(:effusion, :port)
 
     children = [
-      Effusion.Repo,
       Effusion.Statistics.PeerDownloadAverage,
       Effusion.Statistics.SessionDownloadAverage,
       Effusion.Statistics.SessionUploadAverage,

@@ -5,11 +5,6 @@ defmodule Effusion do
   A BitTorrent library.
   """
 
-  # credo:disable-for-next-line
-  @typep hash :: <<_::20, _::_*8>>
-  @type info_hash :: hash()
-  @type peer_id :: hash()
-
   @doc """
   Start asynchronously downloading the torrent described by `meta`,
   and write it to a file in the `destfile` directory.
