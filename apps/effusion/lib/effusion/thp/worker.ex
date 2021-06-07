@@ -1,26 +1,5 @@
-defmodule Effusion.THP.EventHandlers.TrackerAnnouncer do
-  use Commanded.Event.Handler,
-    application: Effusion.Commanded,
-    name: __MODULE__,
-    consistency: :strong
-
-  alias Effusion.Downloads.Events.{
-    DownloadStarted,
-    DownloadStopped
-  }
-
-  require Logger
-
-  def handle(
-        %DownloadStarted{
-          info_hash: info_hash,
-          announce: announce_uri,
-          bytes_left: bytes_left
-        },
-        _metadata
-      ) do
-    Logger.debug("****** Download starting, notifying tracker")
-
+defmodule Effusion.THP.Worker do
+  def start(announce_uri, info_hash, bytes_left) do
     thp_client = Application.fetch_env!(:effusion, :thp_client)
     peer_id = Application.fetch_env!(:effusion, :peer_id)
     local_host = Application.fetch_env!(:effusion, :host)
@@ -58,19 +37,14 @@ defmodule Effusion.THP.EventHandlers.TrackerAnnouncer do
     end)
   end
 
-  def handle(
-        %DownloadStopped{
-          info_hash: info_hash,
-          announce: announce,
-          bytes_uploaded: bytes_uploaded,
-          bytes_downloaded: bytes_downloaded,
-          bytes_left: bytes_left,
-          tracker_event: tracker_event
-        },
-        _metadata
-      ) do
-    Logger.debug("***** download stopped, disconnecting peers and contacting tracker")
-
+  def stop(
+    info_hash,
+    announce,
+    bytes_uploaded,
+    bytes_downloaded,
+    bytes_left,
+    tracker_event
+  ) do
     thp_client = Application.fetch_env!(:effusion, :thp_client)
     peer_id = Application.fetch_env!(:effusion, :peer_id)
     {local_host, local_port} = Application.fetch_env!(:effusion, :server_address)
@@ -89,8 +63,6 @@ defmodule Effusion.THP.EventHandlers.TrackerAnnouncer do
         bytes_left,
         opts
       )
-
-    Logger.debug("***** stop announce done")
 
     # We don't care about peers here since we've stopped
 

@@ -42,10 +42,8 @@ defmodule Effusion.Mixfile do
   defp deps do
     [
       {:bento, "~> 0.9"},
-      {:commanded, "~> 1.2"},
-      {:commanded_ecto_projections, "~> 1.2"},
-      {:commanded_eventstore_adapter, "~> 1.2"},
       {:ecto_sql, "~> 3.0"},
+      {:honeydew, "~> 1.5.0"},
       {:int_set, "~> 1.5"},
       {:httpoison, "~> 1.6"},
       {:jason, "~> 1.2"},

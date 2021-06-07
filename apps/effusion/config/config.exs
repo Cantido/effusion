@@ -17,33 +17,7 @@ config :effusion,
   max_peers: 200,
   handshake_timeout: 5_000,
   download_destination: File.cwd!(),
-  enabled_extensions: [],
-  ecto_repos: [Effusion.Repo],
-  event_stores: [Effusion.EventStore]
-
-config :commanded, event_store_adapter: Commanded.EventStore.Adapters.EventStore
-
-config :effusion, Effusion.Repo,
-  migration_primary_key: [type: :uuid],
-  migration_foreign_key: [type: :uuid],
-  migration_timestamps: [type: :utc_datetime_usec],
-  database: "effusion_dev",
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost"
-
-config :effusion, Effusion.EventStore,
-  serializer: Commanded.Serialization.JsonSerializer,
-  database: "event_store_dev",
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  pool_size: 10
-
-# Configures Elixir's Logger
-config :logger, :console,
-  format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
+  enabled_extensions: []
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
