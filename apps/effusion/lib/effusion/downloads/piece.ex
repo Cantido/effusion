@@ -13,7 +13,7 @@ defmodule Effusion.Downloads.Piece do
     blocks: []
   ]
 
-  def add_block(%__MODULE__{blocks: blocks} = piece, offset, data) do
+  def add_data(%__MODULE__{blocks: blocks} = piece, offset, data) do
     %__MODULE__{piece | blocks: [%Block{offset: offset, data: data} | blocks]}
   end
 
