@@ -1,12 +1,8 @@
 defmodule EffusionTest do
   use ExUnit.Case
-  doctest Effusion
   alias Effusion.TCPSocket
-  import Mox
   require Logger
-
-  setup :verify_on_exit!
-  setup :set_mox_global
+  doctest Effusion
 
   @localhost {127, 0, 0, 1}
 

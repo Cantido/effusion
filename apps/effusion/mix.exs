@@ -40,7 +40,6 @@ defmodule Effusion.Mixfile do
       {:metatorrent, "~> 1.0"},
       {:ranch, "~> 1.0"},
       {:temp, "~> 0.4", only: :test},
-      {:mox, "~> 1.0", only: :test},
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false}
