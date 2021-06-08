@@ -48,7 +48,7 @@ defmodule Effusion.TCPWorker do
     })
   end
 
-  def handle_continue(:connect, %{address: {host, port}, peer_uuid: peer_uuid} = state) do
+  def handle_continue(:connect, %{address: {host, port}} = state) do
     with {:ok, socket} <-
            :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 1_000) do
       {:noreply, Map.put(state, :socket, socket)}
@@ -75,16 +75,12 @@ defmodule Effusion.TCPWorker do
      })}
   end
 
-  def handle_btp(msg, state = %{peer_uuid: peer_uuid}) do
-    {:noreply, state}
-  end
-
-  def handle_btp(msg, state) do
+  def handle_btp(_msg, state) do
     {:stop, :unexpected_message, state}
   end
 
   def handle_call({:btp_send, msg}, _from, state = %{socket: socket}) do
-    case Socket.send_msg(socket, msg) do
+    case TCPSocket.send_msg(socket, msg) do
       :ok -> {:reply, :ok, state}
       {:error, reason} -> {:reply, {:error, reason}, state}
     end
@@ -101,11 +97,11 @@ defmodule Effusion.TCPWorker do
   def handle_info(:disconnect, state), do: {:stop, "normal", state}
   def handle_info({:disconnect, reason}, state), do: {:stop, reason, state}
 
-  def handle_info(info, state) do
+  def handle_info(_info, state) do
     {:noreply, state}
   end
 
-  def terminate(reason, state) when is_map(state) do
+  def terminate(_reason, state) when is_map(state) do
     if Map.has_key?(state, :socket) do
       TCPSocket.close(state.socket)
     end
