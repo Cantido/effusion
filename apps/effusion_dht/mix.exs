@@ -32,8 +32,6 @@ defmodule EffusionDht.MixProject do
     [
       {:effusion, in_umbrella: true},
       {:bento, "~> 0.9"},
-      {:commanded, "~> 1.2"},
-      {:commanded_ecto_projections, "~> 1.2"},
       {:temp, "~> 0.4", only: :test},
       {:mox, "~> 1.0", only: :test}
     ]
