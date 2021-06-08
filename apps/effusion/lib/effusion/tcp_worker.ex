@@ -49,53 +49,20 @@ defmodule Effusion.TCPWorker do
   end
 
   def handle_continue(:connect, %{address: {host, port}} = state) do
-    with {:ok, socket} <-
-           :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 1_000) do
+    with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 1_000) do
       {:noreply, Map.put(state, :socket, socket)}
     else
-      _ ->
-        {:stop, :failed_to_connect, state}
-    end
-  end
-
-  @doc """
-  Handle a Peer Wire Protocol message.
-  """
-  def handle_btp(btp_message, state)
-
-  def handle_btp(
-        message = {:handshake, remote_peer_id, info_hash, _extensions},
-        state = %{address: {host, port}}
-      ) do
-
-    {:noreply,
-     Map.merge(state, %{
-       info_hash: info_hash,
-       remote_peer_id: remote_peer_id,
-     })}
-  end
-
-  def handle_btp(_msg, state) do
-    {:stop, :unexpected_message, state}
-  end
-
-  def handle_call({:btp_send, msg}, _from, state = %{socket: socket}) do
-    case TCPSocket.send_msg(socket, msg) do
-      :ok -> {:reply, :ok, state}
-      {:error, reason} -> {:reply, {:error, reason}, state}
+      _ -> {:stop, :failed_to_connect, state}
     end
   end
 
   def handle_info({:tcp, _tcp_socket, data}, state) when is_binary(data) do
-    {:ok, msg} = Messages.decode(data)
-    ret = handle_btp(msg, state)
+    {:ok, _msg} = Messages.decode(data)
     :ok = :inet.setopts(state.socket, active: :once)
-    ret
+    {:noreply, state}
   end
 
   def handle_info({:tcp_closed, _socket}, state), do: {:stop, "peer closed connection", state}
-  def handle_info(:disconnect, state), do: {:stop, "normal", state}
-  def handle_info({:disconnect, reason}, state), do: {:stop, reason, state}
 
   def handle_info(_info, state) do
     {:noreply, state}
