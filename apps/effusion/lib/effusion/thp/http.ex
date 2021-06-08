@@ -56,9 +56,9 @@ defmodule Effusion.THP.HTTP do
 
     query = URI.encode_query(tracker_request)
 
-    Finch.build(:get, tracker_url <> "?" <> query)
+    request = Finch.build(:get, tracker_url <> "?" <> query)
 
-    with {:ok, response} <- Finch.request(EffusionFinch),
+    with {:ok, response} <- Finch.request(request, EffusionFinch),
          {:ok, bterm} <- Bento.decode(response.body) do
       bterm
       |> Effusion.Map.rename_keys(@body_names)
