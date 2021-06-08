@@ -38,7 +38,7 @@ defmodule Effusion.Mixfile do
       {:httpoison, "~> 1.6"},
       {:logger_file_backend, "~> 0.0.10"},
       {:metatorrent, "~> 1.0"},
-      {:ranch, "~> 1.0"},
+      {:ranch, "~> 2.0"},
       {:temp, "~> 0.4", only: :test},
       {:mox, "~> 1.0", only: :test},
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
