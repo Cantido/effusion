@@ -6,7 +6,8 @@ defmodule Effusion.Application do
     port = Application.get_env(:effusion, :port)
 
     children = [
-      :ranch.child_spec(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Worker, [])
+      {Finch, name: EffusionFinch},
+      :ranch.child_spec(:pwp, 100, :ranch_tcp, [port: port], Effusion.TCPWorker, [])
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]

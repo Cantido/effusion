@@ -34,8 +34,8 @@ defmodule Effusion.Mixfile do
   defp deps do
     [
       {:bento, "~> 0.9"},
+      {:finch, "~> 0.7.0"},
       {:int_set, "~> 1.5"},
-      {:httpoison, "~> 1.6"},
       {:logger_file_backend, "~> 0.0.10"},
       {:metatorrent, "~> 1.0"},
       {:ranch, "~> 1.0"},
