@@ -1,4 +1,4 @@
-defmodule Effusion.PWP.Messages.Handshake do
+defmodule Effusion.PWP.Handshake do
   use Bitwise
 
   @moduledoc """
