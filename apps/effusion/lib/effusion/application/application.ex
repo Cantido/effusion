@@ -11,7 +11,7 @@ defmodule Effusion.Application do
     children = [
       Effusion.Application.ConnectionSupervisor,
       {Registry, keys: :unique, name: ConnectionRegistry},
-      :ranch.child_spec(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Connection, [])
+      :ranch.child_spec(:pwp, 100, :ranch_tcp, [port: port], Effusion.PWP.TCP.Worker, [])
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]
