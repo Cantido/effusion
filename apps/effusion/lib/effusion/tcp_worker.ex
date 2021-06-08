@@ -15,8 +15,8 @@ defmodule Effusion.TCPWorker do
   @doc """
   The `start_link` implementation for `:ranch_protocol` behaviour
   """
-  def start_link(ref, socket, transport, _opts) do
-    pid = :proc_lib.spawn_link(__MODULE__, :incoming_init, [ref, socket, transport])
+  def start_link(ref, transport, _opts) do
+    pid = :proc_lib.spawn_link(__MODULE__, :incoming_init, [ref, transport])
     {:ok, pid}
   end
 
@@ -36,8 +36,8 @@ defmodule Effusion.TCPWorker do
     {:ok, state, {:continue, :connect}}
   end
 
-  def incoming_init(ref, socket, transport) do
-    :ok = :ranch.accept_ack(ref)
+  def incoming_init(ref, transport) do
+    {:ok, socket} = :ranch.handshake(ref)
     :ok = transport.setopts(socket, active: :once)
     {:ok, address} = :inet.peername(socket)
 
