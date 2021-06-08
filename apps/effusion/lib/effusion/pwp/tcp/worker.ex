@@ -127,11 +127,6 @@ defmodule Effusion.PWP.TCP.Worker do
   def terminate(reason, state) when is_map(state) do
     if Map.has_key?(state, :socket) do
       Socket.close(state.socket)
-
-      Effusion.PWP.disconnected(
-        Map.get(state, :peer_uuid),
-        reason
-      )
     end
 
     :ok
