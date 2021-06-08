@@ -1,11 +1,10 @@
-defmodule Effusion.PWP.TCP.Connection do
+defmodule Effusion.PWP.TCP.Worker do
   use GenServer, restart: :temporary
   alias Effusion.Application.ConnectionSupervisor
   alias Effusion.PWP.Messages
   alias Effusion.PWP.TCP.Socket
   import Effusion.PWP
   import Effusion.Hash, only: [is_hash: 1]
-  require Logger
 
   @behaviour :ranch_protocol
 
@@ -21,27 +20,6 @@ defmodule Effusion.PWP.TCP.Connection do
   """
   def connect(peer = {{_host, port}, _peer_uuid}) when is_integer(port) do
     ConnectionSupervisor.start_child(peer)
-  end
-
-  def send_pwp_message(peer_uuid, message) do
-    case Registry.lookup(ConnectionRegistry, peer_uuid) do
-      [{conn, _}] -> GenServer.call(conn, {:btp_send, message})
-      _ -> {:error, :peer_not_found}
-    end
-  end
-
-  def recv_handshake(peer_uuid) do
-    case Registry.lookup(ConnectionRegistry, peer_uuid) do
-      [{conn, _}] -> GenServer.call(conn, :recv_handshake)
-      _ -> {:error, :peer_not_found}
-    end
-  end
-
-  def handshake_successful(peer_uuid) do
-    case Registry.lookup(ConnectionRegistry, peer_uuid) do
-      [{conn, _}] -> GenServer.call(conn, :handshake_successful)
-      _ -> {:error, :peer_not_found}
-    end
   end
 
   @doc """
@@ -84,15 +62,9 @@ defmodule Effusion.PWP.TCP.Connection do
     with {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
          {:ok, socket} <-
            :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 1_000),
-         :ok <- Effusion.PWP.add_opened_peer_connection(peer_uuid, host, port) do
       {:noreply, Map.put(state, :socket, socket)}
     else
       _ ->
-        Effusion.PWP.handle_failed_connection_attempt(
-          peer_uuid,
-          "Failed to open initial connection to peer"
-        )
-
         {:stop, :failed_to_connect, state}
     end
   end
@@ -127,28 +99,10 @@ defmodule Effusion.PWP.TCP.Connection do
   end
 
   def handle_btp(msg, state) do
-    Logger.error("Connection not able to handle message #{inspect(msg)}.")
     {:stop, :unexpected_message, state}
   end
 
-  def handle_call(:recv_handshake, _from, %{socket: socket} = state) do
-    handshake = Socket.recv(socket, 68)
-
-    {:reply, handshake, state}
-  end
-
-  def handle_call(:handshake_successful, _from, %{socket: socket} = state) do
-    Logger.debug(
-      "********** Handshake successful, setting socket to packet mode for peer #{state.peer_uuid}"
-    )
-
-    ret = :inet.setopts(socket, active: :once, packet: 4)
-    {:reply, ret, state}
-  end
-
   def handle_call({:btp_send, msg}, _from, state = %{socket: socket}) do
-    Logger.debug("********** Sending message #{inspect(msg)}")
-
     case Socket.send_msg(socket, msg) do
       :ok -> {:reply, :ok, state}
       {:error, reason} -> {:reply, {:error, reason}, state}
@@ -167,7 +121,6 @@ defmodule Effusion.PWP.TCP.Connection do
   def handle_info({:disconnect, reason}, state), do: {:stop, reason, state}
 
   def handle_info(info, state) do
-    Logger.warn("Handler received unknown message: #{inspect(info)}")
     {:noreply, state}
   end
 
