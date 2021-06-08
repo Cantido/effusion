@@ -1,4 +1,4 @@
-defmodule Effusion.THP.HTTP do
+defmodule Effusion.Tracker do
   import Effusion.Hash, only: [is_hash: 1]
 
   @allowed_opts [
