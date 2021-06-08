@@ -2,7 +2,6 @@ defmodule Effusion.THP.HTTP do
   alias Effusion.Statistics.Net, as: NetStats
   alias Effusion.THP.Decode
   import Effusion.Hash, only: [is_hash: 1]
-  import Effusion.PWP
   require Logger
   use HTTPoison.Base
   @behaviour Effusion.THP
@@ -39,7 +38,6 @@ defmodule Effusion.THP.HTTP do
         opts \\ []
       )
       when is_hash(info_hash) and
-             is_peer_id(peer_id) and
              is_integer(peer_port) and
              peer_port in 1..65_535 and
              uploaded >= 0 and
@@ -74,13 +72,6 @@ defmodule Effusion.THP.HTTP do
     end
   end
 
-  @impl true
-  def process_request_url(url) do
-    byte_size(url) |> NetStats.add_sent_bytes()
-    byte_size(url) |> NetStats.add_sent_tracker_bytes()
-    url
-  end
-
   @doc """
   Parses the response body from trackers.
 
@@ -100,14 +91,5 @@ defmodule Effusion.THP.HTTP do
       _err ->
         raise "tracker response body had bad bencoding"
     end
-  end
-
-  @impl true
-  def process_response_headers(headers) do
-    val = List.keyfind(headers, "Content-Length", 1, "0")
-    {length, ""} = Integer.parse(val)
-    length |> NetStats.add_recv_bytes()
-    length |> NetStats.add_recv_tracker_bytes()
-    Map.new(headers)
   end
 end

@@ -1,5 +1,5 @@
-defmodule Effusion.PWP.Messages do
-  alias Effusion.PWP.Messages.Handshake
+defmodule Effusion.Messages do
+  alias Effusion.Handshake
 
   @moduledoc """
     Encode and decode Peer Wire Protocol (PWP) messages.
@@ -21,62 +21,62 @@ defmodule Effusion.PWP.Messages do
 
   ## Examples
 
-      iex> Effusion.PWP.Messages.decode(<<>>)
+      iex> Effusion.Messages.decode(<<>>)
       {:ok, :keepalive}
 
-      iex> Effusion.PWP.Messages.decode(<<0>>)
+      iex> Effusion.Messages.decode(<<0>>)
       {:ok, :choke}
 
-      iex> Effusion.PWP.Messages.decode(<<1>>)
+      iex> Effusion.Messages.decode(<<1>>)
       {:ok, :unchoke}
 
-      iex> Effusion.PWP.Messages.decode(<<2>>)
+      iex> Effusion.Messages.decode(<<2>>)
       {:ok, :interested}
 
-      iex> Effusion.PWP.Messages.decode(<<3>>)
+      iex> Effusion.Messages.decode(<<3>>)
       {:ok, :uninterested}
 
-      iex> Effusion.PWP.Messages.decode(<<4, 4201 :: 32>>)
+      iex> Effusion.Messages.decode(<<4, 4201 :: 32>>)
       {:ok, {:have, 4201}}
 
-      iex> Effusion.PWP.Messages.decode(<<5, 0b11110001>>)
+      iex> Effusion.Messages.decode(<<5, 0b11110001>>)
       {:ok, {:bitfield, <<241>>}}
 
-      iex> Effusion.PWP.Messages.decode(<<6, 4201 :: 32, 69 :: 32, 12 :: 32>>)
+      iex> Effusion.Messages.decode(<<6, 4201 :: 32, 69 :: 32, 12 :: 32>>)
       {:ok, {:request, %{index: 4201, offset: 69, size: 12}}}
 
-      iex> Effusion.PWP.Messages.decode(<<7, 4201 :: 32, 69 :: 32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0>>)
+      iex> Effusion.Messages.decode(<<7, 4201 :: 32, 69 :: 32, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0>>)
       {:ok, {:piece, %{index: 4201, offset: 69, data: <<1, 2, 3, 4, 5, 6, 7, 8, 9, 0>>}}}
 
-      iex> Effusion.PWP.Messages.decode(<<8, 4201 :: 32, 69 :: 32, 12 :: 32>>)
+      iex> Effusion.Messages.decode(<<8, 4201 :: 32, 69 :: 32, 12 :: 32>>)
       {:ok, {:cancel, %{index: 4201, offset: 69, size: 12}}}
 
   ### Fast Extension Messages
 
-      iex> Effusion.PWP.Messages.decode(<<13, 0, 0, 0, 230>>)
+      iex> Effusion.Messages.decode(<<13, 0, 0, 0, 230>>)
       {:ok, {:suggest_piece, 230}}
 
-      iex> Effusion.PWP.Messages.decode(<<14>>)
+      iex> Effusion.Messages.decode(<<14>>)
       {:ok, :have_all}
 
-      iex> Effusion.PWP.Messages.decode(<<15>>)
+      iex> Effusion.Messages.decode(<<15>>)
       {:ok, :have_none}
 
-      iex> Effusion.PWP.Messages.decode(<<16, 0, 0, 0, 230, 0, 0, 0, 60, 0, 0, 0, 200>>)
+      iex> Effusion.Messages.decode(<<16, 0, 0, 0, 230, 0, 0, 0, 60, 0, 0, 0, 200>>)
       {:ok, {:reject, %{index: 230, offset: 60, size: 200}}}
 
-      iex> Effusion.PWP.Messages.decode(<<17, 0, 0, 0, 230>>)
+      iex> Effusion.Messages.decode(<<17, 0, 0, 0, 230>>)
       {:ok, {:allowed_fast, 230}}
 
   ### Invalid messages
 
-      iex> Effusion.PWP.Messages.decode(<<42>>)
+      iex> Effusion.Messages.decode(<<42>>)
       {:error, :invalid}
 
-      iex> Effusion.PWP.Messages.decode(<<42, "with payload">>)
+      iex> Effusion.Messages.decode(<<42, "with payload">>)
       {:error, :invalid}
 
-      iex> Effusion.PWP.Messages.decode(<<0, "this shouldn't be here">>)
+      iex> Effusion.Messages.decode(<<0, "this shouldn't be here">>)
       {:error, :no_payload_allowed}
   """
   def decode(b)
@@ -145,54 +145,54 @@ defmodule Effusion.PWP.Messages do
 
   ## Examples
 
-      iex> Effusion.PWP.Messages.encode(:notamessage)
+      iex> Effusion.Messages.encode(:notamessage)
       {:error, {:unknown_message, :notamessage}}
 
-      iex> Effusion.PWP.Messages.encode(:keepalive)
+      iex> Effusion.Messages.encode(:keepalive)
       {:ok, <<>>}
 
-      iex> Effusion.PWP.Messages.encode(:choke)
+      iex> Effusion.Messages.encode(:choke)
       {:ok, <<0>>}
 
-      iex> Effusion.PWP.Messages.encode(:unchoke)
+      iex> Effusion.Messages.encode(:unchoke)
       {:ok, <<1>>}
 
-      iex> Effusion.PWP.Messages.encode(:interested)
+      iex> Effusion.Messages.encode(:interested)
       {:ok, <<2>>}
 
-      iex> Effusion.PWP.Messages.encode(:uninterested)
+      iex> Effusion.Messages.encode(:uninterested)
       {:ok, <<3>>}
 
-      iex> Effusion.PWP.Messages.encode({:have, 690042})
+      iex> Effusion.Messages.encode({:have, 690042})
       {:ok, <<4, 690042 :: 32>>}
 
-      iex> Effusion.PWP.Messages.encode({:bitfield, <<0b0000_0100>>})
+      iex> Effusion.Messages.encode({:bitfield, <<0b0000_0100>>})
       {:ok, <<5, 0b0000_0100>>}
 
-      iex> Effusion.PWP.Messages.encode({:request, 420, 69, 666})
+      iex> Effusion.Messages.encode({:request, 420, 69, 666})
       {:ok, <<6, 0, 0, 1, 164, 0, 0, 0, 69, 0, 0, 2, 154>>}
 
-      iex> Effusion.PWP.Messages.encode({:piece, 420, 69, <<1, 2, 3, 4, 5>>})
+      iex> Effusion.Messages.encode({:piece, 420, 69, <<1, 2, 3, 4, 5>>})
       {:ok, <<7, 0, 0, 1, 164, 0, 0, 0, 69, 1, 2, 3, 4, 5>>}
 
-      iex> Effusion.PWP.Messages.encode({:cancel, 420, 69, 666})
+      iex> Effusion.Messages.encode({:cancel, 420, 69, 666})
       {:ok, <<8, 0, 0, 1, 164, 0, 0, 0, 69, 0, 0, 2, 154>>}
 
   ### Fast Extension messages
 
-      iex> Effusion.PWP.Messages.encode({:suggest_piece, 230})
+      iex> Effusion.Messages.encode({:suggest_piece, 230})
       {:ok, <<13, 0, 0, 0, 230>>}
 
-      iex> Effusion.PWP.Messages.encode(:have_all)
+      iex> Effusion.Messages.encode(:have_all)
       {:ok, <<14>>}
 
-      iex> Effusion.PWP.Messages.encode(:have_none)
+      iex> Effusion.Messages.encode(:have_none)
       {:ok, <<15>>}
 
-      iex> Effusion.PWP.Messages.encode({:reject, 230, 60, 200})
+      iex> Effusion.Messages.encode({:reject, 230, 60, 200})
       {:ok, <<16, 0, 0, 0, 230, 0, 0, 0, 60, 0, 0, 0, 200>>}
 
-      iex> Effusion.PWP.Messages.encode({:allowed_fast, 230})
+      iex> Effusion.Messages.encode({:allowed_fast, 230})
       {:ok, <<17, 0, 0, 0, 230>>}
 
   """

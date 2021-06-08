@@ -16,7 +16,6 @@ defmodule Effusion.Mixfile do
       package: package(),
       deps: deps(),
       docs: docs(),
-      aliases: aliases(),
       source_url: "https://github.com/Cantido/effusion",
       dialyzer: [flags: [:error_handling, :race_conditions, :underspecs]]
     ]
@@ -27,31 +26,19 @@ defmodule Effusion.Mixfile do
 
   def application do
     [
-      extra_applications: [:crypto, :logger, :ranch, :runtime_tools, :timex],
+      extra_applications: [:crypto, :logger, :ranch, :runtime_tools],
       mod: {Effusion.Application, []}
-    ]
-  end
-
-  defp aliases do
-    [
-      test: ["ecto.create --quiet", "ecto.migrate", "test"],
-      "event_store.reset": ["event_store.drop", "event_store.create", "event_store.init"]
     ]
   end
 
   defp deps do
     [
       {:bento, "~> 0.9"},
-      {:honeydew, "~> 1.5.0"},
       {:int_set, "~> 1.5"},
       {:httpoison, "~> 1.6"},
-      {:jason, "~> 1.2"},
       {:logger_file_backend, "~> 0.0.10"},
       {:metatorrent, "~> 1.0"},
-      {:plug_cowboy, "~> 2.0"},
       {:ranch, "~> 1.0"},
-      {:timex, "~> 3.7"},
-      {:tzdata, "~> 1.1"},
       {:temp, "~> 0.4", only: :test},
       {:mox, "~> 1.0", only: :test},
       {:credo, "~> 1.5", only: [:dev, :test], runtime: false},

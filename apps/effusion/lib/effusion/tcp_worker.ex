@@ -1,10 +1,7 @@
-defmodule Effusion.PWP.TCP.Worker do
+defmodule Effusion.TCPWorker do
   use GenServer, restart: :temporary
-  alias Effusion.Application.ConnectionSupervisor
-  alias Effusion.PWP.Messages
-  alias Effusion.PWP.TCP.Socket
-  import Effusion.PWP
-  import Effusion.Hash, only: [is_hash: 1]
+  alias Effusion.Messages
+  alias Effusion.TCPSocket
 
   @behaviour :ranch_protocol
 
@@ -14,13 +11,6 @@ defmodule Effusion.PWP.TCP.Worker do
   This amounts to performing the handshake, and then forwarding any messages
   to the associated download.
   """
-
-  @doc """
-  Start a connection to a `peer` in the Connection supervision hierarchy.
-  """
-  def connect(peer = {{_host, port}, _peer_uuid}) when is_integer(port) do
-    ConnectionSupervisor.start_child(peer)
-  end
 
   @doc """
   The `start_link` implementation for `:ranch_protocol` behaviour
@@ -59,9 +49,8 @@ defmodule Effusion.PWP.TCP.Worker do
   end
 
   def handle_continue(:connect, %{address: {host, port}, peer_uuid: peer_uuid} = state) do
-    with {:ok, _pid} <- Registry.register(ConnectionRegistry, peer_uuid, nil),
-         {:ok, socket} <-
-           :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 1_000),
+    with {:ok, socket} <-
+           :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 1_000) do
       {:noreply, Map.put(state, :socket, socket)}
     else
       _ ->
@@ -77,24 +66,16 @@ defmodule Effusion.PWP.TCP.Worker do
   def handle_btp(
         message = {:handshake, remote_peer_id, info_hash, _extensions},
         state = %{address: {host, port}}
-      )
-      when is_peer_id(remote_peer_id) and
-             is_hash(info_hash) do
-    peer_uuid = UUID.uuid4()
-    {:ok, _pid} = Registry.register(ConnectionRegistry, peer_uuid, nil)
-    :ok = Effusion.PWP.add(peer_uuid, info_hash, remote_peer_id, host, port, :connection)
-    :ok = Effusion.PWP.handle_message(peer_uuid, message, "them")
+      ) do
 
     {:noreply,
      Map.merge(state, %{
        info_hash: info_hash,
        remote_peer_id: remote_peer_id,
-       peer_uuid: peer_uuid
      })}
   end
 
   def handle_btp(msg, state = %{peer_uuid: peer_uuid}) do
-    :ok = Effusion.PWP.handle_message(peer_uuid, msg)
     {:noreply, state}
   end
 
@@ -126,7 +107,7 @@ defmodule Effusion.PWP.TCP.Worker do
 
   def terminate(reason, state) when is_map(state) do
     if Map.has_key?(state, :socket) do
-      Socket.close(state.socket)
+      TCPSocket.close(state.socket)
     end
 
     :ok

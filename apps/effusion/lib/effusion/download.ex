@@ -1,5 +1,5 @@
-defmodule Effusion.Downloads.Download do
-  alias Effusion.Downloads.Piece
+defmodule Effusion.Download do
+  alias Effusion.Piece
 
   @enforce_keys [
     :meta
@@ -14,7 +14,7 @@ defmodule Effusion.Downloads.Download do
       %Piece{
         index: piece_index,
         expected_hash: Enum.at(download.meta.info.pieces, piece_index),
-        expected_size: Effusion.Metadata.piece_size(meta.info, piece_index)
+        expected_size: Effusion.Metadata.piece_size(download.meta.info, piece_index)
       }
       |> Piece.add_data(offset, data)
 

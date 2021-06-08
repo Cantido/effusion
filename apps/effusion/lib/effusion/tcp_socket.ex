@@ -1,6 +1,6 @@
-defmodule Effusion.PWP.TCP.Socket do
+defmodule Effusion.TCPSocket do
   require Logger
-  alias Effusion.PWP.Messages
+  alias Effusion.Messages
 
   @moduledoc """
   Interface to Peer Wire Protocol (PWP) sockets.

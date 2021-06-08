@@ -1,5 +1,5 @@
-defmodule Effusion.Downloads.Piece do
-  alias Effusion.Downloads.Block
+defmodule Effusion.Piece do
+  alias Effusion.Block
 
   @enforce_keys [
     :index,

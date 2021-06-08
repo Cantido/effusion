@@ -1,6 +1,5 @@
 ExUnit.start(capture_log: true)
 ExUnit.configure(timeout: 10_000)
-Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, :manual)
 
 defmodule TestHelper do
   def mint_info_hash do
