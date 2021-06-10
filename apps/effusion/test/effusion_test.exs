@@ -126,6 +126,9 @@ defmodule EffusionTest do
     end
 
     Effusion.stop_download(@torrent.info_hash)
+
+    Process.sleep(100)
+
     :file.datasync(file)
 
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))

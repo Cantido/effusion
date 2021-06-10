@@ -1,7 +1,9 @@
 defmodule Effusion.IO do
   alias Effusion.Range
+  require Logger
 
   def write_piece(data, index, info) do
+
     files = Map.get(info, :files, [])
     destdir = Application.fetch_env!(:effusion, :download_destination)
 

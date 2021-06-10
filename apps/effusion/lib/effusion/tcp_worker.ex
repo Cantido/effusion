@@ -42,6 +42,19 @@ defmodule Effusion.TCPWorker do
     GenServer.call(via(info_hash, address), {:send, message})
   end
 
+  def broadcast(info_hash, message) do
+    match_pattern = {{:"$1", :"$2"}, :_, :_}
+    guards = [{:==, :"$1", info_hash}]
+    body = [:"$2"]
+
+    spec = [{match_pattern, guards, body}]
+
+    Registry.select(ConnectionRegistry, spec)
+    |> Enum.each(fn address ->
+      GenServer.call(via(info_hash, address), {:send, message})
+    end)
+  end
+
   defp via(info_hash, address) do
     {:via, Registry, {ConnectionRegistry, {info_hash, address}}}
   end
@@ -126,6 +139,11 @@ defmodule Effusion.TCPWorker do
     end
   end
 
+  def handle_call({:send, message}, _from, conn) do
+    :ok = TCPSocket.send_msg(conn.socket, message)
+    {:reply, :ok, conn}
+  end
+
   def handle_info({:tcp, _tcp_socket, data}, conn) when is_binary(data) do
     {:ok, msg} = Messages.decode(data)
     {:ok, conn} = handle_pwp_message(msg, conn)
@@ -159,6 +177,27 @@ defmodule Effusion.TCPWorker do
   def handle_pwp_message({:bitfield, bitfield}, conn) do
     IntSet.new(bitfield)
     |> Enum.each(&DownloadManager.peer_has_piece(conn.info_hash, conn.address, &1))
+
+    {:ok, conn}
+  end
+
+  def handle_pwp_message(:unchoke, conn) do
+    conn = Connection.unchoke_us(conn)
+
+    if Connection.can_download?(conn) do
+      blocks = DownloadManager.get_block_requests(conn.info_hash, conn.address)
+
+      Enum.each(blocks, fn {index, offset, size} ->
+        :ok = TCPSocket.send_msg(conn.socket, {:request, index, offset, size})
+        :ok = DownloadManager.block_requested(conn.info_hash, conn.address, index, offset, size)
+      end)
+    end
+
+    {:ok, conn}
+  end
+
+  def handle_pwp_message({:piece, %{index: index, offset: offset, data: data}}, conn) do
+    :ok = DownloadManager.add_data(conn.info_hash, index, offset, data)
 
     {:ok, conn}
   end
