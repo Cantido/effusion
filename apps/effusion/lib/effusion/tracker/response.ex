@@ -1,20 +1,8 @@
-defmodule Effusion.Tracker do
-  import Effusion.Hash, only: [is_hash: 1]
-
-  @allowed_opts [
-    :compact,
-    :event,
-    :ip,
-    :key,
-    :no_peer_id,
-    :numwant,
-    :trackerid
-  ]
-
+defmodule Effusion.Tracker.Response do
   @body_names %{
     "interval" => :interval,
     "peers" => :peers,
-    "tracker id" => :trackerid
+    "tracker id" => :tracker_id
   }
 
   @peer_names %{
@@ -23,50 +11,46 @@ defmodule Effusion.Tracker do
     "peer id" => :peer_id
   }
 
-  def announce(
-        tracker_url,
-        peer_host,
-        peer_port,
-        peer_id,
-        info_hash,
-        uploaded,
-        downloaded,
-        left,
-        opts \\ []
-      )
-      when is_hash(info_hash) and
-             is_integer(peer_port) and
-             peer_port in 1..65_535 and
-             uploaded >= 0 and
-             downloaded >= 0 and
-             left >= 0 do
-    sanitized_opts = Keyword.take(opts, @allowed_opts) |> Map.new()
+  @type peer :: %{
+    ip: :inet.hostname() | :inet.ip_address(),
+    port: :inet.port_number(),
+    peer_id: Effusion.peer_id()
+  }
 
-    tracker_request =
-      %{
-        info_hash: info_hash,
-        peer_id: peer_id,
-        port: peer_port,
-        uploaded: uploaded,
-        downloaded: downloaded,
-        left: left,
-        ip: to_string(:inet.ntoa(peer_host))
-      }
-      |> Map.merge(sanitized_opts)
+  @type compact_peer :: %{
+    ip: :inet.ip4_address(),
+    port: :inet.port_number()
+  }
 
-    query = URI.encode_query(tracker_request)
+  @type t :: %__MODULE__{
+    interval: pos_integer(),
+    peers: [peer] | [compact_peer],
+    tracker_id: String.t()
+  }
 
-    request = Finch.build(:get, tracker_url <> "?" <> query)
+  @enforce_keys [
+    :interval,
+    :peers
+  ]
+  defstruct [
+    :interval,
+    :peers,
+    :tracker_id
+  ]
 
-    with {:ok, response} <- Finch.request(request, EffusionFinch),
-         {:ok, bterm} <- Bento.decode(response.body) do
-      bterm
-      |> Effusion.Map.rename_keys(@body_names)
-      |> Map.update(:peers, [], &decode_peers/1)
+  def decode(bterm) do
+    if not is_nil(bterm["failure reason"]) do
+      {:error, bterm["failure reason"]}
+    else
+      response =
+        bterm
+        |> Effusion.Map.rename_keys(@body_names)
+        |> Map.update(:peers, [], &decode_peers/1)
+      {:ok, struct(__MODULE__, response)}
     end
   end
 
-  @doc """
+    @doc """
   Decodes a tracker peer response.
   """
   def decode_peers(peers)

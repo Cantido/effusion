@@ -17,7 +17,7 @@ defmodule Effusion.TCPSocket do
   Connect to a server described by `peer`.
   """
   def connect({host, port}, local_info_hash, local_peer_id, expected_peer_id, our_extensions) do
-    case :gen_tcp.connect(host, port, [:binary, active: false], 10_000) do
+    case :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 10_000) do
       {:ok, socket} ->
         perform_handshake(
           socket,
@@ -84,12 +84,8 @@ defmodule Effusion.TCPSocket do
   Send a message on a socket.
   """
   def send_msg(socket, msg) do
-    case Messages.encode(msg) do
-      {:ok, request} ->
-        :gen_tcp.send(socket, request)
-
-      err ->
-        err
+    with {:ok, request} <- Messages.encode(msg) do
+      :gen_tcp.send(socket, request)
     end
   end
 
@@ -97,12 +93,8 @@ defmodule Effusion.TCPSocket do
   Receives a message from a socket in passive mode.
   """
   def recv(socket, size \\ 0) do
-    case :gen_tcp.recv(socket, size) do
-      {:ok, packet} ->
-        decode(packet)
-
-      err ->
-        err
+    with {:ok, packet} <- :gen_tcp.recv(socket, size) do
+      decode(packet)
     end
   end
 

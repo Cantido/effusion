@@ -3,13 +3,13 @@ defmodule Effusion.Availability do
     pieces: %{}
   ]
 
-  def peer_has_piece(avail, peer_uuid, piece_index) do
+  def peer_has_piece(avail, address, piece_index) do
     pieces =
       Map.update(
         avail.pieces,
         piece_index,
-        MapSet.new([peer_uuid]),
-        &MapSet.put(&1, peer_uuid)
+        MapSet.new([address]),
+        &MapSet.put(&1, address)
       )
 
     %{avail | pieces: pieces}

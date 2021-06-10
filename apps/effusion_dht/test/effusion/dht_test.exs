@@ -3,13 +3,11 @@ defmodule Effusion.DHTTest do
   alias Effusion.DHT
   alias Effusion.DHT.KRPC
   alias Effusion.DHT.Node
+  alias Effusion.DownloadManager
+  alias Effusion.Peer
+  alias Effusion.PeerManager
   import Bitwise
   doctest Effusion.DHT
-
-  setup do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Effusion.Repo)
-    Ecto.Adapters.SQL.Sandbox.mode(Effusion.Repo, {:shared, self()})
-  end
 
   setup do
     port = Enum.random(1025..65535)
@@ -117,7 +115,8 @@ defmodule Effusion.DHTTest do
 
     # generate the peer we'll respond with
 
-    :ok = Effusion.PWP.add(target, {127, 0, 0, 1}, 8080, "tracker")
+    {:ok, _} = PeerManager.add_peer(%Peer{host: {127, 0, 0, 1}, port: 8080})
+    :ok = DownloadManager.add_peer(target, {{127, 0, 0, 1}, 8080})
 
     # Ask the DHT for peers
 
@@ -317,9 +316,9 @@ defmodule Effusion.DHTTest do
 
     Process.sleep(100)
 
-    peers = Effusion.PWP.get_peers_for_download(target)
+    peers = Effusion.DownloadManager.peers(target)
 
-    assert Enum.any?(peers, & &1.port == peer_port)
+    assert Enum.any?(peers, fn {_host, port} -> port == peer_port end)
   end
 
   test "response to announce_peer with a good token with an implied port", %{port: port, node_id: node_id} do
@@ -369,11 +368,11 @@ defmodule Effusion.DHTTest do
 
     Process.sleep(100)
 
-    peers = Effusion.PWP.get_peers_for_download(target)
+    peers = Effusion.DownloadManager.peers(target)
 
     {:ok, peer_port} = :inet.port(socket)
 
-    assert Enum.any?(peers, & &1.port == peer_port), "No peers with port #{peer_port} found"
+    assert Enum.any?(peers, fn {_host, port} -> port == peer_port end), "No peers with port #{peer_port} found"
   end
 
   test "response to announce_peer with a mismatched token", %{port: port} do

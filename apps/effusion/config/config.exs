@@ -17,7 +17,8 @@ config :effusion,
   max_peers: 200,
   handshake_timeout: 5_000,
   download_destination: File.cwd!(),
-  enabled_extensions: []
+  enabled_extensions: [],
+  tracker_worker: Effusion.Tracker.FinchWorker
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

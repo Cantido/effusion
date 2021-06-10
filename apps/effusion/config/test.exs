@@ -1,6 +1,5 @@
 use Mix.Config
 
-config :logger, level: :info
+config :effusion, tracker_worker: Effusion.MockHTTP
 
-config :effusion,
-  thp_client: Effusion.THP.Mock
+config :logger, level: :debug

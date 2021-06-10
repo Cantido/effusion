@@ -2,7 +2,9 @@ defmodule Effusion.DHT.Server do
   alias Effusion.DHT
   alias Effusion.DHT.KRPC
   alias Effusion.DHT.Node
-  alias Effusion.DHT.Peer
+  alias Effusion.DownloadManager
+  alias Effusion.Peer
+  alias Effusion.PeerManager
   alias Effusion.DHT.Table
 
   require Logger
@@ -57,7 +59,7 @@ defmodule Effusion.DHT.Server do
 
     info_hash = message["a"]["info_hash"]
 
-    peers = Effusion.PWP.get_peers_for_download(info_hash)
+    peers = Effusion.DownloadManager.peers(info_hash)
 
     if Enum.empty?(peers) do
       nodes =
@@ -85,7 +87,7 @@ defmodule Effusion.DHT.Server do
     else
       peers =
         peers
-        |> Enum.map(&Peer.compact/1)
+        |> Enum.map(&compact_address/1)
         |> Enum.join()
 
       token = DHT.generate_announce_peer_token()
@@ -156,13 +158,8 @@ defmodule Effusion.DHT.Server do
           message["a"]["port"]
         end
 
-      :ok =
-        Effusion.PWP.add(
-          message["a"]["info_hash"],
-          ip,
-          peer_port,
-          "dht"
-        )
+      {:ok, _} = PeerManager.add_peer(%Peer{host: ip, port: peer_port})
+      :ok = DownloadManager.add_peer(message["a"]["info_hash"], {ip, peer_port})
 
       tokens = Map.delete(state.tokens, ip)
       {response, %{state | tokens: tokens}}
@@ -175,5 +172,9 @@ defmodule Effusion.DHT.Server do
     response = KRPC.new_error(message["t"], [204, "Unknown method #{query}"])
 
     {response, state}
+  end
+
+  def compact_address({{ip0, ip1, ip2, ip3}, port}) do
+    <<ip0, ip1, ip2, ip3>> <> <<port::integer-size(16)>>
   end
 end
