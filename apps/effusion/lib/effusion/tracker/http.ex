@@ -1,5 +1,5 @@
 defmodule Effusion.Tracker.HTTP do
   @callback announce(
-    any()
+    %Effusion.Tracker.Request{}
   ) :: {:ok, Effusion.Tracker.Response.t()} | {:error, any()}
 end

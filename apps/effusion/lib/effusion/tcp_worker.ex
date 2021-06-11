@@ -130,18 +130,22 @@ defmodule Effusion.TCPWorker do
     end
   end
 
-  def handle_call({:send, :interested}, _from, conn) do
+  def handle_continue({:send, :interested}, conn) do
     if conn.am_interested do
-      {:reply, :ok, conn}
+      {:noreply, conn}
     else
       :ok = TCPSocket.send_msg(conn.socket, :interested)
-      {:reply, :ok, Connection.interested_in_peer(conn)}
+      {:noreply, Connection.interested_in_peer(conn)}
     end
   end
 
-  def handle_call({:send, message}, _from, conn) do
+  def handle_continue({:send, message}, conn) do
     :ok = TCPSocket.send_msg(conn.socket, message)
-    {:reply, :ok, conn}
+    {:noreply, conn}
+  end
+
+  def handle_call({:send, message}, _from, conn) do
+    {:reply, :ok, conn, {:continue, {:send, message}}}
   end
 
   def handle_info({:tcp, _tcp_socket, data}, conn) when is_binary(data) do

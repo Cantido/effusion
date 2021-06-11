@@ -1,11 +1,11 @@
-defmodule Effusion.Tracker.FinchWorker do
+defmodule Effusion.Tracker.Finch do
   alias Effusion.Tracker.Response
   @behaviour Effusion.Tracker.HTTP
 
   def announce(request) do
     query =
       Map.from_struct(request)
-      |> Map.drop(:url)
+      |> Map.drop([:url])
       |> Enum.reject(fn {_key, val} -> is_nil(val) end)
       |> URI.encode_query()
 

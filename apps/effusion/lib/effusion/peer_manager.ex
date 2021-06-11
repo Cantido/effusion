@@ -3,8 +3,8 @@ defmodule Effusion.PeerManager do
   alias Effusion.Peer
   require Logger
 
-  def add_peer(peer) do
-    DynamicSupervisor.start_child(Effusion.PeerSupervisor, {__MODULE__, peer})
+  def add_peer(host, port) do
+    DynamicSupervisor.start_child(Effusion.PeerSupervisor, {__MODULE__, %Peer{host: host, port: port}})
   end
 
   def start_link(peer) do

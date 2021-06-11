@@ -3,6 +3,9 @@ defmodule Effusion.Application do
   use Application
 
   def start(_type, _args) do
+    :ok = Honeydew.start_queue(:tracker)
+    :ok = Honeydew.start_workers(:tracker, Effusion.Tracker.Worker)
+
     port = Application.get_env(:effusion, :port)
 
     children = [

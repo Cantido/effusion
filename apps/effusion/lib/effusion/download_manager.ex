@@ -54,43 +54,22 @@ defmodule Effusion.DownloadManager do
   end
 
   def handle_continue(:announce, download) do
-    # TODO: Make this a proper worker process, probably with Honeydew
-    Task.async(fn ->
-      worker = Application.fetch_env!(:effusion, :tracker_worker)
+    request =
+      %Effusion.Tracker.Request{
+        url: download.meta.announce,
+        ip: Application.fetch_env!(:effusion, :host),
+        port: Application.fetch_env!(:effusion, :port),
+        peer_id: Application.fetch_env!(:effusion, :peer_id),
+        info_hash: download.meta.info_hash,
+        uploaded: download.bytes_uploaded,
+        downloaded: download.bytes_downloaded,
+        left: Download.bytes_left(download),
+        event: "started",
+        numwant: Application.fetch_env!(:effusion, :max_peers)
+      }
 
-      worker.announce(
-        %Effusion.Tracker.Request{
-          url: download.meta.announce,
-          ip: Application.fetch_env!(:effusion, :host),
-          port: Application.fetch_env!(:effusion, :port),
-          peer_id: Application.fetch_env!(:effusion, :peer_id),
-          info_hash: download.meta.info_hash,
-          uploaded: download.bytes_uploaded,
-          downloaded: download.bytes_downloaded,
-          left: Download.bytes_left(download),
-          event: "started",
-          numwant: Application.fetch_env!(:effusion, :max_peers)
-        }
-      )
-      |> case do
-        {:ok, response} ->
-          Enum.each(response.peers, fn response_peer ->
-            address = {response_peer.ip, response_peer.port}
+    Honeydew.async({:announce, [request]}, :tracker)
 
-            peer = %Peer{
-              host: response_peer.ip,
-              port: response_peer.port
-            }
-            PeerManager.add_peer(peer)
-            if response_peer[:peer_id] do
-              PeerManager.set_peer_id(address, response_peer[:peer_id])
-            end
-
-            add_peer(download.meta.info_hash, address)
-          end)
-        err -> Logger.error("tracker returned error: #{inspect err}")
-      end
-    end)
     {:noreply, download}
   end
 
@@ -165,25 +144,22 @@ defmodule Effusion.DownloadManager do
   end
 
   def terminate(_, download) do
-    Task.async(fn ->
-      worker = Application.fetch_env!(:effusion, :tracker_worker)
+    request =
+      %Effusion.Tracker.Request{
+        url: download.meta.announce,
+        ip: Application.fetch_env!(:effusion, :host),
+        port: Application.fetch_env!(:effusion, :port),
+        peer_id: Application.fetch_env!(:effusion, :peer_id),
+        info_hash: download.meta.info_hash,
+        uploaded: download.bytes_uploaded,
+        downloaded: download.bytes_downloaded,
+        left: Download.bytes_left(download),
+        event: "started",
+        numwant: Application.fetch_env!(:effusion, :max_peers)
+      }
 
-      worker.announce(
-        %Effusion.Tracker.Request{
-          url: download.meta.announce,
-          ip: Application.fetch_env!(:effusion, :host),
-          port: Application.fetch_env!(:effusion, :port),
-          peer_id: Application.fetch_env!(:effusion, :peer_id),
-          info_hash: download.meta.info_hash,
-          uploaded: download.bytes_uploaded,
-          downloaded: download.bytes_downloaded,
-          left: Download.bytes_left(download),
-          event: "started",
-          numwant: Application.fetch_env!(:effusion, :max_peers)
-        }
-      )
-    end)
+    Honeydew.async({:announce, [request]}, :tracker)
+
+    :ok
   end
-
-  :ok
 end
