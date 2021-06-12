@@ -16,6 +16,7 @@ defmodule Effusion.Application do
       {Registry, keys: :unique, name: DownloadRegistry},
       {Registry, keys: :unique, name: AvailabilityRegistry},
       {Registry, keys: :unique, name: ConnectionRegistry},
+      {Effusion.Swarm, [name: Effusion.Swarm]},
       :ranch.child_spec(:pwp, :ranch_tcp, [port: port], Effusion.TCPWorker, [])
     ]
 

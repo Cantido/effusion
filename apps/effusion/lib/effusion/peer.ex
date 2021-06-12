@@ -10,6 +10,10 @@ defmodule Effusion.Peer do
     failcount: 0
   ]
 
+  def new({host, port}) do
+    %__MODULE__{host: host, port: port}
+  end
+
   def address(peer) do
     {peer.host, peer.port}
   end
