@@ -2,8 +2,6 @@ defmodule Effusion.DownloadManager do
   use GenServer
   alias Effusion.Download
   alias Effusion.Piece
-  alias Effusion.Peer
-  alias Effusion.PeerManager
   alias Effusion.TCPWorker
   require Logger
 
