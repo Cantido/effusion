@@ -1,4 +1,4 @@
-defmodule Effusion.DownloadManager do
+defmodule Effusion.ActiveDownload do
   use GenServer
   alias Effusion.Download
   alias Effusion.Piece

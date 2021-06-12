@@ -2,9 +2,9 @@ defmodule Effusion.DHT.Server do
   alias Effusion.DHT
   alias Effusion.DHT.KRPC
   alias Effusion.DHT.Node
-  alias Effusion.DownloadManager
+  alias Effusion.ActiveDownload
   alias Effusion.Peer
-  alias Effusion.PeerManager
+  alias Effusion.Swarm
   alias Effusion.DHT.Table
 
   require Logger
@@ -59,7 +59,7 @@ defmodule Effusion.DHT.Server do
 
     info_hash = message["a"]["info_hash"]
 
-    peers = Effusion.DownloadManager.peers(info_hash)
+    peers = Effusion.ActiveDownload.peers(info_hash)
 
     if Enum.empty?(peers) do
       nodes =
@@ -158,8 +158,8 @@ defmodule Effusion.DHT.Server do
           message["a"]["port"]
         end
 
-      {:ok, _} = PeerManager.add_peer(%Peer{host: ip, port: peer_port})
-      :ok = DownloadManager.add_peer(message["a"]["info_hash"], {ip, peer_port})
+      {:ok, _} = Swarm.add_peer(%Peer{host: ip, port: peer_port})
+      :ok = ActiveDownload.add_peer(message["a"]["info_hash"], {ip, peer_port})
 
       tokens = Map.delete(state.tokens, ip)
       {response, %{state | tokens: tokens}}

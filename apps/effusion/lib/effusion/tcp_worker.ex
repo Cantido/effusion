@@ -3,8 +3,8 @@ defmodule Effusion.TCPWorker do
   alias Effusion.Messages
   alias Effusion.TCPSocket
   alias Effusion.Connection
-  alias Effusion.DownloadManager
-  alias Effusion.PeerManager
+  alias Effusion.ActiveDownload
+  alias Effusion.Swarm
   alias Effusion.Handshake
   require Logger
 
@@ -102,7 +102,7 @@ defmodule Effusion.TCPWorker do
       {:ok, {:handshake, received_peer_id, received_info_hash, _extensions}} =
         Handshake.decode(inbound_handshake_packet)
 
-      expected_peer_id = PeerManager.peer_id(conn.address)
+      expected_peer_id = Swarm.peer_id(conn.address)
 
       peer_id_matches? = is_nil(expected_peer_id) or received_peer_id == expected_peer_id
       info_hash_matches? = conn.info_hash == received_info_hash
@@ -121,7 +121,7 @@ defmodule Effusion.TCPWorker do
   end
 
   def handle_continue(:send_bitfield, conn) do
-    meta = DownloadManager.get_meta(conn.info_hash)
+    meta = ActiveDownload.get_meta(conn.info_hash)
     piece_count = Enum.count(meta.info.pieces)
     bitfield_length_bytes = ceil(piece_count / 8)
     case TCPSocket.send_msg(conn.socket, {:bitfield, <<0::size(bitfield_length_bytes)>>}) do
@@ -170,7 +170,7 @@ defmodule Effusion.TCPWorker do
   end
 
   def handle_pwp_message({:handshake, peer_id, info_hash, _extensions}, %{direction: :incoming} = conn) do
-    with :ok = PeerManager.set_peer_id(conn.address, peer_id) do
+    with :ok = Swarm.set_peer_id(conn.address, peer_id) do
       conn =
         %{conn | info_hash: info_hash}
         |> Connection.handshake_received()
@@ -180,7 +180,7 @@ defmodule Effusion.TCPWorker do
 
   def handle_pwp_message({:bitfield, bitfield}, conn) do
     IntSet.new(bitfield)
-    |> Enum.each(&DownloadManager.peer_has_piece(conn.info_hash, conn.address, &1))
+    |> Enum.each(&ActiveDownload.peer_has_piece(conn.info_hash, conn.address, &1))
 
     {:ok, conn}
   end
@@ -189,11 +189,11 @@ defmodule Effusion.TCPWorker do
     conn = Connection.unchoke_us(conn)
 
     if Connection.can_download?(conn) do
-      blocks = DownloadManager.get_block_requests(conn.info_hash, conn.address)
+      blocks = ActiveDownload.get_block_requests(conn.info_hash, conn.address)
 
       Enum.each(blocks, fn {index, offset, size} ->
         :ok = TCPSocket.send_msg(conn.socket, {:request, index, offset, size})
-        :ok = DownloadManager.block_requested(conn.info_hash, conn.address, index, offset, size)
+        :ok = ActiveDownload.block_requested(conn.info_hash, conn.address, index, offset, size)
       end)
     end
 
@@ -201,7 +201,7 @@ defmodule Effusion.TCPWorker do
   end
 
   def handle_pwp_message({:piece, %{index: index, offset: offset, data: data}}, conn) do
-    :ok = DownloadManager.add_data(conn.info_hash, index, offset, data)
+    :ok = ActiveDownload.add_data(conn.info_hash, index, offset, data)
 
     {:ok, conn}
   end

@@ -1,6 +1,6 @@
 defmodule Effusion.Tracker.Worker do
-  alias Effusion.DownloadManager
-  alias Effusion.PeerManager
+  alias Effusion.ActiveDownload
+  alias Effusion.Swarm
   require Logger
 
   def announce(request) do
@@ -12,12 +12,12 @@ defmodule Effusion.Tracker.Worker do
         Enum.each(response.peers, fn response_peer ->
           address = {response_peer.ip, response_peer.port}
 
-          PeerManager.add_peer(response_peer.ip, response_peer.port)
+          Swarm.add_peer(response_peer.ip, response_peer.port)
           if response_peer[:peer_id] do
-            PeerManager.set_peer_id(address, response_peer[:peer_id])
+            Swarm.set_peer_id(address, response_peer[:peer_id])
           end
 
-          DownloadManager.add_peer(request.info_hash, address)
+          ActiveDownload.add_peer(request.info_hash, address)
         end)
       err -> Logger.error("tracker returned error: #{inspect err}")
     end

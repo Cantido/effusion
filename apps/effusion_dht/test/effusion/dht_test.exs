@@ -3,9 +3,9 @@ defmodule Effusion.DHTTest do
   alias Effusion.DHT
   alias Effusion.DHT.KRPC
   alias Effusion.DHT.Node
-  alias Effusion.DownloadManager
+  alias Effusion.ActiveDownload
   alias Effusion.Peer
-  alias Effusion.PeerManager
+  alias Effusion.Swarm
   import Bitwise
   doctest Effusion.DHT
 
@@ -115,8 +115,8 @@ defmodule Effusion.DHTTest do
 
     # generate the peer we'll respond with
 
-    {:ok, _} = PeerManager.add_peer(%Peer{host: {127, 0, 0, 1}, port: 8080})
-    :ok = DownloadManager.add_peer(target, {{127, 0, 0, 1}, 8080})
+    {:ok, _} = Swarm.add_peer(%Peer{host: {127, 0, 0, 1}, port: 8080})
+    :ok = ActiveDownload.add_peer(target, {{127, 0, 0, 1}, 8080})
 
     # Ask the DHT for peers
 
@@ -316,7 +316,7 @@ defmodule Effusion.DHTTest do
 
     Process.sleep(100)
 
-    peers = Effusion.DownloadManager.peers(target)
+    peers = Effusion.ActiveDownload.peers(target)
 
     assert Enum.any?(peers, fn {_host, port} -> port == peer_port end)
   end
@@ -368,7 +368,7 @@ defmodule Effusion.DHTTest do
 
     Process.sleep(100)
 
-    peers = Effusion.DownloadManager.peers(target)
+    peers = Effusion.ActiveDownload.peers(target)
 
     {:ok, peer_port} = :inet.port(socket)
 

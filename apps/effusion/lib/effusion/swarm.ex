@@ -1,4 +1,4 @@
-defmodule Effusion.PeerManager do
+defmodule Effusion.Swarm do
   use GenServer
   alias Effusion.Peer
   require Logger
