@@ -36,7 +36,7 @@ defmodule Effusion.TCPSocketTest do
         |> IO.iodata_to_binary()
         |> Messages.decode()
 
-      assert {:handshake, @local_peer_id, @info_hash, extensions} = outgoing_handshake
+      assert {:handshake, @local_peer_id, @info_hash, _extensions} = outgoing_handshake
     end
 
     test "returns the socket and peer if the handshake succeeds", %{lsock: lsock, peer: peer} do

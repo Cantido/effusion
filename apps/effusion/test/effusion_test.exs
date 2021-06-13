@@ -8,8 +8,6 @@ defmodule EffusionTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  @localhost {127, 0, 0, 1}
-
   @torrent TestHelper.tiny_meta()
   @local_port Application.fetch_env!(:effusion, :port)
   @remote_port 8002
