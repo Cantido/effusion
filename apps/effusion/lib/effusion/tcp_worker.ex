@@ -43,6 +43,28 @@ defmodule Effusion.TCPWorker do
   end
 
   def broadcast(info_hash, message) do
+    all_for_download(info_hash)
+    |> Enum.each(fn address ->
+      GenServer.call(via(info_hash, address), {:send, message})
+    end)
+  end
+
+  def disconnect(info_hash, address) do
+    GenServer.call(via(info_hash, address), :disconnect)
+  end
+
+  def disconnect_all(info_hash) do
+    all_for_download(info_hash)
+    |> Enum.each(fn address ->
+      disconnect(info_hash, address)
+    end)
+  end
+
+  defp via(info_hash, address) do
+    {:via, Registry, {ConnectionRegistry, {info_hash, address}}}
+  end
+
+  def all_for_download(info_hash) do
     match_pattern = {{:"$1", :"$2"}, :_, :_}
     guards = [{:==, :"$1", info_hash}]
     body = [:"$2"]
@@ -50,13 +72,6 @@ defmodule Effusion.TCPWorker do
     spec = [{match_pattern, guards, body}]
 
     Registry.select(ConnectionRegistry, spec)
-    |> Enum.each(fn address ->
-      GenServer.call(via(info_hash, address), {:send, message})
-    end)
-  end
-
-  defp via(info_hash, address) do
-    {:via, Registry, {ConnectionRegistry, {info_hash, address}}}
   end
 
   def init(args) do
@@ -146,6 +161,10 @@ defmodule Effusion.TCPWorker do
 
   def handle_call({:send, message}, _from, conn) do
     {:reply, :ok, conn, {:continue, {:send, message}}}
+  end
+
+  def handle_call(:disconnect, _from, conn) do
+    {:stop, :normal, :ok, conn}
   end
 
   def handle_info({:tcp, _tcp_socket, data}, conn) when is_binary(data) do

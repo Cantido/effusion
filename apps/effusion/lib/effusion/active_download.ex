@@ -157,6 +157,7 @@ defmodule Effusion.ActiveDownload do
       }
 
     Honeydew.async({:announce, [request]}, :tracker)
+    TCPWorker.disconnect_all(download.meta.info_hash)
 
     :ok
   end
