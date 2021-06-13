@@ -38,6 +38,10 @@ defmodule Effusion.ActiveDownload do
     GenServer.call(via(info_hash), {:peer_has_piece, address, piece_index})
   end
 
+  def piece_written(info_hash, piece_index) do
+    GenServer.call(via(info_hash), {:piece_written, piece_index})
+  end
+
   def stop(info_hash) do
     GenServer.call(via(info_hash), :stop)
   end
@@ -81,18 +85,11 @@ defmodule Effusion.ActiveDownload do
     else
       download = Download.add_data(download, index, offset, data)
       piece = Download.get_piece(download, index)
-      pid = self()
       if Piece.finished?(piece) do
-        # TODO: replace this with a proper worker
-        Task.async(fn ->
-          data = Piece.data(piece)
-          with :ok <- Effusion.IO.write_piece(data, index, download.meta.info) do
-            GenServer.call(pid, {:piece_written, index})
-          end
-        end)
-        Task.async(fn ->
-          TCPWorker.broadcast(download.meta.info_hash, {:have, index})
-        end)
+
+        data = Piece.data(piece)
+        Honeydew.async({:write_piece, [data, index, download.meta]}, :file)
+        Honeydew.async({:broadcast, [download.meta.info_hash, {:have, index}]}, :connection)
       end
 
       download
@@ -118,9 +115,7 @@ defmodule Effusion.ActiveDownload do
 
   def handle_call({:peer_has_piece, address, piece_index}, _from, download) do
     unless Download.piece_written?(download, piece_index) do
-      Task.async(fn ->
-        TCPWorker.send(download.meta.info_hash, address, :interested)
-      end)
+      Honeydew.async({:send, [download.meta.info_hash, address, :interested]}, :connection)
     end
     {:reply, :ok, Download.peer_has_piece(download, address, piece_index)}
   end
