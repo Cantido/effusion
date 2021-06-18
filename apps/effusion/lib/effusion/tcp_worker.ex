@@ -126,12 +126,15 @@ defmodule Effusion.TCPWorker do
         not peer_id_matches? -> {:stop, {:peer_id_mismatch, [expected: expected_peer_id, actual: received_peer_id]}, conn}
         not info_hash_matches? -> {:stop, {:info_hash_mismatch, [expected: conn.info_hash, actual: received_info_hash]}, conn}
         true ->
+          Swarm.decrement_failcount({host, port})
           :ok = :inet.setopts(conn.socket, active: :once, packet: 4)
           conn = Connection.handshake_received(conn)
           {:noreply, conn, {:continue, :send_bitfield}}
       end
     else
-      _ -> {:stop, :failed_to_connect, conn}
+      _ ->
+        Swarm.increment_failcount({host, port})
+        {:stop, :failed_to_connect, conn}
     end
   end
 
