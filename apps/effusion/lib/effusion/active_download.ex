@@ -153,7 +153,7 @@ defmodule Effusion.ActiveDownload do
         uploaded: download.bytes_uploaded,
         downloaded: download.bytes_downloaded,
         left: Download.bytes_left(download),
-        event: "started",
+        event: "stopped",
         numwant: Application.fetch_env!(:effusion, :max_peers)
       }
 
