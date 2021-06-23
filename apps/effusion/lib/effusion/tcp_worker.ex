@@ -102,34 +102,19 @@ defmodule Effusion.TCPWorker do
 
   def handle_continue({:connect, {host, port}}, conn) do
     Logger.debug("TCP worker attempting connection to peer #{inspect {host, port}}")
-    with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 1_000) do
-      conn = Connection.set_socket(conn, socket)
 
-      outbound_handshake_packet =
-        Handshake.encode(
-          Application.fetch_env!(:effusion, :peer_id),
-          conn.info_hash
-        )
-      :ok = :gen_tcp.send(socket, outbound_handshake_packet)
-      conn = Connection.handshake_sent(conn)
+    our_peer_id = Application.fetch_env!(:effusion, :peer_id)
+    expected_peer_id = Swarm.peer_id(conn.address)
 
-      {:ok, inbound_handshake_packet} = :gen_tcp.recv(socket, 68)
-      {:ok, {:handshake, received_peer_id, received_info_hash, _extensions}} =
-        Handshake.decode(inbound_handshake_packet)
+    with {:ok, socket, remote_peer_id, _extensions} <- TCPSocket.connect({host, port}, conn.info_hash, our_peer_id, expected_peer_id, []) do
+      conn =
+        conn
+        |> Connection.set_socket(socket)
+        |> Connection.handshake_sent()
+        |> Connection.handshake_received()
 
-      expected_peer_id = Swarm.peer_id(conn.address)
-
-      peer_id_matches? = is_nil(expected_peer_id) or received_peer_id == expected_peer_id
-      info_hash_matches? = conn.info_hash == received_info_hash
-
-      cond do
-        not peer_id_matches? -> {:stop, {:peer_id_mismatch, [expected: expected_peer_id, actual: received_peer_id]}, conn}
-        not info_hash_matches? -> {:stop, {:info_hash_mismatch, [expected: conn.info_hash, actual: received_info_hash]}, conn}
-        true ->
-          :ok = :inet.setopts(conn.socket, active: :once, packet: 4)
-          conn = Connection.handshake_received(conn)
-          {:noreply, conn, {:continue, :send_bitfield}}
-      end
+      :ok = :inet.setopts(socket, active: :once)
+      {:noreply, conn, {:continue, :send_bitfield}}
     else
       _ -> {:stop, :failed_to_connect, conn}
     end
