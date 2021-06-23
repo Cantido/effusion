@@ -38,6 +38,11 @@ defmodule Effusion.Download do
     |> Enum.take(Application.fetch_env!(:effusion, :max_requests_per_peer))
   end
 
+  def requests_for_block(download, index, offset, size) do
+    Map.get(download.requests, index, %{})
+    |> Map.get({offset, size}, [])
+  end
+
   def piece_written?(download, piece_index) do
     get_piece(download, piece_index) == :written
   end

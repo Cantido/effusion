@@ -18,8 +18,8 @@ defmodule Effusion.ActiveDownload do
     GenServer.call(via(info_hash), {:add_peer, address})
   end
 
-  def add_data(info_hash, index, offset, data) do
-    GenServer.call(via(info_hash), {:add_data, index, offset, data})
+  def add_data(info_hash, from, index, offset, data) do
+    GenServer.call(via(info_hash), {:add_data, from, index, offset, data})
   end
 
   def get_meta(info_hash) do
@@ -79,18 +79,24 @@ defmodule Effusion.ActiveDownload do
     {:reply, download.meta, download}
   end
 
-  def handle_call({:add_data, index, offset, data}, _from, download) do
+  def handle_call({:add_data, from, index, offset, data}, _from, download) do
     if Download.piece_written?(download, index) do
       download
     else
       download = Download.add_data(download, index, offset, data)
       piece = Download.get_piece(download, index)
-      if Piece.finished?(piece) do
 
+      if Piece.finished?(piece) do
         data = Piece.data(piece)
         Honeydew.async({:write_piece, [data, index, download.meta]}, :file)
         Honeydew.async({:broadcast, [download.meta.info_hash, {:have, index}]}, :connection)
       end
+
+      Download.requests_for_block(download, index, offset, byte_size(data))
+      |> Enum.reject(&(&1 == from))
+      |> Enum.each(fn address ->
+        Honeydew.async({:send, [download.meta.info_hash, address, {:cancel, index, offset, byte_size(data)}]}, :connection)
+      end)
 
       download
     end

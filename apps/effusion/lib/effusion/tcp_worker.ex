@@ -205,7 +205,7 @@ defmodule Effusion.TCPWorker do
   end
 
   def handle_pwp_message({:piece, %{index: index, offset: offset, data: data}}, conn) do
-    :ok = ActiveDownload.add_data(conn.info_hash, index, offset, data)
+    :ok = ActiveDownload.add_data(conn.info_hash, conn.address, index, offset, data)
 
     {:ok, conn}
   end
