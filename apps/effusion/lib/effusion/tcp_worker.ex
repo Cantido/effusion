@@ -5,7 +5,6 @@ defmodule Effusion.TCPWorker do
   alias Effusion.Connection
   alias Effusion.ActiveDownload
   alias Effusion.Swarm
-  alias Effusion.Handshake
   require Logger
 
   @behaviour :ranch_protocol
@@ -106,7 +105,7 @@ defmodule Effusion.TCPWorker do
     our_peer_id = Application.fetch_env!(:effusion, :peer_id)
     expected_peer_id = Swarm.peer_id(conn.address)
 
-    with {:ok, socket, remote_peer_id, _extensions} <- TCPSocket.connect({host, port}, conn.info_hash, our_peer_id, expected_peer_id, []) do
+    with {:ok, socket, _remote_peer_id, _extensions} <- TCPSocket.connect({host, port}, conn.info_hash, our_peer_id, expected_peer_id, []) do
       conn =
         conn
         |> Connection.set_socket(socket)
