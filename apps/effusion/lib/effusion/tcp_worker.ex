@@ -95,7 +95,8 @@ defmodule Effusion.TCPWorker do
     :gen_server.enter_loop(__MODULE__, [], %{
       address: address,
       socket: socket,
-      transport: transport
+      transport: transport,
+      direction: :incoming
     })
   end
 
@@ -106,11 +107,7 @@ defmodule Effusion.TCPWorker do
     expected_peer_id = Swarm.peer_id(conn.address)
 
     with {:ok, socket, _remote_peer_id, _extensions} <- TCPSocket.connect({host, port}, conn.info_hash, our_peer_id, expected_peer_id, []) do
-      conn =
-        conn
-        |> Connection.set_socket(socket)
-        |> Connection.handshake_sent()
-        |> Connection.handshake_received()
+      conn = Connection.set_socket(conn, socket)
 
       :ok = :inet.setopts(socket, active: :once)
       {:noreply, conn, {:continue, :send_bitfield}}
@@ -164,7 +161,8 @@ defmodule Effusion.TCPWorker do
     {:noreply, state}
   end
 
-  def terminate(_reason, conn) do
+  def terminate(reason, conn) do
+    Logger.info("Connection closing with reason #{inspect reason}")
     unless is_nil(conn.socket) do
       TCPSocket.close(conn.socket)
     end
@@ -175,8 +173,28 @@ defmodule Effusion.TCPWorker do
   def handle_pwp_message({:handshake, peer_id, info_hash, _extensions}, %{direction: :incoming} = conn) do
     with :ok = Swarm.set_peer_id(conn.address, peer_id) do
       conn =
-        %{conn | info_hash: info_hash}
-        |> Connection.handshake_received()
+        %Connection{
+          direction: :incoming,
+          address: conn.address,
+          info_hash: info_hash
+        }
+        |> Connection.set_socket(conn.socket)
+
+      our_peer_id = Application.fetch_env!(:effusion, :peer_id)
+      # TODO: Validate info hash
+      our_info_hash = info_hash
+      :ok = TCPSocket.send_msg(conn.socket, {:handshake, our_peer_id, our_info_hash, []})
+      :ok = :inet.setopts(conn.socket, packet: 4)
+
+      Registry.register(ConnectionRegistry, {info_hash, conn.address}, nil)
+
+      meta = ActiveDownload.get_meta(conn.info_hash)
+      piece_count = Enum.count(meta.info.pieces)
+      bitfield_length_bytes = ceil(piece_count / 8)
+
+      :ok = TCPSocket.send_msg(conn.socket, {:bitfield, <<0::size(bitfield_length_bytes)>>})
+      :ok = :inet.setopts(conn.socket, active: :once)
+
       {:ok, conn}
     end
   end
