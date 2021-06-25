@@ -3,13 +3,13 @@ defmodule Effusion do
   A BitTorrent library.
   """
 
-  alias Effusion.ActiveDownload
+  alias Effusion.ActiveTorrent
 
   def start_download(meta) do
-    ActiveDownload.start_link(meta: meta)
+    ActiveTorrent.start_link(meta: meta)
   end
 
   def stop_download(info_hash) do
-    ActiveDownload.stop(info_hash)
+    ActiveTorrent.stop(info_hash)
   end
 end

@@ -3,7 +3,7 @@ defmodule Effusion.TCPWorker do
   alias Effusion.Messages
   alias Effusion.TCPSocket
   alias Effusion.Connection
-  alias Effusion.ActiveDownload
+  alias Effusion.ActiveTorrent
   alias Effusion.Swarm
   require Logger
 
@@ -117,7 +117,7 @@ defmodule Effusion.TCPWorker do
   end
 
   def handle_continue(:send_bitfield, conn) do
-    meta = ActiveDownload.get_meta(conn.info_hash)
+    meta = ActiveTorrent.get_meta(conn.info_hash)
     piece_count = Enum.count(meta.info.pieces)
     bitfield_length_bytes = ceil(piece_count / 8)
     case TCPSocket.send_msg(conn.socket, {:bitfield, <<0::size(bitfield_length_bytes)>>}) do
@@ -188,7 +188,7 @@ defmodule Effusion.TCPWorker do
 
       Registry.register(ConnectionRegistry, {info_hash, conn.address}, nil)
 
-      meta = ActiveDownload.get_meta(conn.info_hash)
+      meta = ActiveTorrent.get_meta(conn.info_hash)
       piece_count = Enum.count(meta.info.pieces)
       bitfield_length_bytes = ceil(piece_count / 8)
 
@@ -201,7 +201,7 @@ defmodule Effusion.TCPWorker do
 
   def handle_pwp_message({:bitfield, bitfield}, conn) do
     IntSet.new(bitfield)
-    |> Enum.each(&ActiveDownload.peer_has_piece(conn.info_hash, conn.address, &1))
+    |> Enum.each(&ActiveTorrent.peer_has_piece(conn.info_hash, conn.address, &1))
 
     {:ok, conn}
   end
@@ -210,11 +210,11 @@ defmodule Effusion.TCPWorker do
     conn = Connection.unchoke_us(conn)
 
     if Connection.can_download?(conn) do
-      blocks = ActiveDownload.get_block_requests(conn.info_hash, conn.address)
+      blocks = ActiveTorrent.get_block_requests(conn.info_hash, conn.address)
 
       Enum.each(blocks, fn {index, offset, size} ->
         :ok = TCPSocket.send_msg(conn.socket, {:request, index, offset, size})
-        :ok = ActiveDownload.block_requested(conn.info_hash, conn.address, index, offset, size)
+        :ok = ActiveTorrent.block_requested(conn.info_hash, conn.address, index, offset, size)
       end)
     end
 
@@ -222,7 +222,7 @@ defmodule Effusion.TCPWorker do
   end
 
   def handle_pwp_message({:piece, %{index: index, offset: offset, data: data}}, conn) do
-    :ok = ActiveDownload.add_data(conn.info_hash, conn.address, index, offset, data)
+    :ok = ActiveTorrent.add_data(conn.info_hash, conn.address, index, offset, data)
 
     {:ok, conn}
   end
