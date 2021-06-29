@@ -286,6 +286,7 @@ defmodule Effusion.TCPWorker do
 
   def handle_pwp_message({:piece, %{index: index, offset: offset, data: data}}, conn) do
     :ok = ActiveTorrent.add_data(conn.info_hash, conn.address, index, offset, data)
+    conn = Connection.add_download_event(conn, byte_size(data), DateTime.utc_now())
 
     {:ok, conn}
   end
