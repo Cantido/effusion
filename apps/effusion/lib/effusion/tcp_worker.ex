@@ -3,9 +3,8 @@ defmodule Effusion.TCPWorker do
   alias Effusion.Messages
   alias Effusion.TCPSocket
   alias Effusion.Connection
-  alias Effusion.ActiveDownload
+  alias Effusion.ActiveTorrent
   alias Effusion.Swarm
-  alias Effusion.Handshake
   require Logger
 
   @behaviour :ranch_protocol
@@ -96,41 +95,35 @@ defmodule Effusion.TCPWorker do
     :gen_server.enter_loop(__MODULE__, [], %{
       address: address,
       socket: socket,
-      transport: transport
+      transport: transport,
+      direction: :incoming
     })
   end
 
   def handle_continue({:connect, {host, port}}, conn) do
     Logger.debug("TCP worker attempting connection to peer #{inspect {host, port}}")
-    with {:ok, socket} <- :gen_tcp.connect(host, port, [:binary, active: false, keepalive: true], 1_000) do
+
+    our_peer_id = Application.fetch_env!(:effusion, :peer_id)
+    expected_peer_id = Swarm.peer_id(conn.address)
+
+    with {:ok, socket, remote_peer_id, remote_extensions} <- TCPSocket.connect({host, port}, conn.info_hash, our_peer_id, expected_peer_id, []) do
       conn = Connection.set_socket(conn, socket)
 
-      outbound_handshake_packet =
-        Handshake.encode(
-          Application.fetch_env!(:effusion, :peer_id),
-          conn.info_hash
-        )
-      :ok = :gen_tcp.send(socket, outbound_handshake_packet)
-      conn = Connection.handshake_sent(conn)
+      :telemetry.execute(
+        [:effusion, :net, :bytes_sent],
+        %{system_time: System.system_time()},
+        %{message: {:handshake, our_peer_id, conn.info_hash, []}, address: conn.address, info_hash: conn.info_hash}
+      )
 
-      {:ok, inbound_handshake_packet} = :gen_tcp.recv(socket, 68)
-      {:ok, {:handshake, received_peer_id, received_info_hash, _extensions}} =
-        Handshake.decode(inbound_handshake_packet)
+      :telemetry.execute(
+        [:effusion, :net, :bytes_received],
+        %{system_time: System.system_time()},
+        %{message: {:handshake, remote_peer_id, conn.info_hash, remote_extensions}, address: conn.address, info_hash: conn.info_hash}
+      )
 
-      expected_peer_id = Swarm.peer_id(conn.address)
-
-      peer_id_matches? = is_nil(expected_peer_id) or received_peer_id == expected_peer_id
-      info_hash_matches? = conn.info_hash == received_info_hash
-
-      cond do
-        not peer_id_matches? -> {:stop, {:peer_id_mismatch, [expected: expected_peer_id, actual: received_peer_id]}, conn}
-        not info_hash_matches? -> {:stop, {:info_hash_mismatch, [expected: conn.info_hash, actual: received_info_hash]}, conn}
-        true ->
-          Swarm.decrement_failcount({host, port})
-          :ok = :inet.setopts(conn.socket, active: :once, packet: 4)
-          conn = Connection.handshake_received(conn)
-          {:noreply, conn, {:continue, :send_bitfield}}
-      end
+      Swarm.decrement_failcount({host, port})
+      :ok = :inet.setopts(socket, active: :once)
+      {:noreply, conn, {:continue, :send_bitfield}}
     else
       _ ->
         Swarm.increment_failcount({host, port})
@@ -139,11 +132,19 @@ defmodule Effusion.TCPWorker do
   end
 
   def handle_continue(:send_bitfield, conn) do
-    meta = ActiveDownload.get_meta(conn.info_hash)
+    meta = ActiveTorrent.get_meta(conn.info_hash)
     piece_count = Enum.count(meta.info.pieces)
     bitfield_length_bytes = ceil(piece_count / 8)
-    case TCPSocket.send_msg(conn.socket, {:bitfield, <<0::size(bitfield_length_bytes)>>}) do
-      :ok -> {:noreply, conn}
+    bitfield_message = {:bitfield, <<0::size(bitfield_length_bytes)>>}
+    case TCPSocket.send_msg(conn.socket, bitfield_message) do
+      :ok ->
+        :telemetry.execute(
+          [:effusion, :net, :bytes_sent],
+          %{system_time: System.system_time()},
+          %{message: bitfield_message, address: conn.address, info_hash: conn.info_hash}
+        )
+
+        {:noreply, conn}
       {:error, err} -> {:stop, conn, {:tcp_failed_to_send, err}}
     end
   end
@@ -153,12 +154,26 @@ defmodule Effusion.TCPWorker do
       {:noreply, conn}
     else
       :ok = TCPSocket.send_msg(conn.socket, :interested)
+
+      :telemetry.execute(
+        [:effusion, :net, :bytes_sent],
+        %{system_time: System.system_time()},
+        %{message: :interested, size: Messages.size(:interested), address: conn.address, info_hash: conn.info_hash}
+      )
+
       {:noreply, Connection.interested_in_peer(conn)}
     end
   end
 
   def handle_continue({:send, message}, conn) do
     :ok = TCPSocket.send_msg(conn.socket, message)
+
+    :telemetry.execute(
+      [:effusion, :net, :bytes_sent],
+      %{system_time: System.system_time()},
+      %{message: message, address: conn.address, info_hash: conn.info_hash}
+    )
+
     {:noreply, conn}
   end
 
@@ -173,6 +188,13 @@ defmodule Effusion.TCPWorker do
   def handle_info({:tcp, _tcp_socket, data}, conn) when is_binary(data) do
     {:ok, msg} = Messages.decode(data)
     {:ok, conn} = handle_pwp_message(msg, conn)
+
+    :telemetry.execute(
+      [:effusion, :net, :bytes_received],
+      %{system_time: System.system_time()},
+      %{message: msg, address: conn.address, info_hash: conn.info_hash}
+    )
+
     :ok = :inet.setopts(conn.socket, active: :once)
     {:noreply, conn}
   end
@@ -183,7 +205,8 @@ defmodule Effusion.TCPWorker do
     {:noreply, state}
   end
 
-  def terminate(_reason, conn) do
+  def terminate(reason, conn) do
+    Logger.info("Connection closing with reason #{inspect reason}")
     unless is_nil(conn.socket) do
       TCPSocket.close(conn.socket)
     end
@@ -194,15 +217,51 @@ defmodule Effusion.TCPWorker do
   def handle_pwp_message({:handshake, peer_id, info_hash, _extensions}, %{direction: :incoming} = conn) do
     with :ok = Swarm.set_peer_id(conn.address, peer_id) do
       conn =
-        %{conn | info_hash: info_hash}
-        |> Connection.handshake_received()
+        %Connection{
+          direction: :incoming,
+          address: conn.address,
+          info_hash: info_hash
+        }
+        |> Connection.set_socket(conn.socket)
+
+      our_peer_id = Application.fetch_env!(:effusion, :peer_id)
+      # TODO: Validate info hash
+      our_info_hash = info_hash
+      handshake = {:handshake, our_peer_id, our_info_hash, []}
+      :ok = TCPSocket.send_msg(conn.socket, handshake)
+
+      :telemetry.execute(
+        [:effusion, :net, :bytes_sent],
+        %{system_time: System.system_time()},
+        %{message: handshake, address: conn.address, info_hash: conn.info_hash}
+      )
+
+      :ok = :inet.setopts(conn.socket, packet: 4)
+
+      Registry.register(ConnectionRegistry, {info_hash, conn.address}, nil)
+
+      meta = ActiveTorrent.get_meta(conn.info_hash)
+      piece_count = Enum.count(meta.info.pieces)
+      bitfield_length_bytes = ceil(piece_count / 8)
+
+      bitfield_message = {:bitfield, <<0::size(bitfield_length_bytes)>>}
+      :ok = TCPSocket.send_msg(conn.socket, bitfield_message)
+
+      :telemetry.execute(
+        [:effusion, :net, :bytes_sent],
+        %{system_time: System.system_time()},
+        %{message: bitfield_message, address: conn.address, info_hash: conn.info_hash}
+      )
+
+      :ok = :inet.setopts(conn.socket, active: :once)
+
       {:ok, conn}
     end
   end
 
   def handle_pwp_message({:bitfield, bitfield}, conn) do
     IntSet.new(bitfield)
-    |> Enum.each(&ActiveDownload.peer_has_piece(conn.info_hash, conn.address, &1))
+    |> Enum.each(&ActiveTorrent.peer_has_piece(conn.info_hash, conn.address, &1))
 
     {:ok, conn}
   end
@@ -211,11 +270,19 @@ defmodule Effusion.TCPWorker do
     conn = Connection.unchoke_us(conn)
 
     if Connection.can_download?(conn) do
-      blocks = ActiveDownload.get_block_requests(conn.info_hash, conn.address)
+      blocks = ActiveTorrent.get_block_requests(conn.info_hash, conn.address)
 
       Enum.each(blocks, fn {index, offset, size} ->
-        :ok = TCPSocket.send_msg(conn.socket, {:request, index, offset, size})
-        :ok = ActiveDownload.block_requested(conn.info_hash, conn.address, index, offset, size)
+        request_message = {:request, index, offset, size}
+        :ok = TCPSocket.send_msg(conn.socket, request_message)
+
+        :telemetry.execute(
+          [:effusion, :net, :bytes_sent],
+          %{system_time: System.system_time()},
+          %{message: request_message, address: conn.address, info_hash: conn.info_hash}
+        )
+
+        :ok = ActiveTorrent.block_requested(conn.info_hash, conn.address, index, offset, size)
       end)
     end
 
@@ -223,7 +290,7 @@ defmodule Effusion.TCPWorker do
   end
 
   def handle_pwp_message({:piece, %{index: index, offset: offset, data: data}}, conn) do
-    :ok = ActiveDownload.add_data(conn.info_hash, index, offset, data)
+    :ok = ActiveTorrent.add_data(conn.info_hash, conn.address, index, offset, data)
 
     {:ok, conn}
   end

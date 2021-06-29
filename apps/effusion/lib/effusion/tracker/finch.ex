@@ -11,8 +11,8 @@ defmodule Effusion.Tracker.Finch do
 
     request = Finch.build(:get, request.url <> "?" <> query)
 
-    with {:ok, response} when response.status == 200 <- Finch.request(request, EffusionFinch),
-         {:ok, bterm} <- Bento.decode(response.body) do
+    with {:ok, %{status: 200, body: body}} <- Finch.request(request, EffusionFinch),
+         {:ok, bterm} <- Bento.decode(body) do
       if not is_nil(bterm["failure reason"]) do
         {:error, bterm["failure reason"]}
       else

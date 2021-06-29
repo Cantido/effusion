@@ -14,7 +14,7 @@ defmodule Effusion.Application do
       {DynamicSupervisor, strategy: :one_for_one, name: Effusion.PeerSupervisor},
       {DynamicSupervisor, strategy: :one_for_one, name: Effusion.ConnectionSupervisor},
       {Registry, keys: :unique, name: PeerRegistry},
-      {Registry, keys: :unique, name: DownloadRegistry},
+      {Registry, keys: :unique, name: TorrentRegistry},
       {Registry, keys: :unique, name: ConnectionRegistry},
       {Effusion.Swarm, [name: Effusion.Swarm]},
       :ranch.child_spec(:pwp, :ranch_tcp, [port: port], Effusion.TCPWorker, [])

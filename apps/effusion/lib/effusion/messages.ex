@@ -251,4 +251,13 @@ defmodule Effusion.Messages do
     padding = <<0::size(extra_bits_needed)>>
     <<bits::bitstring, padding::bitstring>>
   end
+
+  def type(msg) when is_atom(msg), do: msg
+  def type(msg) when is_tuple(msg), do: elem(msg, 0)
+
+  def size(msg) do
+    with {:ok, encoded} <- encode(msg) do
+      byte_size(encoded)
+    end
+  end
 end
