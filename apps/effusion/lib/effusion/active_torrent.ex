@@ -22,6 +22,10 @@ defmodule Effusion.ActiveTorrent do
     GenServer.call(via(info_hash), {:add_data, from, index, offset, data})
   end
 
+  def get_bitfield(info_hash) do
+    GenServer.call(via(info_hash), :get_bitfield)
+  end
+
   def get_meta(info_hash) do
     GenServer.call(via(info_hash), :get_meta)
   end
@@ -77,6 +81,10 @@ defmodule Effusion.ActiveTorrent do
 
   def handle_call(:get_meta, _from, torrent) do
     {:reply, torrent.meta, torrent}
+  end
+
+  def handle_call(:get_bitfield, _from, torrent) do
+    {:reply, Torrent.get_bitfield(torrent), torrent}
   end
 
   def handle_call({:add_data, from, index, offset, data}, _from, torrent) do

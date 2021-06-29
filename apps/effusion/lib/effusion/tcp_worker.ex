@@ -132,10 +132,8 @@ defmodule Effusion.TCPWorker do
   end
 
   def handle_continue(:send_bitfield, conn) do
-    meta = ActiveTorrent.get_meta(conn.info_hash)
-    piece_count = Enum.count(meta.info.pieces)
-    bitfield_length_bytes = ceil(piece_count / 8)
-    bitfield_message = {:bitfield, <<0::size(bitfield_length_bytes)>>}
+    bitfield = ActiveTorrent.get_bitfield(conn.info_hash)
+    bitfield_message = {:bitfield, bitfield}
     case TCPSocket.send_msg(conn.socket, bitfield_message) do
       :ok ->
         :telemetry.execute(
@@ -240,11 +238,8 @@ defmodule Effusion.TCPWorker do
 
       Registry.register(ConnectionRegistry, {info_hash, conn.address}, nil)
 
-      meta = ActiveTorrent.get_meta(conn.info_hash)
-      piece_count = Enum.count(meta.info.pieces)
-      bitfield_length_bytes = ceil(piece_count / 8)
-
-      bitfield_message = {:bitfield, <<0::size(bitfield_length_bytes)>>}
+      bitfield = ActiveTorrent.get_bitfield(conn.info_hash)
+      bitfield_message = {:bitfield, bitfield}
       :ok = TCPSocket.send_msg(conn.socket, bitfield_message)
 
       :telemetry.execute(

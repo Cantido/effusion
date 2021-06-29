@@ -18,6 +18,25 @@ defmodule Effusion.Torrent do
     requests: %{}
   ]
 
+  def get_bitfield(torrent) do
+    piece_count = Enum.count(torrent.meta.info.pieces)
+    bitfield_length_bytes = ceil(piece_count / 8)
+
+    bitfield =
+      Enum.reduce(torrent.pieces, IntSet.new(), fn {index, piece}, set ->
+        if piece == :written or Piece.finished?(piece) do
+          IntSet.put(set, index)
+        else
+          set
+        end
+      end)
+      |> IntSet.bitstring(byte_align: true)
+
+    end_pad_bytes_count = bitfield_length_bytes - byte_size(bitfield)
+
+    bitfield <> <<0::size(end_pad_bytes_count)>>
+  end
+
   def get_piece(torrent, piece_index) do
     Map.get(torrent.pieces, piece_index)
   end
