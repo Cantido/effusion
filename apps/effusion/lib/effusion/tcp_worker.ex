@@ -261,6 +261,18 @@ defmodule Effusion.TCPWorker do
     {:ok, conn}
   end
 
+  def handle_pwp_message(:interested, conn) do
+    conn = Connection.peer_interested_in_us(conn)
+
+    {:ok, conn}
+  end
+
+  def handle_pwp_message(:uninterested, conn) do
+    conn = Connection.peer_not_interested_in_us(conn)
+
+    {:ok, conn}
+  end
+
   def handle_pwp_message(:choke, conn) do
     conn = Connection.choke_us(conn)
 
