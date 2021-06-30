@@ -41,6 +41,11 @@ defmodule Effusion.Torrent do
     Map.get(torrent.pieces, piece_index)
   end
 
+  def get_block(torrent, piece_index, offset, size) do
+    get_piece(torrent, piece_index)
+    |> Piece.get_block(offset, size)
+  end
+
   def block_requests(torrent, address) do
     Availability.peer_pieces(torrent.availability, address)
     |> Enum.reject(fn index ->
@@ -90,9 +95,25 @@ defmodule Effusion.Torrent do
     requests =
       Map.update(torrent.requests, index, %{{offset, size} => [address]}, fn piece_requests ->
         Map.update(piece_requests, {offset, size}, [address], fn request_addresses ->
-          [address, request_addresses]
+          [address | request_addresses]
         end)
       end)
+    %__MODULE__{torrent | requests: requests}
+  end
+
+  def drop_requests(torrent, address) do
+    requests =
+      Enum.map(torrent.requests, fn {index, requests} ->
+        requests =
+          Enum.map(requests, fn {block, addresses} ->
+            addresses = Enum.reject(addresses, &(&1 == address))
+            {block, addresses}
+          end)
+          |> Map.new()
+        {index, requests}
+      end)
+      |> Map.new()
+
     %__MODULE__{torrent | requests: requests}
   end
 

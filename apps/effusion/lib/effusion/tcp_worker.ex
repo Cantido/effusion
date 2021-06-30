@@ -261,6 +261,14 @@ defmodule Effusion.TCPWorker do
     {:ok, conn}
   end
 
+  def handle_pwp_message(:choke, conn) do
+    conn = Connection.choke_us(conn)
+
+    :ok = ActiveTorrent.drop_requests(conn.info_hash, conn.address)
+
+    {:ok, conn}
+  end
+
   def handle_pwp_message(:unchoke, conn) do
     conn = Connection.unchoke_us(conn)
 
@@ -286,6 +294,23 @@ defmodule Effusion.TCPWorker do
 
   def handle_pwp_message({:piece, %{index: index, offset: offset, data: data}}, conn) do
     :ok = ActiveTorrent.add_data(conn.info_hash, conn.address, index, offset, data)
+
+    {:ok, conn}
+  end
+
+  def handle_pwp_message({:request, %{index: index, offset: offset, size: size}}, conn) do
+    if Connection.can_upload?(conn) do
+      {:ok, data} = ActiveTorrent.get_block(conn.info_hash, index, offset, size)
+
+      piece_message = {:piece, index, offset, data}
+      :ok = TCPSocket.send_msg(conn.socket, piece_message)
+
+      :telemetry.execute(
+        [:effusion, :net, :bytes_sent],
+        %{system_time: System.system_time()},
+        %{message: piece_message, address: conn.address, info_hash: conn.info_hash}
+      )
+    end
 
     {:ok, conn}
   end

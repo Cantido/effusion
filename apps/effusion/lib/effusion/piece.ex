@@ -24,6 +24,12 @@ defmodule Effusion.Piece do
     |> Enum.join()
   end
 
+  def get_block(%__MODULE__{blocks: blocks}, offset, size) do
+    Enum.find(blocks, fn block ->
+      block.offset == offset and block.size == size
+    end)
+  end
+
   @doc """
   Returns all blocks that are needed to finish this piece.
   Blocks are returned as `{offset, size}` tuples.

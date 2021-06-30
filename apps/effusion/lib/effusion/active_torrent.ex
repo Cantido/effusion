@@ -22,6 +22,10 @@ defmodule Effusion.ActiveTorrent do
     GenServer.call(via(info_hash), {:add_data, from, index, offset, data})
   end
 
+  def get_block(info_hash, index, offset, size) do
+    GenServer.call(via(info_hash), {:get_block, index, offset, size})
+  end
+
   def get_bitfield(info_hash) do
     GenServer.call(via(info_hash), :get_bitfield)
   end
@@ -36,6 +40,10 @@ defmodule Effusion.ActiveTorrent do
 
   def block_requested(info_hash, address, index, offset, size) do
     GenServer.call(via(info_hash), {:block_requested, address, index, offset, size})
+  end
+
+  def drop_requests(info_hash, address) do
+    GenServer.call(via(info_hash), {:drop_requests, address})
   end
 
   def peer_has_piece(info_hash, address, piece_index) do
@@ -112,6 +120,14 @@ defmodule Effusion.ActiveTorrent do
     {:reply, :ok, torrent}
   end
 
+  def handle_call({:get_block, index, offset, size}, _from, torrent) do
+    with data when not is_nil(data) <- Torrent.get_block(torrent, index, offset, size) do
+      {:reply, {:ok, data}, torrent}
+    else
+      nil -> {:reply, {:error, :block_not_found}, torrent}
+    end
+  end
+
   def handle_call({:piece_written, index}, _from, torrent) do
     torrent = Torrent.piece_written(torrent, index)
     {:reply, :ok, torrent}
@@ -144,6 +160,12 @@ defmodule Effusion.ActiveTorrent do
     dl = Torrent.block_requested(torrent, address, index, offset, size)
 
     {:reply, :ok, dl}
+  end
+
+  def handle_call({:drop_requests, address}, _from, torrent) do
+    torrent = Torrent.drop_requests(torrent, address)
+
+    {:reply, :ok, torrent}
   end
 
   def handle_call(:stop, _from, torrent) do
