@@ -14,6 +14,10 @@ defmodule Effusion.ActiveTorrent do
     GenServer.call(via(info_hash), :get_peers)
   end
 
+  def get_progress(info_hash) do
+    GenServer.call(via(info_hash), :get_progress)
+  end
+
   def add_peer(info_hash, address) do
     GenServer.call(via(info_hash), {:add_peer, address})
   end
@@ -85,6 +89,10 @@ defmodule Effusion.ActiveTorrent do
     Honeydew.async({:announce, [request]}, :tracker)
 
     {:noreply, torrent}
+  end
+
+  def handle_call(:get_progress, _from, torrent) do
+    {:reply, Torrent.progress(torrent), torrent}
   end
 
   def handle_call(:get_meta, _from, torrent) do

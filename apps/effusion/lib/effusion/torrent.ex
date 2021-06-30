@@ -71,16 +71,37 @@ defmodule Effusion.Torrent do
     get_piece(torrent, piece_index) == :written
   end
 
+  def progress(torrent) do
+    partial = bytes_in_partial_pieces(torrent)
+    completed = bytes_completed(torrent)
+
+    {partial + completed, torrent.meta.info.length}
+  end
+
+  def bytes_in_partial_pieces(torrent) do
+    Enum.map(torrent.pieces, fn {_index, piece} ->
+      if piece == :written or Piece.finished?(piece) do
+        0
+      else
+        Piece.size(piece)
+      end
+    end)
+    |> Enum.sum()
+  end
+
+  def bytes_completed(torrent) do
+    Enum.map(torrent.pieces, fn {index, piece} ->
+      if piece == :written or Piece.finished?(piece) do
+        Metadata.piece_size(torrent.meta.info, index)
+      else
+        0
+      end
+    end)
+    |> Enum.sum()
+  end
+
   def bytes_left(torrent) do
-    bytes_completed =
-      Enum.map(torrent.pieces, fn {index, piece} ->
-        if piece == :written do
-          Metadata.piece_size(torrent.meta.info, index)
-        else
-          0
-        end
-      end)
-      |> Enum.sum()
+    bytes_completed = bytes_completed(torrent)
 
       torrent.meta.info.length - bytes_completed
   end

@@ -123,15 +123,18 @@ defmodule EffusionTest do
       assert r2 == 0
     end
 
-    Effusion.stop_download(@torrent.info_hash)
-
     Process.sleep(100)
+
+    assert {5, 5} == Effusion.progress(@torrent.info_hash)
+
+    Effusion.stop_download(@torrent.info_hash)
 
     :file.datasync(file)
 
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
 
     assert "tiny\n" == contents
+
   end
 
   # test "download a file from a peer supporting the fast extension", %{lsock: lsock, destfile: file} do
