@@ -110,13 +110,13 @@ defmodule Effusion.TCPWorker do
       conn = Connection.set_socket(conn, socket)
 
       :telemetry.execute(
-        [:effusion, :net, :bytes_sent],
+        [:effusion, :net, :message_sent],
         %{system_time: System.system_time()},
         %{message: {:handshake, our_peer_id, conn.info_hash, []}, address: conn.address, info_hash: conn.info_hash}
       )
 
       :telemetry.execute(
-        [:effusion, :net, :bytes_received],
+        [:effusion, :net, :message_received],
         %{system_time: System.system_time()},
         %{message: {:handshake, remote_peer_id, conn.info_hash, remote_extensions}, address: conn.address, info_hash: conn.info_hash}
       )
@@ -137,7 +137,7 @@ defmodule Effusion.TCPWorker do
     case TCPSocket.send_msg(conn.socket, bitfield_message) do
       :ok ->
         :telemetry.execute(
-          [:effusion, :net, :bytes_sent],
+          [:effusion, :net, :message_sent],
           %{system_time: System.system_time()},
           %{message: bitfield_message, address: conn.address, info_hash: conn.info_hash}
         )
@@ -154,9 +154,9 @@ defmodule Effusion.TCPWorker do
       :ok = TCPSocket.send_msg(conn.socket, :interested)
 
       :telemetry.execute(
-        [:effusion, :net, :bytes_sent],
+        [:effusion, :net, :message_sent],
         %{system_time: System.system_time()},
-        %{message: :interested, size: Messages.size(:interested), address: conn.address, info_hash: conn.info_hash}
+        %{message: :interested, address: conn.address, info_hash: conn.info_hash}
       )
 
       {:noreply, Connection.interested_in_peer(conn)}
@@ -167,7 +167,7 @@ defmodule Effusion.TCPWorker do
     :ok = TCPSocket.send_msg(conn.socket, message)
 
     :telemetry.execute(
-      [:effusion, :net, :bytes_sent],
+      [:effusion, :net, :message_sent],
       %{system_time: System.system_time()},
       %{message: message, address: conn.address, info_hash: conn.info_hash}
     )
@@ -188,7 +188,7 @@ defmodule Effusion.TCPWorker do
     {:ok, conn} = handle_pwp_message(msg, conn)
 
     :telemetry.execute(
-      [:effusion, :net, :bytes_received],
+      [:effusion, :net, :message_received],
       %{system_time: System.system_time()},
       %{message: msg, address: conn.address, info_hash: conn.info_hash}
     )
@@ -229,7 +229,7 @@ defmodule Effusion.TCPWorker do
       :ok = TCPSocket.send_msg(conn.socket, handshake)
 
       :telemetry.execute(
-        [:effusion, :net, :bytes_sent],
+        [:effusion, :net, :message_sent],
         %{system_time: System.system_time()},
         %{message: handshake, address: conn.address, info_hash: conn.info_hash}
       )
@@ -243,7 +243,7 @@ defmodule Effusion.TCPWorker do
       :ok = TCPSocket.send_msg(conn.socket, bitfield_message)
 
       :telemetry.execute(
-        [:effusion, :net, :bytes_sent],
+        [:effusion, :net, :message_sent],
         %{system_time: System.system_time()},
         %{message: bitfield_message, address: conn.address, info_hash: conn.info_hash}
       )
@@ -292,7 +292,7 @@ defmodule Effusion.TCPWorker do
         :ok = TCPSocket.send_msg(conn.socket, request_message)
 
         :telemetry.execute(
-          [:effusion, :net, :bytes_sent],
+          [:effusion, :net, :message_sent],
           %{system_time: System.system_time()},
           %{message: request_message, address: conn.address, info_hash: conn.info_hash}
         )
@@ -318,7 +318,7 @@ defmodule Effusion.TCPWorker do
       :ok = TCPSocket.send_msg(conn.socket, piece_message)
 
       :telemetry.execute(
-        [:effusion, :net, :bytes_sent],
+        [:effusion, :net, :message_sent],
         %{system_time: System.system_time()},
         %{message: piece_message, address: conn.address, info_hash: conn.info_hash}
       )
