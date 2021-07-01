@@ -104,26 +104,27 @@ defmodule Effusion.ActiveTorrent do
   end
 
   def handle_call({:add_data, from, index, offset, data}, _from, torrent) do
-    if Torrent.piece_written?(torrent, index) do
-      torrent
-    else
-      torrent = Torrent.add_data(torrent, index, offset, data)
-      piece = Torrent.get_piece(torrent, index)
+    torrent =
+      if Torrent.piece_written?(torrent, index) do
+        torrent
+      else
+        torrent = Torrent.add_data(torrent, index, offset, data)
+        piece = Torrent.get_piece(torrent, index)
 
-      if Piece.finished?(piece) do
-        data = Piece.data(piece)
-        Honeydew.async({:write_piece, [data, index, torrent.meta]}, :file)
-        Honeydew.async({:broadcast, [torrent.meta.info_hash, {:have, index}]}, :connection)
+        if Piece.finished?(piece) do
+          data = Piece.data(piece)
+          Honeydew.async({:write_piece, [data, index, torrent.meta]}, :file)
+          Honeydew.async({:broadcast, [torrent.meta.info_hash, {:have, index}]}, :connection)
+        end
+
+        Torrent.requests_for_block(torrent, index, offset, byte_size(data))
+        |> Enum.reject(&(&1 == from))
+        |> Enum.each(fn address ->
+          Honeydew.async({:send, [torrent.meta.info_hash, address, {:cancel, index, offset, byte_size(data)}]}, :connection)
+        end)
+
+        torrent
       end
-
-      Torrent.requests_for_block(torrent, index, offset, byte_size(data))
-      |> Enum.reject(&(&1 == from))
-      |> Enum.each(fn address ->
-        Honeydew.async({:send, [torrent.meta.info_hash, address, {:cancel, index, offset, byte_size(data)}]}, :connection)
-      end)
-
-      torrent
-    end
 
     {:reply, :ok, torrent}
   end
