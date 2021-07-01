@@ -147,11 +147,11 @@ defmodule Effusion.Torrent do
 
     pieces = Map.update(torrent.pieces, piece_index, new_piece, &Piece.add_data(&1, offset, data))
 
-    %__MODULE__{torrent | pieces: pieces}
+    %__MODULE__{torrent | pieces: pieces, bytes_downloaded: downloaded}
   end
 
   def add_peer(torrent, address) do
-    %{torrent | peers: MapSet.put(torrent.peers, address), bytes_downloaded: downloaded}
+    %{torrent | peers: MapSet.put(torrent.peers, address)}
   end
 
   def peer_has_piece(torrent, address, piece_index) when is_integer(piece_index) do
