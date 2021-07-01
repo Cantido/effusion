@@ -6,6 +6,7 @@ defmodule Effusion.Tracker.Finch do
     query =
       Map.from_struct(request)
       |> Map.drop([:url])
+      |> Map.update!(:ip, &:inet.ntoa/1)
       |> Enum.reject(fn {_key, val} -> is_nil(val) end)
       |> URI.encode_query()
 
@@ -19,8 +20,8 @@ defmodule Effusion.Tracker.Finch do
         response = Response.decode(bterm)
         {:ok, response}
       end
-      else
-        {:ok, %Finch.Response{}} -> {:error, :tracker_http_error}
-      end
+    else
+      {:ok, %Finch.Response{}} -> {:error, :tracker_http_error}
+    end
   end
 end
