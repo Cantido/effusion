@@ -6,10 +6,13 @@ defmodule Effusion.Tracker.Worker do
   def announce(request) do
     worker = Application.fetch_env!(:effusion, :tracker_worker)
 
+    Logger.debug("Announcing #{request.event} event to #{request.url}.")
+
     worker.announce(request)
     |> case do
       {:ok, response} ->
-        unless request.event == "stoppped" do
+        unless request.event == "stopped" do
+          Logger.debug("Received #{Enum.count(response.peers)} peers from #{request.url}.")
           Enum.each(response.peers, fn response_peer ->
             address = {response_peer.ip, response_peer.port}
 

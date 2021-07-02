@@ -104,6 +104,8 @@ defmodule Effusion.ActiveTorrent do
   end
 
   def handle_call({:add_data, from, index, offset, data}, _from, torrent) do
+    Logger.debug("Received block #{index}-#{offset}.")
+
     torrent =
       if Torrent.piece_written?(torrent, index) do
         torrent
@@ -112,6 +114,7 @@ defmodule Effusion.ActiveTorrent do
         piece = Torrent.get_piece(torrent, index)
 
         if Piece.finished?(piece) do
+          Logger.debug("Finished piece #{index}.")
           data = Piece.data(piece)
           Honeydew.async({:write_piece, [data, index, torrent.meta]}, :file)
           Honeydew.async({:broadcast, [torrent.meta.info_hash, {:have, index}]}, :connection)
