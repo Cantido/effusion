@@ -1,9 +1,16 @@
 defmodule Effusion.ActiveTorrent do
-  use GenServer
+  use GenServer, restart: :transient
   alias Effusion.Torrent
   alias Effusion.Piece
   alias Effusion.TCPWorker
   require Logger
+
+  def start_child(opts) do
+    DynamicSupervisor.start_child(
+      Effusion.TorrentSupervisor,
+      {__MODULE__, opts}
+    )
+  end
 
   def start_link(opts) do
     meta = Keyword.fetch!(opts, :meta)

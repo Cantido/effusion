@@ -13,6 +13,7 @@ defmodule Effusion.Application do
       {Finch, name: EffusionFinch},
       {DynamicSupervisor, strategy: :one_for_one, name: Effusion.PeerSupervisor},
       {DynamicSupervisor, strategy: :one_for_one, name: Effusion.ConnectionSupervisor},
+      {DynamicSupervisor, strategy: :one_for_one, name: Effusion.TorrentSupervisor},
       {Registry, keys: :unique, name: PeerRegistry},
       {Registry, keys: :unique, name: TorrentRegistry},
       {Registry, keys: :unique, name: ConnectionRegistry},

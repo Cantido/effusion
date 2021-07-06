@@ -6,7 +6,7 @@ defmodule Effusion do
   alias Effusion.ActiveTorrent
 
   def start_download(meta) do
-    ActiveTorrent.start_link(meta: meta)
+    ActiveTorrent.start_child(meta: meta)
   end
 
   def stop_download(info_hash) do
