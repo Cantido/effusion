@@ -3,8 +3,6 @@ defmodule Effusion.Torrent do
   alias Effusion.Piece
   alias Effusion.Metadata
 
-  require Logger
-
   @enforce_keys [
     :meta
   ]
