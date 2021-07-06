@@ -33,8 +33,13 @@ defmodule Effusion.Torrent do
       |> IntSet.bitstring(byte_align: true)
 
     end_pad_bytes_count = bitfield_length_bytes - byte_size(bitfield)
+    end_pad_bits_count = end_pad_bytes_count * 8
 
-    bitfield <> <<0::size(end_pad_bytes_count)>>
+    if end_pad_bytes_count > 0 do
+      bitfield <> <<0::integer-size(end_pad_bits_count)>>
+    else
+      bitfield
+    end
   end
 
   def get_piece(torrent, piece_index) do
@@ -46,20 +51,24 @@ defmodule Effusion.Torrent do
     |> Piece.get_block(offset, size)
   end
 
-  def block_requests(torrent, address) do
+  def block_requests(torrent, address, block_size) do
     Availability.peer_pieces(torrent.availability, address)
     |> Enum.reject(fn index ->
       Map.get(torrent.pieces, index) == :written
     end)
     |> Enum.flat_map(fn index ->
       Map.get(torrent.pieces, index, build_piece(torrent, index))
-      |> Piece.needed_blocks(Application.fetch_env!(:effusion, :block_size))
+      |> Piece.needed_blocks(block_size)
       |> Enum.map(fn {offset, size} ->
         {index, offset, size}
       end)
     end)
     |> Enum.shuffle()
     |> Enum.take(Application.fetch_env!(:effusion, :max_requests_per_peer))
+  end
+
+  def block_requests(torrent, address) do
+    block_requests(torrent, address, Application.fetch_env!(:effusion, :block_size))
   end
 
   def requests_for_block(torrent, index, offset, size) do
