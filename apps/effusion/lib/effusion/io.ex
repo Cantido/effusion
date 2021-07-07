@@ -7,9 +7,11 @@ defmodule Effusion.IO do
     files = Map.get(info, :files, [])
     destdir = Application.fetch_env!(:effusion, :download_destination)
 
-    split_bytes_to_files(destdir, files, info.name, info.piece_length, index, data)
+    split_bytes_to_files(files, info.name, info.piece_length, index, data)
     |> Enum.group_by(fn {path, _} -> path end, fn {_, locbytes} -> locbytes end)
-    |> Enum.each(fn {path, locbytes} ->
+    |> Enum.each(fn {rel_path, locbytes} ->
+      path = Path.join(destdir, rel_path)
+
       with :ok <- File.mkdir_p(Path.dirname(path)),
           {:ok, device} <- File.open(path, [:read, :write]),
           :ok <- :file.pwrite(device, locbytes) do
@@ -20,14 +22,13 @@ defmodule Effusion.IO do
     :ok
   end
 
-  def split_bytes_to_files(destdir, [], name, piece_length, index, data) do
-    path = Path.join(destdir, name)
+  def split_bytes_to_files([], name, piece_length, index, data) do
     locbytes = {index * piece_length, data}
 
-    %{path => locbytes}
+    %{name => locbytes}
   end
 
-  def split_bytes_to_files(destdir, files, name, piece_length, index, data) when is_list(files) do
+  def split_bytes_to_files(files, name, piece_length, index, data) when is_list(files) do
     piece_range = Range.poslen(index * piece_length, byte_size(data))
 
     files
@@ -47,7 +48,7 @@ defmodule Effusion.IO do
       file_offset.._ = Effusion.Range.shift(overlap, -file_start)
       file_data = :binary.part(data, poslen)
 
-      {Path.join([destdir, name, f.path]), {file_offset, file_data}}
+      {Path.join([name, f.path]), {file_offset, file_data}}
     end)
   end
 
