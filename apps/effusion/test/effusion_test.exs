@@ -9,6 +9,7 @@ defmodule EffusionTest do
   setup :verify_on_exit!
 
   @torrent TestHelper.tiny_meta()
+  @multi_file_torrent TestHelper.multi_file_meta()
   @local_port Application.fetch_env!(:effusion, :port)
   @remote_port 8002
 
@@ -64,7 +65,7 @@ defmodule EffusionTest do
     Application.put_env(:effusion, :server_address, {{127, 0, 0, 1}, @local_port})
   end
 
-  test "download a file", %{lsock: lsock, destfile: file} do
+  test "download a single-file torrent", %{lsock: lsock, destfile: file} do
     old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
     Application.put_env(:effusion, :enabled_extensions, [])
 
@@ -134,7 +135,65 @@ defmodule EffusionTest do
     {:ok, contents} = File.read(Path.join(file, "tiny.txt"))
 
     assert "tiny\n" == contents
+  end
 
+  test "download a multi-file torrent", %{lsock: lsock, destfile: file} do
+    old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
+    Application.put_env(:effusion, :enabled_extensions, [])
+
+    on_exit(fn ->
+      Application.put_env(:effusion, :enabled_extensions, old_supported_extensions)
+    end)
+
+    Application.put_env(:effusion, :download_destination, file)
+
+    Effusion.MockHTTP
+    |> expect(:announce, 2, &stub_tracker/1)
+
+    {:ok, _pid} = Effusion.start_download(@multi_file_torrent)
+
+    {:ok, sock, _remote_peer, []} =
+      TCPSocket.accept(
+        lsock,
+        @multi_file_torrent.info_hash,
+        @local_peer_id,
+        @remote_peer.peer_id,
+        []
+      )
+
+    on_exit(fn ->
+      TCPSocket.close(sock)
+    end)
+
+    {:ok, {:bitfield, remote_bitfield}} = TCPSocket.recv(sock)
+    assert IntSet.new(remote_bitfield) |> Enum.empty?()
+
+    bitfield = IntSet.new([0]) |> IntSet.bitstring()
+    :ok = TCPSocket.send_msg(sock, {:bitfield, bitfield})
+    {:ok, :interested} = TCPSocket.recv(sock)
+
+    :ok = TCPSocket.send_msg(sock, :unchoke)
+    {:ok, {:request, %{index: i1}}} = TCPSocket.recv(sock)
+
+    assert i1 == 0
+
+    :ok = TCPSocket.send_msg(sock, {:piece, 0, 0, "Hello\nworld!\n"})
+
+    {:ok, {:have, r1}} = TCPSocket.recv(sock)
+
+    assert r1 == 0
+
+    Process.sleep(100)
+
+    Effusion.stop_download(@multi_file_torrent.info_hash)
+
+    :file.datasync(file)
+
+    {:ok, first_file_contents} = File.read(Path.join([file, "hello_world", "hello.txt"]))
+    assert "Hello\n" == first_file_contents
+
+    {:ok, second_file_contents} = File.read(Path.join([file, "hello_world", "world.txt"]))
+    assert "world!\n" == second_file_contents
   end
 
   # test "download a file from a peer supporting the fast extension", %{lsock: lsock, destfile: file} do
