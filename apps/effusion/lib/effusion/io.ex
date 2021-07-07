@@ -35,11 +35,11 @@ defmodule Effusion.IO do
       Range.overlap?(file_range, piece_range)
     end)
     |> Enum.map(fn {f, file_range = file_start.._} ->
-      overlap = Range.overlap(file_range, piece_range)
       poslen = Range.overlap_poslen(file_range, piece_range)
-
-      file_offset.._ = Effusion.Range.shift(overlap, -file_start)
       file_data = :binary.part(data, poslen)
+
+      overlap = Range.overlap(file_range, piece_range)
+      file_offset.._ = Effusion.Range.shift(overlap, -file_start)
 
       {Path.join([info.name, f.path]), {file_offset, file_data}}
     end)
