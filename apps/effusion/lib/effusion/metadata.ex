@@ -14,6 +14,6 @@ defmodule Effusion.Metadata do
   end
 
   def piece_byte_range(info, index) do
-    Effusion.Range.poslen(piece_byte_index(info, index), info.piece_length)
+    Effusion.Range.from_poslen(piece_byte_index(info, index), info.piece_length)
   end
 end
