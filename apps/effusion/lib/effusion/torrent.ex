@@ -1,35 +1,28 @@
 defmodule Effusion.Torrent do
   alias Effusion.Availability
-  alias Effusion.Piece
   alias Effusion.Metadata
 
   @enforce_keys [
-    :meta
+    :meta,
+    :block_size
   ]
   defstruct [
     meta: nil,
+    block_size: nil,
     bytes_uploaded: 0,
     bytes_downloaded: 0,
-    pieces: %{},
+    verified_pieces: IntSet.new(),
+    written_blocks: IntSet.new(),
     peers: MapSet.new(),
     availability: %Availability{},
     requests: %{}
   ]
 
   def get_bitfield(torrent) do
+    bitfield = IntSet.bitstring(torrent.verified_pieces, byte_align: true)
+
     piece_count = Enum.count(torrent.meta.info.pieces)
     bitfield_length_bytes = ceil(piece_count / 8)
-
-    bitfield =
-      Enum.reduce(torrent.pieces, IntSet.new(), fn {index, piece}, set ->
-        if piece == :written or Piece.finished?(piece) do
-          IntSet.put(set, index)
-        else
-          set
-        end
-      end)
-      |> IntSet.bitstring(byte_align: true)
-
     end_pad_bytes_count = bitfield_length_bytes - byte_size(bitfield)
     end_pad_bits_count = end_pad_bytes_count * 8
 
@@ -40,33 +33,29 @@ defmodule Effusion.Torrent do
     end
   end
 
-  def get_piece(torrent, piece_index) do
-    Map.get(torrent.pieces, piece_index)
-  end
+  def block_requests(torrent, address) do
+    available_pieces = Availability.peer_pieces(torrent.availability, address)
+    pieces_we_have = torrent.verified_pieces
 
-  def get_block(torrent, piece_index, offset, size) do
-    get_piece(torrent, piece_index)
-    |> Piece.get_block(offset, size)
-  end
+    needed_available_pieces = IntSet.difference(available_pieces, pieces_we_have)
 
-  def block_requests(torrent, address, block_size) do
-    Availability.peer_pieces(torrent.availability, address)
-    |> Enum.reject(fn index ->
-      Map.get(torrent.pieces, index) == :written
-    end)
-    |> Enum.flat_map(fn index ->
-      Map.get(torrent.pieces, index, build_piece(torrent, index))
-      |> Piece.needed_blocks(block_size)
-      |> Enum.map(fn {offset, size} ->
-        {index, offset, size}
+    blocks_we_need = IntSet.inverse(torrent.written_blocks, block_count(torrent))
+
+    needed_available_blocks =
+      Enum.map(blocks_we_need, fn block_index ->
+        {block_index, block_size(torrent, block_index)}
       end)
-    end)
+      |> Enum.map(fn {block_index, block_size} ->
+        {i, o} = block_piece_and_offset(torrent, block_index)
+        {i, o, block_size}
+      end)
+      |> Enum.filter(fn {piece_index, _offset, _size} ->
+        Enum.member?(needed_available_pieces, piece_index)
+      end)
+
+    needed_available_blocks
     |> Enum.shuffle()
     |> Enum.take(Application.fetch_env!(:effusion, :max_requests_per_peer))
-  end
-
-  def block_requests(torrent, address) do
-    block_requests(torrent, address, Application.fetch_env!(:effusion, :block_size))
   end
 
   def requests_for_block(torrent, index, offset, size) do
@@ -74,35 +63,33 @@ defmodule Effusion.Torrent do
     |> Map.get({offset, size}, [])
   end
 
+  def piece_verified?(torrent, piece_index) do
+    Enum.member?(torrent.verified_pieces, piece_index)
+  end
+
   def piece_written?(torrent, piece_index) do
-    get_piece(torrent, piece_index) == :written
+    block_indices = piece_block_range(torrent, piece_index)
+
+    Enum.all?(block_indices, fn block_index ->
+      Enum.member?(torrent.written_blocks, block_index)
+    end)
+  end
+
+  def block_written?(torrent, piece_index, offset) do
+    block_index = block_index(torrent, piece_index, offset)
+
+    Enum.member?(torrent.written_blocks, block_index)
   end
 
   def progress(torrent) do
-    partial = bytes_in_partial_pieces(torrent)
     completed = bytes_completed(torrent)
 
-    {partial + completed, torrent.meta.info.length}
-  end
-
-  def bytes_in_partial_pieces(torrent) do
-    Enum.map(torrent.pieces, fn {_index, piece} ->
-      if piece == :written or Piece.finished?(piece) do
-        0
-      else
-        Piece.size(piece)
-      end
-    end)
-    |> Enum.sum()
+    {completed, torrent.meta.info.length}
   end
 
   def bytes_completed(torrent) do
-    Enum.map(torrent.pieces, fn {index, piece} ->
-      if piece == :written or Piece.finished?(piece) do
-        Metadata.piece_size(torrent.meta.info, index)
-      else
-        0
-      end
+    Enum.map(torrent.verified_pieces, fn piece_index ->
+      Metadata.piece_size(torrent.meta.info, piece_index)
     end)
     |> Enum.sum()
   end
@@ -110,13 +97,29 @@ defmodule Effusion.Torrent do
   def bytes_left(torrent) do
     bytes_completed = bytes_completed(torrent)
 
-      torrent.meta.info.length - bytes_completed
+    torrent.meta.info.length - bytes_completed
   end
 
-  def piece_written(torrent, piece_index) do
-    pieces = Map.put(torrent.pieces, piece_index, :written)
+  def block_written(torrent, piece_index, offset) do
+    block_index = block_index(torrent, piece_index, offset)
 
-    %__MODULE__{torrent | pieces: pieces}
+    blocks = IntSet.put(torrent.written_blocks, block_index)
+
+    %__MODULE__{torrent | written_blocks: blocks}
+  end
+
+  def piece_verified(torrent, piece_index) do
+    pieces = IntSet.put(torrent.verified_pieces, piece_index)
+    %{torrent | verified_pieces: pieces}
+  end
+
+  def piece_failed_verification(torrent, piece_index) do
+    written_blocks =
+      piece_block_range(torrent, piece_index)
+      |> Enum.reduce(torrent.written_blocks, fn block_index, written_blocks ->
+        IntSet.delete(written_blocks, block_index)
+      end)
+    %{torrent | written_blocks: written_blocks}
   end
 
   def block_requested(torrent, address, index, offset, size) do
@@ -145,18 +148,6 @@ defmodule Effusion.Torrent do
     %__MODULE__{torrent | requests: requests}
   end
 
-  def add_data(torrent, piece_index, offset, data) do
-    downloaded = torrent.bytes_downloaded + byte_size(data)
-
-    new_piece =
-      build_piece(torrent, piece_index)
-      |> Piece.add_data(offset, data)
-
-    pieces = Map.update(torrent.pieces, piece_index, new_piece, &Piece.add_data(&1, offset, data))
-
-    %__MODULE__{torrent | pieces: pieces, bytes_downloaded: downloaded}
-  end
-
   def add_peer(torrent, address) do
     %{torrent | peers: MapSet.put(torrent.peers, address)}
   end
@@ -166,11 +157,53 @@ defmodule Effusion.Torrent do
     %__MODULE__{torrent | availability: avail}
   end
 
-  defp build_piece(torrent, piece_index) do
-    %Piece{
-      index: piece_index,
-      expected_hash: Enum.at(torrent.meta.info.pieces, piece_index),
-      expected_size: Effusion.Metadata.piece_size(torrent.meta.info, piece_index)
-    }
+  defp block_count(torrent) do
+    nominal_block_size = min(torrent.block_size, torrent.meta.info.piece_length)
+
+    ceil(torrent.meta.info.length / nominal_block_size)
+  end
+
+  defp block_index(torrent, piece_index, offset) do
+    nominal_block_size = min(torrent.meta.info.piece_length, torrent.block_size)
+    blocks_per_piece = div(torrent.meta.info.piece_length, nominal_block_size)
+    blocks_per_piece * piece_index + div(offset, nominal_block_size)
+  end
+
+  defp block_piece_and_offset(torrent, block_index) do
+    blocks_per_piece =
+      if torrent.meta.info.piece_length >= torrent.block_size do
+        div(torrent.meta.info.piece_length, torrent.block_size)
+      else
+        1
+      end
+    piece_index = div(block_index, blocks_per_piece)
+    block_index_within_piece = rem(block_index, blocks_per_piece)
+    block_offset = block_index_within_piece * torrent.block_size
+
+    {piece_index, block_offset}
+  end
+
+  defp block_size(torrent, block_index) do
+    if block_index == (block_count(torrent) - 1) do
+      {piece_index, _block_offset} = block_piece_and_offset(torrent, block_index)
+      piece_size = Effusion.Metadata.piece_size(torrent.meta.info, piece_index)
+
+      rem(piece_size, torrent.block_size)
+    else
+      min(torrent.block_size, torrent.meta.info.piece_length)
+    end
+  end
+
+  defp piece_block_range(torrent, piece_index) do
+    nominal_block_size = torrent.block_size
+    nominal_piece_size = torrent.meta.info.piece_length
+    nominal_blocks_per_piece = ceil(nominal_piece_size / nominal_block_size)
+
+    actual_piece_size = Effusion.Metadata.piece_size(torrent.meta.info, piece_index)
+    blocks_in_piece = ceil(actual_piece_size / nominal_block_size)
+
+    first_block_index = nominal_blocks_per_piece * piece_index
+
+    Effusion.Range.from_poslen(first_block_index, blocks_in_piece)
   end
 end

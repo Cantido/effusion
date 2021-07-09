@@ -1,7 +1,6 @@
 defmodule Effusion.ActiveTorrent do
   use GenServer, restart: :transient
   alias Effusion.Torrent
-  alias Effusion.Piece
   alias Effusion.TCPWorker
   require Logger
 
@@ -61,8 +60,16 @@ defmodule Effusion.ActiveTorrent do
     GenServer.call(via(info_hash), {:peer_has_piece, address, piece_index})
   end
 
-  def piece_written(info_hash, piece_index) do
-    GenServer.call(via(info_hash), {:piece_written, piece_index})
+  def piece_verified(info_hash, piece_index) do
+    GenServer.call(via(info_hash), {:piece_verified, piece_index})
+  end
+
+  def piece_failed_verification(info_hash, piece_index) do
+    GenServer.call(via(info_hash), {:piece_failed_verification, piece_index})
+  end
+
+  def block_written(info_hash, piece_index, offset) do
+    GenServer.call(via(info_hash), {:block_written, piece_index, offset})
   end
 
   def stop(info_hash) do
@@ -75,7 +82,8 @@ defmodule Effusion.ActiveTorrent do
 
   def init(opts) do
     meta = Keyword.fetch!(opts, :meta)
-    {:ok, %Torrent{meta: meta}, {:continue, :announce}}
+    block_size = Application.fetch_env!(:effusion, :block_size)
+    {:ok, %Torrent{meta: meta, block_size: block_size}, {:continue, :announce}}
   end
 
   def handle_continue(:announce, torrent) do
@@ -111,21 +119,11 @@ defmodule Effusion.ActiveTorrent do
   end
 
   def handle_call({:add_data, from, index, offset, data}, _from, torrent) do
-    Logger.debug("Received block #{index}-#{offset}.")
-
     torrent =
-      if Torrent.piece_written?(torrent, index) do
+      if Torrent.block_written?(torrent, index, offset) do
         torrent
       else
-        torrent = Torrent.add_data(torrent, index, offset, data)
-        piece = Torrent.get_piece(torrent, index)
-
-        if Piece.finished?(piece) do
-          Logger.debug("Finished piece #{index}.")
-          data = Piece.data(piece)
-          Honeydew.async({:write_piece, [data, index, torrent.meta]}, :file)
-          Honeydew.async({:broadcast, [torrent.meta.info_hash, {:have, index}]}, :connection)
-        end
+        Honeydew.async({:write_block, [data, index, offset, torrent.meta]}, :file)
 
         Torrent.requests_for_block(torrent, index, offset, byte_size(data))
         |> Enum.reject(&(&1 == from))
@@ -139,16 +137,42 @@ defmodule Effusion.ActiveTorrent do
     {:reply, :ok, torrent}
   end
 
-  def handle_call({:get_block, index, offset, size}, _from, torrent) do
-    with data when not is_nil(data) <- Torrent.get_block(torrent, index, offset, size) do
-      {:reply, {:ok, data}, torrent}
-    else
-      nil -> {:reply, {:error, :block_not_found}, torrent}
-    end
+  def handle_call({:send_block, index, offset, size, address}, _from, torrent) do
+    Task.Supervisor.start_child(Effusion.TaskSupervisor, fn ->
+      read_job = Honeydew.async({:read_block, [index, offset, size, torrent.meta]}, :file, reply: true)
+      {:ok, block_data} = Honeydew.yield(read_job)
+      Honeydew.async({:send, [torrent.meta.info_hash, address, {:piece, index, offset, block_data}]}, :connection)
+    end)
+    {:reply, :ok, torrent}
   end
 
-  def handle_call({:piece_written, index}, _from, torrent) do
-    torrent = Torrent.piece_written(torrent, index)
+  def handle_call({:piece_verified, index}, _from, torrent) do
+    Logger.debug("Verified piece #{index}.")
+
+    torrent = Torrent.piece_verified(torrent, index)
+    Honeydew.async({:broadcast, [torrent.meta.info_hash, {:have, index}]}, :connection)
+
+    {:reply, :ok, torrent}
+  end
+
+  def handle_call({:piece_failed_verification, index}, _from, torrent) do
+    torrent = Torrent.piece_failed_verification(torrent, index)
+
+    {:reply, :ok, torrent}
+  end
+
+  def handle_call({:block_written, index, offset}, _from, torrent) do
+    torrent = Torrent.block_written(torrent, index, offset)
+
+    if Torrent.piece_written?(torrent, index) do
+      Task.Supervisor.start_child(Effusion.TaskSupervisor, fn ->
+        piece_size = Effusion.Metadata.piece_size(torrent.meta.info, index)
+        read_job = Honeydew.async({:read_block, [index, offset, piece_size, torrent.meta]}, :file, reply: true)
+        {:ok, piece_data} = Honeydew.yield(read_job)
+        Honeydew.async({:verify_piece, [piece_data, index, torrent.meta]}, :compute)
+      end)
+    end
+
     {:reply, :ok, torrent}
   end
 
@@ -191,7 +215,8 @@ defmodule Effusion.ActiveTorrent do
     {:stop, :normal, :ok, torrent}
   end
 
-  def terminate(_, torrent) do
+  def terminate(reason, torrent) do
+    Logger.info("Torrent is stopping with reason #{inspect reason}")
     request =
       %Effusion.Tracker.Request{
         url: torrent.meta.announce,

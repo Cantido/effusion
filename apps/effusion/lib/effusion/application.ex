@@ -6,11 +6,13 @@ defmodule Effusion.Application do
     :ok = start_honeydew(:tracker, Effusion.Tracker.Worker)
     :ok = start_honeydew(:file, Effusion.FileWorker)
     :ok = start_honeydew(:connection, Effusion.ConnectionWorker)
+    :ok = start_honeydew(:compute, Effusion.ComputeWorker)
 
     port = Application.get_env(:effusion, :port)
 
     children = [
       {Finch, name: EffusionFinch},
+      {Task.Supervisor, name: Effusion.TaskSupervisor},
       {DynamicSupervisor, strategy: :one_for_one, name: Effusion.PeerSupervisor},
       {DynamicSupervisor, strategy: :one_for_one, name: Effusion.ConnectionSupervisor},
       {DynamicSupervisor, strategy: :one_for_one, name: Effusion.TorrentSupervisor},

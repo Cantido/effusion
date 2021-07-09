@@ -12,14 +12,29 @@ defmodule Effusion.Range do
 
   ## Examples
 
-      iex> Effusion.Range.poslen(5, 5)
+      iex> Effusion.Range.from_poslen(5, 5)
       5..9
 
-      iex> Effusion.Range.poslen(0, 1)
+      iex> Effusion.Range.from_poslen(0, 1)
       0..0
   """
-  def poslen(start, length) when length > 0 do
+  def from_poslen(start, length) when length > 0 do
     start..(start + length - 1)
+  end
+
+  @doc """
+  Returns a tuple containing the start and size of the range.
+
+  ## Examples
+
+      iex> Effusion.Range.to_poslen(5..5)
+      {5, 1}
+
+      iex> Effusion.Range.to_poslen(1..10)
+      {1, 10}
+  """
+  def to_poslen(range = first.._) do
+    {first, Range.size(range)}
   end
 
   @doc """

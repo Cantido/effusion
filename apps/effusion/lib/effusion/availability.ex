@@ -12,6 +12,7 @@ defmodule Effusion.Availability do
       MapSet.member?(addresses, address)
     end)
     |> Enum.map(&elem(&1, 0))
+    |> IntSet.new()
   end
 
   def peer_has_piece(avail, address, piece_index) when is_integer(piece_index) do
