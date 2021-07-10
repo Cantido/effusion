@@ -20,12 +20,121 @@ defmodule Effusion.TorrentTest do
       assert bit_size(Torrent.get_bitfield(torrent)) == expected_bit_size
     end
 
-    test "when a piece is verified" do
+    test "returns a bit for when a piece is verified" do
       torrent =
         %Torrent{meta: TestHelper.tiny_meta(), block_size: 3}
         |> Torrent.piece_verified(0)
 
       assert <<1::1, 0::7>> == Torrent.get_bitfield(torrent)
+    end
+  end
+
+  describe "block_written?/3" do
+    test "returns false if no blocks have been written" do
+      torrent = %Torrent{meta: TestHelper.tiny_meta(), block_size: 3}
+
+      refute Torrent.block_written?(torrent, 0, 0)
+      refute Torrent.block_written?(torrent, 1, 0)
+    end
+
+    test "returns true if a block was written" do
+      torrent =
+        %Torrent{meta: TestHelper.tiny_meta(), block_size: 3}
+        |> Torrent.block_written(0, 0)
+
+      assert Torrent.block_written?(torrent, 0, 0)
+      refute Torrent.block_written?(torrent, 1, 0)
+    end
+
+    test "written blocks are cleared if the piece fails verification" do
+      torrent =
+        %Torrent{meta: TestHelper.tiny_meta(), block_size: 3}
+        |> Torrent.block_written(0, 0)
+        |> Torrent.block_written(1, 0)
+        |> Torrent.piece_failed_verification(0)
+
+      refute Torrent.block_written?(torrent, 0, 0)
+      assert Torrent.block_written?(torrent, 1, 0)
+    end
+
+    test "written blocks are cleared if the piece fails verification and blocks are bigger than pieces" do
+      torrent =
+        %Torrent{meta: TestHelper.tiny_meta(), block_size: 16384}
+        |> Torrent.block_written(0, 0)
+        |> Torrent.block_written(1, 0)
+        |> Torrent.piece_failed_verification(0)
+
+      refute Torrent.block_written?(torrent, 0, 0)
+      assert Torrent.block_written?(torrent, 1, 0)
+    end
+  end
+
+  describe "piece_written?/2" do
+    test "returns false when no pieces have been written" do
+      torrent = %Torrent{meta: TestHelper.tiny_meta(), block_size: 3}
+
+      refute Torrent.piece_written?(torrent, 0)
+      refute Torrent.piece_written?(torrent, 1)
+    end
+
+    test "returns false when only some of the blocks are written" do
+      torrent =
+        %Torrent{meta: TestHelper.tiny_meta(), block_size: 1}
+        |> Torrent.block_written(0, 0)
+        |> Torrent.block_written(0, 1)
+
+      refute Torrent.piece_written?(torrent, 0)
+      refute Torrent.piece_written?(torrent, 1)
+    end
+
+    test "returns true when all of the blocks in the piece have been written" do
+      torrent =
+        %Torrent{meta: TestHelper.tiny_meta(), block_size: 1}
+        |> Torrent.block_written(0, 0)
+        |> Torrent.block_written(0, 1)
+        |> Torrent.block_written(0, 2)
+
+      assert Torrent.piece_written?(torrent, 0)
+      refute Torrent.piece_written?(torrent, 1)
+    end
+
+    test "returns true when all of the blocks in the piece have been written and blocks are bigger than pieces" do
+      torrent =
+        %Torrent{meta: TestHelper.tiny_meta(), block_size: 16384}
+        |> Torrent.block_written(0, 0)
+        |> Torrent.block_written(0, 1)
+        |> Torrent.block_written(0, 2)
+
+      assert Torrent.piece_written?(torrent, 0)
+      refute Torrent.piece_written?(torrent, 1)
+    end
+
+    test "returns true when all of the blocks in the piece have been written and blocks are shorter than nominal" do
+      torrent =
+        %Torrent{meta: TestHelper.tiny_meta(), block_size: 16384}
+        |> Torrent.block_written(1, 0)
+        |> Torrent.block_written(1, 1)
+
+      refute Torrent.piece_written?(torrent, 0)
+      assert Torrent.piece_written?(torrent, 1)
+    end
+  end
+
+  describe "piece_verified?/2" do
+    test "returns false when no pieces have been verified" do
+      torrent = %Torrent{meta: TestHelper.tiny_meta(), block_size: 16384}
+
+      refute Torrent.piece_verified?(torrent, 0)
+      refute Torrent.piece_verified?(torrent, 1)
+    end
+
+    test "returns true after piece_verified/2 was called" do
+      torrent =
+        %Torrent{meta: TestHelper.tiny_meta(), block_size: 16384}
+        |> Torrent.piece_verified(0)
+
+      assert Torrent.piece_verified?(torrent, 0)
+      refute Torrent.piece_verified?(torrent, 1)
     end
   end
 
@@ -69,7 +178,6 @@ defmodule Effusion.TorrentTest do
     end
 
     test "truncates request size to piece size if block is larger" do
-      # This will not happen in real cases but it comes up enough in testing.
       torrent =
         %Torrent{meta: TestHelper.tiny_meta(), block_size: 16384}
         |> Torrent.peer_has_piece({127, 0, 0, 1}, 0)

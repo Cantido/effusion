@@ -195,8 +195,8 @@ defmodule Effusion.Torrent do
   end
 
   defp piece_block_range(torrent, piece_index) do
-    nominal_block_size = torrent.block_size
     nominal_piece_size = torrent.meta.info.piece_length
+    nominal_block_size = min(torrent.block_size, nominal_piece_size)
     nominal_blocks_per_piece = ceil(nominal_piece_size / nominal_block_size)
 
     actual_piece_size = Effusion.Metadata.piece_size(torrent.meta.info, piece_index)
