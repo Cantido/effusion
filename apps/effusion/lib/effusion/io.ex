@@ -1,5 +1,6 @@
 defmodule Effusion.IO do
   alias Effusion.Range
+  alias Effusion.Metadata
   require Logger
 
   def write_block(data, index, offset, info) do
@@ -11,10 +12,9 @@ defmodule Effusion.IO do
   end
 
   defp write_chunk(data, byte_offset, info) do
-    files = Map.get(info, :files, [])
     destdir = Application.fetch_env!(:effusion, :download_destination)
 
-    split_bytes_to_files(files, info.name, byte_offset, data)
+    split_bytes_to_files(info, byte_offset, data)
     |> Enum.group_by(fn {path, _} -> path end, fn {_, locbytes} -> locbytes end)
     |> Enum.each(fn {rel_path, locbytes} ->
       path = Path.join(destdir, rel_path)
@@ -29,33 +29,21 @@ defmodule Effusion.IO do
     :ok
   end
 
-  def split_bytes_to_files([], name, byte_offset, data) do
-    locbytes = {byte_offset, data}
-
-    %{name => locbytes}
-  end
-
-  def split_bytes_to_files(files, name, byte_offset, data) when is_list(files) do
+  def split_bytes_to_files(info, byte_offset, data) do
     piece_range = Range.from_poslen(byte_offset, byte_size(data))
 
-    files
-    |> Enum.with_index()
-    |> Enum.map(fn {f, fi} ->
-      file_start = first_byte_index(files, fi)
-      file_range = Range.from_poslen(file_start, f.length)
-      {f, file_range}
-    end)
-    |> Enum.filter(fn {_f, file_range} ->
+    Metadata.file_byte_ranges(info)
+    |> Enum.filter(fn {_path, file_range} ->
       Range.overlap?(file_range, piece_range)
     end)
-    |> Enum.map(fn {f, file_range = file_start.._} ->
+    |> Enum.map(fn {path, file_range = file_start.._} ->
       poslen = Range.overlap_poslen(file_range, piece_range)
       file_data = :binary.part(data, poslen)
 
       overlap = Range.overlap(file_range, piece_range)
       file_offset.._ = Effusion.Range.shift(overlap, -file_start)
 
-      {Path.join([name, f.path]), {file_offset, file_data}}
+      {path, {file_offset, file_data}}
     end)
   end
 
@@ -63,26 +51,16 @@ defmodule Effusion.IO do
     block_range = Range.from_poslen(index * info.piece_length + offset, size)
     destdir = Application.fetch_env!(:effusion, :download_destination)
     file_ranges =
-      if Map.has_key?(info, :files) do
-        info.files
-        |> Enum.with_index()
-        |> Enum.map(fn {f, fi} ->
-          file_start = first_byte_index(info.files, fi)
-          file_range = Range.from_poslen(file_start, f.length)
-          {f, file_range}
-        end)
-        |> Enum.filter(fn {_f, file_range} ->
-          Range.overlap?(file_range, block_range)
-        end)
-        |> Enum.map(fn {f, file_range = file_start.._} ->
-          overlap = Range.overlap(file_range, block_range)
-          file_range = Range.shift(overlap, -file_start)
+      Metadata.file_byte_ranges(info)
+      |> Enum.filter(fn {_f, file_range} ->
+        Range.overlap?(file_range, block_range)
+      end)
+      |> Enum.map(fn {path, file_range = file_start.._} ->
+        overlap = Range.overlap(file_range, block_range)
+        file_range = Range.shift(overlap, -file_start)
 
-          {Path.join([info.name, f.path]), Range.to_poslen(file_range)}
-        end)
-      else
-        [{info.name, Range.to_poslen(block_range)}]
-      end
+        {path, Range.to_poslen(file_range)}
+      end)
 
     block_chunks =
       file_ranges
@@ -110,14 +88,5 @@ defmodule Effusion.IO do
     else
       {:error, errors}
     end
-  end
-
-  defp first_byte_index(_torrent, 0), do: 0
-
-  defp first_byte_index(files, file_index) when file_index > 0 do
-    files
-    |> Enum.slice(0..(file_index - 1))
-    |> Enum.map(& &1.length)
-    |> Enum.sum()
   end
 end
