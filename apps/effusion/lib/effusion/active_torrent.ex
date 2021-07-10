@@ -82,8 +82,7 @@ defmodule Effusion.ActiveTorrent do
 
   def init(opts) do
     meta = Keyword.fetch!(opts, :meta)
-    block_size = Application.fetch_env!(:effusion, :block_size)
-    {:ok, %Torrent{meta: meta, block_size: block_size}, {:continue, :announce}}
+    {:ok, %Torrent{meta: meta}, {:continue, :announce}}
   end
 
   def handle_continue(:announce, torrent) do

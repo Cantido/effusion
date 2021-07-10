@@ -8,7 +8,6 @@
 use Mix.Config
 
 config :effusion,
-  block_size: 16384,
   peer_id: "Effusion Experiment!",
   host: {127, 0, 0, 1},
   port: 8001,

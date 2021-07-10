@@ -100,7 +100,7 @@ defmodule Effusion.TorrentTest do
 
     test "returns true when all of the blocks in the piece have been written and blocks are bigger than pieces" do
       torrent =
-        %Torrent{meta: TestHelper.tiny_meta(), block_size: 16384}
+        %Torrent{meta: TestHelper.tiny_meta()}
         |> Torrent.block_written(0, 0)
         |> Torrent.block_written(0, 1)
         |> Torrent.block_written(0, 2)
@@ -111,7 +111,7 @@ defmodule Effusion.TorrentTest do
 
     test "returns true when all of the blocks in the piece have been written and blocks are shorter than nominal" do
       torrent =
-        %Torrent{meta: TestHelper.tiny_meta(), block_size: 16384}
+        %Torrent{meta: TestHelper.tiny_meta()}
         |> Torrent.block_written(1, 0)
         |> Torrent.block_written(1, 1)
 
@@ -122,7 +122,7 @@ defmodule Effusion.TorrentTest do
 
   describe "piece_verified?/2" do
     test "returns false when no pieces have been verified" do
-      torrent = %Torrent{meta: TestHelper.tiny_meta(), block_size: 16384}
+      torrent = %Torrent{meta: TestHelper.tiny_meta()}
 
       refute Torrent.piece_verified?(torrent, 0)
       refute Torrent.piece_verified?(torrent, 1)
@@ -130,7 +130,7 @@ defmodule Effusion.TorrentTest do
 
     test "returns true after piece_verified/2 was called" do
       torrent =
-        %Torrent{meta: TestHelper.tiny_meta(), block_size: 16384}
+        %Torrent{meta: TestHelper.tiny_meta()}
         |> Torrent.piece_verified(0)
 
       assert Torrent.piece_verified?(torrent, 0)

@@ -3,12 +3,11 @@ defmodule Effusion.Torrent do
   alias Effusion.Metadata
 
   @enforce_keys [
-    :meta,
-    :block_size
+    :meta
   ]
   defstruct [
     meta: nil,
-    block_size: nil,
+    block_size: 16384,
     bytes_uploaded: 0,
     bytes_downloaded: 0,
     verified_pieces: IntSet.new(),
