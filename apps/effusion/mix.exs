@@ -52,7 +52,7 @@ defmodule Effusion.Mixfile do
   defp package do
     [
       name: :effusion,
-      files: ["lib", "mix.exs", "README.md", "LICENSE"],
+      files: ["lib", "mix.exs"],
       maintainers: ["Rosa Richter"],
       licenses: ["GPL v3"],
       links: %{"Github" => "https://github.com/Cantido/effusion"}
@@ -62,10 +62,7 @@ defmodule Effusion.Mixfile do
   def docs do
     [
       main: "Effusion",
-      source_url: "https://github.com/cantido/effusion",
-      extras: [
-        "README.md"
-      ]
+      source_url: "https://github.com/cantido/effusion"
     ]
   end
 end
