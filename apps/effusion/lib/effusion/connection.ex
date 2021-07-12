@@ -3,6 +3,8 @@ defmodule Effusion.Connection do
   A struct containing information about a connection to a peer.
   """
 
+  alias Effusion.TransferSpeed
+
   @enforce_keys [:direction, :info_hash, :address]
   defstruct [
     direction: nil,
@@ -12,7 +14,9 @@ defmodule Effusion.Connection do
     am_choking: true,
     am_interested: false,
     peer_choking: true,
-    peer_interested: false
+    peer_interested: false,
+    download_speed: %TransferSpeed{},
+    upload_speed: %TransferSpeed{},
   ]
 
   @doc """
@@ -87,5 +91,23 @@ defmodule Effusion.Connection do
 
   def set_socket(%__MODULE__{} = conn, socket) do
     %__MODULE__{conn | socket: socket}
+  end
+
+  def add_download_event(%__MODULE__{download_speed: dl} = conn, bytes_count, timestamp) do
+    updated_dl = TransferSpeed.add_sample(dl, bytes_count, timestamp)
+    %__MODULE__{conn | download_speed: updated_dl}
+  end
+
+  def download_speed(%__MODULE__{download_speed: dl}, now) do
+    TransferSpeed.mean_speed(dl, now)
+  end
+
+  def add_upload_event(%__MODULE__{upload_speed: ul} = conn, bytes_count, timestamp) do
+    updated_ul = TransferSpeed.add_sample(ul, bytes_count, timestamp)
+    %__MODULE__{conn | upload_speed: updated_ul}
+  end
+
+  def upload_speed(%__MODULE__{upload_speed: ul}, now) do
+    TransferSpeed.mean_speed(ul, now)
   end
 end

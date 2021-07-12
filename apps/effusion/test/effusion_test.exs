@@ -97,10 +97,10 @@ defmodule EffusionTest do
     assert IntSet.new(remote_bitfield) |> Enum.empty?()
 
     bitfield = IntSet.new([0, 1]) |> IntSet.bitstring()
-    :ok = TCPSocket.send_msg(sock, {:bitfield, bitfield})
+    {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:bitfield, bitfield})
     {:ok, :interested} = TCPSocket.recv(sock)
 
-    :ok = TCPSocket.send_msg(sock, :unchoke)
+    {:ok, _bytes_count} = TCPSocket.send_msg(sock, :unchoke)
     {:ok, {:request, %{index: i1}}} = TCPSocket.recv(sock)
     {:ok, {:request, %{index: i2}}} = TCPSocket.recv(sock)
 
@@ -111,8 +111,8 @@ defmodule EffusionTest do
       assert i2 == 0
     end
 
-    :ok = TCPSocket.send_msg(sock, {:piece, 0, 0, "tin"})
-    :ok = TCPSocket.send_msg(sock, {:piece, 1, 0, "y\n"})
+    {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:piece, 0, 0, "tin"})
+    {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:piece, 1, 0, "y\n"})
 
     {:ok, {:have, r1}} = TCPSocket.recv(sock)
     {:ok, {:have, r2}} = TCPSocket.recv(sock)
@@ -169,15 +169,15 @@ defmodule EffusionTest do
     assert IntSet.new(remote_bitfield) |> Enum.empty?()
 
     bitfield = IntSet.new([0]) |> IntSet.bitstring()
-    :ok = TCPSocket.send_msg(sock, {:bitfield, bitfield})
+    {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:bitfield, bitfield})
     {:ok, :interested} = TCPSocket.recv(sock)
 
-    :ok = TCPSocket.send_msg(sock, :unchoke)
+    {:ok, _bytes_count} = TCPSocket.send_msg(sock, :unchoke)
     {:ok, {:request, %{index: i1}}} = TCPSocket.recv(sock)
 
     assert i1 == 0
 
-    :ok = TCPSocket.send_msg(sock, {:piece, 0, 0, "Hello\nworld!\n"})
+    {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:piece, 0, 0, "Hello\nworld!\n"})
 
     {:ok, {:have, r1}} = TCPSocket.recv(sock)
 
@@ -293,10 +293,10 @@ defmodule EffusionTest do
     {:ok, {:bitfield, <<0>>}} = TCPSocket.recv(sock)
 
     bitfield = IntSet.new([0, 1]) |> IntSet.bitstring(byte_align: true)
-    :ok = TCPSocket.send_msg(sock, {:bitfield, bitfield})
+    {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:bitfield, bitfield})
     {:ok, :interested} = TCPSocket.recv(sock)
 
-    :ok = TCPSocket.send_msg(sock, :unchoke)
+    {:ok, _bytes_count} = TCPSocket.send_msg(sock, :unchoke)
     {:ok, {:request, %{index: i1}}} = TCPSocket.recv(sock)
     {:ok, {:request, %{index: i2}}} = TCPSocket.recv(sock)
 
@@ -307,8 +307,8 @@ defmodule EffusionTest do
       assert i2 == 0
     end
 
-    :ok = TCPSocket.send_msg(sock, {:piece, 0, 0, "tin"})
-    :ok = TCPSocket.send_msg(sock, {:piece, 1, 0, "y\n"})
+    {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:piece, 0, 0, "tin"})
+    {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:piece, 1, 0, "y\n"})
 
     {:ok, {:have, r1}} = TCPSocket.recv(sock)
     {:ok, {:have, r2}} = TCPSocket.recv(sock)

@@ -53,7 +53,7 @@ defmodule Effusion.TCPSocket do
   end
 
   defp perform_handshake(socket, local_peer_id, expected_peer_id, local_info_hash, our_extensions) do
-    with :ok <- send_msg(socket, {:handshake, local_peer_id, local_info_hash, our_extensions}),
+    with {:ok, _bytes_count} <- send_msg(socket, {:handshake, local_peer_id, local_info_hash, our_extensions}),
          {:ok, hs = {:handshake, remote_peer_id, _, their_extensions}} <- recv(socket, 68),
          :ok <- validate(expected_peer_id, local_info_hash, hs),
          :ok <- :inet.setopts(socket, packet: 4) do
@@ -82,10 +82,13 @@ defmodule Effusion.TCPSocket do
 
   @doc """
   Send a message on a socket.
+
+  Returns `{:ok, bytes_count}` on success, or the relevant error.
   """
   def send_msg(socket, msg) do
-    with {:ok, request} <- Messages.encode(msg) do
-      :gen_tcp.send(socket, request)
+    with {:ok, request} <- Messages.encode(msg),
+         :ok <- :gen_tcp.send(socket, request) do
+      {:ok, byte_size(request)}
     end
   end
 

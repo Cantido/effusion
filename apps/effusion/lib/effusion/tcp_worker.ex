@@ -59,6 +59,14 @@ defmodule Effusion.TCPWorker do
     end)
   end
 
+  def upload_speed(info_hash, address) do
+    GenServer.call(via(info_hash, address), :upload_speed)
+  end
+
+  def download_speed(info_hash, address) do
+    GenServer.call(via(info_hash, address), :download_speed)
+  end
+
   defp via(info_hash, address) do
     {:via, Registry, {ConnectionRegistry, {info_hash, address}}}
   end
@@ -122,7 +130,9 @@ defmodule Effusion.TCPWorker do
     bitfield = ActiveTorrent.get_bitfield(conn.info_hash)
     bitfield_message = {:bitfield, bitfield}
     case TCPSocket.send_msg(conn.socket, bitfield_message) do
-      :ok -> {:noreply, conn}
+      {:ok, bytes_count} ->
+        conn = Connection.add_upload_event(conn, bytes_count, DateTime.utc_now())
+        {:noreply, conn}
       {:error, err} -> {:stop, conn, {:tcp_failed_to_send, err}}
     end
   end
@@ -131,20 +141,35 @@ defmodule Effusion.TCPWorker do
     if conn.am_interested do
       {:noreply, conn}
     else
-      :ok = TCPSocket.send_msg(conn.socket, :interested)
+      {:ok, bytes_count} = TCPSocket.send_msg(conn.socket, :interested)
 
-      {:noreply, Connection.interested_in_peer(conn)}
+      conn =
+        conn
+        |> Connection.interested_in_peer()
+        |> Connection.add_upload_event(bytes_count, DateTime.utc_now())
+
+      {:noreply, conn}
     end
   end
 
   def handle_continue({:send, message}, conn) do
-    :ok = TCPSocket.send_msg(conn.socket, message)
+    {:ok, bytes_count} = TCPSocket.send_msg(conn.socket, message)
+
+    conn = Connection.add_upload_event(conn, bytes_count, DateTime.utc_now())
 
     {:noreply, conn}
   end
 
   def handle_call({:send, message}, _from, conn) do
     {:reply, :ok, conn, {:continue, {:send, message}}}
+  end
+
+  def handle_call(:upload_speed, _from, conn) do
+    {:reply, Connection.upload_speed(conn, DateTime.utc_now()), conn}
+  end
+
+  def handle_call(:download_speed, _from, conn) do
+    {:reply, Connection.download_speed(conn, DateTime.utc_now()), conn}
   end
 
   def handle_call(:disconnect, _from, conn) do
@@ -183,20 +208,23 @@ defmodule Effusion.TCPWorker do
           info_hash: info_hash
         }
         |> Connection.set_socket(conn.socket)
+        |> Connection.add_download_event(68, DateTime.utc_now())
 
       our_peer_id = Application.fetch_env!(:effusion, :peer_id)
       # TODO: Validate info hash
       our_info_hash = info_hash
       handshake = {:handshake, our_peer_id, our_info_hash, []}
-      :ok = TCPSocket.send_msg(conn.socket, handshake)
+      {:ok, handshake_bytes_count} = TCPSocket.send_msg(conn.socket, handshake)
       :ok = :inet.setopts(conn.socket, packet: 4)
+      conn = Connection.add_upload_event(conn, handshake_bytes_count, DateTime.utc_now())
 
       Registry.register(ConnectionRegistry, {info_hash, conn.address}, nil)
 
       bitfield = ActiveTorrent.get_bitfield(conn.info_hash)
       bitfield_message = {:bitfield, bitfield}
-      :ok = TCPSocket.send_msg(conn.socket, bitfield_message)
+      {:ok, bitfield_bytes_count} = TCPSocket.send_msg(conn.socket, bitfield_message)
       :ok = :inet.setopts(conn.socket, active: :once)
+      conn = Connection.add_upload_event(conn, bitfield_bytes_count, DateTime.utc_now())
 
       {:ok, conn}
     end
@@ -237,7 +265,9 @@ defmodule Effusion.TCPWorker do
 
       Enum.each(blocks, fn {index, offset, size} ->
         request_message = {:request, index, offset, size}
-        :ok = TCPSocket.send_msg(conn.socket, request_message)
+        {:ok, bytes_count} = TCPSocket.send_msg(conn.socket, request_message)
+        conn = Connection.add_upload_event(conn, bytes_count, DateTime.utc_now())
+
         :ok = ActiveTorrent.block_requested(conn.info_hash, conn.address, index, offset, size)
       end)
     end
@@ -256,9 +286,12 @@ defmodule Effusion.TCPWorker do
       {:ok, data} = ActiveTorrent.get_block(conn.info_hash, index, offset, size)
 
       piece_message = {:piece, index, offset, data}
-      :ok = TCPSocket.send_msg(conn.socket, piece_message)
-    end
+      {:ok, bytes_count} = TCPSocket.send_msg(conn.socket, piece_message)
+      conn = Connection.add_upload_event(conn, bytes_count, DateTime.utc_now())
 
-    {:ok, conn}
+      {:ok, conn}
+    else
+      {:ok, conn}
+    end
   end
 end
