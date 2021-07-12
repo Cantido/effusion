@@ -41,6 +41,7 @@ defmodule Effusion.TransferSpeed do
   ]
 
   defguardp is_period(period) when is_integer(period) and period > 0
+  defguardp is_count(count) when is_integer(count) and count >= 0
 
   @doc """
   Returns all samples added in the last `:period` seconds.
@@ -109,7 +110,7 @@ defmodule Effusion.TransferSpeed do
       ...> |> Effusion.TransferSpeed.samples(~U[2021-07-12 12:00:30Z])
       []
   """
-  def add_sample(%__MODULE__{} = transfer, bytes_count, timestamp) do
+  def add_sample(%__MODULE__{} = transfer, bytes_count, timestamp) when is_count(bytes_count) do
     transfer
     |> do_add_sample(bytes_count, timestamp)
     |> drop_old_samples(timestamp)
@@ -139,7 +140,7 @@ defmodule Effusion.TransferSpeed do
     transferred(transfer, now) / period
   end
 
-  defp do_add_sample(%__MODULE__{samples: samples} = transfer, bytes_count, timestamp) do
+  defp do_add_sample(%__MODULE__{samples: samples} = transfer, bytes_count, timestamp) when is_count(bytes_count) do
     updated_samples = [{timestamp, bytes_count} | samples]
 
     %__MODULE__{transfer | samples: updated_samples}
