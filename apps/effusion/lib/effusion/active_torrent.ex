@@ -130,7 +130,7 @@ defmodule Effusion.ActiveTorrent do
           Honeydew.async({:send, [torrent.meta.info_hash, address, {:cancel, index, offset, byte_size(data)}]}, :connection)
         end)
 
-        torrent
+        Torrent.drop_requests(torrent, index, offset, byte_size(data))
       end
 
     {:reply, :ok, torrent}

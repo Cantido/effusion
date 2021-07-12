@@ -1,5 +1,6 @@
 defmodule Effusion.Torrent do
   alias Effusion.Availability
+  alias Effusion.Requests
   alias Effusion.Metadata
 
   @enforce_keys [
@@ -14,7 +15,7 @@ defmodule Effusion.Torrent do
     written_blocks: IntSet.new(),
     peers: MapSet.new(),
     availability: %Availability{},
-    requests: %{}
+    requests: %Requests{}
   ]
 
   def get_bitfield(torrent) do
@@ -52,17 +53,20 @@ defmodule Effusion.Torrent do
         Enum.member?(needed_available_pieces, piece_index)
       end)
       |> Enum.reject(fn {index, offset, size} ->
-        block_requested?(torrent, address, index, offset, size)
+        Requests.requested?(torrent.requests, address, index, offset, size)
       end)
+
+    previous_request_count = Enum.count(Requests.get_blocks_for_peer(torrent.requests, address))
+
+    additional_request_count = Application.fetch_env!(:effusion, :max_requests_per_peer) - previous_request_count
 
     needed_available_blocks
     |> Enum.shuffle()
-    |> Enum.take(Application.fetch_env!(:effusion, :max_requests_per_peer))
+    |> Enum.take(additional_request_count)
   end
 
   def requests_for_block(torrent, index, offset, size) do
-    Map.get(torrent.requests, index, %{})
-    |> Map.get({offset, size}, [])
+    Requests.get_peers_for_block(torrent.requests, index, offset, size)
   end
 
   def piece_verified?(torrent, piece_index) do
@@ -125,33 +129,19 @@ defmodule Effusion.Torrent do
   end
 
   def block_requested(torrent, address, index, offset, size) do
-    requests =
-      Map.update(torrent.requests, index, %{{offset, size} => [address]}, fn piece_requests ->
-        Map.update(piece_requests, {offset, size}, [address], fn request_addresses ->
-          [address | request_addresses]
-        end)
-      end)
+    requests = Requests.add_request(torrent.requests, address, index, offset, size)
+
     %__MODULE__{torrent | requests: requests}
   end
 
-  def block_requested?(torrent, address, index, offset, size) do
-    Map.has_key?(torrent.requests, index) and
-    Map.has_key?(torrent.requests[index], {offset, size}) and
-    (address in torrent.requests[index][{offset, size}])
+  def drop_requests(torrent, address) do
+    requests = Requests.drop_requests_to_peer(torrent.requests, address)
+
+    %__MODULE__{torrent | requests: requests}
   end
 
-  def drop_requests(torrent, address) do
-    requests =
-      Enum.map(torrent.requests, fn {index, requests} ->
-        requests =
-          Enum.map(requests, fn {block, addresses} ->
-            addresses = Enum.reject(addresses, &(&1 == address))
-            {block, addresses}
-          end)
-          |> Map.new()
-        {index, requests}
-      end)
-      |> Map.new()
+  def drop_requests(torrent, index, offset, size) do
+    requests = Requests.cancel_requests(torrent.requests, index, offset, size)
 
     %__MODULE__{torrent | requests: requests}
   end
