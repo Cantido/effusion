@@ -51,6 +51,9 @@ defmodule Effusion.Torrent do
       |> Enum.filter(fn {piece_index, _offset, _size} ->
         Enum.member?(needed_available_pieces, piece_index)
       end)
+      |> Enum.reject(fn {index, offset, size} ->
+        block_requested?(torrent, address, index, offset, size)
+      end)
 
     needed_available_blocks
     |> Enum.shuffle()
@@ -129,6 +132,12 @@ defmodule Effusion.Torrent do
         end)
       end)
     %__MODULE__{torrent | requests: requests}
+  end
+
+  def block_requested?(torrent, address, index, offset, size) do
+    Map.has_key?(torrent.requests, index) and
+    Map.has_key?(torrent.requests[index], {offset, size}) and
+    (address in torrent.requests[index][{offset, size}])
   end
 
   def drop_requests(torrent, address) do

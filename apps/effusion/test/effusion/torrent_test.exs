@@ -142,14 +142,25 @@ defmodule Effusion.TorrentTest do
     test "returns requests for blocks the peer has" do
       torrent =
         %Torrent{meta: TestHelper.tiny_meta(), block_size: 3}
-        |> Torrent.peer_has_piece({127, 0, 0, 1}, 0)
+        |> Torrent.peer_has_piece({{127, 0, 0, 1}, 8001}, 0)
 
-      actual_requests = Torrent.block_requests(torrent, {127, 0, 0, 1})
+      actual_requests = Torrent.block_requests(torrent, {{127, 0, 0, 1}, 8001})
 
       assert Enum.count(actual_requests) == 1
       actual_request = Enum.at(actual_requests, 0)
 
       assert actual_request == {0, 0, 3}
+    end
+
+    test "does not request blocks we've already requested" do
+      torrent =
+        %Torrent{meta: TestHelper.tiny_meta(), block_size: 1}
+        |> Torrent.peer_has_piece({{127, 0, 0, 1}, 8001}, 0)
+        |> Torrent.block_requested({{127, 0, 0, 1}, 8001}, 0, 0, 1)
+
+      actual_requests = Torrent.block_requests(torrent, {{127, 0, 0, 1}, 8001})
+
+      refute {0, 0, 1} in actual_requests
     end
 
     test "return value does not include a block if we already have it" do
