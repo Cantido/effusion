@@ -32,10 +32,6 @@ defmodule Effusion.ActiveTorrent do
     GenServer.call(via(info_hash), {:add_data, from, index, offset, data})
   end
 
-  def get_block(info_hash, index, offset, size) do
-    GenServer.call(via(info_hash), {:get_block, index, offset, size})
-  end
-
   def get_bitfield(info_hash) do
     GenServer.call(via(info_hash), :get_bitfield)
   end
@@ -133,15 +129,6 @@ defmodule Effusion.ActiveTorrent do
         Torrent.drop_requests(torrent, index, offset, byte_size(data))
       end
 
-    {:reply, :ok, torrent}
-  end
-
-  def handle_call({:send_block, index, offset, size, address}, _from, torrent) do
-    Task.Supervisor.start_child(Effusion.TaskSupervisor, fn ->
-      read_job = Honeydew.async({:read_block, [index, offset, size, torrent.meta]}, :file, reply: true)
-      {:ok, block_data} = Honeydew.yield(read_job)
-      Honeydew.async({:send, [torrent.meta.info_hash, address, {:piece, index, offset, block_data}]}, :connection)
-    end)
     {:reply, :ok, torrent}
   end
 

@@ -281,17 +281,7 @@ defmodule Effusion.TCPWorker do
     {:ok, conn}
   end
 
-  def handle_pwp_message({:request, %{index: index, offset: offset, size: size}}, conn) do
-    if Connection.can_upload?(conn) do
-      {:ok, data} = ActiveTorrent.get_block(conn.info_hash, index, offset, size)
-
-      piece_message = {:piece, index, offset, data}
-      {:ok, bytes_count} = TCPSocket.send_msg(conn.socket, piece_message)
-      conn = Connection.add_upload_event(conn, bytes_count, DateTime.utc_now())
-
-      {:ok, conn}
-    else
-      {:ok, conn}
-    end
+  def handle_pwp_message({:request, _}, conn) do
+    {:ok, conn}
   end
 end
