@@ -275,6 +275,12 @@ defmodule Effusion.TCPWorker do
     {:ok, conn}
   end
 
+  def handle_pwp_message({:have, index}, conn) do
+    :ok = ActiveTorrent.peer_has_piece(conn.info_hash, conn.address, index)
+
+    {:ok, conn}
+  end
+
   def handle_pwp_message({:piece, %{index: index, offset: offset, data: data}}, conn) do
     :ok = ActiveTorrent.add_data(conn.info_hash, conn.address, index, offset, data)
 
