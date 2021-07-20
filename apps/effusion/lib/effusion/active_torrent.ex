@@ -214,7 +214,7 @@ defmodule Effusion.ActiveTorrent do
         downloaded: torrent.bytes_downloaded,
         left: Torrent.bytes_left(torrent),
         event: "stopped",
-        numwant: Application.fetch_env!(:effusion, :max_peers)
+        numwant: 0
       }
 
     Honeydew.async({:announce, [request]}, :tracker)
