@@ -12,7 +12,8 @@ defmodule EffusionDht.MixProject do
       elixir: "~> 1.11",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      aliases: aliases()
     ]
   end
 
@@ -34,6 +35,13 @@ defmodule EffusionDht.MixProject do
       {:bento, "~> 0.9"},
       {:temp, "~> 0.4", only: :test},
       {:mox, "~> 1.0", only: :test}
+    ]
+  end
+
+
+  def aliases do
+    [
+      setup: ["deps.get"],
     ]
   end
 end

@@ -12,7 +12,8 @@ defmodule EffusionCli.MixProject do
       elixir: "~> 1.7",
       escript: [main_module: Effusion.CLI],
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      aliases: aliases()
     ]
   end
 
@@ -27,6 +28,12 @@ defmodule EffusionCli.MixProject do
   defp deps do
     [
       {:effusion, in_umbrella: true}
+    ]
+  end
+
+  def aliases do
+    [
+      setup: ["deps.get"],
     ]
   end
 end

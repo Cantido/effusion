@@ -1,0 +1,14 @@
+_build
+.git
+.github
+.elixir_ls
+.tmp-earthly-out
+deps
+doc
+.editorconfig
+.formatter.exs
+.gitignore
+.tool-versions
+Earthfile
+erl_crash.dump
+README.md

@@ -16,6 +16,7 @@ defmodule Effusion.Mixfile do
       package: package(),
       deps: deps(),
       docs: docs(),
+      aliases: aliases(),
       source_url: "https://github.com/Cantido/effusion",
       dialyzer: [flags: [:error_handling, :race_conditions, :underspecs]]
     ]
@@ -63,6 +64,12 @@ defmodule Effusion.Mixfile do
     [
       main: "Effusion",
       source_url: "https://github.com/cantido/effusion"
+    ]
+  end
+
+  def aliases do
+    [
+      setup: ["deps.get"],
     ]
   end
 end
