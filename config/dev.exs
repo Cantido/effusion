@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 config :effusion,
   server_host: {127, 0, 0, 1},

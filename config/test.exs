@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 config :effusion, tracker_worker: Effusion.MockHTTP
 
