@@ -2,9 +2,6 @@ defmodule Effusion.DHT.Server do
   alias Effusion.DHT
   alias Effusion.DHT.KRPC
   alias Effusion.DHT.Node
-  alias Effusion.ActiveTorrent
-  alias Effusion.Peer
-  alias Effusion.Swarm
   alias Effusion.DHT.Table
 
   require Logger
@@ -59,7 +56,7 @@ defmodule Effusion.DHT.Server do
 
     info_hash = message["a"]["info_hash"]
 
-    peers = Effusion.ActiveTorrent.peers(info_hash)
+    peers = Effusion.peers(info_hash)
 
     if Enum.empty?(peers) do
       nodes =
@@ -158,8 +155,7 @@ defmodule Effusion.DHT.Server do
           message["a"]["port"]
         end
 
-      {:ok, _} = Swarm.add_peer(%Peer{host: ip, port: peer_port})
-      :ok = ActiveTorrent.add_peer(message["a"]["info_hash"], {ip, peer_port})
+      Effusion.add_peer(message["a"]["info_hash"], ip, peer_port)
 
       tokens = Map.delete(state.tokens, ip)
       {response, %{state | tokens: tokens}}

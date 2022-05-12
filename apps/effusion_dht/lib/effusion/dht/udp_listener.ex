@@ -59,7 +59,8 @@ defmodule Effusion.DHT.UDPListener do
   end
 
   def terminate(reason, %{socket: socket}) do
-    Logger.warn("UDP Socket on port #{:inet.port(socket)} closing with reason #{inspect reason}")
+    {:ok, port} = :inet.port(socket)
+    Logger.warn("UDP Socket on port #{port} closing with reason #{inspect reason}")
     :gen_udp.close(socket)
   end
 end
