@@ -1,4 +1,4 @@
-defmodule Effusion.TCPWorker do
+defmodule Effusion.Connections do
   use GenServer, restart: :temporary
   alias Effusion.Messages
   alias Effusion.TCPSocket

@@ -20,7 +20,7 @@ defmodule Effusion.Application do
       {Registry, keys: :unique, name: TorrentRegistry},
       {Registry, keys: :unique, name: ConnectionRegistry},
       {Effusion.Swarm, [name: Effusion.Swarm]},
-      :ranch.child_spec(:pwp, :ranch_tcp, [port: port], Effusion.TCPWorker, [])
+      :ranch.child_spec(:pwp, :ranch_tcp, [port: port], Effusion.Connections, [])
     ]
 
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]

@@ -1,7 +1,7 @@
 defmodule Effusion.ActiveTorrent do
   use GenServer, restart: :transient
   alias Effusion.Torrent
-  alias Effusion.TCPWorker
+  alias Effusion.Connections
   require Logger
 
   def start_child(opts) do
@@ -167,7 +167,7 @@ defmodule Effusion.ActiveTorrent do
   end
 
   def handle_call({:add_peer, address}, _from, torrent) do
-    {:ok, _pid} = TCPWorker.connect(address, torrent.meta.info_hash)
+    {:ok, _pid} = Connections.connect(address, torrent.meta.info_hash)
 
     {:reply, :ok, Torrent.add_peer(torrent, address)}
   end
@@ -218,7 +218,7 @@ defmodule Effusion.ActiveTorrent do
       }
 
     Honeydew.async({:announce, [request]}, :tracker)
-    TCPWorker.disconnect_all(torrent.meta.info_hash)
+      Connections.disconnect_all(torrent.meta.info_hash)
 
     :ok
   end
