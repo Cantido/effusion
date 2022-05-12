@@ -1,4 +1,4 @@
-defmodule Effusion.Connection do
+defmodule Effusion.Connections.Connection do
   @moduledoc """
   A struct containing information about a connection to a peer.
   """
@@ -24,14 +24,14 @@ defmodule Effusion.Connection do
 
   ## Examples
 
-      iex> %Effusion.Connection{direction: :outgoing, info_hash: "1234567890", address: {{127, 0, 0, 1}, 8001}}
-      ...> |> Effusion.Connection.can_download?()
+      iex> %Effusion.Connections.Connection{direction: :outgoing, info_hash: "1234567890", address: {{127, 0, 0, 1}, 8001}}
+      ...> |> Effusion.Connections.Connection.can_download?()
       false
 
-      iex> %Effusion.Connection{direction: :outgoing, info_hash: "1234567890", address: {{127, 0, 0, 1}, 8001}}
-      ...> |> Effusion.Connection.unchoke_us()
-      ...> |> Effusion.Connection.interested_in_peer()
-      ...> |> Effusion.Connection.can_download?()
+      iex> %Effusion.Connections.Connection{direction: :outgoing, info_hash: "1234567890", address: {{127, 0, 0, 1}, 8001}}
+      ...> |> Effusion.Connections.Connection.unchoke_us()
+      ...> |> Effusion.Connections.Connection.interested_in_peer()
+      ...> |> Effusion.Connections.Connection.can_download?()
       true
   """
   def can_download?(%__MODULE__{peer_choking: choking, am_interested: interested}) do
@@ -43,14 +43,14 @@ defmodule Effusion.Connection do
 
   ## Examples
 
-      iex> %Effusion.Connection{direction: :outgoing, info_hash: "1234567890", address: {{127, 0, 0, 1}, 8001}}
-      ...> |> Effusion.Connection.can_upload?()
+      iex> %Effusion.Connections.Connection{direction: :outgoing, info_hash: "1234567890", address: {{127, 0, 0, 1}, 8001}}
+      ...> |> Effusion.Connections.Connection.can_upload?()
       false
 
-      iex> %Effusion.Connection{direction: :outgoing, info_hash: "1234567890", address: {{127, 0, 0, 1}, 8001}}
-      ...> |> Effusion.Connection.unchoke_peer()
-      ...> |> Effusion.Connection.peer_interested_in_us()
-      ...> |> Effusion.Connection.can_upload?()
+      iex> %Effusion.Connections.Connection{direction: :outgoing, info_hash: "1234567890", address: {{127, 0, 0, 1}, 8001}}
+      ...> |> Effusion.Connections.Connection.unchoke_peer()
+      ...> |> Effusion.Connections.Connection.peer_interested_in_us()
+      ...> |> Effusion.Connections.Connection.can_upload?()
       true
   """
   def can_upload?(%__MODULE__{am_choking: choking, peer_interested: interested}) do

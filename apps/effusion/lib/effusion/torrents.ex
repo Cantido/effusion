@@ -1,4 +1,4 @@
-defmodule Effusion.ActiveTorrent do
+defmodule Effusion.Torrents do
   use GenServer, restart: :transient
   alias Effusion.Torrent
   alias Effusion.Connections

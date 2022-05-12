@@ -1,5 +1,5 @@
 defmodule Effusion.Tracker.Worker do
-  alias Effusion.ActiveTorrent
+  alias Effusion.Torrents
   alias Effusion.Swarm
   require Logger
 
@@ -21,7 +21,7 @@ defmodule Effusion.Tracker.Worker do
               Swarm.set_peer_id(address, response_peer[:peer_id])
             end
 
-            ActiveTorrent.add_peer(request.info_hash, address)
+            Torrents.add_peer(request.info_hash, address)
           end)
         end
       err -> Logger.error("tracker returned error: #{inspect err}")

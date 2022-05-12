@@ -2,8 +2,8 @@ defmodule Effusion.Connections do
   use GenServer, restart: :temporary
   alias Effusion.Messages
   alias Effusion.TCPSocket
-  alias Effusion.Connection
-  alias Effusion.ActiveTorrent
+  alias Effusion.Connections.Connection
+  alias Effusion.Torrents
   alias Effusion.Swarm
   require Logger
 
@@ -127,7 +127,7 @@ defmodule Effusion.Connections do
   end
 
   def handle_continue(:send_bitfield, conn) do
-    bitfield = ActiveTorrent.get_bitfield(conn.info_hash)
+    bitfield = Torrents.get_bitfield(conn.info_hash)
     bitfield_message = {:bitfield, bitfield}
     case TCPSocket.send_msg(conn.socket, bitfield_message) do
       {:ok, bytes_count} ->
@@ -220,7 +220,7 @@ defmodule Effusion.Connections do
 
       Registry.register(ConnectionRegistry, {info_hash, conn.address}, nil)
 
-      bitfield = ActiveTorrent.get_bitfield(conn.info_hash)
+      bitfield = Torrents.get_bitfield(conn.info_hash)
       bitfield_message = {:bitfield, bitfield}
       {:ok, bitfield_bytes_count} = TCPSocket.send_msg(conn.socket, bitfield_message)
       :ok = :inet.setopts(conn.socket, active: :once)
@@ -232,7 +232,7 @@ defmodule Effusion.Connections do
 
   def handle_pwp_message({:bitfield, bitfield}, conn) do
     IntSet.new(bitfield)
-    |> Enum.each(&ActiveTorrent.peer_has_piece(conn.info_hash, conn.address, &1))
+    |> Enum.each(&Torrents.peer_has_piece(conn.info_hash, conn.address, &1))
 
     {:ok, conn}
   end
@@ -252,7 +252,7 @@ defmodule Effusion.Connections do
   def handle_pwp_message(:choke, conn) do
     conn = Connection.choke_us(conn)
 
-    :ok = ActiveTorrent.drop_requests(conn.info_hash, conn.address)
+    :ok = Torrents.drop_requests(conn.info_hash, conn.address)
 
     {:ok, conn}
   end
@@ -261,14 +261,14 @@ defmodule Effusion.Connections do
     conn = Connection.unchoke_us(conn)
 
     if Connection.can_download?(conn) do
-      blocks = ActiveTorrent.get_block_requests(conn.info_hash, conn.address)
+      blocks = Torrents.get_block_requests(conn.info_hash, conn.address)
 
       Enum.each(blocks, fn {index, offset, size} ->
         request_message = {:request, index, offset, size}
         {:ok, bytes_count} = TCPSocket.send_msg(conn.socket, request_message)
         conn = Connection.add_upload_event(conn, bytes_count, DateTime.utc_now())
 
-        :ok = ActiveTorrent.block_requested(conn.info_hash, conn.address, index, offset, size)
+        :ok = Torrents.block_requested(conn.info_hash, conn.address, index, offset, size)
       end)
     end
 
@@ -276,13 +276,13 @@ defmodule Effusion.Connections do
   end
 
   def handle_pwp_message({:have, index}, conn) do
-    :ok = ActiveTorrent.peer_has_piece(conn.info_hash, conn.address, index)
+    :ok = Torrents.peer_has_piece(conn.info_hash, conn.address, index)
 
     {:ok, conn}
   end
 
   def handle_pwp_message({:piece, %{index: index, offset: offset, data: data}}, conn) do
-    :ok = ActiveTorrent.add_data(conn.info_hash, conn.address, index, offset, data)
+    :ok = Torrents.add_data(conn.info_hash, conn.address, index, offset, data)
 
     {:ok, conn}
   end
