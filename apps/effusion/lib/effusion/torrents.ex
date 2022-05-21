@@ -60,10 +60,6 @@ defmodule Effusion.Torrents do
     GenServer.call(via(info_hash), {:drop_requests, address})
   end
 
-  def pop_requests(info_hash, index, offset, size) do
-    GenServer.call(via(info_hash), {:pop_requests, index, offset, size})
-  end
-
   def peer_has_piece(info_hash, address, piece_index) do
     GenServer.call(via(info_hash), {:peer_has_piece, address, piece_index})
   end
@@ -76,8 +72,45 @@ defmodule Effusion.Torrents do
     GenServer.call(via(info_hash), {:piece_failed_verification, piece_index})
   end
 
-  def block_written(info_hash, piece_index, offset) do
-    GenServer.call(via(info_hash), {:block_written, piece_index, offset})
+  def block_written(info_hash, piece_index, offset, size) do
+    GenServer.call(via(info_hash), {:block_written, piece_index, offset, size})
+  end
+
+  def piece_written(info_hash, index) do 
+    Logger.debug("Write piece #{index} of torrent #{Effusion.Hash.encode(info_hash)}, verifying piece")
+    meta = get_meta(info_hash)
+
+    {:ok, data} = Effusion.Files.IO.read_block(index, 0, meta.info.piece_length, meta.info)
+
+    expected_hash = Enum.at(meta.info.pieces, index)
+    actual_hash = Effusion.Hash.calc(data)
+
+    if expected_hash == actual_hash do
+      piece_verified(info_hash, index)
+
+      Solvent.publish(
+        "io.github.cantido.effusion.piece_verified",
+        subject: info_hash,
+        data: %{index: index}
+      )
+
+      {bytes_completed, finished_length} = get_progress(info_hash)
+
+      if bytes_completed == finished_length do
+        Solvent.publish(
+          "io.github.cantido.effusion.torrent_completed",
+          subject: info_hash
+        )
+      end
+    else
+      piece_failed_verification(info_hash, index)
+
+      Solvent.publish(
+        "io.github.cantido.effusion.piece_failed",
+        subject: info_hash,
+        data: %{index: index}
+      )
+    end
   end
 
   def stop(info_hash) do
@@ -118,12 +151,6 @@ defmodule Effusion.Torrents do
     {:reply, Torrent.get_bitfield(torrent), torrent}
   end
 
-  def handle_call({:pop_requests, index, offset, size}, _from, torrent) do
-    requests = Torrent.requests_for_block(torrent, index, offset, size)
-    torrent = Torrent.drop_requests(torrent, index, offset, size)
-    {:reply, requests, torrent}
-  end
-
   def handle_call({:piece_verified, index}, _from, torrent) do
     Logger.debug("Verified piece #{index}.")
 
@@ -138,8 +165,26 @@ defmodule Effusion.Torrents do
     {:reply, :ok, torrent}
   end
 
-  def handle_call({:block_written, index, offset}, _from, torrent) do
+  def handle_call({:block_written, index, offset, size}, _from, torrent) do
+    Logger.debug("Wrote block at index #{index} offset #{offset} size #{size} for torrent #{Effusion.Hash.encode(torrent.meta.info_hash)}, cancelling requests")
+
     torrent = Torrent.block_written(torrent, index, offset)
+
+    requests = Torrent.requests_for_block(torrent, index, offset, size)
+    torrent = Torrent.drop_requests(torrent, index, offset, size)
+
+    Enum.each(requests, fn address ->
+      Solvent.publish(
+        "io.github.cantido.effusion.request_cancelled",
+        subject: torrent.meta.info_hash,
+        data: %{
+          address: address,
+          index: index,
+          offset: offset,
+          size: size
+        }
+      )
+    end)
 
     if Torrent.piece_written?(torrent, index) do
       Solvent.publish(
