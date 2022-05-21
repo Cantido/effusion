@@ -3,16 +3,16 @@ defmodule Effusion.Application do
   use Application
 
   def start(_type, _args) do
-    :ok = start_honeydew(:tracker, Effusion.Tracker.Worker)
-    :ok = start_honeydew(:file, Effusion.FileWorker)
-    :ok = start_honeydew(:connection, Effusion.ConnectionWorker)
-    :ok = start_honeydew(:compute, Effusion.ComputeWorker)
+    Solvent.subscribe(Effusion.Connections.EventHandler)
+    Solvent.subscribe(Effusion.Files.EventHandler)
+    Solvent.subscribe(Effusion.Swarm.EventHandler)
+    Solvent.subscribe(Effusion.Torrents.EventHandler)
+    Solvent.subscribe(Effusion.Tracker.EventHandler)
 
     port = Application.get_env(:effusion, :port)
 
     children = [
       {Finch, name: EffusionFinch},
-      {Task.Supervisor, name: Effusion.TaskSupervisor},
       {DynamicSupervisor, strategy: :one_for_one, name: Effusion.PeerSupervisor},
       {DynamicSupervisor, strategy: :one_for_one, name: Effusion.ConnectionSupervisor},
       {DynamicSupervisor, strategy: :one_for_one, name: Effusion.TorrentSupervisor},
@@ -25,11 +25,5 @@ defmodule Effusion.Application do
 
     opts = [strategy: :one_for_one, name: Effusion.Supervisor]
     Supervisor.start_link(children, opts)
-  end
-
-  defp start_honeydew(queue, worker) do
-    with :ok <- Honeydew.start_queue(queue) do
-      Honeydew.start_workers(queue, worker)
-    end
   end
 end

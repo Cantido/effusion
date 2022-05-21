@@ -2,4 +2,6 @@ import Config
 
 config :effusion, tracker_worker: Effusion.MockHTTP
 
-config :logger, level: :debug
+config :logger,
+  level: :debug
+

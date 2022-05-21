@@ -1,4 +1,4 @@
-defmodule Effusion.IO do
+defmodule Effusion.Files.IO do
   alias Effusion.Range
   alias Effusion.Metadata
   require Logger

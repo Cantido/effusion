@@ -20,4 +20,11 @@ config :effusion_dht,
   ecto_repos: [Effusion.Repo],
   event_stores: [Effusion.EventStore]
 
+config :logger, :console,
+  metadata: [
+    :info_hash,
+    :peer_id,
+    :event_type
+  ]
+
 import_config "#{Mix.env()}.exs"

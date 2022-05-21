@@ -80,6 +80,19 @@ defmodule EffusionTest do
 
     {:ok, _pid} = Effusion.start_download(@torrent)
 
+    on_exit(fn ->
+      :ok = Effusion.stop_download(@torrent.info_hash)
+    end)
+
+    test_pid = self()
+    test_ref = make_ref()
+    Solvent.subscribe("io.github.cantido.effusion.torrent_completed", fn _, event_id ->
+      {:ok, event} = Solvent.EventStore.fetch(event_id)
+      if event.subject == @torrent.info_hash do
+        send(test_pid, test_ref)
+      end
+    end)
+
     {:ok, sock, _remote_peer, []} =
       TCPSocket.accept(
         lsock,
@@ -112,23 +125,33 @@ defmodule EffusionTest do
     end
 
     {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:piece, 0, 0, "tin"})
-    {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:piece, 1, 0, "y\n"})
+    {:ok, m1} = TCPSocket.recv(sock)
+    {:ok, m2} = TCPSocket.recv(sock)
 
-    {:ok, {:have, r1}} = TCPSocket.recv(sock)
-    {:ok, {:have, r2}} = TCPSocket.recv(sock)
-
-    if r1 == 0 do
-      assert r2 == 1
+    if elem(m1, 0) == :cancel do
+      assert m1 == {:cancel, %{index: 0, offset: 0, size: 3}}
+      assert m2 == {:have, 0}
     else
-      assert r1 == 1
-      assert r2 == 0
+      assert m1 == {:have, 0}
+      assert m2 == {:cancel, %{index: 0, offset: 0, size: 3}}
     end
 
-    Process.sleep(100)
+    {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:piece, 1, 0, "y\n"})
+    {:ok, m3} = TCPSocket.recv(sock)
+    {:ok, m4} = TCPSocket.recv(sock)
+
+    if elem(m3, 0) == :cancel do
+      assert m3 == {:cancel, %{index: 1, offset: 0, size: 2}}
+      assert m4 == {:have, 1}
+    else
+      assert m3 == {:have, 1}
+      assert m4 == {:cancel, %{index: 1, offset: 0, size: 2}}
+    end
+
+
+    assert_receive ^test_ref
 
     assert {5, 5} == Effusion.progress(@torrent.info_hash)
-
-    Effusion.stop_download(@torrent.info_hash)
 
     :file.datasync(file)
 
@@ -179,6 +202,7 @@ defmodule EffusionTest do
 
     {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:piece, 0, 0, "Hello\nworld!\n"})
 
+    {:ok, {:cancel, %{index: 0, offset: 0, size: 13}}} = TCPSocket.recv(sock)
     {:ok, {:have, r1}} = TCPSocket.recv(sock)
 
     assert r1 == 0
@@ -277,6 +301,19 @@ defmodule EffusionTest do
 
     {:ok, _pid} = Effusion.start_download(@torrent)
 
+    on_exit(fn ->
+      :ok = Effusion.stop_download(@torrent.info_hash)
+    end)
+
+    test_pid = self()
+    test_ref = make_ref()
+    Solvent.subscribe("io.github.cantido.effusion.torrent_completed", fn _, event_id ->
+      {:ok, event} = Solvent.EventStore.fetch(event_id)
+      if event.subject == @torrent.info_hash do
+        send(test_pid, test_ref)
+      end
+    end)
+
     {:ok, sock, _remote_peer, _ext} =
       TCPSocket.connect(
         {{127, 0, 0, 1}, @local_port},
@@ -308,21 +345,30 @@ defmodule EffusionTest do
     end
 
     {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:piece, 0, 0, "tin"})
-    {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:piece, 1, 0, "y\n"})
+    {:ok, m1} = TCPSocket.recv(sock)
+    {:ok, m2} = TCPSocket.recv(sock)
 
-    {:ok, {:have, r1}} = TCPSocket.recv(sock)
-    {:ok, {:have, r2}} = TCPSocket.recv(sock)
-
-    if r1 == 0 do
-      assert r2 == 1
+    if elem(m1, 0) == :cancel do
+      assert m1 == {:cancel, %{index: 0, offset: 0, size: 3}}
+      assert m2 == {:have, 0}
     else
-      assert r1 == 1
-      assert r2 == 0
+      assert m1 == {:have, 0}
+      assert m2 == {:cancel, %{index: 0, offset: 0, size: 3}}
     end
 
-    Effusion.stop_download(@torrent.info_hash)
+    {:ok, _bytes_count} = TCPSocket.send_msg(sock, {:piece, 1, 0, "y\n"})
+    {:ok, m3} = TCPSocket.recv(sock)
+    {:ok, m4} = TCPSocket.recv(sock)
 
-    Process.sleep(100)
+    if elem(m3, 0) == :cancel do
+      assert m3 == {:cancel, %{index: 1, offset: 0, size: 2}}
+      assert m4 == {:have, 1}
+    else
+      assert m3 == {:have, 1}
+      assert m4 == {:cancel, %{index: 1, offset: 0, size: 2}}
+    end
+
+    assert_receive ^test_ref
 
     :file.datasync(file)
 

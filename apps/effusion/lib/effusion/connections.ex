@@ -282,7 +282,17 @@ defmodule Effusion.Connections do
   end
 
   def handle_pwp_message({:piece, %{index: index, offset: offset, data: data}}, conn) do
-    :ok = Torrents.add_data(conn.info_hash, conn.address, index, offset, data)
+    Logger.debug("Got piece, emitting event for it")
+    Solvent.publish(
+      "io.github.cantido.effusion.blocks.received",
+      subject: conn.info_hash,
+      data: %{
+        address: conn.address,
+        index: index,
+        offset: offset,
+        data: data
+      }
+    )
 
     {:ok, conn}
   end
