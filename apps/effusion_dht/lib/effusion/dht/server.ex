@@ -1,5 +1,4 @@
-defmodule Effusion.DHT.Server do
-  alias Effusion.DHT
+defmodule Effusion.DHT.Server do alias Effusion.DHT
   alias Effusion.DHT.KRPC
   alias Effusion.DHT.Node
   alias Effusion.DHT.Table
@@ -155,7 +154,7 @@ defmodule Effusion.DHT.Server do
           message["a"]["port"]
         end
 
-      Effusion.add_peer(message["a"]["info_hash"], ip, peer_port)
+      Effusion.add_peer(message["a"]["info_hash"], {ip, peer_port})
 
       tokens = Map.delete(state.tokens, ip)
       {response, %{state | tokens: tokens}}
@@ -168,6 +167,10 @@ defmodule Effusion.DHT.Server do
     response = KRPC.new_error(message["t"], [204, "Unknown method #{query}"])
 
     {response, state}
+  end
+
+  def compact_address(%Effusion.Peer{host: host, port: port}) do
+    compact_address({host, port})
   end
 
   def compact_address({{ip0, ip1, ip2, ip3}, port}) do

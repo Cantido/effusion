@@ -112,7 +112,7 @@ defmodule Effusion.DHTTest do
 
     # generate the peer we'll respond with
 
-    :ok = Effusion.add_peer(target, {127, 0, 0, 1}, 8080)
+    :ok = Effusion.add_peer(target, {{127, 0, 0, 1}, 8080})
 
     # Ask the DHT for peers
 
@@ -314,7 +314,7 @@ defmodule Effusion.DHTTest do
 
     peers = Effusion.peers(target)
 
-    assert Enum.any?(peers, fn {_host, port} -> port == peer_port end)
+    assert Enum.any?(peers, fn peer -> peer.port == peer_port end)
   end
 
   test "response to announce_peer with a good token with an implied port", %{port: port, node_id: node_id} do
@@ -368,7 +368,7 @@ defmodule Effusion.DHTTest do
 
     {:ok, peer_port} = :inet.port(socket)
 
-    assert Enum.any?(peers, fn {_host, port} -> port == peer_port end), "No peers with port #{peer_port} found"
+    assert Enum.any?(peers, fn peer -> peer.port == peer_port end)
   end
 
   test "response to announce_peer with a mismatched token", %{port: port} do

@@ -6,6 +6,10 @@ defmodule Effusion do
   alias Effusion.Torrents
   alias Effusion.Swarm
 
+  def downloading?(info_hash) do
+    Torrents.downloading?(info_hash)
+  end
+
   def start_download(meta) do
     Torrents.start_child(meta: meta)
   end
@@ -19,11 +23,11 @@ defmodule Effusion do
   end
 
   def peers(info_hash) do
-    Torrents.peers(info_hash)
+    Swarm.peers_for_torrent(info_hash)
   end
 
-  def add_peer(info_hash, ip, port) do
-    Swarm.add_peer(ip, port)
-    Torrents.add_peer(info_hash, {ip, port})
+  def add_peer(info_hash, address) do
+    Swarm.add_peer(address)
+    Swarm.add_torrent(address, info_hash)
   end
 end

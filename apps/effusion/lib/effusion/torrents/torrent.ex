@@ -13,7 +13,6 @@ defmodule Effusion.Torrent do
     bytes_downloaded: 0,
     verified_pieces: IntSet.new(),
     written_blocks: IntSet.new(),
-    peers: MapSet.new(),
     availability: %Availability{},
     requests: %Requests{}
   ]
@@ -144,10 +143,6 @@ defmodule Effusion.Torrent do
     requests = Requests.cancel_requests(torrent.requests, index, offset, size)
 
     %__MODULE__{torrent | requests: requests}
-  end
-
-  def add_peer(torrent, address) do
-    %{torrent | peers: MapSet.put(torrent.peers, address)}
   end
 
   def peer_has_piece(torrent, address, piece_index) when is_integer(piece_index) do

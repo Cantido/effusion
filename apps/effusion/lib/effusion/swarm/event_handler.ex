@@ -8,15 +8,12 @@ defmodule Effusion.Swarm.EventHandler do
 
   def handle_event("io.github.cantido.effusion.peer_discovered", event_id) do
     {:ok, event} = Solvent.EventStore.fetch(event_id)
-    %{
-      address: {host, port},
-      peer_id: peer_id
-    } = event.data
+    {host, port} = Map.fetch!(event.data, :address)
 
     Swarm.add_peer(host, port)
 
-    unless is_nil(peer_id) do
-      Swarm.set_peer_id({host, port}, peer_id)
+    unless Map.has_key?(event.data, :address) and not is_nil(event.data[:address]) do
+      Swarm.set_peer_id({host, port}, event.data[:address])
     end
   end
 end

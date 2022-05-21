@@ -16,8 +16,8 @@ defmodule Effusion.Torrents do
     GenServer.start_link(__MODULE__, opts, name: via(meta.info_hash))
   end
 
-  def peers(info_hash) do
-    GenServer.call(via(info_hash), :get_peers)
+  def downloading?(info_hash) do
+    not is_nil(GenServer.whereis(via(info_hash)))
   end
 
   def get_uploaded(info_hash) do
@@ -152,14 +152,10 @@ defmodule Effusion.Torrents do
     {:reply, :ok, torrent}
   end
 
-  def handle_call(:get_peers, _from, torrent) do
-    {:reply, torrent.peers, torrent}
-  end
-
   def handle_call({:add_peer, address}, _from, torrent) do
     {:ok, _pid} = Connections.connect(address, torrent.meta.info_hash)
 
-    {:reply, :ok, Torrent.add_peer(torrent, address)}
+    {:reply, :ok, torrent}
   end
 
   def handle_call({:peer_has_piece, address, piece_index}, _from, torrent) do
