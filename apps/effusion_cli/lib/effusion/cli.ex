@@ -5,39 +5,26 @@ defmodule Effusion.CLI do
   A command-line interface to Effusion.
   """
 
-  # @aliases [o: :output]
-  # @strict [output: :string]
+  def main(args \\ []) do
+    file = Enum.at(args, 0)
+    contents = File.read!(file)
+    {:ok, meta} = Metatorrent.decode(contents)
 
-  # @doc """
-  # Download a file.
+    Effusion.start_download(meta)
 
-  # Usage: `effusion <name> -o <destination>`
-  # """
-  # def main(argv \\ []) do
-  #   {_opts, files, invalid} = OptionParser.parse(argv, strict: @strict, aliases: @aliases)
+    output_loop(meta.info_hash)
+  end
 
-  #   Enum.each(invalid, fn i ->
-  #     IO.warn("Invalid option #{i}")
-  #   end)
+  def output_loop(info_hash) do
+    {downloaded, total} = Effusion.Torrents.get_progress(info_hash)
 
-  #   files
-  #   |> Enum.map(fn file ->
-  #     contents = File.read!(file)
-  #     {:ok, meta} = Metatorrent.decode(contents)
-  #     Effusion.Downloads.add(meta)
-  #     Effusion.Downloads.start(
-  #       meta.info_hash,
-  #       Application.fetch_env!(:effusion, :block_size),
-  #       Application.fetch_env!(:effusion, :max_requests_per_peer),
-  #       Application.fetch_env!(:effusion, :max_half_open_connections),
-  #       Application.fetch_env!(:effusion, :max_peers)
-  #     )
-  #   end)
+    IO.puts("Progress: " <> Effusion.CLI.Format.bytes(downloaded) <> "/" <> Effusion.CLI.Format.bytes(total))
 
-  #   Process.sleep(1000)
+    Process.sleep(500)
 
-  #   output_loop()
-  # end
+    output_loop(info_hash)
+  end
+
 
   # @name_width 40
   # @progress_width 20

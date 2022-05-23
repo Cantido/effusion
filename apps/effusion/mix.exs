@@ -37,6 +37,7 @@ defmodule Effusion.Mixfile do
       {:bento, "~> 0.9"},
       {:bypass, "~> 2.1", only: :test},
       {:finch, "~> 0.12.0"},
+      {:httpoison, "~> 1.8"},
       {:int_set, "~> 1.5"},
       {:logger_file_backend, "~> 0.0.10"},
       {:metatorrent, "~> 1.0"},

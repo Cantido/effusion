@@ -1,4 +1,4 @@
-defmodule Effusion.Tracker.Finch do
+defmodule Effusion.Tracker.HTTPoison do
   alias Effusion.Tracker.Response
   require Logger
   @behaviour Effusion.Tracker.HTTP
@@ -12,9 +12,7 @@ defmodule Effusion.Tracker.Finch do
       |> Enum.reject(fn {_key, val} -> is_nil(val) end)
       |> URI.encode_query()
 
-    request = Finch.build(:get, request.url <> "?" <> query)
-
-    with {:ok, %{status: 200, body: body}} <- Finch.request(request, EffusionFinch),
+    with {:ok, %{status: 200, body: body}} <- HTTPoison.get(request.url <> "?" <> query, [], timeout: 30_000, recv_timeout: 30_000),
          {:ok, bterm} <- Bento.decode(body) do
       if not is_nil(bterm["failure reason"]) do
         {:error, bterm["failure reason"]}

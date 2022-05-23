@@ -10,7 +10,7 @@ config :effusion,
   handshake_timeout: 5_000,
   download_destination: File.cwd!(),
   enabled_extensions: [],
-  tracker_worker: Effusion.Tracker.Finch
+  tracker_worker: Effusion.Tracker.HTTPoison
 
 config :effusion_dht,
   port: 8006,

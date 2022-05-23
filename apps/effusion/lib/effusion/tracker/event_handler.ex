@@ -31,6 +31,8 @@ defmodule Effusion.Tracker.EventHandler do use Solvent.Subscriber,
         numwant: Application.fetch_env!(:effusion, :max_peers)
       }
 
+    Logger.debug("Making tracker request: #{inspect request, pretty: true}")
+
     announce(request)
   end
 

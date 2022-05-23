@@ -123,6 +123,7 @@ defmodule Effusion.Torrents do
 
   def init(opts) do
     meta = Keyword.fetch!(opts, :meta)
+    Logger.debug("Starting torrent: #{inspect meta, pretty: true}")
     {:ok, %Torrent{meta: meta}, {:continue, :announce}}
   end
 
