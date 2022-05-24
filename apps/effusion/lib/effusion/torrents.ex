@@ -113,6 +113,10 @@ defmodule Effusion.Torrents do
     end
   end
 
+  def pause(info_hash) do
+    GenServer.call(via(info_hash), :pause)
+  end
+
   def stop(info_hash) do
     GenServer.call(via(info_hash), :stop)
   end
@@ -239,26 +243,66 @@ defmodule Effusion.Torrents do
     {:reply, :ok, torrent}
   end
 
+  def handle_call(:pause, _from, torrent) do
+    if Torrent.running?(torrent) do
+      {downloaded, total} = Torrent.progress(torrent)
+      left = total - downloaded
+
+      Solvent.publish(
+        "io.github.cantido.effusion.torrent_stopped",
+        subject: torrent.meta.info_hash,
+        data: %{
+          announce: torrent.meta.announce,
+          uploaded: torrent.bytes_uploaded,
+          downloaded: downloaded,
+          left: left
+        }
+      )
+
+      {:reply, :ok, Torrent.pause(torrent)}
+    else
+      {:reply, :ok, torrent}
+    end
+  end
+
   def handle_call(:stop, _from, torrent) do
-    {:stop, :normal, :ok, torrent}
+    if Torrent.running?(torrent) do
+      {downloaded, total} = Torrent.progress(torrent)
+      left = total - downloaded
+
+      Solvent.publish(
+        "io.github.cantido.effusion.torrent_stopped",
+        subject: torrent.meta.info_hash,
+        data: %{
+          announce: torrent.meta.announce,
+          uploaded: torrent.bytes_uploaded,
+          downloaded: downloaded,
+          left: left
+        }
+      )
+    end
+
+    {:stop, :normal, :ok, Torrent.pause(torrent)}
   end
 
   def terminate(reason, torrent) do
     Logger.info("Torrent is stopping with reason #{inspect reason}")
 
-    {downloaded, total} = Torrent.progress(torrent)
-    left = total - downloaded
+    if Torrent.running?(torrent) do 
+      {downloaded, total} = Torrent.progress(torrent)
+      left = total - downloaded
 
-    Solvent.publish(
-      "io.github.cantido.effusion.torrent_stopped",
-      subject: torrent.meta.info_hash,
-      data: %{
-        announce: torrent.meta.announce,
-        uploaded: torrent.bytes_uploaded,
-        downloaded: downloaded,
-        left: left
-      }
-    )
+      Solvent.publish(
+        "io.github.cantido.effusion.torrent_stopped",
+        subject: torrent.meta.info_hash,
+        data: %{
+          announce: torrent.meta.announce,
+          uploaded: torrent.bytes_uploaded,
+          downloaded: downloaded,
+          left: left
+        }
+      )
+    end
 
     :ok
   end

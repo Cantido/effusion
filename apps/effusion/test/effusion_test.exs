@@ -148,6 +148,7 @@ defmodule EffusionTest do
       assert m4 == {:cancel, %{index: 1, offset: 0, size: 2}}
     end
 
+    Effusion.pause_download(@torrent.info_hash)
 
     assert_receive ^test_ref
 
@@ -209,7 +210,7 @@ defmodule EffusionTest do
 
     Process.sleep(100)
 
-    Effusion.stop_download(@multi_file_torrent.info_hash)
+    Effusion.pause_download(@multi_file_torrent.info_hash)
 
     :file.datasync(file)
 
@@ -367,6 +368,8 @@ defmodule EffusionTest do
       assert m3 == {:have, 1}
       assert m4 == {:cancel, %{index: 1, offset: 0, size: 2}}
     end
+
+    Effusion.pause_download(@torrent.info_hash)
 
     assert_receive ^test_ref
 

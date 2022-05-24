@@ -8,6 +8,7 @@ defmodule Effusion.Torrent do
   ]
   defstruct [
     meta: nil,
+    state: :paused,
     block_size: 16384,
     bytes_uploaded: 0,
     bytes_downloaded: 0,
@@ -16,6 +17,22 @@ defmodule Effusion.Torrent do
     availability: %Availability{},
     requests: %Requests{}
   ]
+
+  def running?(torrent) do
+    torrent.state == :running
+  end
+
+  def continue(torrent) do
+    %{torrent | state: :running}
+  end
+
+  def paused?(torrent) do
+    torrent.state == :paused
+  end
+
+  def pause(torrent) do
+    %{torrent | state: :paused}
+  end
 
   def get_bitfield(torrent) do
     bitfield = IntSet.bitstring(torrent.verified_pieces, byte_align: true)

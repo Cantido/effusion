@@ -14,6 +14,10 @@ defmodule Effusion do
     Torrents.start_child(meta: meta)
   end
 
+  def pause_download(info_hash) do
+    Torrents.pause(info_hash)
+  end
+
   def stop_download(info_hash) do
     Torrents.stop(info_hash)
   end
