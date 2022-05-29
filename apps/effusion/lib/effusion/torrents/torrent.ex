@@ -7,6 +7,7 @@ defmodule Effusion.Torrent do
     :meta
   ]
   defstruct [
+    id: nil,
     meta: nil,
     state: :paused,
     block_size: 16384,
@@ -17,6 +18,13 @@ defmodule Effusion.Torrent do
     availability: %Availability{},
     requests: %Requests{}
   ]
+
+  def new(meta) do
+    %__MODULE__{
+      id: Base.encode16(meta.info_hash, case: :lower),
+      meta: meta
+    }
+  end
 
   def running?(torrent) do
     torrent.state == :running
