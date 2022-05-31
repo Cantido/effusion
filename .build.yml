@@ -10,4 +10,4 @@ tasks:
       sudo chmod a+x /usr/local/bin/earthly
   - build: |
       cd effusion
-      sudo /usr/local/bin/earthly --ci +all
+      sudo /usr/local/bin/earthly --ci --allow-privileged +all
