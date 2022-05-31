@@ -7,7 +7,7 @@ all:
   BUILD +docker
 
 get-deps:
-  FROM elixir:1.11-alpine
+  FROM elixir:1.13
   RUN mix do local.rebar --force, local.hex --force
   COPY mix.exs .
   COPY mix.lock .
