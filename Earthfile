@@ -7,7 +7,8 @@ all:
   BUILD +docker
 
 get-deps:
-  FROM elixir:1.13
+  FROM hexpm/elixir:1.13.0-erlang-25.0-debian-bullseye-20210902-slim
+  RUN apt install -y inotify-tools libtool automake libgmp-dev make libwxgtk-webview3.0-gtk3-dev libssl-dev libncurses5-dev curl git
   COPY mix.exs .
   COPY mix.lock .
   COPY apps/effusion/mix.exs apps/effusion/mix.exs
