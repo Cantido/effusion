@@ -8,13 +8,14 @@ all:
 
 get-deps:
   FROM elixir:1.13
-  RUN mix do local.rebar --force, local.hex --force
   COPY mix.exs .
   COPY mix.lock .
   COPY apps/effusion/mix.exs apps/effusion/mix.exs
   COPY apps/effusion_cli/mix.exs apps/effusion_cli/mix.exs
   COPY apps/effusion_dht/mix.exs apps/effusion_dht/mix.exs
+  COPY apps/effusion_desktop/mix.exs apps/effusion_desktop/mix.exs
 
+  RUN mix do local.rebar --force, local.hex --force
   RUN mix deps.get
 
 compile-deps:
@@ -24,8 +25,7 @@ compile-deps:
 build:
   FROM +compile-deps
 
-  COPY config ./config
-  COPY apps ./apps
+  COPY --dir apps/ config/ .
 
   RUN MIX_ENV=$MIX_ENV mix compile
 
