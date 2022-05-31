@@ -1,3 +1,5 @@
+VERSION 0.6
+
 ARG MIX_ENV=dev
 
 all:

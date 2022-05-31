@@ -3,9 +3,20 @@ defmodule EffusionUmbrella.Mixfile do
 
   def project do
     [
+      version: "0.1.0",
       apps_path: "apps",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
+      releases: [
+        effusion: [
+          applications: [
+            effusion: :permanent,
+            effusion_cli: :permanent,
+            effusion_dht: :permanent,
+            effusion_desktop: :permanent
+          ]
+        ]
+      ],
       deps: deps(),
       aliases: aliases()
     ]
