@@ -50,22 +50,11 @@ defmodule EffusionTest do
   end
 
   setup do
-    Temp.track!()
-
-    {:ok, file} = Temp.path()
-
-    on_exit(fn ->
-      File.rm_rf(file)
-    end)
-
-    %{destfile: file}
-  end
-
-  setup do
     Application.put_env(:effusion, :server_address, {{127, 0, 0, 1}, @local_port})
   end
 
-  test "download a single-file torrent", %{lsock: lsock, destfile: file} do
+  @tag :tmp_dir
+  test "download a single-file torrent", %{lsock: lsock, tmp_dir: file} do
     old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
     Application.put_env(:effusion, :enabled_extensions, [])
 
@@ -161,7 +150,8 @@ defmodule EffusionTest do
     assert "tiny\n" == contents
   end
 
-  test "download a multi-file torrent", %{lsock: lsock, destfile: file} do
+  @tag :tmp_dir
+  test "download a multi-file torrent", %{lsock: lsock, tmp_dir: file} do
     old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
     Application.put_env(:effusion, :enabled_extensions, [])
 
@@ -285,7 +275,8 @@ defmodule EffusionTest do
   #   Process.sleep(200)
   # end
 
-  test "receive a connection from a peer", %{destfile: file} do
+  @tag :tmp_dir
+  test "receive a connection from a peer", %{tmp_dir: file} do
     old_supported_extensions = Application.fetch_env!(:effusion, :enabled_extensions)
     Application.put_env(:effusion, :enabled_extensions, [])
 
