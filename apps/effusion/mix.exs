@@ -13,6 +13,7 @@ defmodule Effusion.Mixfile do
       lockfile: "../../mix.lock",
       start_permanent: Mix.env() == :prod,
       description: "A BitTorrent library.",
+      escript: [main_module: Effusion.CLI],
       package: package(),
       deps: deps(),
       docs: docs(),
