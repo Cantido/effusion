@@ -15,6 +15,6 @@ defmodule Effusion.DHT do
   end
 
   def local_node_id do
-    Application.fetch_env!(:effusion_dht, :node_id) |> Base.decode64!()
+    Application.fetch_env!(:effusion, :node_id) |> Base.decode64!()
   end
 end
