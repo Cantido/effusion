@@ -14,7 +14,7 @@ config :effusion,
   dht_port: 8006,
   # dht_node_id should be generated fresh for new installations,
   # by calling Effusion.DHT.generate_node_id() |> Base.encode64()
-  node_id: "zjuXKldLo4rJMGR1Ww/ykZFlXLQ=",
+  node_id: "zjuXKldLo4rJMGR1Ww/ykZFlXLQ="
 
 config :logger, :console,
   metadata: [
