@@ -28,22 +28,4 @@ config :logger, :console,
     :request_id
   ]
 
-config :effusion_desktop, EffusionDesktopWeb.Endpoint,
-  url: [host: "localhost"],
-  render_errors: [view: EffusionDesktopWeb.ErrorView, accepts: ~w(html json), layout: false],
-  pubsub_server: EffusionDesktop.PubSub,
-  live_view: [signing_salt: "Cna4QSzc"]
-
-# Configure esbuild (the version is required)
-config :esbuild,
-  version: "0.14.29",
-  default: [
-    args:
-      ~w(js/app.js --bundle --target=es2017 --outdir=../priv/static/assets --external:/fonts/* --external:/images/*),
-    cd: Path.expand("../apps/effusion_desktop/assets", __DIR__),
-    env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
-  ]
-
-config :phoenix, :json_library, Jason
-
 import_config "#{config_env()}.exs"
