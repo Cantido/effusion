@@ -1,6 +1,6 @@
 defmodule Effusion.Connections.EventHandler do
   use Solvent.Subscriber,
-    match_type: [
+    types: [
       "io.github.cantido.effusion.interested",
       "io.github.cantido.effusion.piece_verified",
       "io.github.cantido.effusion.request_cancelled",
@@ -10,7 +10,7 @@ defmodule Effusion.Connections.EventHandler do
   alias Effusion.Connections
   require Logger
 
-  def handle_event("io.github.cantido.effusion.interested", event_id) do
+  def handle_event("io.github.cantido.effusion.interested", event_id, _) do
     {:ok, event} = Solvent.EventStore.fetch(event_id)
     info_hash = event.subject
     %{address: address} = event.data
@@ -20,7 +20,7 @@ defmodule Effusion.Connections.EventHandler do
     Connections.send(info_hash, address, :interested)
   end
 
-  def handle_event("io.github.cantido.effusion.piece_verified", event_id) do
+  def handle_event("io.github.cantido.effusion.piece_verified", event_id, _) do
     {:ok, event} = Solvent.EventStore.fetch(event_id)
     info_hash = event.subject
     %{index: index} = event.data
@@ -30,7 +30,7 @@ defmodule Effusion.Connections.EventHandler do
     Connections.broadcast(info_hash, {:have, index})
   end
 
-  def handle_event("io.github.cantido.effusion.request_cancelled", event_id) do
+  def handle_event("io.github.cantido.effusion.request_cancelled", event_id, _) do
     {:ok, event} = Solvent.EventStore.fetch(event_id)
     info_hash = event.subject
     %{
@@ -43,7 +43,7 @@ defmodule Effusion.Connections.EventHandler do
     Connections.send(info_hash, address, {:cancel, index, offset, size})
   end
 
-  def handle_event("io.github.cantido.effusion.torrent_stopped", event_id) do
+  def handle_event("io.github.cantido.effusion.torrent_stopped", event_id, _) do
     {:ok, event} = Solvent.EventStore.fetch(event_id)
     info_hash = event.subject
 

@@ -1,10 +1,10 @@
 defmodule Effusion.Files.EventHandler do
   use Solvent.Subscriber,
-    match_type: "io.github.cantido.effusion.blocks.received"
+    types: ["io.github.cantido.effusion.blocks.received"]
 
   alias Effusion.Torrents
 
-  def handle_event("io.github.cantido.effusion.blocks.received", event_id) do
+  def handle_event("io.github.cantido.effusion.blocks.received", event_id, _) do
     {:ok, event} = Solvent.EventStore.fetch(event_id)
     
     if Torrents.downloading?(event.subject) do

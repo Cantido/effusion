@@ -1,5 +1,6 @@
-defmodule Effusion.Tracker.EventHandler do use Solvent.Subscriber,
-    match_type: [
+defmodule Effusion.Tracker.EventHandler do
+  use Solvent.Subscriber,
+    types: [
       "io.github.cantido.effusion.torrent.started",
       "io.github.cantido.effusion.torrent_completed",
       "io.github.cantido.effusion.torrent_stopped"
@@ -7,7 +8,7 @@ defmodule Effusion.Tracker.EventHandler do use Solvent.Subscriber,
   alias Effusion.Torrents
   require Logger
 
-  def handle_event("io.github.cantido.effusion.torrent.started", event_id) do
+  def handle_event("io.github.cantido.effusion.torrent.started", event_id, _) do
     {:ok, event} = Solvent.EventStore.fetch(event_id)
     info_hash = event.subject
 
@@ -36,7 +37,7 @@ defmodule Effusion.Tracker.EventHandler do use Solvent.Subscriber,
     announce(request)
   end
 
-  def handle_event("io.github.cantido.effusion.torrent_completed", event_id) do
+  def handle_event("io.github.cantido.effusion.torrent_completed", event_id, _) do
     {:ok, event} = Solvent.EventStore.fetch(event_id)
     info_hash = event.subject
 
@@ -62,7 +63,7 @@ defmodule Effusion.Tracker.EventHandler do use Solvent.Subscriber,
     announce(request)
   end
 
-  def handle_event("io.github.cantido.effusion.torrent_stopped", event_id) do
+  def handle_event("io.github.cantido.effusion.torrent_stopped", event_id, _) do
     {:ok, event} = Solvent.EventStore.fetch(event_id)
     info_hash = event.subject
 

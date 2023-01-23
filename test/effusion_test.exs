@@ -75,12 +75,14 @@ defmodule EffusionTest do
 
     test_pid = self()
     test_ref = make_ref()
-    Solvent.subscribe("io.github.cantido.effusion.torrent_completed", fn _, event_id ->
-      {:ok, event} = Solvent.EventStore.fetch(event_id)
-      if event.subject == @torrent.info_hash do
-        send(test_pid, test_ref)
-      end
-    end)
+    Solvent.subscribe(fn _, event_id, _ ->
+        {:ok, event} = Solvent.EventStore.fetch(event_id)
+        if event.subject == @torrent.info_hash do
+          send(test_pid, test_ref)
+        end
+      end,
+      types: ["io.github.cantido.effusion.torrent_completed"]
+    )
 
     {:ok, sock, _remote_peer, []} =
       TCPSocket.accept(
@@ -299,12 +301,14 @@ defmodule EffusionTest do
 
     test_pid = self()
     test_ref = make_ref()
-    Solvent.subscribe("io.github.cantido.effusion.torrent_completed", fn _, event_id ->
-      {:ok, event} = Solvent.EventStore.fetch(event_id)
-      if event.subject == @torrent.info_hash do
-        send(test_pid, test_ref)
-      end
-    end)
+    Solvent.subscribe(fn _, event_id, _ ->
+        {:ok, event} = Solvent.EventStore.fetch(event_id)
+        if event.subject == @torrent.info_hash do
+          send(test_pid, test_ref)
+        end
+      end,
+      types: ["io.github.cantido.effusion.torrent_completed"]
+    )
 
     {:ok, sock, _remote_peer, _ext} =
       TCPSocket.connect(

@@ -1,12 +1,12 @@
 defmodule Effusion.Swarm.EventHandler do
   use Solvent.Subscriber,
-    match_type: [
+    types: [
       "io.github.cantido.effusion.peer_discovered"
     ]
 
   alias Effusion.Swarm
 
-  def handle_event("io.github.cantido.effusion.peer_discovered", event_id) do
+  def handle_event("io.github.cantido.effusion.peer_discovered", event_id, _) do
     {:ok, event} = Solvent.EventStore.fetch(event_id)
     {host, port} = Map.fetch!(event.data, :address)
 
