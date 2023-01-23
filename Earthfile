@@ -8,13 +8,8 @@ all:
 
 get-deps:
   FROM hexpm/elixir:1.13.0-erlang-25.0-debian-bullseye-20210902-slim
-  RUN apt install -y inotify-tools libtool automake libgmp-dev make libwxgtk-webview3.0-gtk3-dev libssl-dev libncurses5-dev curl git
   COPY mix.exs .
   COPY mix.lock .
-  COPY apps/effusion/mix.exs apps/effusion/mix.exs
-  COPY apps/effusion_cli/mix.exs apps/effusion_cli/mix.exs
-  COPY apps/effusion_dht/mix.exs apps/effusion_dht/mix.exs
-  COPY apps/effusion_desktop/mix.exs apps/effusion_desktop/mix.exs
 
   RUN mix do local.rebar --force, local.hex --force
   RUN mix deps.get
@@ -26,12 +21,15 @@ compile-deps:
 build:
   FROM +compile-deps
 
-  COPY --dir apps/ config/ .
+  COPY --dir lib/ config/ .
 
   RUN MIX_ENV=$MIX_ENV mix compile
 
 test:
   FROM --build-arg MIX_ENV=test +build
+
+  COPY --dir test/ .
+
   COPY docker-compose.yml .
   WITH DOCKER --compose docker-compose.yml
     RUN MIX_ENV=test mix do setup, test
