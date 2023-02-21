@@ -31,7 +31,7 @@ defmodule Effusion.Mixfile do
 
   defp deps do
     [
-      {:bento, "~> 0.9"},
+      {:bento, "~> 1.0"},
       {:bypass, "~> 2.1", only: :test},
       {:finch, "~> 0.14.0"},
       {:httpoison, "~> 2.0"},
