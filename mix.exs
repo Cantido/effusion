@@ -33,7 +33,7 @@ defmodule Effusion.Mixfile do
     [
       {:bento, "~> 1.0"},
       {:bypass, "~> 2.1", only: :test},
-      {:finch, "~> 0.15.0"},
+      {:finch, "~> 0.16.0"},
       {:httpoison, "~> 2.0"},
       {:int_set, "~> 2.0"},
       {:logger_file_backend, "~> 0.0.10"},
